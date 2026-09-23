@@ -12,4 +12,5 @@ class ProgramOffering extends Model
     public function admissionIntakes(): HasMany { return $this->hasMany(AdmissionIntake::class); }
     public function feeRecords(): HasMany { return $this->hasMany(FeeRecord::class); }
     public function scholarships(): HasMany { return $this->hasMany(Scholarship::class); }
+    public function accreditations(): HasMany { return $this->hasMany(Accreditation::class); }
 }
