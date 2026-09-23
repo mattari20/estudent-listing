@@ -11,4 +11,5 @@ class AdmissionIntake extends Model
     public function eligibilityRules(): HasMany { return $this->hasMany(EligibilityRule::class); }
     public function meritRecords(): HasMany { return $this->hasMany(MeritRecord::class); }
     public function selectionOutcomes(): HasMany { return $this->hasMany(SelectionOutcome::class); }
+    public function feeRecords(): HasMany { return $this->hasMany(FeeRecord::class); }
 }
