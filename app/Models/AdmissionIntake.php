@@ -9,4 +9,6 @@ class AdmissionIntake extends Model
     protected $casts = ['application_open_at'=>'date','application_close_at'=>'date','test_date'=>'date','selection_date'=>'date','enrollment_start_at'=>'date','enrollment_end_at'=>'date'];
     public function offering(): BelongsTo { return $this->belongsTo(ProgramOffering::class,'program_offering_id'); }
     public function eligibilityRules(): HasMany { return $this->hasMany(EligibilityRule::class); }
+    public function meritRecords(): HasMany { return $this->hasMany(MeritRecord::class); }
+    public function selectionOutcomes(): HasMany { return $this->hasMany(SelectionOutcome::class); }
 }
