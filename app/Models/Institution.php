@@ -9,4 +9,5 @@ class Institution extends Model
     public function names(): HasMany { return $this->hasMany(InstitutionName::class); }
     public function campuses(): HasMany { return $this->hasMany(Campus::class); }
     public function programs(): HasMany { return $this->hasMany(Program::class); }
+    public function accreditations(): HasMany { return $this->hasMany(Accreditation::class); }
 }
