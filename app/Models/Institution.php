@@ -8,4 +8,5 @@ class Institution extends Model
     protected $casts = ['verified_at'=>'datetime'];
     public function names(): HasMany { return $this->hasMany(InstitutionName::class); }
     public function campuses(): HasMany { return $this->hasMany(Campus::class); }
+    public function programs(): HasMany { return $this->hasMany(Program::class); }
 }
