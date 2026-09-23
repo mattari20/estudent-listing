@@ -10,4 +10,5 @@ class ProgramOffering extends Model
     public function program(): BelongsTo { return $this->belongsTo(Program::class); }
     public function campus(): BelongsTo { return $this->belongsTo(Campus::class); }
     public function admissionIntakes(): HasMany { return $this->hasMany(AdmissionIntake::class); }
+    public function feeRecords(): HasMany { return $this->hasMany(FeeRecord::class); }
 }
