@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Institution;
 use App\Services\InstitutionIdentityIntegrityService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 class InstitutionIdentityIntegrityTest extends TestCase
@@ -69,30 +70,30 @@ class InstitutionIdentityIntegrityTest extends TestCase
 
     public function test_duplicate_active_slug_is_reported_without_mutation(): void
     {
-        $first = Institution::query()->create([
+        $first = new Institution([
             'name' => 'First University',
             'slug' => 'shared-university',
             'institution_type' => 'university',
             'status' => 'active',
         ]);
+        $first->id = 1;
 
-        $second = Institution::query()->create([
+        $second = new Institution([
             'name' => 'Second University',
             'slug' => 'shared-university',
             'institution_type' => 'university',
             'status' => 'active',
         ]);
+        $second->id = 2;
 
         $before = [$first->name, $first->slug, $second->name, $second->slug];
 
-        $findings = app(InstitutionIdentityIntegrityService::class)->inspect($second);
+        $findings = app(InstitutionIdentityIntegrityService::class)->inspectMany(
+            new Collection([$first, $second])
+        );
 
-        $this->assertContains('duplicate_active_slug', $findings);
-        $this->assertSame($before, [
-            $first->fresh()->name,
-            $first->fresh()->slug,
-            $second->fresh()->name,
-            $second->fresh()->slug,
-        ]);
+        $this->assertContains('duplicate_active_slug', $findings[0]['findings']);
+        $this->assertContains('duplicate_active_slug', $findings[1]['findings']);
+        $this->assertSame($before, [$first->name, $first->slug, $second->name, $second->slug]);
     }
 }
