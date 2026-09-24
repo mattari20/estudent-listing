@@ -99,7 +99,7 @@ class GeographyIntegrityService
 
         foreach ($this->inspectMany(Geography::query()->get()) as $result) {
             foreach ($result['findings'] as $finding) {
-                $errors[] = $finding . ':' . $result['geography_id'];
+                $errors[] = sprintf('%s:%s', $finding, $result['geography_id']);
             }
         }
 
