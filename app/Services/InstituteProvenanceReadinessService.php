@@ -21,6 +21,8 @@ class InstituteProvenanceReadinessService
                 ->get();
 
             if ($evidences->isEmpty()) {
+                $rowsWithInvalidLineage++;
+                $rowsWithoutCompleteAssertion++;
                 continue;
             }
 

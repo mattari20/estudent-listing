@@ -35,6 +35,7 @@ class InstituteSourceEvidenceCaptureService
             'reference'=>$reference,
             'excerpt'=>$excerpt,
             'content_hash'=>$contentHash,
+            'snapshot_id'=>$snapshotId,
             'observed_at'=>now(),
             'status'=>'active',
         ]);
