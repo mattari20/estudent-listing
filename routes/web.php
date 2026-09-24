@@ -3,8 +3,14 @@
 use App\Http\Controllers\GeographyImportController;
 use App\Http\Controllers\InstituteAuthController;
 use App\Http\Controllers\InstituteBulkPromotionController;
+use App\Http\Controllers\InstituteDataReadinessController;
 use App\Http\Controllers\InstituteGeographyIntegrityController;
 use App\Http\Controllers\InstituteImportController;
+use App\Http\Controllers\InstituteImportVerificationController;
+use App\Http\Controllers\InstituteProductionPromotionReadinessController;
+use App\Http\Controllers\InstituteProvenanceReadinessController;
+use App\Http\Controllers\InstituteSourceVerificationReadinessController;
+use App\Http\Controllers\InstituteSourceEvidenceCaptureController;
 use App\Http\Controllers\InstituteImportPromotionController;
 use App\Http\Controllers\InstituteOperationsController;
 use App\Http\Controllers\InstituteRobotsController;
@@ -28,6 +34,12 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
     Route::middleware(['auth', 'institute.operator'])->prefix('operations')->name('operations.')->group(function (): void {
         Route::get('/', [InstituteOperationsController::class, 'queue'])->name('queue');
         Route::get('/integrity', InstituteGeographyIntegrityController::class)->name('integrity');
+        Route::get('/data-readiness', InstituteDataReadinessController::class)->name('data-readiness');
+        Route::get('/imports/{importBatch}/verification', InstituteImportVerificationController::class)->name('imports.verification');
+        Route::get('/imports/{importBatch}/source-readiness', InstituteSourceVerificationReadinessController::class)->name('imports.source-readiness');
+        Route::get('/imports/{importBatch}/promotion-readiness', InstituteProductionPromotionReadinessController::class)->name('imports.promotion-readiness');
+        Route::get('/imports/{importBatch}/provenance-readiness', InstituteProvenanceReadinessController::class)->name('imports.provenance-readiness');
+        Route::post('/sources/{source}/evidence', [InstituteSourceEvidenceCaptureController::class, 'store'])->name('sources.evidence.store');
         Route::get('/rows/{importRow}', [InstituteOperationsController::class, 'show'])->name('row');
         Route::post('/rows/{importRow}/resolve', [InstituteImportPromotionController::class, 'resolve'])->name('resolve');
         Route::post('/rows/{importRow}/decision', [InstituteImportPromotionController::class, 'decide'])->name('decide');

@@ -10,6 +10,10 @@ class SourceRetrievalService
 {
     public function retrieve(Source $source): SourceRetrievalRun
     {
+        if ($source->status !== 'active') {
+            throw new \InvalidArgumentException('Source retrieval is only allowed for active sources.');
+        }
+
         $run = SourceRetrievalRun::create([
             'source_id' => $source->id,
             'status' => 'started',
