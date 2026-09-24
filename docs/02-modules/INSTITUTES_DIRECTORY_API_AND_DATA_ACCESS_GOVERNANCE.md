@@ -3,10 +3,10 @@
 **Document ID:** MOD-021  
 **Title:** Institutes Directory — API and Data Access Governance  
 **Version:** 1.0  
-**Status:** Final candidate — pending merge into `main`  
+**Status:** Approved — implemented read-only API v1 boundary  
 **Owner:** eStudent.pk  
 **Created:** 2026-09-23  
-**Last Updated:** 2026-09-23  
+**Last Updated:** 2026-09-24  
 **Depends On:** FND-001, FND-002, ARC-001, ARC-002, ARC-003, MOD-006, MOD-018, MOD-019, MOD-020  
 **Related Documents:** All canonical entity and module governance documents  
 **Next Documents:** Ranking and Recommendation Methodology; Security and Privacy Governance
@@ -522,6 +522,17 @@ Future documents may define:
 
 ---
 
-## 37. Approval State
+## 37. Current Implementation State
 
-This document is a **final candidate pending merge into `main`**. Once merged, it becomes approved project documentation unless superseded by a governed decision.
+The Institutes Directory currently exposes a versioned, read-only API v1 surface:
+
+- `GET /api/v1/institutions`
+- `GET /api/v1/institutions/{institution:slug}`
+
+The collection endpoint reuses the governed directory search/filter boundary and bounds `per_page` to 1–100. The profile endpoint applies the public lifecycle and geography visibility boundary before serialization.
+
+Implementation details are tracked in `docs/08-development/DEV-298-API-DATA-ACCESS-HARDENING.md`.
+
+## 38. Approval State
+
+This document is approved project governance. Future concrete API contracts, authentication, partner access, bulk export, write workflows, and security/privacy controls remain subject to separate governed decisions.
