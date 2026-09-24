@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\IdentityResolutionDecision;
-use App\Models\ImportPromotionDecision;
 use App\Models\ImportConflict;
+use App\Models\ImportPromotionDecision;
 use App\Models\ImportRow;
 use Illuminate\Support\Facades\DB;
 
