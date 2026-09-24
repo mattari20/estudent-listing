@@ -19,7 +19,7 @@ class BulkImportPromotionService
                 DB::transaction(function () use ($id, $actorId, &$result): void {
                     $row = ImportRow::query()->lockForUpdate()->with('batch')->find($id);
 
-                    if (! $row || $row->status !== 'candidate') {
+                    if (!$row || $row->status !== 'candidate') {
                         $result['skipped']++;
                         return;
                     }
@@ -38,7 +38,7 @@ class BulkImportPromotionService
                             ->latest('id')
                             ->first();
 
-                        if (! $decision) {
+                        if (!$decision) {
                             $result['skipped']++;
                             return;
                         }
@@ -65,7 +65,7 @@ class BulkImportPromotionService
                             ->latest('id')
                             ->first();
 
-                        if (! $decision) {
+                        if (!$decision) {
                             $result['skipped']++;
                             return;
                         }
