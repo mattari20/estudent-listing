@@ -1,4 +1,5 @@
 <?php
+
 use App\Http\Controllers\InstituteAuthController;
 use App\Http\Controllers\InstituteBulkPromotionController;
 use App\Http\Controllers\InstituteImportController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\InstituteRobotsController;
 use App\Http\Controllers\InstituteSitemapController;
 use App\Http\Controllers\InstitutionController;
 use Illuminate\Support\Facades\Route;
+
 Route::prefix('institutes')->name('institutes.')->group(function (): void {
  Route::get('/', [InstitutionController::class,'index'])->name('index');
  Route::get('/search', \App\Http\Controllers\InstituteSearchController::class)->name('search');
