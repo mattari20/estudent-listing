@@ -47,8 +47,20 @@ class InstitutionApiController extends Controller
                 ->with([
                     'offerings' => fn ($offeringQuery) => $offeringQuery
                         ->where('status', 'active')
+                        ->with([
+                            'admissionIntakes.eligibilityRules',
+                            'admissionIntakes.meritRecords',
+                            'admissionIntakes.scholarships',
+                            'admissionIntakes.feeRecords',
+                            'scholarships',
+                            'feeRecords',
+                            'accreditations',
+                        ])
                         ->orderBy('intake_label'),
                 ])
+                ->orderBy('name'),
+            'accreditations' => fn ($query) => $query
+                ->whereNotIn('status', ['rejected', 'withdrawn'])
                 ->orderBy('name'),
         ]);
 
