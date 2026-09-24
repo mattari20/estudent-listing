@@ -10,6 +10,7 @@ use App\Models\DataReverificationQueue;
 use App\Services\ImportBatchReconciliationReport;
 use App\Services\ImportDependencyContextService;
 use App\Services\ImportQualityReportService;
+use App\Services\InstituteGeographyCrossDomainIntegrityService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 class InstituteOperationsController {
@@ -21,6 +22,14 @@ class InstituteOperationsController {
   $qualityReport=$batchId?$quality->build(\App\Models\ImportBatch::findOrFail($batchId)):null;
   $reverification=DataReverificationQueue::query()->where('status','open')->orderByRaw("CASE priority WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END")->orderBy('due_at')->limit(20)->get();
   return view('institutes.operations.queue',compact('rows','batches','summary','qualityReport','batchId','reverification'));
+ }
+ public function integrity(InstitutionGeographyCrossDomainIntegrityService $integrity): View {
+  $institutions=\App\Models\Institution::query()->where('status','active')->with(['campuses'=>fn($query)=>$query->where('status','active')->with('geography')])->orderBy('name')->paginate(25);
+  $institutions->getCollection()->transform(function ($institution) use ($integrity) {
+   $institution->setAttribute('integrity_findings',$integrity->inspect($institution));
+   return $institution;
+  });
+  return view('institutes.operations.integrity',compact('institutions'));
  }
  public function show(ImportRow $importRow, ImportDependencyContextService $context): View {
   $importRow->load(['batch.source']);
