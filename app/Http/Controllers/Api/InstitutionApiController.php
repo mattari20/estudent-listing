@@ -7,7 +7,6 @@ use App\Models\Institution;
 use App\Services\InstituteNearbySearchService;
 use App\Services\InstituteSearchFilterService;
 use App\Services\InstituteSearchQueryService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
