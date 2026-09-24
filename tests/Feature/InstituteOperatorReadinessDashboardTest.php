@@ -13,6 +13,8 @@ class InstituteOperatorReadinessDashboardTest extends TestCase
 
     public function test_dashboard_is_read_only_and_reports_batch_readiness(): void
     {
+        ImportBatch::query()->delete();
+
         $summary = (new InstituteOperatorReadinessDashboardService)->summarize();
 
         $this->assertSame('read_only_operator_readiness_dashboard', $summary['scope']);
