@@ -87,7 +87,7 @@ class CampusRelationshipIntegrityService
         return $active
             ->map(function (Campus $campus) use ($identityCounts): array {
                 $findings = $this->inspect($campus);
-                $identity = $campus->institution_id . ':' . $campus->slug;
+                $identity = sprintf('%s:%s', $campus->institution_id, $campus->slug);
 
                 if (
                     $campus->institution_id !== null
