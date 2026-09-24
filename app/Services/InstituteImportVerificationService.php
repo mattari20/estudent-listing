@@ -25,7 +25,7 @@ class InstituteImportVerificationService
             ->where(function($query){$query->whereNull('canonical_subject_id')->orWhere('canonical_subject_type','!=',\App\Models\Institution::class);})->count();
         $candidateRowsWithoutActiveEvidence=ImportRow::query()->where('import_batch_id',$batch->id)->where('status','candidate')
             ->whereNotExists(function($query){$query->selectRaw('1')->from('assertions')
-                ->join('evidence','evidence.id','=','assertions.evidence_id')
+                ->join('evidence', 'evidence.id', '=', 'assertions.evidence_id')
                 ->whereColumn('assertions.subject_id','import_rows.id')
                 ->where('assertions.subject_type',ImportRow::class)
                 ->where('evidence.status','active');})->count();
