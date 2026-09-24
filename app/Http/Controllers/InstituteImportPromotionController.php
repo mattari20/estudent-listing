@@ -57,6 +57,19 @@ class InstituteImportPromotionController {
   $audit->record($importRow,'promotion_succeeded',$request->user()->id,'Enrichment promoted to canonical data.',['previous_status'=>$previousStatus,'previous_match_state'=>$previousMatch,'created_canonical'=>false,'canonical_class'=>$entity::class],'import_promotion',$decision->id);
   return redirect()->route('institutes.operations.row',$importRow)->with('status','Canonical enrichment promoted.');
  }
+ public function geographyResolve(Request $request, ImportRow $importRow, \App\Services\GeographyImportResolverService $resolver): RedirectResponse {
+  abort_unless($importRow->batch && $importRow->batch->entity_type==='geography',409);
+  $resolver->resolve($importRow);
+  return back()->with('status','Geography candidates refreshed.');
+ }
+ public function geographyPromote(Request $request, ImportRow $importRow, \App\Services\GeographyPromotionService $service, ImportPromotionAuditService $audit): RedirectResponse {
+  abort_unless($importRow->batch && $importRow->batch->entity_type==='geography',409);
+  abort_unless($importRow->status==='candidate',409);
+  $decision=ImportPromotionDecision::query()->where('import_row_id',$importRow->id)->where('decision','approved')->latest('id')->firstOrFail();
+  $entity=$service->promote($importRow);
+  $audit->record($importRow,'promotion_succeeded',$request->user()->id,'Geography promoted to canonical data.',['canonical_id'=>$entity->id,'canonical_class'=>$entity::class],'geography_promotion',$decision->id);
+  return back()->with('status','Canonical geography promoted: '.$entity->name);
+ }
  public function reverse(Request $request, ImportRow $importRow, ImportPromotionReversalService $reversal): RedirectResponse {
   $data=$request->validate(['reason'=>['required','string','max:2000']]);
   try { $reversal->reverse($importRow,$request->user()->id,$data['reason']); return back()->with('status','Promotion reversed safely; canonical history was preserved.'); } catch(\Throwable $e){ return back()->withErrors(['reversal'=>$e->getMessage()]); }
