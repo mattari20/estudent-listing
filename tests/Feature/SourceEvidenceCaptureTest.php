@@ -2,6 +2,7 @@
 namespace Tests\Feature;
 use App\Models\Assertion;
 use App\Models\Source;
+use App\Models\SourceSnapshot;
 use App\Services\InstituteSourceEvidenceCaptureService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -16,6 +17,22 @@ class SourceEvidenceCaptureTest extends TestCase
   $this->assertSame('active',$evidence->status);
   $this->assertSame(1,Assertion::where('evidence_id',$evidence->id)->count());
  }
+ public function test_capture_binds_evidence_to_matching_snapshot(): void
+ {
+  $source=Source::create(['source_type'=>'official','name'=>'Official Source','url'=>'https://example.com','status'=>'active']);
+  $snapshot=SourceSnapshot::create(['source_id'=>$source->id,'reference'=>'https://example.com','content_hash'=>'hash-snapshot','content_length'=>10,'content_type'=>'text/html','captured_at'=>now(),'status'=>'captured']);
+  $evidence=(new InstituteSourceEvidenceCaptureService)->capture($source,'https://example.com','Excerpt','hash-snapshot',[], $snapshot->id);
+  $this->assertSame($snapshot->id,$evidence->snapshot_id);
+ }
+
+ public function test_capture_rejects_mismatched_snapshot_hash(): void
+ {
+  $source=Source::create(['source_type'=>'official','name'=>'Official Source','url'=>'https://example.com','status'=>'active']);
+  $snapshot=SourceSnapshot::create(['source_id'=>$source->id,'reference'=>'https://example.com','content_hash'=>'hash-snapshot','content_length'=>10,'content_type'=>'text/html','captured_at'=>now(),'status'=>'captured']);
+  $this->expectException(\InvalidArgumentException::class);
+  (new InstituteSourceEvidenceCaptureService)->capture($source,'https://example.com','Excerpt','wrong-hash',[], $snapshot->id);
+ }
+
  public function test_capture_rejects_incomplete_assertion_before_creating_evidence(): void
  {
   $source=Source::create(['source_type'=>'official','name'=>'Official Source','url'=>'https://example.com','status'=>'active']);
