@@ -3,6 +3,7 @@
 use App\Http\Controllers\GeographyImportController;
 use App\Http\Controllers\InstituteAuthController;
 use App\Http\Controllers\InstituteBulkPromotionController;
+use App\Http\Controllers\InstituteGeographyIntegrityController;
 use App\Http\Controllers\InstituteImportController;
 use App\Http\Controllers\InstituteImportPromotionController;
 use App\Http\Controllers\InstituteGeographyIntegrityController;
