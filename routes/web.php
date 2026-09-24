@@ -27,6 +27,11 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
   Route::post('/reverification/{item}/refresh', [InstituteImportPromotionController::class,'refreshCanonical'])->name('reverification.refresh');
   Route::post('/bulk-promote', [InstituteBulkPromotionController::class,'store'])->name('bulk-promote');
   Route::get('/monitoring', [\App\Http\Controllers\MonitoringOperationsController::class,'dashboard'])->name('monitoring.dashboard');
+  Route::get('/monitoring/policies/create', [\App\Http\Controllers\MonitoringPolicyController::class,'create'])->name('monitoring.policies.create');
+  Route::post('/monitoring/policies', [\App\Http\Controllers\MonitoringPolicyController::class,'store'])->name('monitoring.policies.store');
+  Route::post('/monitoring/policies/{policy}/toggle', [\App\Http\Controllers\MonitoringPolicyController::class,'toggle'])->name('monitoring.policies.toggle');
+  Route::get('/monitoring/export/alerts', [\App\Http\Controllers\MonitoringExportController::class,'alerts'])->name('monitoring.export.alerts');
+  Route::get('/monitoring/export/changes', [\App\Http\Controllers\MonitoringExportController::class,'changes'])->name('monitoring.export.changes');
   Route::get('/monitoring/history', [\App\Http\Controllers\MonitoringOperationsController::class,'history'])->name('monitoring.history');
   Route::post('/monitoring/alerts/{alert}/acknowledge', [\App\Http\Controllers\MonitoringOperationsController::class,'acknowledge'])->name('monitoring.alerts.acknowledge');
   Route::post('/monitoring/alerts/{alert}/resolve', [\App\Http\Controllers\MonitoringOperationsController::class,'resolve'])->name('monitoring.alerts.resolve');
