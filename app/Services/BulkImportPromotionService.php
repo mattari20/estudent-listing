@@ -21,11 +21,13 @@ class BulkImportPromotionService
 
                     if ($row === null || $row->status !== 'candidate') {
                         $result['skipped']++;
+
                         return;
                     }
 
                     if (ImportConflict::where('import_row_id', $row->id)->where('status', 'open')->exists()) {
                         $result['skipped']++;
+
                         return;
                     }
 
