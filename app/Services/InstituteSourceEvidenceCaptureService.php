@@ -11,6 +11,14 @@ class InstituteSourceEvidenceCaptureService
             throw new \InvalidArgumentException('Evidence can only be captured from an active source.');
         }
 
+        foreach ($assertions as $index => $assertion) {
+            foreach (['subject_type', 'subject_id', 'attribute', 'value'] as $field) {
+                if (!array_key_exists($field, $assertion) || $assertion[$field] === null || $assertion[$field] === '') {
+                    throw new \InvalidArgumentException('Evidence assertion #'.($index + 1).' is missing required field: '.$field.'.');
+                }
+            }
+        }
+
         $evidence=Evidence::create([
             'source_id'=>$source->id,
             'reference'=>$reference,
