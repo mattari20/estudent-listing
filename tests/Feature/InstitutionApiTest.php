@@ -23,9 +23,16 @@ class InstitutionApiTest extends TestCase
             'status' => 'active',
         ]);
 
+        Institution::create([
+            'name' => 'Closed University',
+            'slug' => 'closed-university',
+            'status' => 'closed',
+        ]);
+
         $this->getJson('/api/v1/institutions')
             ->assertOk()
-            ->assertJsonPath('data.0.name', 'API University');
+            ->assertJsonPath('data.0.name', 'API University')
+            ->assertJsonMissing(['slug' => 'closed-university']);
     }
 
     public function test_versioned_institution_api_supports_slug_lookup(): void
@@ -59,6 +66,139 @@ class InstitutionApiTest extends TestCase
         $this->getJson('/api/v1/institutions?q=AUP')
             ->assertOk()
             ->assertJsonPath('data.0.slug', 'api-university');
+    }
+
+    public function test_api_search_reuses_governed_program_filter(): void
+    {
+        $institution = Institution::create([
+            'name' => 'API University',
+            'slug' => 'api-university',
+            'status' => 'active',
+        ]);
+
+        Program::create([
+            'institution_id' => $institution->id,
+            'name' => 'Computer Science',
+            'slug' => 'computer-science',
+            'status' => 'active',
+        ]);
+
+        Institution::create([
+            'name' => 'Other University',
+            'slug' => 'other-university',
+            'status' => 'active',
+        ]);
+
+        $this->getJson('/api/v1/institutions?program=Computer')
+            ->assertOk()
+            ->assertJsonPath('data.0.slug', 'api-university')
+            ->assertJsonCount(1, 'data');
+    }
+
+    public function test_api_profile_excludes_inactive_campuses_programs_offerings_and_geography(): void
+    {
+        $institution = Institution::create([
+            'name' => 'API University',
+            'slug' => 'api-university',
+            'status' => 'active',
+        ]);
+
+        $activeGeography = Geography::create([
+            'name' => 'Lahore',
+            'slug' => 'lahore',
+            'type' => 'city',
+            'status' => 'active',
+        ]);
+
+        $inactiveGeography = Geography::create([
+            'name' => 'Old Lahore',
+            'slug' => 'old-lahore',
+            'type' => 'city',
+            'status' => 'inactive',
+        ]);
+
+        $activeCampus = Campus::create([
+            'institution_id' => $institution->id,
+            'geography_id' => $activeGeography->id,
+            'name' => 'Main Campus',
+            'slug' => 'main-campus',
+            'campus_type' => 'main',
+            'status' => 'active',
+        ]);
+
+        $inactiveCampus = Campus::create([
+            'institution_id' => $institution->id,
+            'geography_id' => $activeGeography->id,
+            'name' => 'Closed Campus',
+            'slug' => 'closed-campus',
+            'campus_type' => 'branch',
+            'status' => 'closed',
+        ]);
+
+        $geographyGapCampus = Campus::create([
+            'institution_id' => $institution->id,
+            'geography_id' => $inactiveGeography->id,
+            'name' => 'Unpublished Campus',
+            'slug' => 'unpublished-campus',
+            'campus_type' => 'branch',
+            'status' => 'active',
+        ]);
+
+        $activeProgram = Program::create([
+            'institution_id' => $institution->id,
+            'name' => 'Computer Science',
+            'slug' => 'computer-science',
+            'status' => 'active',
+        ]);
+
+        $inactiveProgram = Program::create([
+            'institution_id' => $institution->id,
+            'name' => 'Old Program',
+            'slug' => 'old-program',
+            'status' => 'closed',
+        ]);
+
+        ProgramOffering::create([
+            'program_id' => $activeProgram->id,
+            'campus_id' => $activeCampus->id,
+            'delivery_mode' => 'on_campus',
+            'status' => 'active',
+            'intake_label' => 'Fall',
+            'availability' => 'open',
+        ]);
+
+        ProgramOffering::create([
+            'program_id' => $activeProgram->id,
+            'campus_id' => $inactiveCampus->id,
+            'delivery_mode' => 'on_campus',
+            'status' => 'active',
+            'intake_label' => 'Closed Campus',
+            'availability' => 'closed',
+        ]);
+
+        ProgramOffering::create([
+            'program_id' => $inactiveProgram->id,
+            'campus_id' => $activeCampus->id,
+            'delivery_mode' => 'on_campus',
+            'status' => 'active',
+            'intake_label' => 'Old Program',
+            'availability' => 'closed',
+        ]);
+
+        $response = $this->getJson('/api/v1/institutions/api-university')
+            ->assertOk();
+
+        $response
+            ->assertJsonCount(1, 'campuses')
+            ->assertJsonPath('campuses.0.name', 'Main Campus')
+            ->assertJsonPath('campuses.0.geography.name', 'Lahore')
+            ->assertJsonCount(1, 'programs')
+            ->assertJsonPath('programs.0.name', 'Computer Science')
+            ->assertJsonCount(1, 'programs.0.offerings')
+            ->assertJsonPath('programs.0.offerings.0.intake_label', 'Fall');
+
+        $this->assertNotSame($inactiveCampus->id, $activeCampus->id);
+        $this->assertNotSame($geographyGapCampus->id, $activeCampus->id);
     }
 
     public function test_api_profile_includes_active_campus_geography_program_and_offering(): void
