@@ -9,8 +9,7 @@ class InstituteGeographyCrossDomainIntegrityService
 {
     public function __construct(
         private readonly InstituteGeographyIntegrityService $integrity,
-    ) {
-    }
+    ) {}
 
     public function inspect(Institution $institution): Collection
     {
