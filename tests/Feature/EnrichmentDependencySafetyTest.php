@@ -1,6 +1,7 @@
 <?php
 namespace Tests\Feature;
 use App\Models\ImportBatch;
+use App\Models\ImportPromotionDecision;
 use App\Models\ImportRow;
 use App\Models\Institution;
 use App\Models\Program;
@@ -26,5 +27,11 @@ class EnrichmentDependencySafetyTest extends TestCase {
   $p=Program::create(['institution_id'=>$i->id,'name'=>'BS CS','slug'=>'bs-cs','status'=>'active']);
   $r=ImportRow::create(['import_batch_id'=>$b->id,'row_number'=>1,'status'=>'candidate','payload'=>[],'normalized_payload'=>[],'parent_subject_type'=>Program::class,'parent_subject_id'=>$p->id]);
   app(EnrichmentPromotionService::class)->validateParent($r); $this->assertTrue(true);
+ }
+ public function test_enrichment_has_separate_promotion_decision_record(): void {
+  $b=ImportBatch::create(['batch_key'=>'dep-decision','entity_type'=>'program','source_type'=>'primary']);
+  $r=ImportRow::create(['import_batch_id'=>$b->id,'row_number'=>1,'status'=>'candidate','payload'=>['name'=>'BS CS'],'normalized_payload'=>['name'=>'BS CS']]);
+  ImportPromotionDecision::create(['import_row_id'=>$r->id,'decision'=>'approved','actor_type'=>'user','actor_id'=>1,'reason'=>'Reviewed','decided_at'=>now()]);
+  $this->assertDatabaseHas('import_promotion_decisions',['import_row_id'=>$r->id,'decision'=>'approved']);
  }
 }
