@@ -20,7 +20,10 @@ class InstituteSearchController
         }
 
         $institutions = $filterService->apply($queryService->build($filters['q']), $filters)
-            ->withCount(['campuses', 'programs'])
+            ->withCount([
+                'campuses' => fn ($campus) => $campus->where('status', 'active'),
+                'programs' => fn ($program) => $program->where('status', 'active'),
+            ])
             ->orderBy('name')
             ->orderBy('id')
             ->paginate(24)
