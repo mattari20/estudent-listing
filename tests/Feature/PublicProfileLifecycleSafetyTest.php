@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Accreditation;
 use App\Models\AdmissionIntake;
-use App\Models\Campus;
 use App\Models\FeeRecord;
 use App\Models\Institution;
 use App\Models\Program;
