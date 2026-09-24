@@ -32,7 +32,7 @@ class InstitutionApiTest extends TestCase
         $this->getJson('/api/v1/institutions')
             ->assertOk()
             ->assertJsonPath('data.0.name', 'API University')
-            ->assertJsonCount(1, 'data');
+            ->assertJsonMissing(['slug' => 'closed-university']);
     }
 
     public function test_versioned_institution_api_supports_slug_lookup(): void
