@@ -1,6 +1,6 @@
 <?php
 
-namespace AppServices;
+namespace App\Services;
 
 class InstituteSearchFilterService
 {
@@ -8,34 +8,40 @@ class InstituteSearchFilterService
     {
         return $query
             ->when($filters['type'] ?? '', fn ($builder) => $builder->where('institution_type', $filters['type']))
-            ->when($filters['province'] ?? '', fn ($builder) => $builder->whereHas('campuses', fn ($campus) => $campus
-                ->where('status', 'active')
-                ->whereHas('geography', fn ($geography) => $geography
+            ->when($filters['province'] ?? '', fn ($builder) => $builder->whereHas(
+                'campuses',
+                fn ($campus) => $campus
                     ->where('status', 'active')
-                    ->whereHas('parent', fn ($district) => $district
+                    ->whereHas('geography', fn ($geography) => $geography
                         ->where('status', 'active')
-                        ->whereHas('parent', fn ($province) => $province
+                        ->whereHas('parent', fn ($district) => $district
                             ->where('status', 'active')
-                            ->where('name', $filters['province'])
-                            ->where('type', 'province'))))))
-            ->when($filters['district'] ?? '', fn ($builder) => $builder->whereHas('campuses', fn ($campus) => $campus
-                ->where('status', 'active')
-                ->whereHas('geography', fn ($geography) => $geography
+                            ->whereHas('parent', fn ($province) => $province
+                                ->where('status', 'active')
+                                ->where('name', $filters['province'])
+                                ->where('type', 'province')))
+                    )
+            ))
+            ->when($filters['district'] ?? '', fn ($builder) => $builder->whereHas(
+                'campuses',
+                fn ($campus) => $campus
                     ->where('status', 'active')
-                    ->whereHas('parent', fn ($district) => $district
+                    ->whereHas('geography', fn ($geography) => $geography
                         ->where('status', 'active')
-                        ->where('name', $filters['district'])
-                        ->where('type', 'district')))))
-            ->when($filters['city'] ?? '', fn ($builder) => $builder->whereHas('campuses', fn ($campus) => $campus
-                ->where('status', 'active')
-                ->whereHas('geography', fn ($geography) => $geography
+                        ->whereHas('parent', fn ($district) => $district
+                            ->where('status', 'active')
+                            ->where('name', $filters['district'])
+                            ->where('type', 'district')))
+            ))
+            ->when($filters['city'] ?? '', fn ($builder) => $builder->whereHas(
+                'campuses',
+                fn ($campus) => $campus
                     ->where('status', 'active')
-                    ->where('name', $filters['city'])
-                    ->where('type', 'city')
-                    ->where(function ($city) {
-                        $city->whereNull('parent_id')
-                            ->orWhereHas('parent', fn ($district) => $district->where('status', 'active'));
-                    }))))
+                    ->whereHas('geography', fn ($geography) => $geography
+                        ->where('status', 'active')
+                        ->where('name', $filters['city'])
+                        ->where('type', 'city'))
+            ))
             ->when($filters['program'] ?? '', fn ($builder) => $builder->whereHas('programs', fn ($program) => $program
                 ->where('status', 'active')
                 ->where(fn ($match) => $match
