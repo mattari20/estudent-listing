@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 class InstitutionIdentityIntegrityService
 {
     /**
-     * Return read-only identity findings for active institutions.
+     * Return read-only identity findings for an active institution.
      *
      * Findings are diagnostic only. This service never repairs or mutates
      * canonical institution data.
@@ -47,18 +47,35 @@ class InstitutionIdentityIntegrityService
     }
 
     /**
-     * Inspect a collection of institutions without changing its contents.
+     * Inspect a collection without changing its contents.
      *
      * @return array<int, array{institution_id:int|string, findings:array<int,string>}>
      */
     public function inspectMany(Collection $institutions): array
     {
-        return $institutions
+        $active = $institutions
             ->filter(fn (Institution $institution) => $institution->status === 'active')
-            ->map(function (Institution $institution): array {
+            ->values();
+
+        $slugCounts = $active
+            ->filter(fn (Institution $institution) => trim((string) $institution->slug) !== '')
+            ->countBy(fn (Institution $institution) => $institution->slug);
+
+        return $active
+            ->map(function (Institution $institution) use ($slugCounts): array {
+                $findings = $this->inspect($institution);
+
+                if (
+                    trim((string) $institution->slug) !== ''
+                    && ($slugCounts[$institution->slug] ?? 0) > 1
+                    && ! in_array('duplicate_active_slug', $findings, true)
+                ) {
+                    $findings[] = 'duplicate_active_slug';
+                }
+
                 return [
                     'institution_id' => $institution->getKey(),
-                    'findings' => $this->inspect($institution),
+                    'findings' => $findings,
                 ];
             })
             ->filter(fn (array $result) => $result['findings'] !== [])
