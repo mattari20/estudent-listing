@@ -13,6 +13,7 @@ class GeographyIntegrityConsolidationTest extends TestCase
 {
     use RefreshDatabase;
 
+
     public function test_active_campus_with_active_geography_is_valid(): void
     {
         $geography = Geography::create([
