@@ -23,3 +23,9 @@ DEV-301 verifies the import batch and row-level workflow state. DEV-302 adds the
 
 ## Real-Data Boundary
 No institute records are fabricated or automatically populated. Real source material must be captured through the existing governed source/evidence/retrieval workflows and then reviewed by an operator.
+
+
+## DEV-306 Retrieval Lineage Extension
+Readiness now evaluates the most recently created retrieval run. A source is not retrieval-ready unless that current run completed and carries a snapshot identifier and content hash. This prevents an older successful retrieval from masking a newer failed or incomplete run.
+
+Source retrieval itself also rejects inactive sources at the service boundary.
