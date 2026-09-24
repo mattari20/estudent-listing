@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -45,7 +47,8 @@ jobs:
         shell: bash
         run: |
           if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
-            files=$(git diff --name-only HEAD^1 HEAD -- '*.php')
+            git fetch --no-tags --prune origin "$GITHUB_BASE_REF"
+            files=$(git diff --name-only "origin/$GITHUB_BASE_REF...HEAD" -- '*.php')
           else
             files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" -- '*.php')
           fi
