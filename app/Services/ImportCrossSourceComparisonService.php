@@ -19,11 +19,11 @@ class ImportCrossSourceComparisonService
 
     public function compareInstitution(ImportRow $row, ?Institution $institution): int
     {
-        if ($row->batch->entity_type !== 'institution' || ! $row->canonical_subject_id) {
+        if ($row->batch->entity_type !== 'institution') {
             return 0;
         }
 
-        $institution = Institution::find($row->canonical_subject_id);
+        $institution = $institution ?? Institution::find($row->canonical_subject_id);
 
         if (! $institution) {
             return 0;
