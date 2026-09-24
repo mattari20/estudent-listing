@@ -3,12 +3,23 @@ namespace App\Services;
 use App\Models\Assertion;
 use App\Models\Evidence;
 use App\Models\Source;
+use App\Models\SourceSnapshot;
 class InstituteSourceEvidenceCaptureService
 {
-    public function capture(Source $source, string $reference, string $excerpt, ?string $contentHash = null, array $assertions = []): Evidence
+    public function capture(Source $source, string $reference, string $excerpt, ?string $contentHash = null, array $assertions = [], ?int $snapshotId = null): Evidence
     {
         if ($source->status !== 'active') {
             throw new \InvalidArgumentException('Evidence can only be captured from an active source.');
+        }
+
+        if ($snapshotId !== null) {
+            $snapshot = SourceSnapshot::query()->where('id', $snapshotId)->where('source_id', $source->id)->where('status', 'captured')->first();
+            if (! $snapshot) {
+                throw new \InvalidArgumentException('Evidence snapshot must belong to the source and be captured.');
+            }
+            if ($contentHash !== null && $snapshot->content_hash !== $contentHash) {
+                throw new \InvalidArgumentException('Evidence content hash does not match the supplied snapshot.');
+            }
         }
 
         foreach ($assertions as $index => $assertion) {
