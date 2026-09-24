@@ -6,6 +6,7 @@
 <h2>Import batches</h2>
 @forelse($batches as $batch)<article class="institute-card"><h3>Batch {{ $batch->batch_key }}</h3><p>{{ $batch->source?->name }} · {{ $batch->status }} · {{ $batch->total_rows }} rows</p><a href="{{ route('institutes.operations.queue',['batch_id'=>$batch->id]) }}">Review batch</a></article>@empty<p>No import batches.</p>@endforelse
 {{ $batches->links() }}
+@if($qualityReport)<h2>Import quality report</h2><div class="filter-grid">@foreach($qualityReport as $key=>$value)<div class="institute-card"><strong>{{ ucfirst(str_replace('_',' ',$key)) }}</strong><div>{{ is_float($value) ? number_format($value*100,2).'%' : $value }}</div></div>@endforeach</div>@endif
 @if($summary)<h2>Batch reconciliation</h2><div class="filter-grid">@foreach($summary as $key=>$value)<div class="institute-card"><strong>{{ ucfirst(str_replace('_',' ',$key)) }}</strong><div>{{ $value }}</div></div>@endforeach</div>@endif
 <h2>Review rows</h2>
 <form method="post" action="{{ route('institutes.operations.bulk-promote') }}">@csrf
