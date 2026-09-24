@@ -81,6 +81,34 @@ class DirectorySearchTest extends TestCase
             ->assertDontSee('Karachi University');
     }
 
+    public function test_geography_filters_ignore_inactive_campuses_and_geographies(): void
+    {
+        $punjab = Geography::create(['name' => 'Punjab', 'slug' => 'punjab', 'type' => 'province', 'status' => 'active']);
+        $district = Geography::create(['parent_id' => $punjab->id, 'name' => 'Lahore District', 'slug' => 'lahore', 'type' => 'district', 'status' => 'active']);
+        $activeCity = Geography::create(['parent_id' => $district->id, 'name' => 'Lahore', 'slug' => 'lahore', 'type' => 'city', 'status' => 'active']);
+        $inactiveCity = Geography::create(['parent_id' => $district->id, 'name' => 'Legacy Lahore', 'slug' => 'legacy-lahore', 'type' => 'city', 'status' => 'inactive']);
+
+        $activeInstitution = Institution::create(['name' => 'Active Lahore University', 'slug' => 'active-lahore-university', 'status' => 'active']);
+        $inactiveCampusInstitution = Institution::create(['name' => 'Inactive Campus University', 'slug' => 'inactive-campus-university', 'status' => 'active']);
+        $inactiveGeographyInstitution = Institution::create(['name' => 'Inactive Geography University', 'slug' => 'inactive-geography-university', 'status' => 'active']);
+
+        Campus::create(['institution_id' => $activeInstitution->id, 'geography_id' => $activeCity->id, 'name' => 'Main Campus', 'slug' => 'active-main', 'status' => 'active']);
+        Campus::create(['institution_id' => $inactiveCampusInstitution->id, 'geography_id' => $activeCity->id, 'name' => 'Closed Campus', 'slug' => 'closed-campus', 'status' => 'inactive']);
+        Campus::create(['institution_id' => $inactiveGeographyInstitution->id, 'geography_id' => $inactiveCity->id, 'name' => 'Legacy Campus', 'slug' => 'legacy-campus', 'status' => 'active']);
+
+        $this->get('/institutes/search?province=Punjab')
+            ->assertOk()
+            ->assertSee('Active Lahore University')
+            ->assertDontSee('Inactive Campus University')
+            ->assertDontSee('Inactive Geography University');
+
+        $this->get('/institutes/search?city=Lahore')
+            ->assertOk()
+            ->assertSee('Active Lahore University')
+            ->assertDontSee('Inactive Campus University')
+            ->assertDontSee('Inactive Geography University');
+    }
+
     public function test_search_can_filter_by_program_level_delivery_mode_and_admission_status(): void
     {
         $institution = Institution::create(['name' => 'Future University', 'slug' => 'future-university', 'status' => 'active']);
