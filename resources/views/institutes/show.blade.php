@@ -5,177 +5,24 @@
 @section('canonical', route('institutes.show', $institution))
 
 @push('head')
-<script type="application/ld+json">
-{!! json_encode([
-    '@context' => 'https://schema.org',
-    '@type' => 'EducationalOrganization',
-    'name' => $institution->name,
-    'url' => route('institutes.show', $institution),
-], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
-</script>
+<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'EducationalOrganization','name'=>$institution->name,'url'=>route('institutes.show',$institution)], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
 @endpush
 
 @section('content')
-<article>
-    <header>
-        <h1>{{ $institution->name }}</h1>
-        @if ($institution->official_name && $institution->official_name !== $institution->name)
-            <p>Official name: {{ $institution->official_name }}</p>
-        @endif
-        @if ($institution->institution_type)
-            <p>Type: {{ $institution->institution_type }}</p>
-        @endif
-        @if ($institution->description)
-            <p>{{ $institution->description }}</p>
-        @endif
-    </header>
-
-    <section aria-labelledby="campuses-heading">
-        <h2 id="campuses-heading">Campuses</h2>
-        @forelse ($institution->campuses as $campus)
-            <article>
-                <h3>{{ $campus->name }}</h3>
-                @if ($campus->address)<p>{{ $campus->address }}</p>@endif
-                @if ($campus->geography)<p>Location: {{ $campus->geography->name }}</p>@endif
-            </article>
-        @empty
-            <p>Campus information is not currently available.</p>
-        @endforelse
-    </section>
-
-    <section aria-labelledby="programs-heading">
-        <h2 id="programs-heading">Programs</h2>
-        @forelse ($institution->programs as $program)
-            <article>
-                <h3>{{ $program->name }}</h3>
-                @if ($program->program_level)<p>Level: {{ $program->program_level }}</p>@endif
-                @if ($program->discipline)<p>Discipline: {{ $program->discipline }}</p>@endif
-                @if ($program->award)<p>Award: {{ $program->award }}</p>@endif
-
-                @forelse ($program->offerings as $offering)
-                    <section>
-                        <h4>Offering{{ $offering->intake_label ? ': '.$offering->intake_label : '' }}</h4>
-                        <p>Delivery: {{ $offering->delivery_mode }}</p>
-                        @if ($offering->duration)<p>Duration: {{ $offering->duration }}</p>@endif
-
-                        @forelse ($offering->admissionIntakes as $intake)
-                            <section>
-                                <h5>Admission: {{ $intake->label }}</h5>
-                                <p>Status: {{ $intake->status }}</p>
-                                @if ($intake->application_open_at)<p>Applications open: {{ $intake->application_open_at->format('Y-m-d') }}</p>@endif
-                                @if ($intake->application_close_at)<p>Applications close: {{ $intake->application_close_at->format('Y-m-d') }}</p>@endif
-                                @if ($intake->application_url)
-                                    <p><a href="{{ $intake->application_url }}" rel="nofollow">Application destination</a></p>
-                                @endif
-
-                                @if ($intake->eligibilityRules->isNotEmpty())
-                                    <h6>Eligibility information</h6>
-                                    <ul>
-                                    @foreach ($intake->eligibilityRules as $rule)
-                                        <li>
-                                            {{ $rule->rule_type }}
-                                            @if ($rule->qualification) — {{ $rule->qualification }} @endif
-                                            @if ($rule->requirement) — {{ $rule->requirement }} @endif
-                                            @if ($rule->minimum_marks !== null) — Minimum marks: {{ $rule->minimum_marks }} @endif
-                                        </li>
-                                    @endforeach
-                                    </ul>
-                                @endif
-
-                                @if ($intake->meritRecords->isNotEmpty())
-                                    <h6>Published merit information</h6>
-                                    <ul>
-                                    @foreach ($intake->meritRecords as $merit)
-                                        <li>
-                                            {{ $merit->merit_type }}
-                                            @if ($merit->applicant_category) — {{ $merit->applicant_category }} @endif
-                                            @if ($merit->value) — {{ $merit->value }} @endif
-                                            @if ($merit->score !== null) — Score: {{ $merit->score }} @endif
-                                        </li>
-                                    @endforeach
-                                    </ul>
-                                @endif
-                            </section>
-                        @empty
-                        @endforelse
-
-                        @if ($offering->feeRecords->isNotEmpty())
-                            <section>
-                                <h5>Fee information</h5>
-                                <ul>
-                                @foreach ($offering->feeRecords as $fee)
-                                    <li>
-                                        {{ $fee->fee_type }}:
-                                        @if ($fee->amount !== null)
-                                            {{ $fee->currency }} {{ $fee->amount }}
-                                        @elseif ($fee->minimum_amount !== null || $fee->maximum_amount !== null)
-                                            {{ $fee->currency }} {{ $fee->minimum_amount ?? '—' }}–{{ $fee->maximum_amount ?? '—' }}
-                                        @else
-                                            Amount not published
-                                        @endif
-                                        @if ($fee->frequency) ({{ $fee->frequency }}) @endif
-                                    </li>
-                                @endforeach
-                                </ul>
-                            </section>
-                        @endif
-
-                        @if ($offering->scholarships->isNotEmpty())
-                            <section>
-                                <h5>Scholarships / financial aid</h5>
-                                <ul>
-                                @foreach ($offering->scholarships as $scholarship)
-                                    <li>
-                                        <strong>{{ $scholarship->name }}</strong>
-                                        @if ($scholarship->benefit_type) — {{ $scholarship->benefit_type }} @endif
-                                        @if ($scholarship->eligibility_description) — {{ $scholarship->eligibility_description }} @endif
-                                    </li>
-                                @endforeach
-                                </ul>
-                            </section>
-                        @endif
-
-                        @if ($offering->accreditations->isNotEmpty())
-                            <section>
-                                <h5>Recognition / accreditation information</h5>
-                                <ul>
-                                @foreach ($offering->accreditations as $accreditation)
-                                    <li>
-                                        {{ $accreditation->name }}
-                                        @if ($accreditation->recognition_type) — {{ $accreditation->recognition_type }} @endif
-                                        @if ($accreditation->authority_name) — Authority: {{ $accreditation->authority_name }} @endif
-                                        — Status: {{ $accreditation->status }}
-                                    </li>
-                                @endforeach
-                                </ul>
-                            </section>
-                        @endif
-                    </section>
-                @empty
-                    <p>No current program offerings are currently available.</p>
-                @endforelse
-            </article>
-        @empty
-            <p>Program information is not currently available.</p>
-        @endforelse
-    </section>
-
-    @if ($institution->accreditations->isNotEmpty())
-        <section aria-labelledby="institution-recognition-heading">
-            <h2 id="institution-recognition-heading">Recognition / accreditation information</h2>
-            <ul>
-            @foreach ($institution->accreditations as $accreditation)
-                <li>
-                    {{ $accreditation->name }}
-                    @if ($accreditation->recognition_type) — {{ $accreditation->recognition_type }} @endif
-                    @if ($accreditation->authority_name) — Authority: {{ $accreditation->authority_name }} @endif
-                    — Status: {{ $accreditation->status }}
-                </li>
-            @endforeach
-            </ul>
-        </section>
-    @endif
-
-    <p><small>Information availability varies by institution, program and intake. Missing information does not mean that the institution does not offer it.</small></p>
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="{{ url('/institutes/') }}">Institutes</a><span>›</span><span>{{ $institution->name }}</span></nav>
+<article class="profile">
+<header class="profile-hero"><p class="eyebrow">{{ $institution->institution_type ?: 'Educational institute' }}</p><h1>{{ $institution->name }}</h1>@if($institution->official_name && $institution->official_name !== $institution->name)<p class="muted">{{ $institution->official_name }}</p>@endif @if($institution->description)<p class="hero__text">{{ $institution->description }}</p>@endif</header>
+<nav class="profile-nav" aria-label="Profile sections"><a href="#campuses">Campuses</a><a href="#programs">Programs</a><a href="#recognition">Recognition</a></nav>
+<section id="campuses" class="profile-section"><div class="section-heading"><div><p class="eyebrow">Location</p><h2>Campuses</h2></div></div><div class="compact-grid">@forelse($institution->campuses as $campus)<article class="info-card"><h3>{{ $campus->name }}</h3>@if($campus->geography)<p><strong>Location:</strong> {{ $campus->geography->name }}</p>@endif @if($campus->address)<p>{{ $campus->address }}</p>@endif</article>@empty<div class="empty-state">Campus information is not currently available.</div>@endforelse</div></section>
+<section id="programs" class="profile-section"><div class="section-heading"><div><p class="eyebrow">Academic</p><h2>Programs</h2></div></div>
+@forelse($institution->programs as $program)<article class="program-card"><h3>{{ $program->name }}</h3><p class="muted">@if($program->program_level){{ $program->program_level }}@endif @if($program->discipline) · {{ $program->discipline }}@endif @if($program->award) · {{ $program->award }}@endif</p>
+@forelse($program->offerings as $offering)<div class="offering"><h4>{{ $offering->intake_label ? 'Offering: '.$offering->intake_label : 'Program offering' }}</h4><div class="tag-row"><span class="tag">{{ $offering->delivery_mode }}</span>@if($offering->duration)<span class="tag">{{ $offering->duration }}</span>@endif</div>
+@forelse($offering->admissionIntakes as $intake)<div class="admission-card"><h5>Admission: {{ $intake->label }}</h5><span class="status-badge">{{ $intake->status }}</span>@if($intake->application_open_at || $intake->application_close_at)<p class="muted">@if($intake->application_open_at)Open: {{ $intake->application_open_at->format('Y-m-d') }}@endif @if($intake->application_close_at) · Close: {{ $intake->application_close_at->format('Y-m-d') }}@endif</p>@endif @if($intake->application_url)<a class="button button--small" href="{{ $intake->application_url }}" rel="nofollow">Application destination</a>@endif @if($intake->eligibilityRules->isNotEmpty())<h6>Eligibility</h6><ul>@foreach($intake->eligibilityRules as $rule)<li>{{ $rule->rule_type }}@if($rule->qualification) — {{ $rule->qualification }}@endif @if($rule->requirement) — {{ $rule->requirement }}@endif</li>@endforeach</ul>@endif @if($intake->meritRecords->isNotEmpty())<h6>Published merit information</h6><ul>@foreach($intake->meritRecords as $merit)<li>{{ $merit->merit_type }}@if($merit->applicant_category) — {{ $merit->applicant_category }}@endif @if($merit->value) — {{ $merit->value }}@endif</li>@endforeach</ul>@endif</div>@empty @endforelse
+@if($offering->feeRecords->isNotEmpty())<div class="data-block"><h5>Fees</h5><ul>@foreach($offering->feeRecords as $fee)<li>{{ $fee->fee_type }}: @if($fee->amount !== null){{ $fee->currency }} {{ $fee->amount }}@elseif($fee->minimum_amount !== null || $fee->maximum_amount !== null){{ $fee->currency }} {{ $fee->minimum_amount ?? '—' }}–{{ $fee->maximum_amount ?? '—' }}@else Amount not published @endif @if($fee->frequency)({{ $fee->frequency }})@endif</li>@endforeach</ul></div>@endif
+@if($offering->scholarships->isNotEmpty())<div class="data-block"><h5>Scholarships / financial aid</h5><ul>@foreach($offering->scholarships as $scholarship)<li><strong>{{ $scholarship->name }}</strong>@if($scholarship->benefit_type) — {{ $scholarship->benefit_type }}@endif</li>@endforeach</ul></div>@endif
+@if($offering->accreditations->isNotEmpty())<div class="data-block"><h5>Recognition / accreditation</h5><ul>@foreach($offering->accreditations as $a)<li>{{ $a->name }}@if($a->recognition_type) — {{ $a->recognition_type }}@endif @if($a->authority_name) — {{ $a->authority_name }}@endif</li>@endforeach</ul></div>@endif
+</div>@empty<p class="muted">No current program offerings are currently available.</p>@endforelse</article>@empty<div class="empty-state">Program information is not currently available.</div>@endforelse</section>
+<section id="recognition" class="profile-section"><div class="section-heading"><div><p class="eyebrow">Governance</p><h2>Recognition / accreditation</h2></div></div>@if($institution->accreditations->isNotEmpty())<div class="compact-grid">@foreach($institution->accreditations as $a)<article class="info-card"><h3>{{ $a->name }}</h3><p>{{ $a->recognition_type }} @if($a->authority_name) · {{ $a->authority_name }}@endif</p><span class="status-badge">{{ $a->status }}</span></article>@endforeach</div>@else<p class="muted">Recognition information is not currently available.</p>@endif</section>
+<p class="data-note">Information availability varies by institution, program and intake. Missing information does not mean that the institution does not offer it.</p>
 </article>
 @endsection
