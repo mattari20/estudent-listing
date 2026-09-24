@@ -37,8 +37,22 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
-      - name: Lint
-        run: composer lint
+      - name: Lint changed PHP files
+        shell: bash
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            git fetch --no-tags --prune origin "$GITHUB_BASE_REF"
+            files=$(git diff --name-only "origin/$GITHUB_BASE_REF...HEAD" -- '*.php')
+          else
+            files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" -- '*.php')
+          fi
+
+          if [[ -z "$files" ]]; then
+            echo "No changed PHP files to lint."
+            exit 0
+          fi
+
+          printf '%s\\n' "$files" | xargs -r vendor/bin/pint --test
 
       - name: Test
         run: composer test
