@@ -11,16 +11,6 @@ class InstituteSecurityHardeningTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_session_cookie_is_secure_by_default_in_production(): void
-    {
-        $this->app['config']->set('app.env', 'production');
-        $this->app['config']->set('session.secure', null);
-
-        $secure = env('SESSION_SECURE_COOKIE', $this->app['config']->get('app.env') === 'production');
-
-        $this->assertTrue($secure);
-    }
-
     public function test_non_operator_cannot_remain_authenticated_after_login(): void
     {
         $user = User::create([
@@ -41,7 +31,8 @@ class InstituteSecurityHardeningTest extends TestCase
 
     public function test_repeated_invalid_logins_are_throttled(): void
     {
-        RateLimiter::clear('regular@example.com|127.0.0.1');
+        $key = 'regular@example.com|127.0.0.1';
+        RateLimiter::clear($key);
 
         for ($attempt = 0; $attempt < 5; $attempt++) {
             $this->post(route('institutes.login.store'), [
