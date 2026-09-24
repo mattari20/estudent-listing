@@ -16,7 +16,7 @@ class BulkImportPromotionService {
      $decision=IdentityResolutionDecision::query()->where('import_row_id',$row->id)->whereIn('decision',['approved_new','approved_match'])->latest('id')->first();
      if(!$decision){$result['skipped']++;return;}
      app(ImportPromotionAuditService::class)->record($row,'promotion_started',$actorId,'Explicitly approved promotion started.',['previous_status'=>$row->status,'previous_match_state'=>$row->match_state],'identity_resolution',$decision->id);
-     app(InstituteImportPromoter::class)->promote($row,$decision);
+     app(InstituteImportPromoter::class)->promote($row,$decision);\n     if($decision->decision==='approved_match') app(ImportChangeDetectionService::class)->detect($row);
     } else {
      $decision=ImportPromotionDecision::query()->where('import_row_id',$row->id)->where('decision','approved')->latest('id')->first();
      if(!$decision){$result['skipped']++;return;}
