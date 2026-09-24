@@ -12,6 +12,7 @@ class InstituteSourceEvidenceCaptureController
             'reference'=>['required','string','max:2048'],
             'excerpt'=>['required','string','max:10000'],
             'content_hash'=>['nullable','string','max:128'],
+            'snapshot_id'=>['nullable','integer','exists:source_snapshots,id'],
             'assertions'=>['array'],
             'assertions.*.subject_type'=>['nullable','string','max:255'],
             'assertions.*.subject_id'=>['nullable','integer'],
@@ -26,7 +27,7 @@ class InstituteSourceEvidenceCaptureController
         if($source->status!=='active'){
             return response()->json(['message'=>'Only active sources may receive evidence.'],422);
         }
-        $evidence=$service->capture($source,$data['reference'],$data['excerpt'],$data['content_hash']??null,$data['assertions']??[]);
+        $evidence=$service->capture($source,$data['reference'],$data['excerpt'],$data['content_hash']??null,$data['assertions']??[],$data['snapshot_id']??null);
         return response()->json(['id'=>$evidence->id,'source_id'=>$source->id,'status'=>$evidence->status,'captured_at'=>$evidence->observed_at,'assertions_count'=>$evidence->assertions()->count()],201);
     }
 }
