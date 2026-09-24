@@ -3,6 +3,7 @@
 use App\Http\Controllers\GeographyImportController;
 use App\Http\Controllers\InstituteAuthController;
 use App\Http\Controllers\InstituteBulkPromotionController;
+use App\Http\Controllers\InstituteDataReadinessController;
 use App\Http\Controllers\InstituteGeographyIntegrityController;
 use App\Http\Controllers\InstituteImportController;
 use App\Http\Controllers\InstituteImportPromotionController;
@@ -28,6 +29,7 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
     Route::middleware(['auth', 'institute.operator'])->prefix('operations')->name('operations.')->group(function (): void {
         Route::get('/', [InstituteOperationsController::class, 'queue'])->name('queue');
         Route::get('/integrity', InstituteGeographyIntegrityController::class)->name('integrity');
+        Route::get('/data-readiness', InstituteDataReadinessController::class)->name('data-readiness');
         Route::get('/rows/{importRow}', [InstituteOperationsController::class, 'show'])->name('row');
         Route::post('/rows/{importRow}/resolve', [InstituteImportPromotionController::class, 'resolve'])->name('resolve');
         Route::post('/rows/{importRow}/decision', [InstituteImportPromotionController::class, 'decide'])->name('decide');
