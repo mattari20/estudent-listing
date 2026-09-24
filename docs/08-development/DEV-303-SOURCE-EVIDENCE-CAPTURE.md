@@ -25,3 +25,7 @@ The capture service rejects inactive sources with an explicit `InvalidArgumentEx
 
 ## Real-Data Rule
 This mechanism is intended for actual source material. It does not generate institute facts or fabricate evidence.
+
+
+## DEV-307 Assertion Integrity Extension
+When assertions are supplied, each assertion must identify a subject type, subject ID, attribute, and value. Validation occurs before evidence creation, so incomplete assertion payloads cannot create orphaned evidence records through this service.
