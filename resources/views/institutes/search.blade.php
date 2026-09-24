@@ -2,7 +2,7 @@
 
 @section('title', $query !== '' ? 'Search: '.$query.' | eStudent.pk' : 'Search Institutes | eStudent.pk')
 @section('description', 'Search and filter the eStudent.pk educational institutes directory.')
-@if ($query === '' && $type === '' && $city === '' && $program === '')
+@if ($query === '' && $type === '' && $province === '' && $district === '' && $city === '' && $program === '' && $programLevel === '' && $deliveryMode === '' && $admissionStatus === '')
 @section('canonical', url('/institutes/search'))
 @endif
 
@@ -22,6 +22,22 @@
             @endforeach
         </select>
 
+        <label for="province">Province / territory</label>
+        <select id="province" name="province">
+            <option value="">All provinces</option>
+            @foreach ($provinces as $option)
+                <option value="{{ $option }}" @selected($province === $option)>{{ $option }}</option>
+            @endforeach
+        </select>
+
+        <label for="district">District</label>
+        <select id="district" name="district">
+            <option value="">All districts</option>
+            @foreach ($districts as $option)
+                <option value="{{ $option }}" @selected($district === $option)>{{ $option }}</option>
+            @endforeach
+        </select>
+
         <label for="city">City</label>
         <select id="city" name="city">
             <option value="">All cities</option>
@@ -33,13 +49,37 @@
         <label for="program">Program / discipline</label>
         <input id="program" name="program" type="search" value="{{ $program }}">
 
+        <label for="program_level">Program level</label>
+        <select id="program_level" name="program_level">
+            <option value="">All levels</option>
+            @foreach ($programLevels as $option)
+                <option value="{{ $option }}" @selected($programLevel === $option)>{{ $option }}</option>
+            @endforeach
+        </select>
+
+        <label for="delivery_mode">Delivery mode</label>
+        <select id="delivery_mode" name="delivery_mode">
+            <option value="">All modes</option>
+            @foreach ($deliveryModes as $option)
+                <option value="{{ $option }}" @selected($deliveryMode === $option)>{{ $option }}</option>
+            @endforeach
+        </select>
+
+        <label for="admission_status">Admission status</label>
+        <select id="admission_status" name="admission_status">
+            <option value="">All admission statuses</option>
+            @foreach ($admissionStatuses as $option)
+                <option value="{{ $option }}" @selected($admissionStatus === $option)>{{ $option }}</option>
+            @endforeach
+        </select>
+
         <button type="submit">Search</button>
-        @if ($query !== '' || $type !== '' || $city !== '' || $program !== '')
+        @if ($query !== '' || $type !== '' || $province !== '' || $district !== '' || $city !== '' || $program !== '' || $programLevel !== '' || $deliveryMode !== '' || $admissionStatus !== '')
             <a href="{{ route('institutes.search') }}">Clear filters</a>
         @endif
     </form>
 
-    @if ($query !== '' || $type !== '' || $city !== '' || $program !== '')
+    @if ($query !== '' || $type !== '' || $province !== '' || $district !== '' || $city !== '' || $program !== '' || $programLevel !== '' || $deliveryMode !== '' || $admissionStatus !== '')
         <p>Showing results for the selected search and filters.</p>
     @endif
 
