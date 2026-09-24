@@ -9,7 +9,7 @@ use RuntimeException;
 class InstituteImportPromoter {
  public function promote(ImportRow $row, IdentityResolutionDecision $decision): Institution {
   if($decision->import_row_id!==$row->id) throw new RuntimeException('Resolution decision does not belong to import row.');
-  if(!in_array($decision->decision,['approved_new','approved_match'],true)) throw new RuntimeException('Only an explicit approved resolution decision can promote an import row.');
+  if(!in_array($decision->decision,['approved_new','approved_match'],true)) throw new RuntimeException('Only an explicit approved resolution decision can promote an import row.');\n  if(ImportConflict::where('import_row_id',$row->id)->where('status','open')->exists()) throw new RuntimeException('Open import conflicts must be explicitly resolved before promotion.');
   $payload=$row->normalized_payload ?? $row->payload ?? [];
   if(trim((string)($payload['name'] ?? ''))==='') throw new RuntimeException('Institution name is required.');
   if($decision->decision==='approved_match'){
