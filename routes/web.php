@@ -6,6 +6,7 @@ use App\Http\Controllers\InstituteBulkPromotionController;
 use App\Http\Controllers\InstituteDataReadinessController;
 use App\Http\Controllers\InstituteGeographyIntegrityController;
 use App\Http\Controllers\InstituteImportController;
+use App\Http\Controllers\InstituteImportVerificationController;
 use App\Http\Controllers\InstituteImportPromotionController;
 use App\Http\Controllers\InstituteOperationsController;
 use App\Http\Controllers\InstituteRobotsController;
@@ -30,6 +31,7 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         Route::get('/', [InstituteOperationsController::class, 'queue'])->name('queue');
         Route::get('/integrity', InstituteGeographyIntegrityController::class)->name('integrity');
         Route::get('/data-readiness', InstituteDataReadinessController::class)->name('data-readiness');
+        Route::get('/imports/{importBatch}/verification', InstituteImportVerificationController::class)->name('imports.verification');
         Route::get('/rows/{importRow}', [InstituteOperationsController::class, 'show'])->name('row');
         Route::post('/rows/{importRow}/resolve', [InstituteImportPromotionController::class, 'resolve'])->name('resolve');
         Route::post('/rows/{importRow}/decision', [InstituteImportPromotionController::class, 'decide'])->name('decide');
