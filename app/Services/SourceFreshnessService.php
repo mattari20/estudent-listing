@@ -4,7 +4,7 @@ use App\Models\DataQualityEvent;
 use App\Models\Evidence;
 use Carbon\Carbon;
 class SourceFreshnessService {
- public function state(Evidence $evidence, ?Carbon $asOf=null): string {
+ public function state(Evidence $evidence, ?Carbon $asOf=null): string { return $this->stateWithThresholds($evidence,30,90,$asOf); }\n public function stateWithThresholds(Evidence $evidence,int $freshAfterDays,int $staleAfterDays,?Carbon $asOf=null): string {
   $asOf=$asOf??now();
   if($evidence->expires_at && $evidence->expires_at->isPast()) return 'stale';
   if(!$evidence->observed_at) return 'unknown';
