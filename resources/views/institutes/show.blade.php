@@ -3,9 +3,11 @@
 @section('title', $institution->name . ' | eStudent.pk')
 @section('description', 'Profile, campuses, programs, admissions and available educational information for '.$institution->name.' in the eStudent.pk institutes directory.')
 @section('canonical', route('institutes.show', $institution))
+@section('og_type', 'profile')
 
 @push('head')
-<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'EducationalOrganization','name'=>$institution->name,'url'=>route('institutes.show',$institution)], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+<script type="application/ld+json">{!! json_encode($institutionSchema, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+<script type="application/ld+json">{!! json_encode($breadcrumbSchema, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
 @endpush
 
 @section('content')

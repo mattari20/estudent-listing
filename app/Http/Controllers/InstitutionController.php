@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Institution;
 use App\Services\InstituteGeographyContextService;
+use App\Services\InstituteSeoService;
 use Illuminate\View\View;
 
 class InstitutionController
@@ -18,7 +19,7 @@ class InstitutionController
         return view('institutes.index', compact('institutions'));
     }
 
-    public function show(Institution $institution, InstituteGeographyContextService $geographyContext): View
+    public function show(Institution $institution, InstituteGeographyContextService $geographyContext, InstituteSeoService $seo): View
     {
         abort_unless($institution->status === 'active', 404);
 
@@ -76,6 +77,9 @@ class InstitutionController
             $campus->setAttribute('geography_context', $geographyContext->forCampus($campus));
         }
 
-        return view('institutes.show', compact('institution'));
+        $institutionSchema = $seo->institutionSchema($institution);
+        $breadcrumbSchema = $seo->breadcrumb($institution->name, route('institutes.show', $institution));
+
+        return view('institutes.show', compact('institution', 'institutionSchema', 'breadcrumbSchema'));
     }
 }
