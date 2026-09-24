@@ -7,6 +7,10 @@ class InstituteSourceEvidenceCaptureService
 {
     public function capture(Source $source, string $reference, string $excerpt, ?string $contentHash = null, array $assertions = []): Evidence
     {
+        if ($source->status !== 'active') {
+            throw new \InvalidArgumentException('Evidence can only be captured from an active source.');
+        }
+
         $evidence=Evidence::create([
             'source_id'=>$source->id,
             'reference'=>$reference,
