@@ -8,11 +8,9 @@ class InstituteGeographyContextService
 {
     public function forCampus(Campus $campus): ?string
     {
-        if ($campus->status !== 'active') {
+        if ($campus->status !== 'active' || $campus->geography === null) {
             return null;
         }
-
-        $campus->loadMissing('geography');
 
         $parts = [];
         $seen = [];
@@ -29,6 +27,6 @@ class InstituteGeographyContextService
             $geography = $geography->parent;
         }
 
-        return $parts === [] ? null : implode(' · ', $parts);
+        return implode(' · ', $parts);
     }
 }
