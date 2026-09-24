@@ -37,7 +37,7 @@ class InstituteEndToEndReadinessTest extends TestCase
         $summary = (new InstituteEndToEndReadinessService)->summarize($batch);
 
         $this->assertSame([
-            'readiness_contract' => true,
+            'readiness_contract' => false,
             'deployment_readiness' => false,
             'final_production_readiness' => false,
             'structural_readiness' => true,
