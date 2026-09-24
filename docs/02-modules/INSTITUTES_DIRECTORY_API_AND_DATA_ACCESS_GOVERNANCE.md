@@ -531,6 +531,8 @@ The Institutes Directory currently exposes a versioned, read-only API v1 surface
 
 The collection endpoint reuses the governed directory search/filter boundary and bounds `per_page` to 1–100. The profile endpoint applies the public lifecycle and geography visibility boundary before serialization.
 
+Nearby discovery is also implemented as a bounded read-only operation at `GET /api/v1/institutions/nearby`, using active campus coordinates, active geography, a maximum 100 km radius, and a maximum 100-result limit.
+
 Implementation details are tracked in `docs/08-development/DEV-298-API-DATA-ACCESS-HARDENING.md`.
 
 ## 38. Approval State
