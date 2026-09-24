@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 use App\Models\IdentityResolutionDecision;
+use App\Models\ImportPromotionDecision;
 use App\Models\ImportRow;
 use Illuminate\Support\Facades\DB;
 class BulkImportPromotionService {
@@ -16,6 +17,8 @@ class BulkImportPromotionService {
      if(!$decision){$result['skipped']++;return;}
      app(InstituteImportPromoter::class)->promote($row,$decision);
     } else {
+     $decision=ImportPromotionDecision::query()->where('import_row_id',$row->id)->where('decision','approved')->latest('id')->first();
+     if(!$decision){$result['skipped']++;return;}
      app(EnrichmentPromotionService::class)->validateParent($row);
      app(EnrichmentPromotionService::class)->promote($row);
     }
