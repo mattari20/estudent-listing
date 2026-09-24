@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\InstituteAuthController;
+use App\Http\Controllers\InstituteBulkPromotionController;
 use App\Http\Controllers\InstituteImportController;
 use App\Http\Controllers\InstituteImportPromotionController;
 use App\Http\Controllers\InstituteOperationsController;
@@ -17,6 +18,7 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
   Route::post('/rows/{importRow}/resolve', [InstituteImportPromotionController::class,'resolve'])->name('resolve');
   Route::post('/rows/{importRow}/decision', [InstituteImportPromotionController::class,'decide'])->name('decide');
   Route::post('/rows/{importRow}/promote', [InstituteImportPromotionController::class,'promote'])->name('promote');
+  Route::post('/bulk-promote', [InstituteBulkPromotionController::class,'store'])->name('bulk-promote');
   Route::get('/import', [InstituteImportController::class,'create'])->name('import.create');
   Route::get('/import/template', [InstituteImportController::class,'template'])->name('import.template');
   Route::post('/import', [InstituteImportController::class,'store'])->name('import.store');
