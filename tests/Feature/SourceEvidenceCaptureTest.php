@@ -19,7 +19,7 @@ class SourceEvidenceCaptureTest extends TestCase
  public function test_capture_does_not_accept_inactive_source(): void
  {
   $source=Source::create(['source_type'=>'official','name'=>'Inactive Source','url'=>'https://example.com','status'=>'inactive']);
-  $this->expectException(\Throwable::class);
+  $this->expectException(\InvalidArgumentException::class);
   (new InstituteSourceEvidenceCaptureService)->capture($source,'https://example.com','Excerpt');
  }
 }
