@@ -12,7 +12,6 @@ class InstituteProvenanceReadinessService
     public function summarize(ImportBatch $batch): array
     {
         $rows = ImportRow::query()->where('import_batch_id', $batch->id)->where('status', 'candidate')->get();
-        $rowsWithoutSnapshot = 0;
         $rowsWithInvalidLineage = 0;
         $rowsWithoutCompleteAssertion = 0;
 
