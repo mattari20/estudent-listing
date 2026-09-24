@@ -25,10 +25,10 @@ class CampusRelationshipIntegrityService
 
         if ($campus->institution_id === null) {
             $findings[] = 'missing_institution';
-        } elseif (! Institution::query()
+        } elseif (Institution::query()
             ->whereKey($campus->institution_id)
             ->where('status', 'active')
-            ->exists()) {
+            ->exists() === false) {
             $findings[] = 'institution_not_active';
         }
 
@@ -38,16 +38,16 @@ class CampusRelationshipIntegrityService
 
         if (trim((string) $campus->slug) === '') {
             $findings[] = 'missing_slug';
-        } elseif (! preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $campus->slug)) {
+        } elseif (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $campus->slug) === 0) {
             $findings[] = 'invalid_slug';
         }
 
         if ($campus->geography_id === null) {
             $findings[] = 'missing_geography';
-        } elseif (! Geography::query()
+        } elseif (Geography::query()
             ->whereKey($campus->geography_id)
             ->where('status', 'active')
-            ->exists()) {
+            ->exists() === false) {
             $findings[] = 'geography_not_active';
         }
 
