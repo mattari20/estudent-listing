@@ -18,14 +18,16 @@ class InstituteSourceVerificationReadinessService
             if($state==='fresh')$fresh++; elseif($state==='aging')$aging++; elseif($state==='stale')$stale++; else $unknown++;
         }
         $policy=SourceMonitoringPolicy::query()->where('source_id',$batch->source_id)->where('status','active')->first();
-        $latestRun=SourceRetrievalRun::query()->where('source_id',$batch->source_id)->latest('completed_at')->first();
+        $latestRun=SourceRetrievalRun::query()->where('source_id',$batch->source_id)->latest('created_at')->first();
+        $latestSnapshotId=$latestRun?->snapshot_id;
         $blocking=[
             'source_missing'=>$source?0:1,
             'source_inactive'=>$source && $source->status==='active'?0:1,
             'active_evidence_missing'=>$activeEvidence>0?0:1,
             'fresh_evidence_missing'=>$fresh>0?0:1,
             'monitoring_policy_missing'=>$policy?0:1,
-            'successful_retrieval_missing'=>$latestRun && $latestRun->status==='completed'?0:1,
+            'successful_retrieval_missing'=>$latestRun && $latestRun->status==='completed' && $latestSnapshotId?0:1,
+            'retrieval_lineage_missing'=>$latestRun && $latestRun->snapshot_id && $latestRun->content_hash?0:1,
         ];
         return [
             'scope'=>'read_only_source_verification_readiness',
