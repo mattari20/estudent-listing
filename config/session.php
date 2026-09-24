@@ -1,4 +1,5 @@
 <?php
+
 return [
     'driver' => env('SESSION_DRIVER', 'file'),
     'lifetime' => (int) env('SESSION_LIFETIME', 120),
@@ -8,7 +9,7 @@ return [
     'cookie' => env('SESSION_COOKIE', 'estudent_session'),
     'path' => '/',
     'domain' => env('SESSION_DOMAIN'),
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
     'http_only' => true,
     'same_site' => 'lax',
 ];
