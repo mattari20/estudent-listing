@@ -10,7 +10,7 @@ use App\Services\ImportDependencyContextService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 class InstituteOperationsController {
- public function queue(Request $request, ImportBatchReconciliationReport $report): View {
+ public function queue(Request $request, ImportBatchReconciliationReport $report, ImportQualityReportService $quality): View {
   $batchId=$request->integer('batch_id'); $batches=\App\Models\ImportBatch::query()->with('source')->latest()->paginate(20,['*'],'batches_page');
   $rows=ImportRow::query()->whereIn('status',['candidate','validated'])->with(['batch','batch.source'])->when($batchId,fn($q)=>$q->where('import_batch_id',$batchId))->latest()->paginate(30,['*'],'rows_page')->withQueryString();
   $summary=$batchId?$report->build(\App\Models\ImportBatch::findOrFail($batchId)):null; return view('institutes.operations.queue',compact('rows','batches','summary','batchId'));
