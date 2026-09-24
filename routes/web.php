@@ -19,6 +19,8 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
   Route::post('/rows/{importRow}/decision', [InstituteImportPromotionController::class,'decide'])->name('decide');
   Route::post('/rows/{importRow}/enrichment-decision', [InstituteImportPromotionController::class,'enrichmentDecision'])->name('enrichment-decision');
   Route::post('/rows/{importRow}/promote', [InstituteImportPromotionController::class,'promote'])->name('promote');
+  Route::post('/rows/{importRow}/enrichment-promote', [InstituteImportPromotionController::class,'enrichmentPromote'])->name('enrichment-promote');
+  Route::post('/rows/{importRow}/reverse', [InstituteImportPromotionController::class,'reverse'])->name('reverse');
   Route::post('/bulk-promote', [InstituteBulkPromotionController::class,'store'])->name('bulk-promote');
   Route::get('/import', [InstituteImportController::class,'create'])->name('import.create');
   Route::get('/import/template', [InstituteImportController::class,'template'])->name('import.template');
