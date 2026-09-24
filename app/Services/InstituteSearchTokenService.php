@@ -1,0 +1,3 @@
+<?php
+namespace App\Services;
+class InstituteSearchTokenService { public function normalize(string $value): string { $value=mb_strtolower(trim($value)); $value=preg_replace('/[^\\pL\\pN]+/u',' ', $value)??$value; return trim(preg_replace('/\\s+/u',' ',$value)??$value); } public function tokens(string $value): array { return array_values(array_filter(explode(' ',$this->normalize($value)),fn($v)=>mb_strlen($v)>=2)); } }
