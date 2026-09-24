@@ -2,12 +2,37 @@
   "name": "estudent/estudent-listing",
   "type": "project",
   "description": "eStudent.pk Institutes & Education Directory",
-  "require": {"php": "^8.5", "laravel/framework": "^13.0"},
-  "require-dev": {"phpunit/phpunit": "^12.5", "laravel/pint": "^1.24"},
-  "autoload": {"psr-4": {"App\\": "app/"}},
-  "autoload-dev": {"psr-4": {"Tests\\": "tests/"}},
-  "scripts": {"test": ["@php vendor/bin/phpunit"], "lint": ["@php vendor/bin/pint --test"]},
-  "config": {"optimize-autoloader": true, "sort-packages": true},
+  "require": {
+    "php": "^8.5",
+    "laravel/framework": "^13.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^12.5",
+    "laravel/pint": "^1.24",
+    "mockery/mockery": "^1.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": [
+      "@php vendor/bin/phpunit"
+    ],
+    "lint": [
+      "@php vendor/bin/pint --test"
+    ]
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  },
   "minimum-stability": "stable",
   "prefer-stable": true
 }
