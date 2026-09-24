@@ -45,8 +45,7 @@ jobs:
         shell: bash
         run: |
           if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
-            git fetch --no-tags --prune --depth=1 origin "$GITHUB_BASE_REF"
-            files=$(git diff --name-only "origin/$GITHUB_BASE_REF...HEAD" -- '*.php')
+            files=$(git diff --name-only HEAD^1 HEAD -- '*.php')
           else
             files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" -- '*.php')
           fi
