@@ -6,7 +6,6 @@ use App\Http\Controllers\InstituteBulkPromotionController;
 use App\Http\Controllers\InstituteGeographyIntegrityController;
 use App\Http\Controllers\InstituteImportController;
 use App\Http\Controllers\InstituteImportPromotionController;
-use App\Http\Controllers\InstituteGeographyIntegrityController;
 use App\Http\Controllers\InstituteOperationsController;
 use App\Http\Controllers\InstituteRobotsController;
 use App\Http\Controllers\InstituteSearchController;
