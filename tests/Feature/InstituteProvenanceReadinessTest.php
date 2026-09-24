@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ImportBatch;
+use App\Models\ImportRow;
 use App\Models\Source;
 use App\Services\InstituteProvenanceReadinessService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,10 +35,12 @@ class InstituteProvenanceReadinessTest extends TestCase
             'received_at' => now(),
         ]);
 
+        ImportRow::create(['import_batch_id' => $batch->id, 'row_number' => 1, 'status' => 'candidate', 'payload' => ['name' => 'Example Institute']]);
+
         $summary = (new InstituteProvenanceReadinessService)->summarize($batch);
 
-        $this->assertTrue($summary['provenance_ready']);
-        $this->assertSame(0, $summary['blocking_total']);
+        $this->assertFalse($summary['provenance_ready']);
+        $this->assertSame(2, $summary['blocking_total']);
         $this->assertFalse($summary['mutation_performed']);
     }
 }
