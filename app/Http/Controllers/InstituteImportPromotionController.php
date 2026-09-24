@@ -65,7 +65,7 @@ class InstituteImportPromotionController {
   $data=$request->validate(['reason'=>['required','string','max:2000']]); $workflow->start($item,$request->user()->id,$data['reason']); return back()->with('status','Reverification review started.');
  }
  public function resolveReverification(Request $request, DataReverificationQueue $item, ReverificationWorkflowService $workflow): RedirectResponse {
-  $data=$request->validate(['reason'=>['required','string','max:2000']]); $workflow->resolve($item,$request->user()->id,$data['reason']); return back()->with('status','Reverification item resolved.');
+  $data=$request->validate(['reason'=>['required','string','max:2000'],'evidence_id'=>['nullable','integer','exists:evidences,id']]); $evidence=$data['evidence_id']?\App\Models\Evidence::findOrFail($data['evidence_id']):null; $workflow->resolve($item,$request->user()->id,$data['reason'],$evidence); return back()->with('status','Reverification item resolved.');
  }
  public function refreshCanonical(Request $request, DataReverificationQueue $item, CanonicalRefreshService $refresh): RedirectResponse {
   $data=$request->validate(['reason'=>['required','string','max:2000'],'name'=>['nullable','string','max:255'],'official_name'=>['nullable','string','max:255'],'short_name'=>['nullable','string','max:255'],'institution_type'=>['nullable','string','max:255'],'status'=>['nullable','string','max:50']]);
