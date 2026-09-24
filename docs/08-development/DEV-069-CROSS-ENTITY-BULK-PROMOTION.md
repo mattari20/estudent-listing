@@ -2,4 +2,4 @@
 
 Status: Implemented
 
-Bulk promotion now supports institution decisions and enrichment rows through a common safety layer. Each row is independently locked, parent-validated and promoted. A failure does not silently promote an invalid dependency.
+Bulk promotion supports institution identity decisions and enrichment promotion decisions through separate governed records. Enrichment rows require an explicit `approved` promotion decision before bulk promotion. Each row is independently locked and parent-validated. Selection alone never creates canonical data.
