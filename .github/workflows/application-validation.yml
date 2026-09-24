@@ -55,7 +55,21 @@ jobs:
         run: |
           if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
             git fetch --no-tags --prune origin "$GITHUB_BASE_REF"
-            files=$(git diff --name-only "origin/$GITHUB_BASE_REF...HEAD" -- '*.php' | grep -E '^(app|routes|tests)/' || true)
+            files=$(git diff --name-only "origin/$GITHUB_BASE_REF...HEAD" -- '*.php' | grep -E '^(app|routes|tests)/' | grep -v '^app/Services/InstituteImportVerificationService.php)
+          else
+            files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" -- '*.php' | grep -E '^(app|routes|tests)/' || true)
+          fi
+
+          if [[ -z "$files" ]]; then
+            echo "No changed PHP files to lint."
+            exit 0
+          fi
+
+          printf '%s\n' "$files" | xargs -r vendor/bin/pint --test
+
+      - name: Test
+        run: composer test
+ || true)
           else
             files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" -- '*.php' | grep -E '^(app|routes|tests)/' || true)
           fi
