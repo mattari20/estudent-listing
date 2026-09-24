@@ -60,5 +60,8 @@ jobs:
 
           printf '%s\n' "$files" | xargs -r vendor/bin/pint --test
 
+      - name: Prepare test database
+        run: php artisan migrate:fresh --force
+
       - name: Run tests
         run: composer run test
