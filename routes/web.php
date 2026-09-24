@@ -35,6 +35,9 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
   Route::get('/monitoring/history', [\App\Http\Controllers\MonitoringOperationsController::class,'history'])->name('monitoring.history');
   Route::post('/monitoring/alerts/{alert}/acknowledge', [\App\Http\Controllers\MonitoringOperationsController::class,'acknowledge'])->name('monitoring.alerts.acknowledge');
   Route::post('/monitoring/alerts/{alert}/resolve', [\App\Http\Controllers\MonitoringOperationsController::class,'resolve'])->name('monitoring.alerts.resolve');
+  Route::get('/geography-import', [\App\Http\Controllers\GeographyImportController::class,'create'])->name('geography-import.create');
+  Route::get('/geography-import/template', [\App\Http\Controllers\GeographyImportController::class,'template'])->name('geography-import.template');
+  Route::post('/geography-import', [\App\Http\Controllers\GeographyImportController::class,'store'])->name('geography-import.store');
   Route::get('/import', [InstituteImportController::class,'create'])->name('import.create');
   Route::get('/import/template', [InstituteImportController::class,'template'])->name('import.template');
   Route::post('/import', [InstituteImportController::class,'store'])->name('import.store');
