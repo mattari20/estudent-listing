@@ -2,6 +2,7 @@
 namespace Tests\Feature;
 use App\Models\ImportBatch;
 use App\Models\ImportRow;
+use App\Models\Institution;
 use App\Models\User;
 use App\Services\ImportBatchReconciliationReport;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,7 +20,9 @@ class OperationsDashboardTest extends TestCase {
   $user=User::create(['name'=>'Operator','email'=>'operator@example.com','password'=>bcrypt('password'),'role'=>'operator']);
   $b=ImportBatch::create(['batch_key'=>'bulk-test','entity_type'=>'institution','source_type'=>'primary']);
   $row=ImportRow::create(['import_batch_id'=>$b->id,'row_number'=>1,'status'=>'candidate','match_state'=>'new_candidate','payload'=>['name'=>'New University'],'normalized_payload'=>['name'=>'New University','slug'=>'new-university']]);
+  $before = Institution::query()->count();
   $this->actingAs($user)->post(route('institutes.operations.bulk-promote'),['row_ids'=>[$row->id]])->assertSessionHas('status');
-  $this->assertDatabaseCount('institutions',0);
+  $this->assertSame($before, Institution::query()->count());
+  $this->assertSame('candidate', $row->fresh()->status);
  }
 }
