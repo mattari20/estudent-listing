@@ -82,7 +82,7 @@ class CampusRelationshipIntegrityService
 
         $identityCounts = $active
             ->filter(fn (Campus $campus) => $campus->institution_id !== null && trim((string) $campus->slug) !== '')
-            ->countBy(fn (Campus $campus) => $campus->institution_id . ':' . $campus->slug);
+            ->countBy(fn (Campus $campus) => sprintf('%s:%s', $campus->institution_id, $campus->slug));
 
         return $active
             ->map(function (Campus $campus) use ($identityCounts): array {
@@ -93,7 +93,7 @@ class CampusRelationshipIntegrityService
                     $campus->institution_id !== null
                     && trim((string) $campus->slug) !== ''
                     && ($identityCounts[$identity] ?? 0) > 1
-                    && ! in_array('duplicate_institution_slug', $findings, true)
+                    && in_array('duplicate_institution_slug', $findings, true) === false
                 ) {
                     $findings[] = 'duplicate_institution_slug';
                 }
