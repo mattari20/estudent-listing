@@ -1,3 +1,15 @@
 <?php
 namespace App\Services;
-class InstituteSearchFilterService { public function apply($query,array $f){ return $query->when($f['type']??'',fn($x)=>$x->where('institution_type',$f['type']))->when($f['province']??'',fn($x)=>$x->whereHas('campuses.geography.parent.parent',fn($g)=>$g->where('name',$f['province'])->where('type','province')))->when($f['district']??'',fn($x)=>$x->whereHas('campuses.geography.parent',fn($g)=>$g->where('name',$f['district'])->where('type','district')))->when($f['city']??'',fn($x)=>$x->whereHas('campuses.geography',fn($g)=>$g->where('name',$f['city'])->where('type','city')))->when($f['program']??'',fn($x)=>$x->whereHas('programs',fn($p)=>$p->where('status','active')->where('name','like',"%{$f['program']}%")))->when($f['program_level']??'',fn($x)=>$x->whereHas('programs',fn($p)=>$p->where('status','active')->where('program_level',$f['program_level']))); } }
+class InstituteSearchFilterService {
+ public function apply($query,array $f) {
+  return $query
+   ->when($f['type']??'',fn($x)=>$x->where('institution_type',$f['type']))
+   ->when($f['province']??'',fn($x)=>$x->whereHas('campuses.geography.parent.parent',fn($g)=>$g->where('status','active')->where('name',$f['province'])->where('type','province')))
+   ->when($f['district']??'',fn($x)=>$x->whereHas('campuses.geography.parent',fn($g)=>$g->where('status','active')->where('name',$f['district'])->where('type','district')))
+   ->when($f['city']??'',fn($x)=>$x->whereHas('campuses.geography',fn($g)=>$g->where('status','active')->where('name',$f['city'])->where('type','city')))
+   ->when($f['program']??'',fn($x)=>$x->whereHas('programs',fn($p)=>$p->where('status','active')->where(fn($y)=>$y->where('name','like',"%{$f['program']}%")->orWhere('discipline','like',"%{$f['program']}%"))))
+   ->when($f['program_level']??'',fn($x)=>$x->whereHas('programs',fn($p)=>$p->where('status','active')->where('program_level',$f['program_level'])))
+   ->when($f['delivery_mode']??'',fn($x)=>$x->whereHas('programs.offerings',fn($o)=>$o->where('status','active')->where('delivery_mode',$f['delivery_mode'])))
+   ->when($f['admission_status']??'',fn($x)=>$x->whereHas('programs.offerings.admissionIntakes',fn($i)=>$i->where('status',$f['admission_status'])));
+ }
+}
