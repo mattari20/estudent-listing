@@ -4,13 +4,40 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Institution;
+use App\Services\InstituteNearbySearchService;
 use App\Services\InstituteSearchFilterService;
 use App\Services\InstituteSearchQueryService;
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class InstitutionApiController extends Controller
 {
+    public function nearby(Request $request, InstituteNearbySearchService $nearby): JsonResponse
+    {
+        $validated = $request->validate([
+            'lat' => ['required', 'numeric', 'between:-90,90'],
+            'lng' => ['required', 'numeric', 'between:-180,180'],
+            'radius_km' => ['nullable', 'numeric', 'gt:0', 'max:100'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $results = $nearby->search(
+            (float) $validated['lat'],
+            (float) $validated['lng'],
+            (float) ($validated['radius_km'] ?? 25),
+            (int) ($validated['limit'] ?? 24),
+        );
+
+        return response()->json([
+            'data' => $results->map(fn (array $result): array => [
+                'institution' => $result['institution'],
+                'campus' => $result['campus'],
+                'distance_km' => round($result['distance_km'], 3),
+            ])->values(),
+        ]);
+    }
+
     public function index(
         Request $request,
         InstituteSearchQueryService $queryService,
