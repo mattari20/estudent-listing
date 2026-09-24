@@ -81,7 +81,6 @@ class DirectorySearchTest extends TestCase
             ->assertDontSee('Karachi University');
     }
 
-
     public function test_geography_filters_ignore_inactive_campuses_and_geographies(): void
     {
         $punjab = Geography::create(['name' => 'Punjab', 'slug' => 'punjab', 'type' => 'province', 'status' => 'active']);
