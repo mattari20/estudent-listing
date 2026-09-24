@@ -28,6 +28,12 @@ jobs:
           extensions: mbstring, pdo_sqlite, sqlite3
           coverage: none
 
+      - name: Require committed Composer lock
+        run: test -f composer.lock
+
+      - name: Validate Composer metadata
+        run: composer validate --strict --no-check-publish
+
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
