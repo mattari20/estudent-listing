@@ -31,16 +31,16 @@ class CanonicalGeographyIntegrityService
     {
         $campus->loadMissing('institution', 'geography');
 
+        if ($campus->status !== 'active') {
+            return null;
+        }
+
         if (! $campus->institution) {
             return [
                 'type' => 'missing_institution',
                 'campus_id' => $campus->id,
                 'message' => 'Campus has no canonical institution.',
             ];
-        }
-
-        if ($campus->status !== 'active') {
-            return null;
         }
 
         if (! $campus->geography) {
