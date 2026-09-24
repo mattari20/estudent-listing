@@ -29,3 +29,7 @@ This mechanism is intended for actual source material. It does not generate inst
 
 ## DEV-307 Assertion Integrity Extension
 When assertions are supplied, each assertion must identify a subject type, subject ID, attribute, and value. Validation occurs before evidence creation, so incomplete assertion payloads cannot create orphaned evidence records through this service.
+
+
+## DEV-308 Snapshot Lineage Extension
+Evidence may be explicitly bound to a captured source snapshot. When a snapshot is supplied, it must belong to the same source, have captured status, and its content hash must match the evidence content hash. The database stores this relationship through `evidences.snapshot_id`.
