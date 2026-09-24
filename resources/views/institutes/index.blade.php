@@ -1,35 +1,9 @@
 @extends('layouts.app')
-
 @section('title', 'Institutes Directory | eStudent.pk')
 @section('description', 'Browse educational institutes and institutions in the eStudent.pk directory.')
 @section('canonical', url('/institutes/'))
-
 @section('content')
-<section>
-    <h1>Institutes Directory</h1>
-    <p>Browse educational institutions listed by eStudent.pk.</p>
-
-    <form method="get" action="{{ route('institutes.search') }}" role="search">
-        <label for="directory-search">Search institutes</label>
-        <input id="directory-search" name="q" type="search" placeholder="Search by institute name">
-        <button type="submit">Search</button>
-    </form>
-</section>
-
-<section aria-label="Institute results">
-@forelse ($institutions as $institution)
-    <article>
-        <h2>
-            <a href="{{ route('institutes.show', $institution) }}">{{ $institution->name }}</a>
-        </h2>
-        @if ($institution->institution_type)
-            <p>{{ $institution->institution_type }}</p>
-        @endif
-    </article>
-@empty
-    <p>No institutions are currently available.</p>
-@endforelse
-</section>
-
-{{ $institutions->links() }}
+<section class="hero"><p class="eyebrow">Education directory</p><h1>Find educational institutes in Pakistan</h1><p class="hero__text">Search institutions, programs, campuses and admissions information from the eStudent.pk directory.</p><form class="hero-search" method="get" action="{{ route('institutes.search') }}" role="search"><label class="sr-only" for="directory-search">Search institutes</label><input id="directory-search" name="q" type="search" placeholder="Search institute, program or city" autocomplete="off"><button type="submit">Search</button></form></section>
+<section class="section-heading"><div><p class="eyebrow">Directory</p><h2>Educational institutes</h2></div><a class="text-link" href="{{ route('institutes.search') }}">Advanced search →</a></section>
+<section class="card-grid" aria-label="Institute results">@forelse ($institutions as $institution)<article class="institute-card"><span class="badge">{{ $institution->institution_type ?: 'Educational institute' }}</span><h3><a href="{{ route('institutes.show', $institution) }}">{{ $institution->name }}</a></h3>@if ($institution->official_name && $institution->official_name !== $institution->name)<p class="muted">{{ $institution->official_name }}</p>@endif<a class="card-link" href="{{ route('institutes.show', $institution) }}">View institute →</a></article>@empty<div class="empty-state"><h3>No institutions available</h3><p>Institution information is not currently available.</p></div>@endforelse</section><div class="pagination-wrap">{{ $institutions->links() }}</div>
 @endsection
