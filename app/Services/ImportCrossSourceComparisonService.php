@@ -4,7 +4,7 @@ use App\Models\ImportConflict;
 use App\Models\ImportRow;
 use App\Models\Institution;
 class ImportCrossSourceComparisonService {
- public function compare(ImportRow $row): int {
+ public function compare(ImportRow $row): int {\n  if(!$row->canonical_subject_id) return 0; return $this->compareInstitution($row, Institution::find($row->canonical_subject_id));\n }\n public function compareInstitution(ImportRow $row, ?Institution $institution): int {
   if($row->batch->entity_type!=='institution' || !$row->canonical_subject_id) return 0;
   $institution=Institution::find($row->canonical_subject_id); if(!$institution) return 0;
   $payload=$row->normalized_payload ?? $row->payload ?? []; $count=0;
