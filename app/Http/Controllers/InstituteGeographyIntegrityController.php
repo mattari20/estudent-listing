@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Institution;
-use App\Services\InstituteGeographyCrossDomainIntegrityService;
+use App\Services\InstituteGeographyIntegrityService;
 use Illuminate\View\View;
 
 class InstituteGeographyIntegrityController
 {
-    public function __invoke(InstituteGeographyCrossDomainIntegrityService $integrity): View
+    public function __invoke(InstituteGeographyIntegrityService $integrity): View
     {
         $institutions = Institution::query()
             ->where('status', 'active')
@@ -23,7 +23,7 @@ class InstituteGeographyIntegrityController
         $institutions->getCollection()->transform(function ($institution) use ($integrity) {
             $institution->setAttribute(
                 'integrity_findings',
-                $integrity->inspect($institution)
+                $integrity->inspectInstitution($institution)
             );
 
             return $institution;
