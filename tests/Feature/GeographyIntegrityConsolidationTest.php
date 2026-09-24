@@ -84,4 +84,12 @@ class GeographyIntegrityConsolidationTest extends TestCase
             (new InstituteGeographyIntegrityService)->inspectInstitution($institution)->first()['type']
         );
     }
+    public function test_geography_integrity_review_is_operator_protected_and_read_only(): void
+    {
+        $this->get(route('institutes.operations.integrity'))
+            ->assertRedirect();
+
+        $this->post(route('institutes.operations.integrity'))
+            ->assertStatus(405);
+    }
 }
