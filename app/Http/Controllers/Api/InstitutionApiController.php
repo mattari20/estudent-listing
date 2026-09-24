@@ -52,6 +52,7 @@ class InstitutionApiController extends Controller
         $institution->load([
             'campuses' => fn ($query) => $query
                 ->where('status', 'active')
+                ->whereHas('geography', fn ($geography) => $geography->where('status', 'active'))
                 ->with(['geography' => fn ($geography) => $geography->where('status', 'active')])
                 ->orderBy('name'),
             'programs' => fn ($query) => $query
