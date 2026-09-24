@@ -73,6 +73,6 @@ class InstituteAuthController
 
     private function loginThrottleKey(Request $request): string
     {
-        return Str::transliterate(Str::lower((string) $request->string('email')).'|.$request->ip());
+        return Str::transliterate(Str::lower((string) $request->string('email')).'|'.$request->ip());
     }
 }
