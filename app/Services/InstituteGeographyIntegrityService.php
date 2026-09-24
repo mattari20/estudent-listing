@@ -1,10 +1,10 @@
 <?php
 
-namespace AppServices;
+namespace App\Services;
 
-use AppModelsCampus;
-use AppModelsInstitution;
-use IlluminateSupportCollection;
+use App\Models\Campus;
+use App\Models\Institution;
+use Illuminate\Support\Collection;
 
 class InstituteGeographyIntegrityService
 {
