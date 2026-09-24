@@ -4,11 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
-        if (Schema::hasTable('evidence') && !Schema::hasTable('evidences')) {
+        if (Schema::hasTable('evidence') && ! Schema::hasTable('evidences')) {
             Schema::rename('evidence', 'evidences');
         }
 
@@ -23,7 +22,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!Schema::hasTable('evidences')) {
+        if (! Schema::hasTable('evidences')) {
             return;
         }
 
@@ -34,7 +33,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('evidence')) {
+        if (! Schema::hasTable('evidence')) {
             Schema::rename('evidences', 'evidence');
         }
     }
