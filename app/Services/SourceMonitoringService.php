@@ -13,7 +13,7 @@ class SourceMonitoringService {
    $evidence=$query->get();
    foreach($evidence as $item){
     $summary['evidence_checked']++;
-    $state=app(SourceFreshnessService::class)->state($item);
+    $state=app(SourceFreshnessService::class)->stateWithThresholds($item,$policy->fresh_after_days,$policy->stale_after_days);
     if($state==='fresh')$summary['fresh']++; elseif($state==='aging')$summary['aging']++; elseif($state==='stale')$summary['stale']++; else $summary['unknown']++;
     if(in_array($state,['aging','stale'],true)){ $priority=$state==='stale'?'high':$policy->priority; app(ReverificationQueueService::class)->enqueueEvidence($item,'monitoring_'.$state,$priority); $summary['queued']++; }
    }
