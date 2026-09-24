@@ -1,14 +1,14 @@
 <?php
 
-namespace TestsFeature;
+namespace Tests\Feature;
 
-use AppModelsCampus;
-use AppModelsGeography;
-use AppModelsInstitution;
-use AppServicesInstituteGeographyContextService;
-use AppServicesInstituteGeographyIntegrityService;
-use IlluminateFoundationTestingRefreshDatabase;
-use TestsTestCase;
+use App\Models\Campus;
+use App\Models\Geography;
+use App\Models\Institution;
+use App\Services\InstituteGeographyContextService;
+use App\Services\InstituteGeographyIntegrityService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class GeographyIntegrityConsolidationTest extends TestCase
 {
