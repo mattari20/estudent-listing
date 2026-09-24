@@ -1,8 +1,11 @@
 <?php
 use App\Http\Controllers\InstitutionController;
+use App\Http\Controllers\InstituteImportController;
 use Illuminate\Support\Facades\Route;
 Route::prefix('institutes')->name('institutes.')->group(function (): void {
     Route::get('/', [InstitutionController::class, 'index'])->name('index');
     Route::get('/search', \App\Http\Controllers\InstituteSearchController::class)->name('search');
+    Route::get('/import', [InstituteImportController::class, 'create'])->name('import.create');
+    Route::post('/import', [InstituteImportController::class, 'store'])->name('import.store');
     Route::get('/{institution:slug}', [InstitutionController::class, 'show'])->name('show');
 });
