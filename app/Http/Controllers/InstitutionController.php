@@ -35,7 +35,12 @@ class InstitutionController
                         ->with([
                             'admissionIntakes' => fn ($intakeQuery) => $intakeQuery
                                 ->whereNotIn('status', ['cancelled', 'suspended'])
-                                ->with(['eligibilityRules', 'meritRecords', 'scholarships', 'feeRecords'])
+                                ->with([
+                                    'eligibilityRules' => fn ($query) => $query->whereNotIn('status', ['rejected', 'withdrawn']),
+                                    'meritRecords' => fn ($query) => $query->whereNotIn('status', ['rejected', 'withdrawn']),
+                                    'scholarships' => fn ($query) => $query->whereNotIn('status', ['rejected', 'withdrawn']),
+                                    'feeRecords' => fn ($query) => $query->whereNotIn('status', ['superseded']),
+                                ])
                                 ->orderByDesc('application_close_at'),
                             'scholarships' => fn ($scholarshipQuery) => $scholarshipQuery
                                 ->whereNotIn('status', ['rejected', 'withdrawn'])
