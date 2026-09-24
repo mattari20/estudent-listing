@@ -7,11 +7,9 @@ use Illuminate\Support\Str;
 class InstituteIdentityResolver {
  public function resolve(ImportRow $row): int {
   $payload=$row->normalized_payload ?? $row->payload ?? [];
-  $name=trim((string)($payload['name'] ?? ''));
-  $slug=trim((string)($payload['slug'] ?? ''));
+  $name=trim((string)($payload['name'] ?? '')); $slug=trim((string)($payload['slug'] ?? ''));
   if($name==='') return 0;
-  $matches=[];
-  if($slug!=='') $matches=Institution::query()->where('slug',$slug)->get();
+  $matches=[]; if($slug!=='') $matches=Institution::query()->where('slug',$slug)->get();
   if($matches->isEmpty()) $matches=Institution::query()->whereRaw('LOWER(name) = ?', [Str::lower($name)])->get();
   $created=0;
   foreach($matches as $institution){
@@ -21,6 +19,7 @@ class InstituteIdentityResolver {
    $created++;
   }
   $row->update(['match_state'=>$created>0?'matched':'new_candidate']);
+  app(ImportConflictDetectionService::class)->detect($row);
   return $created;
  }
 }

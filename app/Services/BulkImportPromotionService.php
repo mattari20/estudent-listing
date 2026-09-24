@@ -10,7 +10,7 @@ class BulkImportPromotionService {
   foreach($rowIds as $id){
    try { DB::transaction(function() use($id,$actorId,&$result): void {
     $row=ImportRow::query()->lockForUpdate()->with('batch')->find($id);
-    if(!$row || $row->status!=='candidate'){$result['skipped']++;return;}
+    if(!$row || $row->status!=='candidate'){$result['skipped']++;return;}\n    if(ImportConflict::where('import_row_id',$row->id)->where('status','open')->exists()){ $result['skipped']++; return; }
     $type=$row->batch->entity_type;
     if($type==='institution'){
      $decision=IdentityResolutionDecision::query()->where('import_row_id',$row->id)->whereIn('decision',['approved_new','approved_match'])->latest('id')->first();
