@@ -19,8 +19,8 @@ class InstituteOperationsController {
   $importRow->load(['batch.source']); $matches=IdentityMatchCandidate::query()->where('import_row_id',$importRow->id)->with('institution')->get();
   $identityDecision=IdentityResolutionDecision::query()->where('import_row_id',$importRow->id)->latest('id')->first();
   $enrichmentDecision=ImportPromotionDecision::query()->where('import_row_id',$importRow->id)->latest('id')->first();
-  $history=ImportPromotionEvent::query()->where('import_row_id',$importRow->id)->latest('id')->limit(50)->get();
+  $history=ImportPromotionEvent::query()->where('import_row_id',$importRow->id)->latest('id')->limit(50)->get();\n  $conflicts=ImportConflict::query()->where('import_row_id',$importRow->id)->latest('id')->get();
   $dependency=$context->build($importRow);
-  return view('institutes.operations.row',compact('importRow','matches','identityDecision','enrichmentDecision','dependency','history'));
+  return view('institutes.operations.row',compact('importRow','matches','identityDecision','enrichmentDecision','dependency','history','conflicts'));
  }
 }
