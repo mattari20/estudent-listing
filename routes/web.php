@@ -26,6 +26,10 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
   Route::post('/reverification/{item}/resolve', [InstituteImportPromotionController::class,'resolveReverification'])->name('reverification.resolve');
   Route::post('/reverification/{item}/refresh', [InstituteImportPromotionController::class,'refreshCanonical'])->name('reverification.refresh');
   Route::post('/bulk-promote', [InstituteBulkPromotionController::class,'store'])->name('bulk-promote');
+  Route::get('/monitoring', [\App\Http\Controllers\MonitoringOperationsController::class,'dashboard'])->name('monitoring.dashboard');
+  Route::get('/monitoring/history', [\App\Http\Controllers\MonitoringOperationsController::class,'history'])->name('monitoring.history');
+  Route::post('/monitoring/alerts/{alert}/acknowledge', [\App\Http\Controllers\MonitoringOperationsController::class,'acknowledge'])->name('monitoring.alerts.acknowledge');
+  Route::post('/monitoring/alerts/{alert}/resolve', [\App\Http\Controllers\MonitoringOperationsController::class,'resolve'])->name('monitoring.alerts.resolve');
   Route::get('/import', [InstituteImportController::class,'create'])->name('import.create');
   Route::get('/import/template', [InstituteImportController::class,'template'])->name('import.template');
   Route::post('/import', [InstituteImportController::class,'store'])->name('import.store');
