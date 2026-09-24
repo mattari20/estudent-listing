@@ -12,22 +12,19 @@ class BulkImportPromotionService {
     $row=ImportRow::query()->lockForUpdate()->with('batch')->find($id);
     if(!$row || $row->status!=='candidate'){$result['skipped']++;return;}
     $type=$row->batch->entity_type;
-    app(ImportPromotionAuditService::class)->record($row,'promotion_started',$actorId,'Explicitly approved promotion started.',[
-     'previous_status'=>$row->status,'previous_match_state'=>$row->match_state
-    ]);
     if($type==='institution'){
      $decision=IdentityResolutionDecision::query()->where('import_row_id',$row->id)->whereIn('decision',['approved_new','approved_match'])->latest('id')->first();
      if(!$decision){$result['skipped']++;return;}
+     app(ImportPromotionAuditService::class)->record($row,'promotion_started',$actorId,'Explicitly approved promotion started.',['previous_status'=>$row->status,'previous_match_state'=>$row->match_state],'identity_resolution',$decision->id);
      app(InstituteImportPromoter::class)->promote($row,$decision);
     } else {
      $decision=ImportPromotionDecision::query()->where('import_row_id',$row->id)->where('decision','approved')->latest('id')->first();
      if(!$decision){$result['skipped']++;return;}
+     app(ImportPromotionAuditService::class)->record($row,'promotion_started',$actorId,'Explicitly approved promotion started.',['previous_status'=>$row->status,'previous_match_state'=>$row->match_state],'import_promotion',$decision->id);
      app(EnrichmentPromotionService::class)->validateParent($row);
      $previousStatus=$row->status; $previousMatch=$row->match_state;
      $entity=app(EnrichmentPromotionService::class)->promote($row);
-     app(ImportPromotionAuditService::class)->record($row,'promotion_succeeded',$actorId,'Enrichment promoted to canonical data.',[
-      'previous_status'=>$previousStatus,'previous_match_state'=>$previousMatch,'created_canonical'=>true,'canonical_class'=>$entity::class
-     ],'import_promotion',$decision->id);
+     app(ImportPromotionAuditService::class)->record($row,'promotion_succeeded',$actorId,'Enrichment promoted to canonical data.',['previous_status'=>$previousStatus,'previous_match_state'=>$previousMatch,'created_canonical'=>false,'canonical_class'=>$entity::class],'import_promotion',$decision->id);
     }
     $result['promoted']++;
    }); } catch(\Throwable $e) {
