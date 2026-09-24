@@ -32,6 +32,7 @@ class BulkImportPromotionService
                     }
 
                     $type = $row->batch->entity_type;
+
                     if ($type === 'institution') {
                         $decision = IdentityResolutionDecision::query()
                             ->where('import_row_id', $row->id)
@@ -41,6 +42,7 @@ class BulkImportPromotionService
 
                         if ($decision === null) {
                             $result['skipped']++;
+
                             return;
                         }
 
@@ -68,6 +70,7 @@ class BulkImportPromotionService
 
                         if ($decision === null) {
                             $result['skipped']++;
+
                             return;
                         }
 
@@ -109,7 +112,7 @@ class BulkImportPromotionService
                 $result['failed']++;
                 $failedRow = ImportRow::with('batch')->find($id);
 
-                if ($failedRow) {
+                if ($failedRow !== null) {
                     app(ImportPromotionAuditService::class)->record(
                         $failedRow,
                         'promotion_failed',
