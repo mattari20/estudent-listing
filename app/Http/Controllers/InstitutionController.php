@@ -31,9 +31,39 @@ class InstitutionController
                 ->with([
                     'offerings' => fn ($offeringQuery) => $offeringQuery
                         ->where('status', 'active')
+                        ->with([
+                            'admissionIntakes' => fn ($intakeQuery) => $intakeQuery
+                                ->whereNotIn('status', ['cancelled', 'suspended'])
+                                ->with(['eligibilityRules', 'meritRecords', 'scholarships', 'feeRecords'])
+                                ->orderByDesc('application_close_at'),
+                            'scholarships' => fn ($scholarshipQuery) => $scholarshipQuery
+                                ->whereNotIn('status', ['rejected', 'withdrawn'])
+                                ->orderBy('name'),
+                            'feeRecords' => fn ($feeQuery) => $feeQuery
+                                ->whereNotIn('status', ['superseded'])
+                                ->orderBy('fee_type'),
+                            'accreditations' => fn ($accreditationQuery) => $accreditationQuery
+                                ->whereNotIn('status', ['rejected', 'withdrawn'])
+                                ->orderBy('name'),
+                        ])
                         ->orderBy('intake_label'),
                 ])
+                ->with([
+                    'externalRankings' => fn ($query) => $query
+                        ->whereNotIn('status', ['rejected', 'withdrawn'])
+                        ->orderByDesc('year'),
+                    'recommendations' => fn ($query) => $query
+                        ->where('status', 'published'),
+                ])
                 ->orderBy('name'),
+            'accreditations' => fn ($query) => $query
+                ->whereNotIn('status', ['rejected', 'withdrawn'])
+                ->orderBy('name'),
+            'externalRankings' => fn ($query) => $query
+                ->whereNotIn('status', ['rejected', 'withdrawn'])
+                ->orderByDesc('year'),
+            'recommendations' => fn ($query) => $query
+                ->where('status', 'published'),
         ]);
 
         return view('institutes.show', compact('institution'));
