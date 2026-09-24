@@ -4,30 +4,42 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Institution;
+use App\Services\InstituteSearchFilterService;
+use App\Services\InstituteSearchQueryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class InstitutionApiController extends Controller
 {
-    public function index(Request $request): JsonResponse
-    {
-        $q = trim((string) $request->query('q', ''));
+    public function index(
+        Request $request,
+        InstituteSearchQueryService $queryService,
+        InstituteSearchFilterService $filterService,
+    ): JsonResponse {
+        $keys = [
+            'q',
+            'type',
+            'province',
+            'district',
+            'city',
+            'program',
+            'program_level',
+            'delivery_mode',
+            'admission_status',
+        ];
+
+        $filters = [];
+
+        foreach ($keys as $key) {
+            $filters[$key] = trim((string) $request->query($key, ''));
+        }
+
         $perPage = min(max((int) $request->query('per_page', 24), 1), 100);
 
-        $items = Institution::query()
-            ->where('status', 'active')
-            ->when($q !== '', function ($query) use ($q): void {
-                $query->where(function ($search) use ($q): void {
-                    $search
-                        ->where('name', 'like', "%{$q}%")
-                        ->orWhere('official_name', 'like', "%{$q}%")
-                        ->orWhere('short_name', 'like', "%{$q}%")
-                        ->orWhereHas('names', function ($names) use ($q): void {
-                            $names->where('name', 'like', "%{$q}%");
-                        });
-                });
-            })
+        $items = $filterService
+            ->apply($queryService->build($filters['q']), $filters)
             ->orderBy('name')
+            ->orderBy('id')
             ->paginate($perPage);
 
         return response()->json($items);
@@ -40,21 +52,33 @@ class InstitutionApiController extends Controller
         $institution->load([
             'campuses' => fn ($query) => $query
                 ->where('status', 'active')
-                ->with('geography')
+                ->with(['geography' => fn ($geography) => $geography->where('status', 'active')])
                 ->orderBy('name'),
             'programs' => fn ($query) => $query
                 ->where('status', 'active')
                 ->with([
                     'offerings' => fn ($offeringQuery) => $offeringQuery
                         ->where('status', 'active')
+                        ->whereHas('campus', fn ($campus) => $campus->where('status', 'active'))
                         ->with([
-                            'admissionIntakes.eligibilityRules',
-                            'admissionIntakes.meritRecords',
-                            'admissionIntakes.scholarships',
-                            'admissionIntakes.feeRecords',
-                            'scholarships',
-                            'feeRecords',
-                            'accreditations',
+                            'admissionIntakes' => fn ($intakeQuery) => $intakeQuery
+                                ->whereNotIn('status', ['cancelled', 'suspended'])
+                                ->with([
+                                    'eligibilityRules' => fn ($query) => $query->whereNotIn('status', ['rejected', 'withdrawn']),
+                                    'meritRecords' => fn ($query) => $query->whereNotIn('status', ['rejected', 'withdrawn']),
+                                    'scholarships' => fn ($query) => $query->whereNotIn('status', ['rejected', 'withdrawn']),
+                                    'feeRecords' => fn ($query) => $query->whereNotIn('status', ['superseded']),
+                                ])
+                                ->orderByDesc('application_close_at'),
+                            'scholarships' => fn ($scholarshipQuery) => $scholarshipQuery
+                                ->whereNotIn('status', ['rejected', 'withdrawn'])
+                                ->orderBy('name'),
+                            'feeRecords' => fn ($feeQuery) => $feeQuery
+                                ->whereNotIn('status', ['superseded'])
+                                ->orderBy('fee_type'),
+                            'accreditations' => fn ($accreditationQuery) => $accreditationQuery
+                                ->whereNotIn('status', ['rejected', 'withdrawn'])
+                                ->orderBy('name'),
                         ])
                         ->orderBy('intake_label'),
                 ])
