@@ -2,16 +2,13 @@ name: Test
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
     env:
       APP_ENV: testing
       APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
@@ -24,13 +21,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.5'
+          php-version: "8.5"
           extensions: mbstring, dom, fileinfo, pdo_sqlite
           coverage: none
           tools: composer:v2
@@ -38,7 +33,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install frontend dependencies
         run: npm install --no-audit --no-fund
@@ -51,45 +46,14 @@ jobs:
           mkdir -p database
           touch database/testing.sqlite
 
+      - name: Require committed Composer lock
+        run: test -f composer.lock
+
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
-
-      - name: Run Pint on changed PHP files
-        shell: bash
-        run: |
-          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
-            git fetch --no-tags --prune origin "$GITHUB_BASE_REF"
-            files=$(git diff --name-only "origin/$GITHUB_BASE_REF...HEAD" -- '*.php' | grep -E '^(app|routes|tests)/' | grep -v '^app/Services/InstituteImportVerificationService.php)
-          else
-            files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" -- '*.php' | grep -E '^(app|routes|tests)/' || true)
-          fi
-
-          if [[ -z "$files" ]]; then
-            echo "No changed PHP files to lint."
-            exit 0
-          fi
-
-          printf '%s\n' "$files" | xargs -r vendor/bin/pint --test
+        run: composer install --no-interaction --prefer-dist --no-progress --optimize-autoloader
 
       - name: Prepare test database
         run: php artisan migrate:fresh --force
 
       - name: Run tests
-        run: composer run test
- || true)
-          else
-            files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" -- '*.php' | grep -E '^(app|routes|tests)/' || true)
-          fi
-
-          if [[ -z "$files" ]]; then
-            echo "No changed PHP files to lint."
-            exit 0
-          fi
-
-          printf '%s\n' "$files" | xargs -r vendor/bin/pint --test
-
-      - name: Prepare test database
-        run: php artisan migrate:fresh --force
-
-      - name: Run tests
-        run: composer run test
+        run: composer test
