@@ -17,7 +17,7 @@ class ImportDependencyContextService {
   if($parent instanceof ProgramOffering){$program=$parent->program;$campus=$parent->campus;$institution=$program?->institution;$context['chain']=array_values(array_filter([$institution,$campus,$program,$parent]));}
   elseif($parent instanceof Program){$institution=$parent->institution;$context['chain']=array_values(array_filter([$institution,$parent]));}
   elseif($parent instanceof Campus){$institution=$parent->institution;$context['chain']=array_values(array_filter([$institution,$parent]));}
-  elseif($parent instanceof AdmissionIntake){$offering=$parent->programOffering;$program=$offering?->program;$institution=$program?->institution;$context['chain']=array_values(array_filter([$institution,$program,$offering,$parent]));}
+  elseif($parent instanceof AdmissionIntake){$offering=$parent->offering;$program=$offering?->program;$institution=$program?->institution;$context['chain']=array_values(array_filter([$institution,$program,$offering,$parent]));}
   elseif($parent instanceof Institution){$context['chain']=[$parent];}
   return $context;
  }
