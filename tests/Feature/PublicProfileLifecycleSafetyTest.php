@@ -105,6 +105,7 @@ class PublicProfileLifecycleSafetyTest extends TestCase
             'program_id' => $activeProgram->id,
             'program_offering_id' => $activeOffering->id,
             'name' => 'Current Recognition',
+            'recognition_type' => 'program',
             'status' => 'published',
         ]);
 
@@ -113,6 +114,7 @@ class PublicProfileLifecycleSafetyTest extends TestCase
             'program_id' => $activeProgram->id,
             'program_offering_id' => $activeOffering->id,
             'name' => 'Withdrawn Recognition',
+            'recognition_type' => 'program',
             'status' => 'withdrawn',
         ]);
 
