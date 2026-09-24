@@ -1,9 +1,9 @@
 <?php
 
-namespace AppServices;
+namespace App\Services;
 
-use AppModelsInstitution;
-use IlluminateSupportCollection;
+use App\Models\Institution;
+use Illuminate\Support\Collection;
 
 class InstituteGeographyCrossDomainIntegrityService
 {
