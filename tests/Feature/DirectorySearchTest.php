@@ -136,7 +136,6 @@ class DirectorySearchTest extends TestCase
             ->assertSee('Future University');
     }
 
-
     public function test_public_search_counts_only_active_campuses_and_programs(): void
     {
         $institution = Institution::create([
