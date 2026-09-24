@@ -26,6 +26,7 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
 
     Route::middleware(['auth', 'institute.operator'])->prefix('operations')->name('operations.')->group(function (): void {
         Route::get('/', [InstituteOperationsController::class, 'queue'])->name('queue');
+        Route::get('/integrity', [InstituteOperationsController::class, 'integrity'])->name('integrity');
         Route::get('/rows/{importRow}', [InstituteOperationsController::class, 'show'])->name('row');
         Route::post('/rows/{importRow}/resolve', [InstituteImportPromotionController::class, 'resolve'])->name('resolve');
         Route::post('/rows/{importRow}/decision', [InstituteImportPromotionController::class, 'decide'])->name('decide');
