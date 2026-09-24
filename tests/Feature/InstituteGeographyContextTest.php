@@ -43,6 +43,8 @@ class InstituteGeographyContextTest extends TestCase
         $second->id = 2;
         $first->parent_id = 2;
         $second->parent_id = 1;
+        $first->setRelation('parent', $second);
+        $second->setRelation('parent', $first);
         $institution = Institution::create(['name' => 'Example University', 'slug' => 'example-university', 'status' => 'active']);
         $campus = new Campus(['institution_id' => $institution->id, 'name' => 'Main Campus', 'slug' => 'main-campus', 'status' => 'active']);
         $campus->geography = $first;
