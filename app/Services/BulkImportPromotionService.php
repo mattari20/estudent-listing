@@ -30,7 +30,6 @@ class BulkImportPromotionService
                     }
 
                     $type = $row->batch->entity_type;
-
                     if ($type === 'institution') {
                         $decision = IdentityResolutionDecision::query()
                             ->where('import_row_id', $row->id)
