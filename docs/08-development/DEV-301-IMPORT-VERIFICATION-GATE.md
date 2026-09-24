@@ -32,3 +32,7 @@ Tests cover unresolved candidates, an approved new candidate, open conflicts, an
 
 ## Real-Data Rule
 No fabricated institute records are introduced. Real data continues through source-backed import batches and explicit operator review.
+
+
+## DEV-305 Evidence Readiness Extension
+Candidate institute rows are not verification-ready unless they have at least one active source evidence assertion explicitly attached to the import row. This remains read-only and does not promote, mutate, or publish canonical data. The evidence must be captured through the controlled source-evidence flow.
