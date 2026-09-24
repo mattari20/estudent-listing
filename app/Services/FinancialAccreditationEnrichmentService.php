@@ -26,7 +26,7 @@ class FinancialAccreditationEnrichmentService {
  }
  private function fee(array $p,ImportRow $row): FeeRecord {
   $parent=$this->parent($row); $type=$parent instanceof AdmissionIntake?'admission_intake_id':'program_offering_id';
-  $data=[$type=>$parent->id,'fee_type'=>$p['fee_type']??'tuition','amount_type'=>$p['amount_type']??'fixed','amount'=>$p['amount']??null,'minimum_amount'=>$p['minimum_amount']??null,'maximum_amount'=>$p['maximum_amount']??null,'currency'=>$p['currency']??null,'frequency'=>$p['frequency']??null,'status'=>$p['status']??'known','effective_from'=>$p['effective_from']??null,'effective_until'=>$p['effective_until']??null,'notes'=>$p['notes']??null];
+  $data=[$type=>$parent->id,'fee_type'=>$p['fee_type']??'tuition','amount_type'=>$p['amount_type']??'fixed','amount'=>$p['amount']??null,'minimum_amount'=>$p['minimum_amount']??null,'maximum_amount'=>$p['maximum_amount']??null,'currency'=>$p['currency']??'PKR','frequency'=>$p['frequency']??null,'status'=>$p['status']??'known','effective_from'=>$p['effective_from']??null,'effective_until'=>$p['effective_until']??null,'notes'=>$p['notes']??null];
   if(empty($data['amount'])&&empty($data['minimum_amount'])&&empty($data['maximum_amount'])&&empty($p['notes'])) throw new RuntimeException('Fee record needs a recorded amount/range or explanatory note.');
   return FeeRecord::create($data);
  }
