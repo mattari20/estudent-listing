@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('evidences', function (Blueprint $table): void {
+        Schema::create('evidence', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('source_id')->constrained()->cascadeOnDelete();
             $table->string('reference')->nullable();
@@ -26,6 +26,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('evidences');
+        Schema::dropIfExists('evidence');
     }
 };
