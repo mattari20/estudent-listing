@@ -110,6 +110,6 @@ class DirectorySearchTest extends TestCase
 
     public function test_search_route_preserves_directory_root(): void
     {
-        $this->get('/institutes/search')->assertOk()->assertSee('Institute Search');
+        $this->get('/institutes/search')->assertOk()->assertSee('Find an institute');
     }
 }
