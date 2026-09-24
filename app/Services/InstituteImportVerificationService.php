@@ -1,6 +1,5 @@
 <?php
 namespace App\Services;
-use App\Models\Assertion;
 use App\Models\IdentityResolutionDecision;
 use App\Models\ImportBatch;
 use App\Models\ImportConflict;
