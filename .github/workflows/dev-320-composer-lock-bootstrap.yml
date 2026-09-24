@@ -32,12 +32,16 @@ jobs:
 
       - name: Commit generated lock
         run: |
-          if git diff --quiet -- composer.lock; then
-            echo "composer.lock already current"
+          if [ ! -f composer.lock ]; then
+            echo "composer.lock was not generated"
+            exit 1
+          fi
+          git add composer.lock
+          if git diff --cached --quiet -- composer.lock; then
+            echo "composer.lock already tracked and current"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add composer.lock
           git commit -m "DEV-320: add Composer lockfile"
           git push origin "HEAD:${{ github.head_ref }}"
