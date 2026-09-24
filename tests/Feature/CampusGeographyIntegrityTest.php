@@ -111,13 +111,16 @@ class CampusGeographyIntegrityTest extends TestCase
         $this->assertSame($parent->id, $finding['parent_id']);
     }
 
-    public function test_active_campus_with_missing_parent_is_reported(): void
+    public function test_active_campus_with_cyclic_geography_is_reported(): void
     {
-        $child = $this->geography('Lahore', 'lahore', 'active', 999999);
+        $first = $this->geography('First Area', 'first-area');
+        $second = $this->geography('Second Area', 'second-area', 'active', $first->id);
+
+        $first->update(['parent_id' => $second->id]);
 
         $campus = Campus::create([
             'institution_id' => $this->institution()->id,
-            'geography_id' => $child->id,
+            'geography_id' => $first->id,
             'name' => 'Main Campus',
             'slug' => 'main-campus',
             'status' => 'active',
@@ -125,6 +128,6 @@ class CampusGeographyIntegrityTest extends TestCase
 
         $finding = (new CampusGeographyIntegrityService)->inspect($campus)->first();
 
-        $this->assertSame('missing_geography_parent', $finding['type']);
+        $this->assertSame('geography_cycle', $finding['type']);
     }
 }
