@@ -65,7 +65,7 @@ class BulkImportPromotionService
                             ->latest('id')
                             ->first();
 
-                        if (!$decision) {
+                        if ($decision === null) {
                             $result['skipped']++;
                             return;
                         }
