@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Models\Campus;
 use App\Models\Geography;
 use App\Models\Institution;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class InstituteNearbySearchTest extends TestCase
 {
