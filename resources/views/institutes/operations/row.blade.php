@@ -6,7 +6,7 @@
 @if($errors->any())<div role="alert">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
 <h1>Import Row {{ $importRow->row_number }}</h1>
 <p>Status: {{ $importRow->status }} · Match: {{ $importRow->match_state }} · Entity: {{ $importRow->batch->entity_type }}</p>
-<h2>Promotion history</h2>
+<h2>Import conflicts</h2>\n@if($conflicts->isNotEmpty())<ul>@foreach($conflicts as $conflict)<li><strong>{{ $conflict->conflict_type }}</strong> · {{ $conflict->severity }} · {{ $conflict->status }} — {{ $conflict->description }} @if($conflict->status==='open')<form method="post" action="{{ route('institutes.operations.conflict-resolve',$importRow) }}">@csrf<input type="hidden" name="conflict_id" value="{{ $conflict->id }}"><label>Resolution reason<textarea name="reason" required></textarea></label><button type="submit">Resolve conflict</button></form>@else<p>Resolved: {{ $conflict->resolution_reason }}</p>@endif</li>@endforeach</ul>@else<p>No conflicts recorded.</p>@endif\n<h2>Promotion history</h2>
 @if($history->isNotEmpty())<ol>@foreach($history as $event)<li><strong>{{ $event->event_type }}</strong> — {{ $event->occurred_at }} — {{ $event->reason }} @if($event->canonical_subject_id)(Canonical ID {{ $event->canonical_subject_id }})@endif</li>@endforeach</ol>@else<p>No promotion events recorded yet.</p>@endif
 <h2>Dependency chain</h2>
 @if($dependency['chain'])<ol>@foreach($dependency['chain'] as $entity)<li><strong>{{ class_basename($entity) }}</strong>: {{ $entity->name ?? $entity->label ?? ('#'.$entity->id) }} (ID {{ $entity->id }})</li>@endforeach</ol>@else<p>No canonical parent chain is currently available.</p>@endif
