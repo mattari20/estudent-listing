@@ -36,7 +36,7 @@ class InstituteReadinessContractTest extends TestCase
 
         $summary = (new InstituteReadinessContractService)->summarize($batch);
 
-        $this->assertTrue($summary['contract_ready']);
+        $this->assertFalse($summary['contract_ready']);
         $this->assertTrue($summary['contract_checks']['mutation_free']);
         $this->assertTrue($summary['contract_checks']['has_batch_context']);
         $this->assertTrue($summary['contract_checks']['has_blocking_findings']);
