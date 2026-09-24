@@ -81,6 +81,42 @@ class DirectorySearchTest extends TestCase
             ->assertDontSee('Karachi University');
     }
 
+    public function test_public_geography_filters_ignore_inactive_campus_and_ancestor(): void
+    {
+        $punjab = Geography::create(['name' => 'Punjab', 'slug' => 'punjab', 'type' => 'province', 'status' => 'active']);
+        $lahoreDistrict = Geography::create(['parent_id' => $punjab->id, 'name' => 'Lahore District', 'slug' => 'lahore', 'type' => 'district', 'status' => 'active']);
+        $lahore = Geography::create(['parent_id' => $lahoreDistrict->id, 'name' => 'Lahore', 'slug' => 'lahore', 'type' => 'city', 'status' => 'active']);
+
+        $inactiveCampusInstitution = Institution::create(['name' => 'Inactive Campus University', 'slug' => 'inactive-campus-university', 'status' => 'active']);
+        Campus::create([
+            'institution_id' => $inactiveCampusInstitution->id,
+            'geography_id' => $lahore->id,
+            'name' => 'Archived Campus',
+            'slug' => 'archived-campus',
+            'status' => 'inactive',
+        ]);
+
+        $inactiveDistrict = Geography::create(['parent_id' => $punjab->id, 'name' => 'Inactive District', 'slug' => 'inactive-district', 'type' => 'district', 'status' => 'inactive']);
+        $inactiveCity = Geography::create(['parent_id' => $inactiveDistrict->id, 'name' => 'Inactive City', 'slug' => 'inactive-city', 'type' => 'city', 'status' => 'active']);
+
+        $inactiveAncestorInstitution = Institution::create(['name' => 'Inactive Ancestor University', 'slug' => 'inactive-ancestor-university', 'status' => 'active']);
+        Campus::create([
+            'institution_id' => $inactiveAncestorInstitution->id,
+            'geography_id' => $inactiveCity->id,
+            'name' => 'Main Campus',
+            'slug' => 'main-campus',
+            'status' => 'active',
+        ]);
+
+        $this->get('/institutes/search?city=Lahore')
+            ->assertOk()
+            ->assertDontSee('Inactive Campus University');
+
+        $this->get('/institutes/search?district=Inactive%20District')
+            ->assertOk()
+            ->assertDontSee('Inactive Ancestor University');
+    }
+
     public function test_search_can_filter_by_program_level_delivery_mode_and_admission_status(): void
     {
         $institution = Institution::create(['name' => 'Future University', 'slug' => 'future-university', 'status' => 'active']);
