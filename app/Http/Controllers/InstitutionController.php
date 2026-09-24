@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Institution;
+use App\Services\InstituteGeographyContextService;
 use Illuminate\View\View;
 
 class InstitutionController
@@ -17,14 +18,14 @@ class InstitutionController
         return view('institutes.index', compact('institutions'));
     }
 
-    public function show(Institution $institution): View
+    public function show(Institution $institution, InstituteGeographyContextService $geographyContext): View
     {
         abort_unless($institution->status === 'active', 404);
 
         $institution->load([
             'campuses' => fn ($query) => $query
                 ->where('status', 'active')
-                ->with('geography')
+                ->with(['geography' => fn ($geography) => $geography->where('status', 'active')])
                 ->orderBy('name'),
             'programs' => fn ($query) => $query
                 ->where('status', 'active')
@@ -65,6 +66,10 @@ class InstitutionController
             'recommendations' => fn ($query) => $query
                 ->where('status', 'published'),
         ]);
+
+        foreach ($institution->campuses as $campus) {
+            $campus->setAttribute('geography_context', $geographyContext->forCampus($campus));
+        }
 
         return view('institutes.show', compact('institution'));
     }
