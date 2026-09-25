@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureInstituteOperator;
+use App\Http\Middleware\EnsureInstituteAdmin;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'institute.operator' => EnsureInstituteOperator::class,
+            'institute.admin' => EnsureInstituteAdmin::class,
         ]);
 
         $middleware->redirectGuestsTo(fn (Request $request): string => route('institutes.login'));
