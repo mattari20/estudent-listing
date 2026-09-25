@@ -24,7 +24,11 @@
 <label>Decision<select name="decision" required><option value="approved_new">Approve new institution</option><option value="approved_match">Approve existing match</option><option value="rejected">Reject</option><option value="conflict">Mark conflict</option></select></label>
 <label>Existing institution ID<input type="number" name="institution_id"></label>
 <label>Reason<textarea name="reason" required></textarea></label><button type="submit">Record decision</button></form>
+@if($identityDecision && in_array($identityDecision->decision, ['approved_new', 'approved_match'], true))
 <form method="post" action="{{ route('institutes.operations.promote',$importRow) }}">@csrf<button type="submit">Promote approved institution</button></form>
+@else
+<p><strong>Next step:</strong> Record an approved identity decision above before promotion.</p>
+@endif
 @endif
 @else
 <h2>Enrichment promotion decision</h2>
