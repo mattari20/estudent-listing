@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title','Institute Operations Queue')
 @section('content')
-<div class="page-header"><h1>Import Operations</h1><form method="post" action="{{ route('institutes.logout') }}">@csrf<button type="submit">Sign out</button></form></div>
+<div class="page-header"><div><h1>Import Operations</h1>@if(auth()->user()?->isAdmin())<a href="{{ route('institutes.operations.users.index') }}">User Management</a>@endif</div><form method="post" action="{{ route('institutes.logout') }}">@csrf<button type="submit">Sign out</button></form></div>
 @if(session('status'))<p role="status">{{ session('status') }}</p>@endif
 <h2>Import batches</h2>
 @forelse($batches as $batch)<article class="institute-card"><h3>Batch {{ $batch->batch_key }}</h3><p>{{ $batch->source?->name }} · {{ $batch->status }} · {{ $batch->total_rows }} rows</p><a href="{{ route('institutes.operations.queue',['batch_id'=>$batch->id]) }}">Review batch</a></article>@empty<p>No import batches.</p>@endforelse
