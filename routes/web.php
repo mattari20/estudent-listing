@@ -22,6 +22,7 @@ use App\Http\Controllers\InstituteOperationsController;
 use App\Http\Controllers\InstituteRobotsController;
 use App\Http\Controllers\InstituteSearchController;
 use App\Http\Controllers\InstituteSetupController;
+use App\Http\Controllers\InstituteUserController;
 use App\Http\Controllers\InstituteSitemapController;
 use App\Http\Controllers\InstitutionController;
 use App\Http\Controllers\MonitoringExportController;
@@ -81,6 +82,12 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         Route::get('/geography-import', [GeographyImportController::class, 'create'])->name('geography-import.create');
         Route::get('/geography-import/template', [GeographyImportController::class, 'template'])->name('geography-import.template');
         Route::post('/geography-import', [GeographyImportController::class, 'store'])->name('geography-import.store');
+        Route::middleware('institute.admin')->prefix('users')->name('users.')->group(function (): void {
+            Route::get('/', [InstituteUserController::class, 'index'])->name('index');
+            Route::get('/create', [InstituteUserController::class, 'create'])->name('create');
+            Route::post('/', [InstituteUserController::class, 'store'])->name('store');
+        });
+
         Route::get('/import', [InstituteImportController::class, 'create'])->name('import.create');
         Route::get('/import/template', [InstituteImportController::class, 'template'])->name('import.template');
         Route::post('/import', [InstituteImportController::class, 'store'])->name('import.store');
