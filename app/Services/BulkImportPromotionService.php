@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\IdentityMatchCandidate;
 use App\Models\IdentityResolutionDecision;
 use App\Models\ImportConflict;
 use App\Models\ImportPromotionDecision;
