@@ -1,0 +1,39 @@
+name: Build frontend assets
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install frontend dependencies
+        run: npm install --no-audit --no-fund --package-lock=false
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Commit generated production assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f public/build
+          if git diff --cached --quiet; then
+            echo "Frontend assets are already up to date."
+            exit 0
+          fi
+          git commit -m "chore: build frontend production assets"
+          git push origin HEAD:main
