@@ -1,0 +1,8 @@
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+return new class extends Migration {
+ public function up(): void { Schema::create('recommendation_policies',function(Blueprint $table){$table->id();$table->string('name');$table->string('version');$table->string('status')->default('draft');$table->text('description')->nullable();$table->text('eligibility_rules')->nullable();$table->date('effective_from')->nullable();$table->date('effective_until')->nullable();$table->timestamps();$table->unique(['name','version']);});}
+ public function down(): void { Schema::dropIfExists('recommendation_policies'); }
+};
