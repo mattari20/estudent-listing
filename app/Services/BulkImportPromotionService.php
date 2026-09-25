@@ -126,4 +126,96 @@ class BulkImportPromotionService
 
         return $result;
     }
+
+    public function approveAndPromoteNew(int $batchId, int $actorId, string $reason): array
+    {
+        $result = ['promoted' => 0, 'skipped' => 0, 'failed' => 0, 'matched_or_conflicted' => 0];
+
+        $rowIds = ImportRow::query()
+            ->where('import_batch_id', $batchId)
+            ->where('status', 'candidate')
+            ->orderBy('id')
+            ->pluck('id');
+
+        foreach ($rowIds as $id) {
+            try {
+                DB::transaction(function () use ($id, $actorId, $reason, &$result): void {
+                    $row = ImportRow::query()->lockForUpdate()->with('batch')->find($id);
+
+                    if ($row === null || $row->status !== 'candidate') {
+                        $result['skipped']++;
+
+                        return;
+                    }
+
+                    if (ImportConflict::where('import_row_id', $row->id)->where('status', 'open')->exists()) {
+                        $result['matched_or_conflicted']++;
+
+                        return;
+                    }
+
+                    if ($row->batch->entity_type !== 'institution') {
+                        $result['skipped']++;
+
+                        return;
+                    }
+
+                    if (IdentityMatchCandidate::where('import_row_id', $row->id)->exists()) {
+                        $result['matched_or_conflicted']++;
+
+                        return;
+                    }
+
+                    $decision = IdentityResolutionDecision::create([
+                        'import_row_id' => $row->id,
+                        'institution_id' => null,
+                        'decision' => 'approved_new',
+                        'actor_type' => 'user',
+                        'actor_id' => $actorId,
+                        'reason' => $reason,
+                        'decided_at' => now(),
+                    ]);
+
+                    app(ImportPromotionAuditService::class)->record(
+                        $row,
+                        'promotion_approved',
+                        $actorId,
+                        $reason,
+                        ['decision' => 'approved_new', 'bulk' => true],
+                        'identity_resolution',
+                        $decision->id,
+                    );
+
+                    app(ImportPromotionAuditService::class)->record(
+                        $row,
+                        'promotion_started',
+                        $actorId,
+                        'Bulk approved-new promotion started.',
+                        ['previous_status' => $row->status, 'previous_match_state' => $row->match_state, 'bulk' => true],
+                        'identity_resolution',
+                        $decision->id,
+                    );
+
+                    app(InstituteImportPromoter::class)->promote($row, $decision);
+
+                    $result['promoted']++;
+                });
+            } catch (\Throwable $e) {
+                $result['failed']++;
+                $failedRow = ImportRow::with('batch')->find($id);
+
+                if ($failedRow !== null) {
+                    app(ImportPromotionAuditService::class)->record(
+                        $failedRow,
+                        'promotion_failed',
+                        $actorId,
+                        $e->getMessage(),
+                        ['error_class' => $e::class, 'bulk' => true],
+                    );
+                }
+            }
+        }
+
+        return $result;
+    }
 }
