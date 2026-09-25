@@ -167,7 +167,18 @@ class BulkImportPromotionService
                         return;
                     }
 
-                    $decision = IdentityResolutionDecision::create([
+                    $existingDecision = IdentityResolutionDecision::query()
+                        ->where('import_row_id', $row->id)
+                        ->latest('id')
+                        ->first();
+
+                    if ($existingDecision !== null && $existingDecision->decision !== 'approved_new') {
+                        $result['skipped']++;
+
+                        return;
+                    }
+
+                    $decision = $existingDecision ?? IdentityResolutionDecision::create([
                         'import_row_id' => $row->id,
                         'institution_id' => null,
                         'decision' => 'approved_new',
@@ -177,15 +188,17 @@ class BulkImportPromotionService
                         'decided_at' => now(),
                     ]);
 
-                    app(ImportPromotionAuditService::class)->record(
-                        $row,
-                        'promotion_approved',
-                        $actorId,
-                        $reason,
-                        ['decision' => 'approved_new', 'bulk' => true],
-                        'identity_resolution',
-                        $decision->id,
-                    );
+                    if ($existingDecision === null) {
+                        app(ImportPromotionAuditService::class)->record(
+                            $row,
+                            'promotion_approved',
+                            $actorId,
+                            $reason,
+                            ['decision' => 'approved_new', 'bulk' => true],
+                            'identity_resolution',
+                            $decision->id,
+                        );
+                    }
 
                     app(ImportPromotionAuditService::class)->record(
                         $row,
