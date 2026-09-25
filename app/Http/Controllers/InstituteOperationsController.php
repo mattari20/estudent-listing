@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 use App\Models\IdentityMatchCandidate;
 use App\Models\IdentityResolutionDecision;
+use App\Models\IdentityResolutionDecision;
 use App\Models\ImportPromotionDecision;
 use App\Models\ImportPromotionEvent;
 use App\Models\ImportRow;
@@ -15,7 +16,20 @@ use Illuminate\View\View;
 class InstituteOperationsController {
  public function queue(Request $request, ImportBatchReconciliationReport $report, ImportQualityReportService $quality): View {
   $batchId=$request->integer('batch_id');
-  $batches=\App\Models\ImportBatch::query()->with('source')->latest()->paginate(20,['*'],'batches_page');
+  $batches=\App\Models\ImportBatch::query()->with('source')->withCount([
+   'rows as pending_rows_count' => fn($q) => $q->whereIn('status',['candidate','validated']),
+   'rows as promoted_rows_count' => fn($q) => $q->where('status','promoted'),
+   'rows as rejected_rows_count' => fn($q) => $q->where('status','rejected'),
+   'rows as conflict_rows_count' => fn($q) => $q->where('match_state','conflict'),
+  ])->latest()->paginate(20,['*'],'batches_page');
+  $approvedCounts=IdentityResolutionDecision::query()
+   ->whereIn('decision',['approved_new','approved_match'])
+   ->selectRaw('import_row_id')
+   ->with('importRow:id,import_batch_id')
+   ->get()
+   ->groupBy(fn($decision) => $decision->importRow?->import_batch_id)
+   ->map(fn($items) => $items->count());
+  foreach($batches as $batch){ $batch->approved_rows_count=$approvedCounts->get($batch->id,0); }
   $rows=ImportRow::query()->whereIn('status',['candidate','validated'])->with(['batch','batch.source'])->when($batchId,fn($q)=>$q->where('import_batch_id',$batchId))->latest()->paginate(30,['*'],'rows_page')->withQueryString();
   $summary=$batchId?$report->build(\App\Models\ImportBatch::findOrFail($batchId)):null;
   $qualityReport=$batchId?$quality->build(\App\Models\ImportBatch::findOrFail($batchId)):null;
