@@ -21,6 +21,7 @@ use App\Http\Controllers\InstituteImportPromotionController;
 use App\Http\Controllers\InstituteOperationsController;
 use App\Http\Controllers\InstituteRobotsController;
 use App\Http\Controllers\InstituteSearchController;
+use App\Http\Controllers\InstituteSetupController;
 use App\Http\Controllers\InstituteSitemapController;
 use App\Http\Controllers\InstitutionController;
 use App\Http\Controllers\MonitoringExportController;
@@ -34,6 +35,8 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
     Route::get('/sitemap.xml', InstituteSitemapController::class)->name('sitemap');
     Route::get('/robots.txt', InstituteRobotsController::class)->name('robots');
     Route::get('/login', [InstituteAuthController::class, 'create'])->name('login');
+    Route::get('/setup', [InstituteSetupController::class, 'create'])->name('setup');
+    Route::post('/setup', [InstituteSetupController::class, 'store'])->name('setup.store');
     Route::post('/login', [InstituteAuthController::class, 'store'])->name('login.store');
     Route::post('/logout', [InstituteAuthController::class, 'destroy'])->middleware('auth')->name('logout');
 
