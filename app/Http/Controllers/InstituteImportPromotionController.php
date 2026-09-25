@@ -42,7 +42,10 @@ class InstituteImportPromotionController {
   return back()->with('status','Import conflict resolved with an explicit operator reason.');
  }
  public function promote(Request $request, ImportRow $importRow, InstituteImportPromoter $promoter, ImportCrossSourceComparisonService $comparison, ImportChangeDetectionService $changes): RedirectResponse {
-  $decision=IdentityResolutionDecision::query()->where('import_row_id',$importRow->id)->whereIn('decision',['approved_new','approved_match'])->latest('id')->firstOrFail();
+  $decision=IdentityResolutionDecision::query()->where('import_row_id',$importRow->id)->whereIn('decision',['approved_new','approved_match'])->latest('id')->first();
+  if ($decision === null) {
+   return back()->withErrors(['promotion'=>'Record an approved identity decision before promoting this institution.']);
+  }
   if($decision->decision==='approved_match'){
    $institution=Institution::findOrFail($decision->institution_id);
    if($comparison->compareInstitution($importRow,$institution)>0) return back()->withErrors(['promotion'=>'Canonical data differs from the import source; resolve the resulting conflict before promotion.']);
