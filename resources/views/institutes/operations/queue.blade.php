@@ -6,7 +6,21 @@
 @if($errors->any())<div role="alert">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
 
 <h2>Import batches</h2>
-@forelse($batches as $batch)<article class="institute-card"><h3>Batch {{ $batch->batch_key }}</h3><p>{{ $batch->source?->name }} · {{ $batch->status }} · {{ $batch->total_rows }} rows</p><a href="{{ route('institutes.operations.queue',['batch_id'=>$batch->id]) }}">Review batch</a></article>@empty<p>No import batches.</p>@endforelse
+@forelse($batches as $batch)
+<article class="institute-card">
+    <h3>Batch {{ $batch->batch_key }}</h3>
+    <p>{{ $batch->source?->name }} · {{ $batch->status }} · {{ $batch->total_rows }} total rows</p>
+    <p><strong>Pending:</strong> {{ $batch->pending_rows_count }} · <strong>Approved:</strong> {{ $batch->approved_rows_count }} · <strong>Promoted:</strong> {{ $batch->promoted_rows_count }} · <strong>Rejected:</strong> {{ $batch->rejected_rows_count }} · <strong>Conflict:</strong> {{ $batch->conflict_rows_count }}</p>
+    <a href="{{ route('institutes.operations.queue',['batch_id'=>$batch->id]) }}">Review batch</a>
+    @if($batch->entity_type === 'institution' && $batch->pending_rows_count > 0)
+    <form method="post" action="{{ route('institutes.operations.imports.approve-and-promote-new',$batch) }}" onsubmit="return confirm('Approve and promote all unmatched new institutions in this batch? Rows with identity matches or conflicts will remain for individual review.');">
+        @csrf
+        <input type="hidden" name="reason" value="Bulk operator approval of unmatched new institutions from this import batch.">
+        <button type="submit">Approve &amp; Promote All Unmatched New Institutions</button>
+    </form>
+    @endif
+</article>
+@empty<p>No import batches.</p>@endforelse
 {{ $batches->links() }}
 
 @if($qualityReport)<h2>Import quality report</h2><div class="filter-grid">@foreach($qualityReport as $key=>$value)<div class="institute-card"><strong>{{ ucfirst(str_replace('_',' ',$key)) }}</strong><div>{{ is_float($value) ? number_format($value*100,2).'%' : $value }}</div></div>@endforeach</div>@endif
