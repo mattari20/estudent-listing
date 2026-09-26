@@ -24,7 +24,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn (Request $request): string => route('institutes.login'));
     })
     ->withSchedule(function (Schedule $schedule): void {
-        $schedule->command('institutes:monitor-changes')->hourly()->withoutOverlapping(55);
+        $schedule->command('institutes:bootstrap-agent')
+            ->hourly()
+            ->withoutOverlapping(55);
+
+        $schedule->command('institutes:monitor-changes')
+            ->hourly()
+            ->withoutOverlapping(55);
     })
     ->withExceptions(function (Exceptions $exceptions): void {})
     ->create();
