@@ -5,6 +5,42 @@
 @if(session('status'))<p role="status">{{ session('status') }}</p>@endif
 @if($errors->any())<div role="alert">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
 
+<section class="institute-card" aria-labelledby="operations-navigation">
+    <h2 id="operations-navigation">Admin Operations Navigation</h2>
+    <p>Use this hub to reach imports, review, approval, promotion, data quality, readiness, monitoring, and administration without remembering individual URLs.</p>
+    <div class="filter-grid">
+        <div class="institute-card">
+            <h3>Data Import &amp; Enrichment</h3>
+            <p><a href="{{ route('institutes.operations.import.create') }}">Import Institutions</a></p>
+            <p><a href="{{ route('institutes.operations.enrichment-import.create') }}">Import Campus / Program Enrichment</a></p>
+            <p><a href="{{ route('institutes.operations.geography-import.create') }}">Import Geography</a></p>
+        </div>
+        <div class="institute-card">
+            <h3>Review &amp; Approval</h3>
+            <p><a href="{{ route('institutes.operations.queue') }}">Review Pending Rows</a></p>
+            <p>Open any batch below to review its rows, approve decisions, and promote approved records.</p>
+        </div>
+        <div class="institute-card">
+            <h3>Data Quality &amp; Readiness</h3>
+            <p><a href="{{ route('institutes.operations.integrity') }}">Geography Integrity</a></p>
+            <p><a href="{{ route('institutes.operations.data-readiness') }}">Data Readiness</a></p>
+            <p><a href="{{ route('institutes.operations.readiness-dashboard') }}">Readiness Dashboard</a></p>
+            <p><a href="{{ route('institutes.operations.production-signoff') }}">Production Sign-off</a></p>
+        </div>
+        <div class="institute-card">
+            <h3>Monitoring</h3>
+            <p><a href="{{ route('institutes.operations.monitoring.dashboard') }}">Monitoring Dashboard</a></p>
+            <p><a href="{{ route('institutes.operations.monitoring.history') }}">Monitoring History</a></p>
+        </div>
+        @if(auth()->user()?->isAdmin())
+        <div class="institute-card">
+            <h3>Administration</h3>
+            <p><a href="{{ route('institutes.operations.users.index') }}">User Management</a></p>
+        </div>
+        @endif
+    </div>
+</section>
+
 <h2>Import batches</h2>
 @forelse($batches as $batch)
 <article class="institute-card">
