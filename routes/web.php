@@ -6,6 +6,7 @@ use App\Http\Controllers\InstituteBulkPromotionController;
 use App\Http\Controllers\InstituteDataReadinessController;
 use App\Http\Controllers\InstituteGeographyIntegrityController;
 use App\Http\Controllers\InstituteImportController;
+use App\Http\Controllers\InstituteEnrichmentImportController;
 use App\Http\Controllers\InstituteImportVerificationController;
 use App\Http\Controllers\InstituteProductionPromotionReadinessController;
 use App\Http\Controllers\InstituteFinalReadinessController;
@@ -92,6 +93,9 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         Route::get('/import', [InstituteImportController::class, 'create'])->name('import.create');
         Route::get('/import/template', [InstituteImportController::class, 'template'])->name('import.template');
         Route::post('/import', [InstituteImportController::class, 'store'])->name('import.store');
+        Route::get('/enrichment-import', [InstituteEnrichmentImportController::class, 'create'])->name('enrichment-import.create');
+        Route::get('/enrichment-import/template', [InstituteEnrichmentImportController::class, 'template'])->name('enrichment-import.template');
+        Route::post('/enrichment-import', [InstituteEnrichmentImportController::class, 'store'])->name('enrichment-import.store');
     });
 
     Route::get('/{institution:slug}', [InstitutionController::class, 'show'])->name('show');
