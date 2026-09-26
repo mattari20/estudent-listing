@@ -33,7 +33,7 @@ class ImportDuplicateDetectorService
         $previous = ImportRow::query()
             ->where('parent_subject_type', Institution::class)
             ->where('parent_subject_id', $parentInstitutionId)
-            ->whereJsonPathText('normalized_payload', '$.slug', '=', $slug)
+            ->where('normalized_payload->slug', $slug)
             ->whereHas('batch', fn ($query) => $query->where('entity_type', $entityType))
             ->when($currentBatchId, fn ($query) => $query->where('import_batch_id', '!=', $currentBatchId))
             ->latest('id')
