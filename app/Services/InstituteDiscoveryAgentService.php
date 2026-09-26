@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
 
 class InstituteDiscoveryAgentService
 {
-    public function run(string $profile = 'cui-lahore'): array
+    public function run(string $profile = 'cui-lahore', bool $useAi = false): array
     {
         $definition = config("institute_agent.profiles.{$profile}");
 
@@ -66,23 +66,34 @@ class InstituteDiscoveryAgentService
             'content_hash' => hash('sha256', $body),
             'content_length' => strlen($body),
             'content_type' => $response->header('Content-Type'),
+            'content' => $body,
             'captured_at' => now(),
             'status' => 'captured',
             'metadata' => [
                 'agent_profile' => $profile,
                 'retrieval_status' => $response->status(),
+                'extraction_method' => $useAi ? 'ai_extraction' : 'deterministic',
             ],
         ]);
 
-        $programs = $this->extractBachelorPrograms($body);
+        $programs = $useAi
+            ? $this->extractWithAi($body, $institution, $source->url)
+            : $this->extractBachelorPrograms($body);
 
         if ($programs === []) {
             throw new \RuntimeException('The discovery agent found no undergraduate programme candidates.');
         }
 
-        $excerpt = "Discovery agent extracted ".count($programs)." undergraduate programme candidates from "
+        $excerptLines = [];
+        foreach ($programs as $program) {
+            $excerptLines[] = $program['name']
+                .(!empty($program['evidence_excerpt']) ? ' — '.$program['evidence_excerpt'] : '');
+        }
+
+        $excerpt = ($useAi ? 'AI extraction' : 'Discovery agent')
+            .' extracted '.count($programs).' undergraduate programme candidates from '
             .$source->url."\n\n"
-            .implode("\n", array_column($programs, 'name'));
+            .implode("\n", $excerptLines);
 
         $evidence = Evidence::create([
             'source_id' => $source->id,
@@ -95,13 +106,14 @@ class InstituteDiscoveryAgentService
         ]);
 
         $batch = ImportBatch::create([
-            'batch_key' => 'agent-'.$profile.'-'.Str::lower(Str::random(16)),
+            'batch_key' => ($useAi ? 'ai-' : 'agent-').$profile.'-'.Str::lower(Str::random(16)),
             'entity_type' => $definition['entity_type'],
-            'source_type' => 'automated_discovery',
+            'source_type' => $useAi ? 'ai_extraction' : 'automated_discovery',
             'source_id' => $source->id,
             'status' => 'validated',
             'received_at' => now(),
-            'notes' => 'Automated discovery test run. Candidates were collected from an official institutional source and remain non-canonical until governed approval.',
+            'notes' => ($useAi ? 'AI extraction proposal run. ' : 'Automated discovery test run. ')
+                .'Candidates were collected from an official institutional source and remain non-canonical until governed approval.',
         ]);
 
         $candidateRows = 0;
@@ -111,11 +123,21 @@ class InstituteDiscoveryAgentService
             $payload = [
                 'name' => $program['name'],
                 'slug' => Str::slug($program['name']),
-                'program_level' => 'undergraduate',
+                'program_level' => $program['program_level'] ?? 'undergraduate',
                 'award' => $program['award'],
                 'discipline' => $program['discipline'],
-                'status' => 'active',
-                'description' => 'Discovered from the official CUI Lahore academic programme listing.',
+                'status' => $program['status'] ?? 'active',
+                'description' => $useAi
+                    ? 'AI-extracted candidate from the official institutional programme source.'
+                    : 'Discovered from the official CUI Lahore academic programme listing.',
+                '_provenance' => [
+                    'method' => $useAi ? 'ai_extraction' : 'deterministic',
+                    'source_id' => $source->id,
+                    'snapshot_id' => $snapshot->id,
+                    'evidence_id' => $evidence->id,
+                    'confidence' => $program['confidence'] ?? 0.9500,
+                    'evidence_excerpt' => $program['evidence_excerpt'] ?? null,
+                ],
             ];
 
             $duplicate = app(ImportDuplicateDetectorService::class)->find(
@@ -128,7 +150,7 @@ class InstituteDiscoveryAgentService
             $status = $duplicate ? 'duplicate' : 'candidate';
             $matchState = $duplicate ? 'duplicate' : 'unresolved';
 
-            $row = ImportRow::create([
+            ImportRow::create([
                 'import_batch_id' => $batch->id,
                 'row_number' => $index + 1,
                 'status' => $status,
@@ -138,7 +160,8 @@ class InstituteDiscoveryAgentService
                 'payload' => $payload,
                 'normalized_payload' => $payload,
                 'validation_errors' => $duplicate ? [$duplicate['message']] : null,
-                'notes' => 'Evidence #'.$evidence->id.' from '.$source->url,
+                'notes' => 'Evidence #'.$evidence->id.' from '.$source->url
+                    .($useAi ? '; AI confidence '.number_format((float) ($program['confidence'] ?? 0), 4) : ''),
             ]);
 
             Assertion::create([
@@ -147,8 +170,8 @@ class InstituteDiscoveryAgentService
                 'subject_id' => $institution->id,
                 'attribute' => 'candidate_program',
                 'value' => $program['name'],
-                'verification_state' => 'discovered',
-                'confidence' => 0.9500,
+                'verification_state' => $useAi ? 'ai_extracted' : 'discovered',
+                'confidence' => $program['confidence'] ?? 0.9500,
             ]);
 
             if ($status === 'candidate') {
@@ -176,7 +199,26 @@ class InstituteDiscoveryAgentService
             'total_rows' => count($programs),
             'candidate_rows' => $candidateRows,
             'duplicate_rows' => $duplicateRows,
+            'extraction_method' => $useAi ? 'ai_extraction' : 'deterministic',
         ];
+    }
+
+    private function extractWithAi(string $html, Institution $institution, string $sourceUrl): array
+    {
+        try {
+            return app(InstituteAiExtractionService::class)->extract($html, [
+                'institution_name' => $institution->name,
+                'institution_slug' => $institution->slug,
+                'source_url' => $sourceUrl,
+                'entity_type' => 'program',
+            ]);
+        } catch (\Throwable $e) {
+            if (config('institute_ai.fallback_to_deterministic', false)) {
+                return $this->extractBachelorPrograms($html);
+            }
+
+            throw $e;
+        }
     }
 
     private function extractBachelorPrograms(string $html): array
@@ -214,6 +256,10 @@ class InstituteDiscoveryAgentService
                 'name' => $name,
                 'award' => $award,
                 'discipline' => $discipline,
+                'program_level' => 'undergraduate',
+                'status' => 'active',
+                'confidence' => 0.9500,
+                'evidence_excerpt' => $name,
             ];
         }
 

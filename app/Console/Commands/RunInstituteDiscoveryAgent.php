@@ -7,14 +7,19 @@ use Illuminate\Console\Command;
 
 class RunInstituteDiscoveryAgent extends Command
 {
-    protected $signature = 'institutes:discover {profile=cui-lahore : Discovery profile to execute}';
+    protected $signature = 'institutes:discover
+        {profile=cui-lahore : Discovery profile to execute}
+        {--ai : Use the configured AI extraction adapter instead of the deterministic extractor}';
 
     protected $description = 'Collect governed institute data from a configured source and create non-canonical candidate rows.';
 
     public function handle(InstituteDiscoveryAgentService $agent): int
     {
         try {
-            $summary = $agent->run($this->argument('profile'));
+            $summary = $agent->run(
+                $this->argument('profile'),
+                (bool) $this->option('ai')
+            );
         } catch (\Throwable $e) {
             $this->error($e->getMessage());
 

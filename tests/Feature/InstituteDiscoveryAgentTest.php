@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Institution;
 use App\Models\ImportBatch;
 use App\Models\ImportRow;
+use App\Models\Institution;
 use App\Services\InstituteDiscoveryAgentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -14,7 +14,7 @@ class InstituteDiscoveryAgentTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_discovery_agent_creates_source_evidence_and_candidate_rows(): void
+    public function test_discovery_agent_creates_source_evidence_snapshot_and_candidate_rows(): void
     {
         Institution::create([
             'name' => 'COMSATS University Islamabad Lahore Campus',
@@ -22,13 +22,15 @@ class InstituteDiscoveryAgentTest extends TestCase
             'status' => 'active',
         ]);
 
+        $html = '<html><body>
+            <a>Bachelor of Science (BS) in Computer Science</a>
+            <a>Bachelor of Science(BS) in Psychology</a>
+            <a>Master of Science (MS) in Computer Science</a>
+        </body></html>';
+
         Http::fake([
             'https://lahore.comsats.edu.pk/academics.aspx' => Http::response(
-                '<html><body>
-                    <a>Bachelor of Science (BS) in Computer Science</a>
-                    <a>Bachelor of Science(BS) in Psychology</a>
-                    <a>Master of Science (MS) in Computer Science</a>
-                </body></html>',
+                $html,
                 200,
                 ['Content-Type' => 'text/html']
             ),
@@ -39,6 +41,11 @@ class InstituteDiscoveryAgentTest extends TestCase
         $this->assertSame(2, $summary['total_rows']);
         $this->assertSame(2, $summary['candidate_rows']);
         $this->assertSame(0, $summary['duplicate_rows']);
+
+        $this->assertDatabaseHas('source_snapshots', [
+            'id' => $summary['snapshot_id'],
+            'content_hash' => hash('sha256', $html),
+        ]);
 
         $this->assertDatabaseHas('sources', [
             'id' => $summary['source_id'],
@@ -58,5 +65,73 @@ class InstituteDiscoveryAgentTest extends TestCase
 
         $this->assertSame(2, ImportRow::where('import_batch_id', $summary['batch_id'])->count());
         $this->assertSame(1, ImportBatch::whereKey($summary['batch_id'])->where('status', 'validated')->count());
+    }
+
+    public function test_ai_extraction_creates_a_separate_governed_candidate_batch(): void
+    {
+        config()->set('institute_ai.enabled', true);
+        config()->set('institute_ai.api_key', 'test-key');
+
+        Institution::create([
+            'name' => 'COMSATS University Islamabad Lahore Campus',
+            'slug' => 'comsats-university-islamabad-lahore-campus',
+            'status' => 'active',
+        ]);
+
+        $html = '<html><body>
+            <a>Bachelor of Science (BS) in Computer Science</a>
+            <a>Bachelor of Science (BS) in Psychology</a>
+        </body></html>';
+
+        Http::fake([
+            'https://lahore.comsats.edu.pk/academics.aspx' => Http::response(
+                $html,
+                200,
+                ['Content-Type' => 'text/html']
+            ),
+            'https://api.openai.com/v1/chat/completions' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => json_encode([
+                            'candidates' => [
+                                [
+                                    'name' => 'Bachelor of Science (BS) in Computer Science',
+                                    'program_level' => 'undergraduate',
+                                    'award' => 'BS',
+                                    'discipline' => 'Computer Science',
+                                    'status' => 'active',
+                                    'confidence' => 0.98,
+                                    'evidence_excerpt' => 'Bachelor of Science (BS) in Computer Science',
+                                ],
+                                [
+                                    'name' => 'Bachelor of Science (BS) in Psychology',
+                                    'program_level' => 'undergraduate',
+                                    'award' => 'BS',
+                                    'discipline' => 'Psychology',
+                                    'status' => 'active',
+                                    'confidence' => 0.97,
+                                    'evidence_excerpt' => 'Bachelor of Science (BS) in Psychology',
+                                ],
+                            ],
+                        ]),
+                    ],
+                ]],
+            ], 200),
+        ]);
+
+        $summary = app(InstituteDiscoveryAgentService::class)->run('cui-lahore', true);
+
+        $this->assertSame('ai_extraction', $summary['extraction_method']);
+        $this->assertSame(2, $summary['candidate_rows']);
+
+        $this->assertDatabaseHas('import_batches', [
+            'id' => $summary['batch_id'],
+            'source_type' => 'ai_extraction',
+        ]);
+
+        $row = ImportRow::where('import_batch_id', $summary['batch_id'])->firstOrFail();
+
+        $this->assertSame(0.98, (float) data_get($row->payload, '_provenance.confidence'));
+        $this->assertSame('ai_extraction', data_get($row->payload, '_provenance.method'));
     }
 }
