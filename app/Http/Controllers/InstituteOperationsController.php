@@ -59,6 +59,15 @@ class InstituteOperationsController {
   $reverification=DataReverificationQueue::query()->where('status','open')->orderByRaw("CASE priority WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END")->orderBy('due_at')->limit(20)->get();
   return view('institutes.operations.queue',compact('rows','batches','summary','qualityReport','batchId','reverification','batchParentInstitutions','rowDecisionMap'));
  }
+ public function discover(Request $request, \App\Services\InstituteDiscoveryAgentService $agent): \Illuminate\Http\RedirectResponse {
+  try {
+   $summary=$agent->run($request->input('profile','cui-lahore'));
+  } catch (\Throwable $e) {
+   return back()->withErrors(['discovery'=>$e->getMessage()]);
+  }
+  return redirect()->route('institutes.operations.queue',['batch_id'=>$summary['batch_id']])
+   ->with('status','Automated discovery collected '.$summary['total_rows'].' candidate programmes. Candidate rows remain non-canonical until approval and promotion.');
+ }
  public function show(ImportRow $importRow, ImportDependencyContextService $context): View {
   $importRow->load(['batch.source']);
   $matches=IdentityMatchCandidate::query()->where('import_row_id',$importRow->id)->with('institution')->get();

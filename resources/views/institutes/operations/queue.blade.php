@@ -8,6 +8,17 @@
 @include('institutes.operations._admin-navigation')
 
 
+<h2>Automated Data Discovery</h2>
+<div class="institute-card">
+    <strong>Run the governed discovery test</strong>
+    <p>This retrieves the configured official source, captures evidence, extracts programme candidates, checks duplicates, and places the results in the existing review queue. It does not write canonical institute or programme data.</p>
+    <form method="post" action="{{ route('institutes.operations.agent.discover') }}" onsubmit="return confirm('Run automated discovery for the CUI Lahore test profile now?');">
+        @csrf
+        <input type="hidden" name="profile" value="cui-lahore">
+        <button type="submit" class="button--approve">Run CUI Lahore Discovery Agent</button>
+    </form>
+</div>
+
 <h2>Import batches</h2>
 @forelse($batches as $batch)
 <article class="institute-card">
