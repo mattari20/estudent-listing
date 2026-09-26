@@ -20,6 +20,7 @@ class SourceSnapshotService
             'content_hash' => hash('sha256', $content),
             'content_length' => strlen($content),
             'content_type' => $contentType,
+            'content' => $content,
             'captured_at' => now(),
             'status' => 'captured',
             'metadata' => $metadata,
