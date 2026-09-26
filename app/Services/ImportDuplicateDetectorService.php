@@ -34,6 +34,7 @@ class ImportDuplicateDetectorService
             ->where('parent_subject_type', Institution::class)
             ->where('parent_subject_id', $parentInstitutionId)
             ->where('normalized_payload->slug', $slug)
+            ->whereIn('status', ['candidate', 'promoted', 'duplicate'])
             ->whereHas('batch', fn ($query) => $query->where('entity_type', $entityType))
             ->when($currentBatchId, fn ($query) => $query->where('import_batch_id', '!=', $currentBatchId))
             ->latest('id')
