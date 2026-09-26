@@ -33,7 +33,7 @@ class InstituteEnrichmentImportController
             200,
             [
                 'Content-Type' => 'text/csv',
-                'Content-Disposition' => 'attachment; filename="{$entityType}-enrichment-template-v1.0.csv"',
+                'Content-Disposition' => 'attachment; filename="' . $entityType . '-enrichment-template-v1.0.csv"',
             ],
         );
     }
