@@ -99,7 +99,7 @@ class InstituteEnrichmentImportController
                 'notes' => implode('; ', $headerErrors),
             ]);
 
-            return view('institutes.import-result', compact('batch'));
+            return view('institutes.import-result', compact('batch', 'institution'));
         }
 
         $header = array_map(fn ($value) => trim((string) $value), $header);
@@ -164,6 +164,6 @@ class InstituteEnrichmentImportController
             'completed_at' => now(),
         ]);
 
-        return view('institutes.import-result', compact('batch'));
+        return view('institutes.import-result', compact('batch', 'institution'));
     }
 }
