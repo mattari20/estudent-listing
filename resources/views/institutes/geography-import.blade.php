@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title','Geography Import | eStudent.pk')
 @section('content')
+@include('institutes.operations._admin-navigation')
 <h1>Geography Import</h1>
 <p>Upload source-backed geography data for validation and review. Nothing is published directly.</p>
 <p><a href="{{ route('institutes.operations.geography-import.template') }}">Download geography CSV template</a></p>
