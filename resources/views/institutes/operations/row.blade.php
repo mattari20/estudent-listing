@@ -9,6 +9,17 @@
 @if(session('status'))<p role="status">{{ session('status') }}</p>@endif
 @if($errors->any())<div role="alert">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
 <h1>Import Row {{ $importRow->row_number }}</h1>
+@if(in_array($importRow->status, ['candidate','validated','duplicate','invalid'], true))
+<div class="import-row-action import-row-action--danger">
+<h2>Row action</h2>
+<p>If this row is a duplicate, accidental double import, or otherwise should not be processed, reject it here. <strong>Rejecting removes it from the active review queue but keeps the import record and audit history.</strong> It does not delete canonical institute data.</p>
+<form method="post" action="{{ route('institutes.operations.reject',$importRow) }}" onsubmit="return confirm('Reject this import row and remove it from the active review queue? The import history will be preserved.');">
+@csrf
+<label>Rejection reason<textarea name="reason" required placeholder="Example: Duplicate test import — the same institute was already imported."></textarea></label>
+<button type="submit" class="button--danger">Reject / Remove from Review</button>
+</form>
+</div>
+@endif
 <p>Status: <span class="status-badge status-badge--{{ $importRow->status }}">{{ ucfirst($importRow->status) }}</span> · Match: {{ $importRow->match_state }} · Entity: {{ $importRow->batch->entity_type }}</p>
 <h2>Import conflicts</h2>
 @if($conflicts->isNotEmpty())<ul>@foreach($conflicts as $conflict)<li><strong>{{ $conflict->conflict_type }}</strong> · {{ $conflict->severity }} · {{ $conflict->status }} — {{ $conflict->description }} @if($conflict->status==='open')<form method="post" action="{{ route('institutes.operations.conflict-resolve',$importRow) }}">@csrf<input type="hidden" name="conflict_id" value="{{ $conflict->id }}"><label>Resolution reason<textarea name="reason" required></textarea></label><button type="submit">Resolve conflict</button></form>@else<p>Resolved: {{ $conflict->resolution_reason }}</p>@endif</li>@endforeach</ul>@else<p>No conflicts recorded.</p>@endif

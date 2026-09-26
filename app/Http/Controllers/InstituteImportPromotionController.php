@@ -18,6 +18,33 @@ use App\Services\CanonicalRefreshService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 class InstituteImportPromotionController {
+ public function reject(Request $request, ImportRow $importRow, ImportPromotionAuditService $audit): RedirectResponse {
+  abort_unless(in_array($importRow->status, ['candidate','validated','duplicate','invalid'], true), 409);
+  $data=$request->validate(['reason'=>['required','string','max:2000']]);
+  $previousStatus=$importRow->status;
+  $previousMatchState=$importRow->match_state;
+  if($importRow->batch?->entity_type==='institution'){
+   $decision=IdentityResolutionDecision::create(['import_row_id'=>$importRow->id,'institution_id'=>null,'decision'=>'rejected','actor_type'=>'user','actor_id'=>$request->user()->id,'reason'=>$data['reason'],'decided_at'=>now()]);
+   $decisionType='identity_resolution';
+  } else {
+   $decision=ImportPromotionDecision::create(['import_row_id'=>$importRow->id,'decision'=>'rejected','actor_type'=>'user','actor_id'=>$request->user()->id,'reason'=>$data['reason'],'decided_at'=>now()]);
+   $decisionType='import_promotion';
+  }
+  $note=trim((string) $importRow->notes);
+  $rejectionNote='Rejected by operator: '.$data['reason'];
+  $importRow->update([
+   'status'=>'rejected',
+   'notes'=>trim($note.($note!=='' ? "\n" : '').$rejectionNote),
+  ]);
+  $audit->record($importRow,'promotion_rejected',$request->user()->id,$data['reason'],[
+   'previous_status'=>$previousStatus,
+   'new_status'=>'rejected',
+   'previous_match_state'=>$previousMatchState,
+   'new_match_state'=>$importRow->match_state,
+   'operator_action'=>'reject_import_row',
+  ],$decisionType,$decision->id);
+  return redirect()->route('institutes.operations.queue',['batch_id'=>$importRow->import_batch_id])->with('status','Import row '.$importRow->row_number.' was rejected and removed from the active review queue.');
+ }
  public function resolve(ImportRow $importRow, InstituteIdentityResolver $resolver): RedirectResponse { abort_unless($importRow->status==='candidate',409); $resolver->resolve($importRow); return back()->with('status','Identity candidates refreshed.'); }
  public function decide(Request $request, ImportRow $importRow, ImportPromotionAuditService $audit): RedirectResponse {
   $data=$request->validate(['decision'=>['required','in:approved_new,approved_match,rejected,conflict'],'institution_id'=>['nullable','integer','exists:institutions,id'],'reason'=>['required','string','max:2000']]);

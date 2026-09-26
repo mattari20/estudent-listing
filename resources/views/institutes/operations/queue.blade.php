@@ -74,7 +74,16 @@
             <h3>{{ $row->normalized_payload['name'] ?? $row->payload['name'] ?? 'Unnamed' }}</h3>
             <p class="import-row-card__meta">Row {{ $row->row_number }} · {{ ucfirst($row->batch->entity_type) }} · {{ $row->match_state }}</p>
         </div>
-        <a class="button button--ghost" href="{{ route('institutes.operations.row',$row) }}">Review details →</a>
+        <div class="import-row-card__top-actions">
+            <a class="button button--ghost" href="{{ route('institutes.operations.row',$row) }}">Review details →</a>
+            @if($state !== 'promoted')
+            <form method="post" action="{{ route('institutes.operations.reject',$row) }}" onsubmit="return confirm('Reject this import row and remove it from the active review queue? The import history will be preserved.');">
+                @csrf
+                <input type="hidden" name="reason" value="{{ $state === 'duplicate' ? 'Duplicate import identified during review.' : 'Operator rejected this import row from the review queue.' }}">
+                <button type="submit" class="button--danger">{{ $state === 'duplicate' ? 'Reject duplicate' : 'Reject row' }}</button>
+            </form>
+            @endif
+        </div>
     </div>
     @if($row->notes || $row->validation_errors)
         <div class="import-row-card__notice">{{ $row->notes ?? implode(' ', $row->validation_errors ?? []) }}</div>

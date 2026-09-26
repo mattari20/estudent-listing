@@ -59,6 +59,7 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         Route::post('/sources/{source}/evidence', [InstituteSourceEvidenceCaptureController::class, 'store'])->name('sources.evidence.store');
         Route::get('/rows/{importRow}', [InstituteOperationsController::class, 'show'])->name('row');
         Route::post('/rows/{importRow}/resolve', [InstituteImportPromotionController::class, 'resolve'])->name('resolve');
+        Route::post('/rows/{importRow}/reject', [InstituteImportPromotionController::class, 'reject'])->name('reject');
         Route::post('/rows/{importRow}/decision', [InstituteImportPromotionController::class, 'decide'])->name('decide');
         Route::post('/rows/{importRow}/conflict-resolve', [InstituteImportPromotionController::class, 'resolveConflict'])->name('conflict-resolve');
         Route::post('/rows/{importRow}/enrichment-decision', [InstituteImportPromotionController::class, 'enrichmentDecision'])->name('enrichment-decision');
