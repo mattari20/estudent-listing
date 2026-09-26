@@ -7,14 +7,19 @@
 
 @include('institutes.operations._admin-navigation')
 
-
 <h2>Automated Data Discovery</h2>
 <div class="institute-card">
     <strong>Run the governed discovery test</strong>
-    <p>This retrieves the configured official source, captures evidence, extracts programme candidates, checks duplicates, and places the results in the existing review queue. It does not write canonical institute or programme data.</p>
+    <p>This retrieves the configured official source, stores the exact source snapshot, captures evidence, extracts programme candidates, checks duplicates, and places the results in the existing review queue. It does not write canonical institute or programme data.</p>
     <form method="post" action="{{ route('institutes.operations.agent.discover') }}" onsubmit="return confirm('Run automated discovery for the CUI Lahore test profile now?');">
         @csrf
         <input type="hidden" name="profile" value="cui-lahore">
+        @if(config('institute_ai.enabled'))
+            <label style="display:block;margin:10px 0;">
+                <input type="checkbox" name="use_ai" value="1">
+                Use configured AI extraction adapter
+            </label>
+        @endif
         <button type="submit" class="button--approve">Run CUI Lahore Discovery Agent</button>
     </form>
 </div>
