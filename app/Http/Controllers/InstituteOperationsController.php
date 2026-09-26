@@ -4,7 +4,6 @@ use App\Models\IdentityMatchCandidate;
 use App\Models\Institution;
 use App\Models\ImportPromotionDecision;
 use App\Models\IdentityResolutionDecision;
-use App\Models\ImportPromotionDecision;
 use App\Models\ImportPromotionEvent;
 use App\Models\ImportRow;
 use App\Models\ImportConflict;
@@ -23,11 +22,19 @@ class InstituteOperationsController {
    'rows as rejected_rows_count' => fn($q) => $q->where('status','rejected'),
    'rows as conflict_rows_count' => fn($q) => $q->where('match_state','conflict'),
   ])->latest()->paginate(20,['*'],'batches_page');
-  $approvedCounts=IdentityResolutionDecision::query()
+  $approvedIdentity = IdentityResolutionDecision::query()
    ->whereIn('decision',['approved_new','approved_match'])
-   ->selectRaw('import_row_id')
-   ->with('importRow:id,import_batch_id')
+   ->latest('id')
    ->get()
+   ->unique('import_row_id')
+   ->load('importRow:id,import_batch_id');
+  $approvedEnrichment = ImportPromotionDecision::query()
+   ->where('decision','approved')
+   ->latest('id')
+   ->get()
+   ->unique('import_row_id')
+   ->load('importRow:id,import_batch_id');
+  $approvedCounts = $approvedIdentity->concat($approvedEnrichment)
    ->groupBy(fn($decision) => $decision->importRow?->import_batch_id)
    ->map(fn($items) => $items->count());
   $batchParentInstitutions = [];
