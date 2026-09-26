@@ -1,4 +1,11 @@
 @extends('layouts.app')
 @section('title','Import Validation Result | eStudent.pk')
-@section('content')<section class="search-header"><p class="eyebrow">Data operations</p><h1>Import batch validated</h1><p>Batch: {{ $batch->batch_key }}</p></section><div class="compact-grid"><article class="info-card"><h3>Status</h3><p>{{ $batch->status }}</p></article><article class="info-card"><h3>Total rows</h3><p>{{ $batch->total_rows }}</p></article><article class="info-card"><h3>Candidate rows</h3><p>{{ $batch->candidate_rows }}</p></article><article class="info-card"><h3>Invalid rows</h3><p>{{ $batch->invalid_rows }}</p></article></div><p class="data-note">Candidates are not published automatically. Identity matching, evidence review and canonical promotion remain separate governed steps.</p>@if($batch->notes)<div class="empty-state">{{ $batch->notes }}</div>@endif
-<section class="institute-card"><h2>Next actions</h2><p><a href="{{ route('institutes.operations.queue',['batch_id'=>$batch->id]) }}">Review this batch</a></p><p><a href="{{ route('institutes.operations.queue') }}">Open Operations Hub / all batches</a></p><p><a href="{{ route('institutes.show',$institution) }}">View parent institute: {{ $institution->name }}</a></p></section>@endsection
+@section('content')
+@include('institutes.operations._admin-navigation')<section class="search-header"><p class="eyebrow">Data operations</p><h1>Import batch validated</h1><p>Batch: {{ $batch->batch_key }}</p></section><div class="compact-grid"><article class="info-card"><h3>Status</h3><p>{{ $batch->status }}</p></article><article class="info-card"><h3>Total rows</h3><p>{{ $batch->total_rows }}</p></article><article class="info-card"><h3>Candidate rows</h3><p>{{ $batch->candidate_rows }}</p></article><article class="info-card"><h3>Invalid rows</h3><p>{{ $batch->invalid_rows }}</p></article></div><p class="data-note">Candidates are not published automatically. Identity matching, evidence review and canonical promotion remain separate governed steps.</p>@if($batch->notes)<div class="empty-state">{{ $batch->notes }}</div>@endif
+<section class="institute-card"><h2>Next actions</h2>
+<p><a href="{{ route('institutes.operations.queue',['batch_id'=>$batch->id]) }}">Review / Approve this batch →</a></p>
+<p><a href="{{ route('institutes.operations.queue') }}">Open Operations Hub / all batches →</a></p>
+@if(isset($institution))
+<p><a href="{{ route('institutes.show',$institution) }}">View parent institute: {{ $institution->name }} →</a></p>
+@endif
+</section>@endsection
