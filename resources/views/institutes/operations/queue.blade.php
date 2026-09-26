@@ -5,41 +5,8 @@
 @if(session('status'))<p role="status">{{ session('status') }}</p>@endif
 @if($errors->any())<div role="alert">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
 
-<section class="institute-card" aria-labelledby="operations-navigation">
-    <h2 id="operations-navigation">Admin Operations Navigation</h2>
-    <p>Use this hub to reach imports, review, approval, promotion, data quality, readiness, monitoring, and administration without remembering individual URLs.</p>
-    <div class="filter-grid">
-        <div class="institute-card">
-            <h3>Data Import &amp; Enrichment</h3>
-            <p><a href="{{ route('institutes.operations.import.create') }}">Import Institutions</a></p>
-            <p><a href="{{ route('institutes.operations.enrichment-import.create') }}">Import Campus / Program Enrichment</a></p>
-            <p><a href="{{ route('institutes.operations.geography-import.create') }}">Import Geography</a></p>
-        </div>
-        <div class="institute-card">
-            <h3>Review &amp; Approval</h3>
-            <p><a href="{{ route('institutes.operations.queue') }}">Review Pending Rows</a></p>
-            <p>Open any batch below to review its rows, approve decisions, and promote approved records.</p>
-        </div>
-        <div class="institute-card">
-            <h3>Data Quality &amp; Readiness</h3>
-            <p><a href="{{ route('institutes.operations.integrity') }}">Geography Integrity</a></p>
-            <p><a href="{{ route('institutes.operations.data-readiness') }}">Data Readiness</a></p>
-            <p><a href="{{ route('institutes.operations.readiness-dashboard') }}">Readiness Dashboard</a></p>
-            <p><a href="{{ route('institutes.operations.production-signoff') }}">Production Sign-off</a></p>
-        </div>
-        <div class="institute-card">
-            <h3>Monitoring</h3>
-            <p><a href="{{ route('institutes.operations.monitoring.dashboard') }}">Monitoring Dashboard</a></p>
-            <p><a href="{{ route('institutes.operations.monitoring.history') }}">Monitoring History</a></p>
-        </div>
-        @if(auth()->user()?->isAdmin())
-        <div class="institute-card">
-            <h3>Administration</h3>
-            <p><a href="{{ route('institutes.operations.users.index') }}">User Management</a></p>
-        </div>
-        @endif
-    </div>
-</section>
+@include('institutes.operations._admin-navigation')
+
 
 <h2>Import batches</h2>
 @forelse($batches as $batch)
@@ -47,7 +14,10 @@
     <h3>Batch {{ $batch->batch_key }}</h3>
     <p>{{ $batch->source?->name }} · {{ $batch->status }} · {{ $batch->total_rows }} total rows</p>
     <p><strong>Pending:</strong> {{ $batch->pending_rows_count }} · <strong>Approved:</strong> {{ $batch->approved_rows_count }} · <strong>Promoted:</strong> {{ $batch->promoted_rows_count }} · <strong>Rejected:</strong> {{ $batch->rejected_rows_count }} · <strong>Conflict:</strong> {{ $batch->conflict_rows_count }}</p>
-    <a href="{{ route('institutes.operations.queue',['batch_id'=>$batch->id]) }}">Review batch</a>
+    <p><a href="{{ route('institutes.operations.queue',['batch_id'=>$batch->id]) }}">Review / Approve batch →</a></p>
+    @if($batch->entity_type !== 'institution' && isset($batchParentInstitutions[$batch->id]))
+        <p><a href="{{ route('institutes.show',$batchParentInstitutions[$batch->id]) }}">View parent institute →</a></p>
+    @endif
     @if($batch->entity_type === 'institution' && $batch->pending_rows_count > 0)
     <form method="post" action="{{ route('institutes.operations.imports.approve-and-promote-new',$batch) }}" onsubmit="return confirm('Approve and promote all unmatched new institutions in this batch? Rows with identity matches or conflicts will remain for individual review.');">
         @csrf
