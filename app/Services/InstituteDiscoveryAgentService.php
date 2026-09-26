@@ -16,22 +16,8 @@ class InstituteDiscoveryAgentService
 {
     public function run(string $profile = 'cui-lahore', bool $useAi = false): array
     {
-        $definition = config("institute_agent.profiles.{$profile}");
-
-        if (!is_array($definition)) {
-            throw new \InvalidArgumentException("Unknown institute discovery profile: {$profile}");
-        }
-
-        $institution = Institution::query()
-            ->where('slug', $definition['institution_slug'])
-            ->first();
-
-        if (!$institution) {
-            throw new \RuntimeException(
-                'The discovery profile requires an existing parent institution: '
-                .$definition['institution_slug']
-            );
-        }
+        $definition = $this->definition($profile);
+        $institution = $this->institution($definition);
 
         $sourceDefinition = $definition['source'];
         $source = Source::query()->updateOrCreate(
@@ -44,6 +30,7 @@ class InstituteDiscoveryAgentService
             ]
         );
 
+        app(DiscoveryMonitoringPolicyService::class)->ensure($source, $profile);
         app(SourceUrlGuard::class)->validate($source->url);
 
         $response = Http::timeout(30)
@@ -51,34 +38,61 @@ class InstituteDiscoveryAgentService
             ->withHeaders(['User-Agent' => 'eStudent-InstituteDiscoveryAgent/1.0'])
             ->get($source->url);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             throw new \RuntimeException('Discovery source returned HTTP '.$response->status().'.');
         }
 
         $body = $response->body();
+
         if (strlen($body) > 5 * 1024 * 1024) {
             throw new \RuntimeException('Discovery source exceeds the 5 MB retrieval limit.');
         }
 
-        $snapshot = SourceSnapshot::create([
-            'source_id' => $source->id,
-            'reference' => $source->url,
-            'content_hash' => hash('sha256', $body),
-            'content_length' => strlen($body),
-            'content_type' => $response->header('Content-Type'),
-            'content' => $body,
-            'captured_at' => now(),
-            'status' => 'captured',
-            'metadata' => [
+        $snapshot = app(SourceSnapshotService::class)->capture(
+            $source,
+            $body,
+            $source->url,
+            $response->header('Content-Type'),
+            [
                 'agent_profile' => $profile,
                 'retrieval_status' => $response->status(),
                 'extraction_method' => $useAi ? 'ai_extraction' : 'deterministic',
-            ],
-        ]);
+            ]
+        );
+
+        return $this->persistCandidates($profile, $institution, $source, $snapshot, $useAi);
+    }
+
+    public function runFromSnapshot(
+        string $profile,
+        SourceSnapshot $snapshot,
+        bool $useAi = false,
+    ): array {
+        $definition = $this->definition($profile);
+        $institution = $this->institution($definition);
+        $source = Source::query()->findOrFail($snapshot->source_id);
+
+        if ($source->url !== ($definition['source']['url'] ?? null)) {
+            throw new \RuntimeException('The monitoring snapshot does not belong to the configured discovery profile.');
+        }
+
+        return $this->persistCandidates($profile, $institution, $source, $snapshot, $useAi);
+    }
+
+    private function persistCandidates(
+        string $profile,
+        Institution $institution,
+        Source $source,
+        SourceSnapshot $snapshot,
+        bool $useAi
+    ): array {
+        if (! is_string($snapshot->content) || $snapshot->content === '') {
+            throw new \RuntimeException('The discovery snapshot has no stored source content.');
+        }
 
         $programs = $useAi
-            ? $this->extractWithAi($body, $institution, $source->url)
-            : $this->extractBachelorPrograms($body);
+            ? $this->extractWithAi($snapshot->content, $institution, $source->url)
+            : $this->extractBachelorPrograms($snapshot->content);
 
         if ($programs === []) {
             throw new \RuntimeException('The discovery agent found no undergraduate programme candidates.');
@@ -87,13 +101,12 @@ class InstituteDiscoveryAgentService
         $excerptLines = [];
         foreach ($programs as $program) {
             $excerptLines[] = $program['name']
-                .(!empty($program['evidence_excerpt']) ? ' — '.$program['evidence_excerpt'] : '');
+                .(! empty($program['evidence_excerpt']) ? ' — '.$program['evidence_excerpt'] : '');
         }
 
         $excerpt = ($useAi ? 'AI extraction' : 'Discovery agent')
             .' extracted '.count($programs).' undergraduate programme candidates from '
-            .$source->url."\n\n"
-            .implode("\n", $excerptLines);
+            .$source->url."\n\n".implode("\n", $excerptLines);
 
         $evidence = Evidence::create([
             'source_id' => $source->id,
@@ -107,13 +120,13 @@ class InstituteDiscoveryAgentService
 
         $batch = ImportBatch::create([
             'batch_key' => ($useAi ? 'ai-' : 'agent-').$profile.'-'.Str::lower(Str::random(16)),
-            'entity_type' => $definition['entity_type'],
+            'entity_type' => 'program',
             'source_type' => $useAi ? 'ai_extraction' : 'automated_discovery',
             'source_id' => $source->id,
             'status' => 'validated',
             'received_at' => now(),
-            'notes' => ($useAi ? 'AI extraction proposal run. ' : 'Automated discovery test run. ')
-                .'Candidates were collected from an official institutional source and remain non-canonical until governed approval.',
+            'notes' => 'Discovery candidates from source snapshot #'.$snapshot->id
+                .'. Candidates remain non-canonical until governed approval and promotion.',
         ]);
 
         $candidateRows = 0;
@@ -124,12 +137,12 @@ class InstituteDiscoveryAgentService
                 'name' => $program['name'],
                 'slug' => Str::slug($program['name']),
                 'program_level' => $program['program_level'] ?? 'undergraduate',
-                'award' => $program['award'],
-                'discipline' => $program['discipline'],
-                'status' => $program['status'] ?? 'active',
+                'award' => $program['award'] ?? null,
+                'discipline' => $program['discipline'] ?? null,
+                'status' => ($program['status'] ?? 'unknown') === 'unknown' ? 'active' : $program['status'],
                 'description' => $useAi
                     ? 'AI-extracted candidate from the official institutional programme source.'
-                    : 'Discovered from the official CUI Lahore academic programme listing.',
+                    : 'Discovered from the official institutional programme source.',
                 '_provenance' => [
                     'method' => $useAi ? 'ai_extraction' : 'deterministic',
                     'source_id' => $source->id,
@@ -148,20 +161,18 @@ class InstituteDiscoveryAgentService
             );
 
             $status = $duplicate ? 'duplicate' : 'candidate';
-            $matchState = $duplicate ? 'duplicate' : 'unresolved';
 
             ImportRow::create([
                 'import_batch_id' => $batch->id,
                 'row_number' => $index + 1,
                 'status' => $status,
-                'match_state' => $matchState,
+                'match_state' => $duplicate ? 'duplicate' : 'unresolved',
                 'parent_subject_type' => Institution::class,
                 'parent_subject_id' => $institution->id,
                 'payload' => $payload,
                 'normalized_payload' => $payload,
                 'validation_errors' => $duplicate ? [$duplicate['message']] : null,
-                'notes' => 'Evidence #'.$evidence->id.' from '.$source->url
-                    .($useAi ? '; AI confidence '.number_format((float) ($program['confidence'] ?? 0), 4) : ''),
+                'notes' => 'Evidence #'.$evidence->id.' from '.$source->url,
             ]);
 
             Assertion::create([
@@ -174,11 +185,7 @@ class InstituteDiscoveryAgentService
                 'confidence' => $program['confidence'] ?? 0.9500,
             ]);
 
-            if ($status === 'candidate') {
-                $candidateRows++;
-            } else {
-                $duplicateRows++;
-            }
+            $status === 'candidate' ? $candidateRows++ : $duplicateRows++;
         }
 
         $batch->update([
@@ -201,6 +208,33 @@ class InstituteDiscoveryAgentService
             'duplicate_rows' => $duplicateRows,
             'extraction_method' => $useAi ? 'ai_extraction' : 'deterministic',
         ];
+    }
+
+    private function definition(string $profile): array
+    {
+        $definition = config("institute_agent.profiles.{$profile}");
+
+        if (! is_array($definition)) {
+            throw new \InvalidArgumentException("Unknown institute discovery profile: {$profile}");
+        }
+
+        return $definition;
+    }
+
+    private function institution(array $definition): Institution
+    {
+        $institution = Institution::query()
+            ->where('slug', $definition['institution_slug'])
+            ->first();
+
+        if (! $institution) {
+            throw new \RuntimeException(
+                'The discovery profile requires an existing parent institution: '
+                .$definition['institution_slug']
+            );
+        }
+
+        return $institution;
     }
 
     private function extractWithAi(string $html, Institution $institution, string $sourceUrl): array
@@ -233,11 +267,7 @@ class InstituteDiscoveryAgentService
         foreach ($xpath->query('//a') as $link) {
             $name = trim(preg_replace('/\s+/', ' ', $link->textContent ?? ''));
 
-            if (!preg_match('/^Bachelor\b/i', $name)) {
-                continue;
-            }
-
-            if (stripos($name, 'Visit Department') !== false) {
+            if (! preg_match('/^Bachelor\b/i', $name) || stripos($name, 'Visit Department') !== false) {
                 continue;
             }
 
@@ -251,8 +281,7 @@ class InstituteDiscoveryAgentService
                 $discipline = trim($match[1]);
             }
 
-            $key = Str::lower(Str::slug($name));
-            $programs[$key] = [
+            $programs[Str::lower(Str::slug($name))] = [
                 'name' => $name,
                 'award' => $award,
                 'discipline' => $discipline,
