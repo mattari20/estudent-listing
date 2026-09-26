@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\ImportBatch;
 use App\Models\Source;
 use App\Models\SourceSnapshot;
 use App\Services\DiscoveryMonitoringPolicyService;
@@ -62,17 +63,33 @@ class BootstrapInstituteAgent extends Command
                 continue;
             }
 
-            $hasSnapshot = SourceSnapshot::query()
+            $hasDiscoveryBatch = ImportBatch::query()
                 ->where('source_id', $source->id)
+                ->whereIn('source_type', ['automated_discovery', 'ai_extraction'])
                 ->exists();
 
-            if ($hasSnapshot) {
+            if ($hasDiscoveryBatch) {
                 $skipped++;
                 continue;
             }
 
+            $snapshot = SourceSnapshot::query()
+                ->where('source_id', $source->id)
+                ->latest('captured_at')
+                ->first();
+
             try {
-                $summary = $agent->run($profile, (bool) ($definition['monitoring']['use_ai'] ?? false));
+                $summary = $snapshot
+                    ? $agent->runFromSnapshot(
+                        $profile,
+                        $snapshot,
+                        (bool) ($definition['monitoring']['use_ai'] ?? false)
+                    )
+                    : $agent->run(
+                        $profile,
+                        (bool) ($definition['monitoring']['use_ai'] ?? false)
+                    );
+
                 $discovered++;
                 $this->info(
                     $profile.' bootstrap discovery created '
