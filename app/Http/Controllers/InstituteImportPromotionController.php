@@ -105,7 +105,7 @@ class InstituteImportPromotionController {
  }
  public function enrichmentPromote(Request $request, ImportRow $importRow, EnrichmentPromotionService $service, ImportPromotionAuditService $audit): RedirectResponse {
   abort_unless($importRow->status==='candidate',409); $decision=ImportPromotionDecision::query()->where('import_row_id',$importRow->id)->where('decision','approved')->latest('id')->firstOrFail();
-  $service->validateParent($importRow); $previousStatus=$importRow->status; $previousMatch=$importRow->match_state; $entity=$service->promote($importRow);
+  $service->validateParent($importRow); $previousStatus=$importRow->status; $previousMatch=$importRow->match_state;\n  try { $entity=$service->promote($importRow); } catch (\\Throwable $e) { return back()->withErrors(['promotion'=>$e->getMessage()]); }
   $audit->record($importRow,'promotion_succeeded',$request->user()->id,'Enrichment promoted to canonical data.',['previous_status'=>$previousStatus,'previous_match_state'=>$previousMatch,'created_canonical'=>false,'canonical_class'=>$entity::class],'import_promotion',$decision->id);
   return redirect()->route('institutes.operations.row',$importRow)->with('status','Canonical enrichment promoted.');
  }
