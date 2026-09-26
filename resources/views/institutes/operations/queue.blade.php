@@ -75,6 +75,12 @@
             <p class="import-row-card__meta">Row {{ $row->row_number }} · {{ ucfirst($row->batch->entity_type) }} · {{ $row->match_state }}</p>
         </div>
         <div class="import-row-card__top-actions">
+            @if($state === 'waiting' && $row->status === 'candidate')
+            <form method="post" action="{{ route('institutes.operations.quick-approve',$row) }}" onsubmit="return confirm('Approve this row without opening the detailed review? The row will be approved but will not be promoted automatically.');">
+                @csrf
+                <button type="submit" class="button--approve">Approve</button>
+            </form>
+            @endif
             <a class="button button--ghost" href="{{ route('institutes.operations.row',$row) }}">Review details →</a>
             @if($state !== 'promoted')
             <form method="post" action="{{ route('institutes.operations.reject',$row) }}" onsubmit="return confirm('Reject this import row and remove it from the active review queue? The import history will be preserved.');">
