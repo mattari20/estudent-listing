@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 use App\Models\IdentityMatchCandidate;
+use App\Models\Institution;
 use App\Models\IdentityResolutionDecision;
 use App\Models\ImportPromotionDecision;
 use App\Models\ImportPromotionEvent;
@@ -28,12 +29,18 @@ class InstituteOperationsController {
    ->get()
    ->groupBy(fn($decision) => $decision->importRow?->import_batch_id)
    ->map(fn($items) => $items->count());
-  foreach($batches as $batch){ $batch->approved_rows_count=$approvedCounts->get($batch->id,0); }
+  $batchParentInstitutions = [];
+  foreach ($batches as $batch) {
+   $batch->approved_rows_count=$approvedCounts->get($batch->id,0);
+   if ($batch->entity_type !== 'institution' && preg_match('/parent_institution_id=(\\d+)/', (string) $batch->notes, $match)) {
+    $batchParentInstitutions[$batch->id] = Institution::query()->find((int) $match[1]);
+   }
+  }
   $rows=ImportRow::query()->whereIn('status',['candidate','validated'])->with(['batch','batch.source'])->when($batchId,fn($q)=>$q->where('import_batch_id',$batchId))->latest()->paginate(30,['*'],'rows_page')->withQueryString();
   $summary=$batchId?$report->build(\App\Models\ImportBatch::findOrFail($batchId)):null;
   $qualityReport=$batchId?$quality->build(\App\Models\ImportBatch::findOrFail($batchId)):null;
   $reverification=DataReverificationQueue::query()->where('status','open')->orderByRaw("CASE priority WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END")->orderBy('due_at')->limit(20)->get();
-  return view('institutes.operations.queue',compact('rows','batches','summary','qualityReport','batchId','reverification'));
+  return view('institutes.operations.queue',compact('rows','batches','summary','qualityReport','batchId','reverification','batchParentInstitutions'));
  }
  public function show(ImportRow $importRow, ImportDependencyContextService $context): View {
   $importRow->load(['batch.source']);
@@ -43,6 +50,9 @@ class InstituteOperationsController {
   $history=ImportPromotionEvent::query()->where('import_row_id',$importRow->id)->latest('id')->limit(50)->get();
   $conflicts=ImportConflict::query()->where('import_row_id',$importRow->id)->latest('id')->get();
   $dependency=$context->build($importRow);
-  return view('institutes.operations.row',compact('importRow','matches','identityDecision','enrichmentDecision','dependency','history','conflicts'));
+  $parentInstitution = ($importRow->parent_subject_type === Institution::class && $importRow->parent_subject_id)
+   ? Institution::query()->find($importRow->parent_subject_id)
+   : null;
+  return view('institutes.operations.row',compact('importRow','matches','identityDecision','enrichmentDecision','dependency','history','conflicts','parentInstitution'));
  }
 }
