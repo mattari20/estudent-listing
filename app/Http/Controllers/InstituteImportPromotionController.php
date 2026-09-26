@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 use App\Models\IdentityResolutionDecision;
+use App\Models\IdentityMatchCandidate;
 use App\Models\ImportPromotionDecision;
 use App\Models\ImportRow;
 use App\Models\ImportConflict;
