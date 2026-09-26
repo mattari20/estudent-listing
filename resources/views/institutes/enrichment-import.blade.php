@@ -3,6 +3,7 @@
 @section('title', 'Institute Enrichment Import | eStudent.pk')
 
 @section('content')
+@include('institutes.operations._admin-navigation')
 <section class="search-header">
     <p class="eyebrow">Data operations</p>
     <h1>Institute enrichment import</h1>
