@@ -7,6 +7,7 @@ use App\Models\ImportRow;
 use App\Models\Institution;
 use App\Models\Source;
 use App\Services\EnrichmentImportSchemaService;
+use App\Services\ImportDuplicateDetectorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -41,6 +42,7 @@ class InstituteEnrichmentImportController
     public function store(
         Request $request,
         EnrichmentImportSchemaService $schemas,
+        ImportDuplicateDetectorService $duplicates,
     ): View {
         $validated = $request->validate([
             'source_name' => ['required', 'string', 'max:255'],
@@ -115,16 +117,33 @@ class InstituteEnrichmentImportController
             $normalized = $schemas->normalize($payload, $validated['entity_type']);
             $rowErrors = $schemas->validateRow($normalized, $validated['entity_type'], $seenSlugs);
             $slug = (string) ($normalized['slug'] ?? '');
+            $duplicate = null;
+
+            if ($slug !== '' && isset($seenSlugs[$slug])) {
+                $duplicate = [
+                    'kind' => 'batch',
+                    'label' => 'Current batch',
+                    'id' => null,
+                    'message' => 'The same record appears more than once in this CSV. The duplicate will not be published automatically.',
+                ];
+            } elseif ($slug !== '') {
+                $duplicate = $duplicates->find($validated['entity_type'], $institution->id, $slug, $batch->id);
+            }
 
             if ($slug !== '') {
                 $seenSlugs[$slug] = true;
             }
 
-            $status = $rowErrors ? 'invalid' : 'candidate';
-
-            if ($rowErrors) {
-                $invalid++;
+            if ($duplicate) {
+                $status = 'duplicate';
+                $rowErrors = array_values(array_unique(array_merge($rowErrors, [$duplicate['message']])));
             } else {
+                $status = $rowErrors ? 'invalid' : 'candidate';
+            }
+
+            if ($status === 'invalid') {
+                $invalid++;
+            } elseif ($status === 'candidate') {
                 $valid++;
                 $candidate++;
             }
@@ -133,12 +152,13 @@ class InstituteEnrichmentImportController
                 'import_batch_id' => $batch->id,
                 'row_number' => $rowNumber,
                 'status' => $status,
-                'match_state' => 'unresolved',
+                'match_state' => $duplicate ? 'duplicate' : 'unresolved',
                 'parent_subject_type' => Institution::class,
                 'parent_subject_id' => $institution->id,
                 'payload' => json_encode($payload),
                 'normalized_payload' => json_encode($normalized),
                 'validation_errors' => $rowErrors ? json_encode($rowErrors) : null,
+                'notes' => $duplicate ? $duplicate['message'] : null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];

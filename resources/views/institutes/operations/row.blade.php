@@ -9,7 +9,7 @@
 @if(session('status'))<p role="status">{{ session('status') }}</p>@endif
 @if($errors->any())<div role="alert">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
 <h1>Import Row {{ $importRow->row_number }}</h1>
-<p>Status: {{ $importRow->status }} · Match: {{ $importRow->match_state }} · Entity: {{ $importRow->batch->entity_type }}</p>
+<p>Status: <span class="status-badge status-badge--{{ $importRow->status }}">{{ ucfirst($importRow->status) }}</span> · Match: {{ $importRow->match_state }} · Entity: {{ $importRow->batch->entity_type }}</p>
 <h2>Import conflicts</h2>
 @if($conflicts->isNotEmpty())<ul>@foreach($conflicts as $conflict)<li><strong>{{ $conflict->conflict_type }}</strong> · {{ $conflict->severity }} · {{ $conflict->status }} — {{ $conflict->description }} @if($conflict->status==='open')<form method="post" action="{{ route('institutes.operations.conflict-resolve',$importRow) }}">@csrf<input type="hidden" name="conflict_id" value="{{ $conflict->id }}"><label>Resolution reason<textarea name="reason" required></textarea></label><button type="submit">Resolve conflict</button></form>@else<p>Resolved: {{ $conflict->resolution_reason }}</p>@endif</li>@endforeach</ul>@else<p>No conflicts recorded.</p>@endif
 <h2>Promotion history</h2>
@@ -17,6 +17,9 @@
 <h2>Dependency chain</h2>
 @if($dependency['chain'])<ol>@foreach($dependency['chain'] as $entity)<li><strong>{{ class_basename($entity) }}</strong>: {{ $entity->name ?? $entity->label ?? ('#'.$entity->id) }} (ID {{ $entity->id }})</li>@endforeach</ol>@else<p>No canonical parent chain is currently available.</p>@endif
 <h2>Imported data</h2><pre>{{ json_encode($importRow->normalized_payload ?? $importRow->payload, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE) }}</pre>
+@if($importRow->status==='duplicate')
+<div class="import-row-card import-row-card--duplicate"><strong>Duplicate import</strong><p>{{ $importRow->notes ?? 'This row matches data that is already present or was imported previously.' }}</p><p>This system does not overwrite canonical records automatically.</p></div>
+@endif
 @if($importRow->batch->entity_type==='institution')
 <form method="post" action="{{ route('institutes.operations.resolve',$importRow) }}">@csrf<button type="submit">Refresh identity matches</button></form>
 <h2>Identity candidates</h2>

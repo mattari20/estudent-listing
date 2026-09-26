@@ -13,7 +13,7 @@
 <article class="institute-card">
     <h3>Batch {{ $batch->batch_key }}</h3>
     <p>{{ $batch->source?->name }} · {{ $batch->status }} · {{ $batch->total_rows }} total rows</p>
-    <p><strong>Pending:</strong> {{ $batch->pending_rows_count }} · <strong>Approved:</strong> {{ $batch->approved_rows_count }} · <strong>Promoted:</strong> {{ $batch->promoted_rows_count }} · <strong>Rejected:</strong> {{ $batch->rejected_rows_count }} · <strong>Conflict:</strong> {{ $batch->conflict_rows_count }}</p>
+    <p><strong>Waiting:</strong> {{ $batch->pending_rows_count }} · <strong>Approved:</strong> {{ $batch->approved_rows_count }} · <strong>Promoted:</strong> {{ $batch->promoted_rows_count }} · <strong>Rejected:</strong> {{ $batch->rejected_rows_count }} · <strong>Conflict:</strong> {{ $batch->conflict_rows_count }}</p>
     <p><a href="{{ route('institutes.operations.queue',['batch_id'=>$batch->id]) }}">Review / Approve batch →</a></p>
     @if($batch->entity_type !== 'institution' && isset($batchParentInstitutions[$batch->id]))
         <p><a href="{{ route('institutes.show',$batchParentInstitutions[$batch->id]) }}">View parent institute →</a></p>
@@ -52,9 +52,44 @@
 <form method="post" action="{{ route('institutes.operations.bulk-promote') }}">@csrf
 <div class="institute-card">
     <label><input type="checkbox" id="select-all-rows"> <strong>Select all rows on this page</strong></label>
-    <p>{{ $rows->total() }} pending row(s) in this batch/query.</p>
+    <p>{{ $rows->total() }} import row(s) in this batch/query.</p>
+<div class="import-status-legend">
+<span class="status-badge status-badge--waiting">Waiting</span>
+<span class="status-badge status-badge--approved">Approved</span>
+<span class="status-badge status-badge--promoted">Promoted</span>
+<span class="status-badge status-badge--duplicate">Duplicate</span>
+<span class="status-badge status-badge--invalid">Needs correction</span>
 </div>
-@forelse($rows as $row)<article class="institute-card"><label><input class="row-checkbox" type="checkbox" name="row_ids[]" value="{{ $row->id }}"> <strong>{{ $row->normalized_payload['name'] ?? $row->payload['name'] ?? 'Unnamed' }}</strong></label><p>Row {{ $row->row_number }} · {{ $row->status }} · {{ $row->match_state }}</p><a href="{{ route('institutes.operations.row',$row) }}">Review row</a></article>@empty<p>No import candidates require review.</p>@endforelse
+</div>
+@forelse($rows as $row)
+@php
+    $decision = $rowDecisionMap[$row->id] ?? null;
+    $state = $row->status === 'promoted' ? 'promoted' : ($row->status === 'duplicate' ? 'duplicate' : ($row->status === 'invalid' ? 'invalid' : ($decision === 'approved' || $decision === 'approved_new' || $decision === 'approved_match' ? 'approved' : ($decision === 'rejected' ? 'rejected' : ($decision === 'conflict' ? 'conflict' : 'waiting')))));
+    $stateLabel = match($state) { 'approved' => 'Approved — ready for promotion', 'promoted' => 'Promoted', 'duplicate' => 'Duplicate — review existing record', 'invalid' => 'Needs correction', 'rejected' => 'Rejected', 'conflict' => 'Conflict', default => 'Waiting for approval' };
+@endphp
+<article class="import-row-card import-row-card--{{ $state }}">
+    <div class="import-row-card__top">
+        <div>
+            <span class="status-badge status-badge--{{ $state }}">{{ $stateLabel }}</span>
+            <h3>{{ $row->normalized_payload['name'] ?? $row->payload['name'] ?? 'Unnamed' }}</h3>
+            <p class="import-row-card__meta">Row {{ $row->row_number }} · {{ ucfirst($row->batch->entity_type) }} · {{ $row->match_state }}</p>
+        </div>
+        <a class="button button--ghost" href="{{ route('institutes.operations.row',$row) }}">Review details →</a>
+    </div>
+    @if($row->notes || $row->validation_errors)
+        <div class="import-row-card__notice">{{ $row->notes ?? implode(' ', $row->validation_errors ?? []) }}</div>
+    @endif
+    <div class="import-row-card__actions">
+        @if($state === 'waiting')<strong>Action required: review and approve this row.</strong>
+        @elseif($state === 'approved')<strong>Approved. Next action: promote to canonical data.</strong>
+        @elseif($state === 'duplicate')<strong>Not publishable until the existing record/import is reviewed.</strong>
+        @endif
+    </div>
+    @if($state === 'waiting' || $state === 'approved')
+        <label class="import-row-card__select"><input class="row-checkbox" type="checkbox" name="row_ids[]" value="{{ $row->id }}"> Select for bulk promotion</label>
+    @endif
+</article>
+@empty<p>No import rows match the current queue.</p>@endforelse
 <button type="submit">Promote selected approved rows</button></form>
 {{ $rows->links() }}
 

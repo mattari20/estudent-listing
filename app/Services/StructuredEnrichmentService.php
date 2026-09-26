@@ -8,6 +8,7 @@ use App\Models\ProgramOffering;
 use RuntimeException;
 class StructuredEnrichmentService {
  public function promote(ImportRow $row): object {
+  if ($row->match_state === 'duplicate') throw new RuntimeException('This import row is marked as a duplicate and cannot overwrite existing canonical data.');
   if($row->status!=='candidate') throw new RuntimeException('Only candidate import rows can be promoted.');
   $p=$row->normalized_payload??$row->payload??[];
   $type=$row->batch->entity_type; $parent=$this->parent($row);

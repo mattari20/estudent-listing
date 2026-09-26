@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 use App\Models\IdentityMatchCandidate;
 use App\Models\Institution;
+use App\Models\ImportPromotionDecision;
 use App\Models\IdentityResolutionDecision;
 use App\Models\ImportPromotionDecision;
 use App\Models\ImportPromotionEvent;
@@ -36,11 +37,20 @@ class InstituteOperationsController {
     $batchParentInstitutions[$batch->id] = Institution::query()->find((int) $match[1]);
    }
   }
-  $rows=ImportRow::query()->whereIn('status',['candidate','validated'])->with(['batch','batch.source'])->when($batchId,fn($q)=>$q->where('import_batch_id',$batchId))->latest()->paginate(30,['*'],'rows_page')->withQueryString();
+  $rows=ImportRow::query()->whereIn('status',['candidate','validated','duplicate','invalid'])->with(['batch','batch.source'])->when($batchId,fn($q)=>$q->where('import_batch_id',$batchId))->latest()->paginate(30,['*'],'rows_page')->withQueryString();
+  $rowIds = $rows->getCollection()->pluck('id');
+  $decisions = ImportPromotionDecision::query()->whereIn('import_row_id',$rowIds)->latest('id')->get()->unique('import_row_id')->keyBy('import_row_id');
+  $identityDecisions = IdentityResolutionDecision::query()->whereIn('import_row_id',$rowIds)->latest('id')->get()->unique('import_row_id')->keyBy('import_row_id');
+  $rowDecisionMap = [];
+  foreach ($rows as $row) {
+   $rowDecisionMap[$row->id] = $row->batch?->entity_type === 'institution'
+    ? $identityDecisions->get($row->id)?->decision
+    : $decisions->get($row->id)?->decision;
+  }
   $summary=$batchId?$report->build(\App\Models\ImportBatch::findOrFail($batchId)):null;
   $qualityReport=$batchId?$quality->build(\App\Models\ImportBatch::findOrFail($batchId)):null;
   $reverification=DataReverificationQueue::query()->where('status','open')->orderByRaw("CASE priority WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END")->orderBy('due_at')->limit(20)->get();
-  return view('institutes.operations.queue',compact('rows','batches','summary','qualityReport','batchId','reverification','batchParentInstitutions'));
+  return view('institutes.operations.queue',compact('rows','batches','summary','qualityReport','batchId','reverification','batchParentInstitutions','rowDecisionMap'));
  }
  public function show(ImportRow $importRow, ImportDependencyContextService $context): View {
   $importRow->load(['batch.source']);
