@@ -24,19 +24,11 @@ class InstituteOperationsController {
   ])->latest()->paginate(20,['*'],'batches_page');
   $approvedIdentity = IdentityResolutionDecision::query()
    ->whereIn('decision',['approved_new','approved_match'])
-   ->latest('id')
-   ->get()
-   ->unique('import_row_id')
-   ->load('importRow:id,import_batch_id');
+   ->latest('id')->get()->unique('import_row_id')->load('importRow:id,import_batch_id');
   $approvedEnrichment = ImportPromotionDecision::query()
-   ->where('decision','approved')
-   ->latest('id')
-   ->get()
-   ->unique('import_row_id')
-   ->load('importRow:id,import_batch_id');
+   ->where('decision','approved')->latest('id')->get()->unique('import_row_id')->load('importRow:id,import_batch_id');
   $approvedCounts = $approvedIdentity->concat($approvedEnrichment)
-   ->groupBy(fn($decision) => $decision->importRow?->import_batch_id)
-   ->map(fn($items) => $items->count());
+   ->groupBy(fn($decision) => $decision->importRow?->import_batch_id)->map(fn($items) => $items->count());
   $batchParentInstitutions = [];
   foreach ($batches as $batch) {
    $batch->approved_rows_count=$approvedCounts->get($batch->id,0);
@@ -61,12 +53,16 @@ class InstituteOperationsController {
  }
  public function discover(Request $request, \App\Services\InstituteDiscoveryAgentService $agent): \Illuminate\Http\RedirectResponse {
   try {
-   $summary=$agent->run($request->input('profile','cui-lahore'));
+   $summary=$agent->run(
+    $request->input('profile','cui-lahore'),
+    $request->boolean('use_ai')
+   );
   } catch (\Throwable $e) {
    return back()->withErrors(['discovery'=>$e->getMessage()]);
   }
+  $method=$summary['extraction_method']==='ai_extraction'?'AI':'deterministic';
   return redirect()->route('institutes.operations.queue',['batch_id'=>$summary['batch_id']])
-   ->with('status','Automated discovery collected '.$summary['total_rows'].' candidate programmes. Candidate rows remain non-canonical until approval and promotion.');
+   ->with('status','Automated '.$method.' discovery collected '.$summary['total_rows'].' candidate programmes. Candidate rows remain non-canonical until approval and promotion.');
  }
  public function show(ImportRow $importRow, ImportDependencyContextService $context): View {
   $importRow->load(['batch.source']);
@@ -77,8 +73,7 @@ class InstituteOperationsController {
   $conflicts=ImportConflict::query()->where('import_row_id',$importRow->id)->latest('id')->get();
   $dependency=$context->build($importRow);
   $parentInstitution = ($importRow->parent_subject_type === Institution::class && $importRow->parent_subject_id)
-   ? Institution::query()->find($importRow->parent_subject_id)
-   : null;
+   ? Institution::query()->find($importRow->parent_subject_id) : null;
   return view('institutes.operations.row',compact('importRow','matches','identityDecision','enrichmentDecision','dependency','history','conflicts','parentInstitution'));
  }
 }
