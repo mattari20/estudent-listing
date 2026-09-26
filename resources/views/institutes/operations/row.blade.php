@@ -1,7 +1,11 @@
 @extends('layouts.app')
 @section('title','Review Import Row')
 @section('content')
-<a href="{{ route('institutes.operations.queue') }}">← Review queue</a>
+@include('institutes.operations._admin-navigation')
+<p><a href="{{ route('institutes.operations.queue',['batch_id'=>$importRow->import_batch_id]) }}">← Review this batch</a> · <a href="{{ route('institutes.operations.queue') }}">Operations Hub</a></p>
+@if($parentInstitution)
+<p><a href="{{ route('institutes.show',$parentInstitution) }}">View parent institute: {{ $parentInstitution->name }} →</a></p>
+@endif
 @if(session('status'))<p role="status">{{ session('status') }}</p>@endif
 @if($errors->any())<div role="alert">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
 <h1>Import Row {{ $importRow->row_number }}</h1>
@@ -42,6 +46,7 @@
 @endif
 @endif
 @if($importRow->status==='promoted')
+@if($parentInstitution)<p><strong>Published canonical record:</strong> <a href="{{ route('institutes.show',$parentInstitution) }}">View public institute page →</a></p>@endif
 <h2>Safe reversal</h2>
 <p>Reversal never hard-deletes provenance. Existing canonical matches are preserved.</p>
 <form method="post" action="{{ route('institutes.operations.reverse',$importRow) }}">@csrf
