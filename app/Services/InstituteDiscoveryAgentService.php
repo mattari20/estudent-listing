@@ -90,22 +90,31 @@ class InstituteDiscoveryAgentService
             throw new \RuntimeException('The discovery snapshot has no stored source content.');
         }
 
-        $programs = $useAi
-            ? $this->extractWithAi($snapshot->content, $institution, $source->url)
-            : $this->extractBachelorPrograms($snapshot->content);
+        $entityType = $this->entityType($profile);
 
-        if ($programs === []) {
-            throw new \RuntimeException('The discovery agent found no undergraduate programme candidates.');
+        if ($entityType !== 'program' && $useAi) {
+            throw new \RuntimeException('AI extraction is currently enabled only for programme discovery profiles.');
+        }
+
+        $candidates = $entityType === 'program' && $useAi
+            ? $this->extractWithAi($snapshot->content, $institution, $source->url)
+            : app(InstituteDiscoveryCandidateExtractor::class)->extract(
+                $entityType,
+                $snapshot->content
+            );
+
+        if ($candidates === []) {
+            throw new \RuntimeException("The discovery agent found no {$entityType} candidates.");
         }
 
         $excerptLines = [];
-        foreach ($programs as $program) {
+        foreach ($candidates as $program) {
             $excerptLines[] = $program['name']
                 .(! empty($program['evidence_excerpt']) ? ' — '.$program['evidence_excerpt'] : '');
         }
 
         $excerpt = ($useAi ? 'AI extraction' : 'Discovery agent')
-            .' extracted '.count($programs).' undergraduate programme candidates from '
+            .' extracted '.count($candidates).' {$entityType} candidates from '
             .$source->url."\n\n".implode("\n", $excerptLines);
 
         $evidence = Evidence::create([
@@ -120,7 +129,7 @@ class InstituteDiscoveryAgentService
 
         $batch = ImportBatch::create([
             'batch_key' => ($useAi ? 'ai-' : 'agent-').$profile.'-'.Str::lower(Str::random(16)),
-            'entity_type' => 'program',
+            'entity_type' => $entityType,
             'source_type' => $useAi ? 'ai_extraction' : 'automated_discovery',
             'source_id' => $source->id,
             'status' => 'validated',
@@ -132,17 +141,8 @@ class InstituteDiscoveryAgentService
         $candidateRows = 0;
         $duplicateRows = 0;
 
-        foreach ($programs as $index => $program) {
-            $payload = [
-                'name' => $program['name'],
-                'slug' => Str::slug($program['name']),
-                'program_level' => $program['program_level'] ?? 'undergraduate',
-                'award' => $program['award'] ?? null,
-                'discipline' => $program['discipline'] ?? null,
-                'status' => ($program['status'] ?? 'unknown') === 'unknown' ? 'active' : $program['status'],
-                'description' => $useAi
-                    ? 'AI-extracted candidate from the official institutional programme source.'
-                    : 'Discovered from the official institutional programme source.',
+        foreach ($candidates as $index => $program) {
+            $payload = $this->candidatePayload($entityType, $program, $useAi);
                 '_provenance' => [
                     'method' => $useAi ? 'ai_extraction' : 'deterministic',
                     'source_id' => $source->id,
@@ -154,7 +154,7 @@ class InstituteDiscoveryAgentService
             ];
 
             $duplicate = app(ImportDuplicateDetectorService::class)->find(
-                'program',
+                $entityType,
                 $institution->id,
                 $payload['slug'],
                 $batch->id
@@ -189,24 +189,64 @@ class InstituteDiscoveryAgentService
         }
 
         $batch->update([
-            'total_rows' => count($programs),
-            'valid_rows' => count($programs),
+            'total_rows' => count($candidates),
+            'valid_rows' => count($candidates),
             'invalid_rows' => 0,
             'candidate_rows' => $candidateRows,
             'completed_at' => now(),
         ]);
 
         return [
+            'entity_type' => $entityType,
             'profile' => $profile,
             'institution_id' => $institution->id,
             'source_id' => $source->id,
             'snapshot_id' => $snapshot->id,
             'evidence_id' => $evidence->id,
             'batch_id' => $batch->id,
-            'total_rows' => count($programs),
+            'total_rows' => count($candidates),
             'candidate_rows' => $candidateRows,
             'duplicate_rows' => $duplicateRows,
             'extraction_method' => $useAi ? 'ai_extraction' : 'deterministic',
+        ];
+    }
+
+    private function entityType(string $profile): string
+    {
+        return (string) (config("institute_agent.profiles.{$profile}.entity_type") ?: 'program');
+    }
+
+    private function candidatePayload(string $entityType, array $candidate, bool $useAi): array
+    {
+        if ($entityType === 'campus') {
+            return [
+                'name' => $candidate['name'],
+                'slug' => Str::slug($candidate['name']),
+                'campus_type' => $candidate['campus_type'] ?? 'campus',
+                'status' => ($candidate['status'] ?? 'unknown') === 'unknown' ? 'active' : $candidate['status'],
+                '_provenance' => [
+                    'method' => $useAi ? 'ai_extraction' : 'deterministic',
+                    'confidence' => $candidate['confidence'] ?? 0.9000,
+                    'evidence_excerpt' => $candidate['evidence_excerpt'] ?? null,
+                ],
+            ];
+        }
+
+        return [
+            'name' => $candidate['name'],
+            'slug' => Str::slug($candidate['name']),
+            'program_level' => $candidate['program_level'] ?? 'undergraduate',
+            'award' => $candidate['award'] ?? null,
+            'discipline' => $candidate['discipline'] ?? null,
+            'status' => ($candidate['status'] ?? 'unknown') === 'unknown' ? 'active' : $candidate['status'],
+            'description' => $useAi
+                ? 'AI-extracted candidate from the official institutional programme source.'
+                : 'Discovered from the official institutional programme source.',
+            '_provenance' => [
+                'method' => $useAi ? 'ai_extraction' : 'deterministic',
+                'confidence' => $candidate['confidence'] ?? 0.9500,
+                'evidence_excerpt' => $candidate['evidence_excerpt'] ?? null,
+            ],
         ];
     }
 
@@ -255,45 +295,4 @@ class InstituteDiscoveryAgentService
         }
     }
 
-    private function extractBachelorPrograms(string $html): array
-    {
-        libxml_use_internal_errors(true);
-
-        $dom = new \DOMDocument();
-        $dom->loadHTML($html);
-        $xpath = new \DOMXPath($dom);
-        $programs = [];
-
-        foreach ($xpath->query('//a') as $link) {
-            $name = trim(preg_replace('/\s+/', ' ', $link->textContent ?? ''));
-
-            if (! preg_match('/^Bachelor\b/i', $name) || stripos($name, 'Visit Department') !== false) {
-                continue;
-            }
-
-            $name = preg_replace('/^Bachelor of Science\(BS\)/i', 'Bachelor of Science (BS)', $name);
-            $award = stripos($name, 'Bachelor of Science') === 0 ? 'BS' : 'Bachelor';
-
-            $discipline = $name;
-            if (preg_match('/\bin\s+(.+)$/i', $name, $match)) {
-                $discipline = trim($match[1]);
-            } elseif (preg_match('/^Bachelor of\s+(.+)$/i', $name, $match)) {
-                $discipline = trim($match[1]);
-            }
-
-            $programs[Str::lower(Str::slug($name))] = [
-                'name' => $name,
-                'award' => $award,
-                'discipline' => $discipline,
-                'program_level' => 'undergraduate',
-                'status' => 'active',
-                'confidence' => 0.9500,
-                'evidence_excerpt' => $name,
-            ];
-        }
-
-        libxml_clear_errors();
-
-        return array_values($programs);
-    }
 }
