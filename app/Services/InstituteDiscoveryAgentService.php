@@ -114,7 +114,7 @@ class InstituteDiscoveryAgentService
         }
 
         $excerpt = ($useAi ? 'AI extraction' : 'Discovery agent')
-            .' extracted '.count($candidates).' {$entityType} candidates from '
+            .' extracted '.count($candidates).' '.$entityType.' candidates from '
             .$source->url."\n\n".implode("\n", $excerptLines);
 
         $evidence = Evidence::create([
@@ -141,17 +141,11 @@ class InstituteDiscoveryAgentService
         $candidateRows = 0;
         $duplicateRows = 0;
 
-        foreach ($candidates as $index => $program) {
-            $payload = $this->candidatePayload($entityType, $program, $useAi);
-                '_provenance' => [
-                    'method' => $useAi ? 'ai_extraction' : 'deterministic',
-                    'source_id' => $source->id,
-                    'snapshot_id' => $snapshot->id,
-                    'evidence_id' => $evidence->id,
-                    'confidence' => $program['confidence'] ?? 0.9500,
-                    'evidence_excerpt' => $program['evidence_excerpt'] ?? null,
-                ],
-            ];
+        foreach ($candidates as $index => $candidate) {
+            $payload = $this->candidatePayload($entityType, $candidate, $useAi);
+            $payload['_provenance']['source_id'] = $source->id;
+            $payload['_provenance']['snapshot_id'] = $snapshot->id;
+            $payload['_provenance']['evidence_id'] = $evidence->id;
 
             $duplicate = app(ImportDuplicateDetectorService::class)->find(
                 $entityType,
@@ -179,10 +173,10 @@ class InstituteDiscoveryAgentService
                 'evidence_id' => $evidence->id,
                 'subject_type' => Institution::class,
                 'subject_id' => $institution->id,
-                'attribute' => 'candidate_program',
-                'value' => $program['name'],
+                'attribute' => 'candidate_'.$entityType,
+                'value' => $candidate['name'],
                 'verification_state' => $useAi ? 'ai_extracted' : 'discovered',
-                'confidence' => $program['confidence'] ?? 0.9500,
+                'confidence' => $candidate['confidence'] ?? ($entityType === 'campus' ? 0.9000 : 0.9500),
             ]);
 
             $status === 'candidate' ? $candidateRows++ : $duplicateRows++;
