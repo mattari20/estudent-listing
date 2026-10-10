@@ -33,7 +33,7 @@ jobs:
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Run Laravel tests
-        run: php artisan test
+        run: composer test
 
       - name: Check code style
         run: vendor/bin/pint --test
