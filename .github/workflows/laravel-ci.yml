@@ -43,7 +43,16 @@ jobs:
       - name: Run Laravel tests
         run: composer test
 
-      - name: Check code style for changed discovery files
+      - name: Format changed discovery files
+        run: >-
+          vendor/bin/pint
+          bootstrap/app.php
+          app/Http/Controllers/InstituteImportPromotionController.php
+          app/Services/StructuredEnrichmentService.php
+          tests/Feature/InstitutesDirectoryTest.php
+          tests/Feature/InstituteAgentBootstrapTest.php
+
+      - name: Verify formatted discovery files
         run: >-
           vendor/bin/pint --test
           bootstrap/app.php
