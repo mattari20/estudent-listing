@@ -56,8 +56,7 @@ class InstituteImportPromotionController {
   $rejectionNote='Rejected by operator: '.$data['reason'];
   $importRow->update([
    'status'=>'rejected',
-   'notes'=>trim($note.($note!=='' ? "
-" : '').$rejectionNote),
+   'notes'=>trim($note.($note!=='' ? "\n" : '').$rejectionNote),
   ]);
   $audit->record($importRow,'promotion_rejected',$request->user()->id,$data['reason'],[
    'previous_status'=>$previousStatus,
