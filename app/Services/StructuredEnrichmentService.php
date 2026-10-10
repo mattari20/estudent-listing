@@ -22,11 +22,15 @@ class StructuredEnrichmentService {
  }
  private function campus(array $p,Institution $i): Campus {
   $name=trim((string)($p['name']??'')); if($name==='') throw new RuntimeException('Campus name is required.');
-  $slug=$p['slug']??str()->slug($name);\n  if($existing=Campus::query()->where('institution_id',$i->id)->where('slug',$slug)->first()) throw new RuntimeException('This campus already exists in canonical data (ID '.$existing->id.'). The import will not overwrite it. Reject this duplicate row or review the existing campus.');\n  return Campus::create(['institution_id'=>$i->id,'slug'=>$slug,'name'=>$name,'campus_type'=>$p['campus_type']??null,'status'=>$p['status']??'active','geography_id'=>$p['geography_id']??null,'address'=>$p['address']??null,'postal_code'=>$p['postal_code']??null,'latitude'=>$p['latitude']??null,'longitude'=>$p['longitude']??null]);
+  $slug=$p['slug']??str()->slug($name);
+  if($existing=Campus::query()->where('institution_id',$i->id)->where('slug',$slug)->first()) throw new RuntimeException('This campus already exists in canonical data (ID '.$existing->id.'). The import will not overwrite it. Reject this duplicate row or review the existing campus.');
+  return Campus::create(['institution_id'=>$i->id,'slug'=>$slug,'name'=>$name,'campus_type'=>$p['campus_type']??null,'status'=>$p['status']??'active','geography_id'=>$p['geography_id']??null,'address'=>$p['address']??null,'postal_code'=>$p['postal_code']??null,'latitude'=>$p['latitude']??null,'longitude'=>$p['longitude']??null]);
  }
  private function program(array $p,Institution $i): Program {
   $name=trim((string)($p['name']??'')); if($name==='') throw new RuntimeException('Program name is required.');
-  $slug=$p['slug']??str()->slug($name);\n  if($existing=Program::query()->where('institution_id',$i->id)->where('slug',$slug)->first()) throw new RuntimeException('This program already exists in canonical data (ID '.$existing->id.'). The import will not overwrite it. Reject this duplicate row or review the existing program.');\n  return Program::create(['institution_id'=>$i->id,'slug'=>$slug,'name'=>$name,'program_level'=>$p['program_level']??null,'award'=>$p['award']??null,'discipline'=>$p['discipline']??null,'status'=>$p['status']??'active','description'=>$p['description']??null]);
+  $slug=$p['slug']??str()->slug($name);
+  if($existing=Program::query()->where('institution_id',$i->id)->where('slug',$slug)->first()) throw new RuntimeException('This program already exists in canonical data (ID '.$existing->id.'). The import will not overwrite it. Reject this duplicate row or review the existing program.');
+  return Program::create(['institution_id'=>$i->id,'slug'=>$slug,'name'=>$name,'program_level'=>$p['program_level']??null,'award'=>$p['award']??null,'discipline'=>$p['discipline']??null,'status'=>$p['status']??'active','description'=>$p['description']??null]);
  }
  private function offering(array $p,Program $program): ProgramOffering {
   return ProgramOffering::firstOrCreate(['program_id'=>$program->id,'campus_id'=>$p['campus_id']??null,'delivery_mode'=>$p['delivery_mode']??null,'intake_label'=>$p['intake_label']??null],['status'=>$p['status']??'active','duration'=>$p['duration']??null,'availability'=>$p['availability']??null,'effective_from'=>$p['effective_from']??null,'effective_until'=>$p['effective_until']??null]);
