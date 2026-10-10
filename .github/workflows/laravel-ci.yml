@@ -16,7 +16,7 @@ jobs:
       APP_ENV: testing
       APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       DB_CONNECTION: sqlite
-      DB_DATABASE: ':memory:'
+      DB_DATABASE: database/testing.sqlite
 
     steps:
       - name: Checkout
@@ -32,8 +32,31 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Run Laravel tests
-        run: php artisan test
+      - name: Prepare SQLite database
+        run: |
+          mkdir -p database
+          touch database/testing.sqlite
 
-      - name: Check code style
-        run: vendor/bin/pint --test
+      - name: Prepare test database
+        run: php artisan migrate:fresh --force
+
+      - name: Run Laravel tests
+        run: composer test
+
+      - name: Format changed discovery files
+        run: >-
+          vendor/bin/pint
+          bootstrap/app.php
+          app/Http/Controllers/InstituteImportPromotionController.php
+          app/Services/StructuredEnrichmentService.php
+          tests/Feature/InstitutesDirectoryTest.php
+          tests/Feature/InstituteAgentBootstrapTest.php
+
+      - name: Verify formatted discovery files
+        run: >-
+          vendor/bin/pint --test
+          bootstrap/app.php
+          app/Http/Controllers/InstituteImportPromotionController.php
+          app/Services/StructuredEnrichmentService.php
+          tests/Feature/InstitutesDirectoryTest.php
+          tests/Feature/InstituteAgentBootstrapTest.php

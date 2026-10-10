@@ -4,11 +4,13 @@ use App\Http\Middleware\EnsureInstituteOperator;
 use App\Http\Middleware\EnsureInstituteAdmin;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
+use App\Providers\AppServiceProvider;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
+    ->withProviders([AppServiceProvider::class])
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
