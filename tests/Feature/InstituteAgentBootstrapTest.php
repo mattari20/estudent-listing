@@ -17,7 +17,7 @@ class InstituteAgentBootstrapTest extends TestCase
 
     public function test_bootstrap_registers_source_policy_and_performs_initial_discovery_once(): void
     {
-        Institution::factory()->create([
+        Institution::create([
             'name' => 'COMSATS University Islamabad Lahore Campus',
             'slug' => 'comsats-university-islamabad-lahore-campus',
         ]);
