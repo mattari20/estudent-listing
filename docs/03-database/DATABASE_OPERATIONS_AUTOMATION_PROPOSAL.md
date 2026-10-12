@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Document ID | RFC-DB-OPS-001 |
-| Status | **Proposal — not approved for implementation** |
+| Status | **Approved for Phase 1 (read-only health check) only; later phases remain proposed** |
 | Project | eStudent.pk — Institutes & Education Directory |
 | Scope | Laravel application database operations and production data safety |
 | Target deployment | `https://estudent.pk/institutes/` |
@@ -13,7 +13,7 @@
 
 Define a safe, highly automated operating model for database health, data integrity, backups, deployment checks, recovery readiness, and operational reporting. The objective is to reduce repetitive manual work without allowing automation to silently damage canonical education data.
 
-This proposal does not authorize production database writes, migrations, data repair, schema changes, credential changes, or deployment changes.
+The project owner has authorized Phase 1: a read-only health-check command and automated tests on a review branch. This approval does not authorize production database writes, migrations, data repair, schema changes, credential changes, merging, or deployment. All later phases remain proposals until separately reviewed.
 
 ## 2. Non-negotiable safety boundaries
 
@@ -151,14 +151,13 @@ Acceptance requires evidence that diagnostics never mutate canonical tables, sec
 
 ## 8. Rollout plan
 
-1. Review and approve this proposal and the measurable operational targets.
+1. **Phase 1 authorized:** implement a read-only database health command and tests in a reviewable branch; verify CI and output before any merge.
 2. Inventory existing commands, scheduler, dashboards, hosting backup facilities, and notification capability.
-3. Implement a read-only database health command and tests in a reviewable branch.
-4. Add scheduled reporting only after manual command output is verified.
-5. Add backup freshness verification and a non-production restore drill.
-6. Add release gates and post-deploy smoke checks.
-7. Consider each automatic repair as a separate reviewed change.
-8. Approve and execute the one-time geography seed only after its dedicated preflight and approval.
+3. Add scheduled reporting only after manual command output is verified and scheduling is separately reviewed.
+4. Add backup freshness verification and a non-production restore drill.
+5. Add release gates and post-deploy smoke checks.
+6. Consider each automatic repair as a separate reviewed change.
+7. Approve and execute the one-time geography seed only after its dedicated preflight and explicit production approval.
 
 ## 9. Explicit exclusions
 
