@@ -36,7 +36,7 @@ class GeographySeedPreflightTest extends TestCase
         $this->artisan('institutes:geography-seed-preflight')
             ->assertExitCode(1)
             ->expectsOutputToContain('country:pakistan')
-            ->expectsOutputToContain('update_existing')
+            ->expectsOutputToContain('Overall status: critical')
             ->expectsOutputToContain('Approval required: yes');
 
         $this->assertSame('Pakistan - operator value', Geography::query()->where('slug', 'pakistan')->value('name'));
