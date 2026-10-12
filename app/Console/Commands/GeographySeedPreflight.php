@@ -106,8 +106,10 @@ class GeographySeedPreflight extends Command
             }
 
             $report['create_count'] = count(array_filter($report['actions'], fn (array $action): bool => $action['action'] === 'create'));
-            $report['update_count'] = count($report['conflicts']);
+            $report['update_count'] = count(array_filter($report['actions'], fn (array $action): bool => $action['action'] === 'update_existing'));
             $report['no_change_count'] = count(array_filter($report['actions'], fn (array $action): bool => $action['action'] === 'no_change'));
+            $report['duplicate_count'] = count(array_filter($report['actions'], fn (array $action): bool => $action['action'] === 'duplicate_identity'));
+            $report['conflict_count'] = count($report['conflicts']);
             $report['status'] = $report['conflicts'] === [] ? 'warning' : 'critical';
             $report['note'] = 'This is a preview only. It does not execute the seed command. Review the full impact and confirm a verified backup before any separately approved production write.';
         } catch (\Throwable $exception) {
@@ -140,7 +142,7 @@ class GeographySeedPreflight extends Command
                     ->all(),
             );
             $this->line('Overall status: '.$report['status']);
-            $this->line('Create: '.($report['create_count'] ?? 0).'; update: '.($report['update_count'] ?? 0).'; unchanged: '.($report['no_change_count'] ?? 0));
+            $this->line('Create: '.($report['create_count'] ?? 0).'; update: '.($report['update_count'] ?? 0).'; unchanged: '.($report['no_change_count'] ?? 0).'; duplicate identities: '.($report['duplicate_count'] ?? 0).'; conflicts: '.($report['conflict_count'] ?? 0));
             $this->line('Read-only preflight; mutation performed: no');
             $this->line('Approval required: yes');
         }
