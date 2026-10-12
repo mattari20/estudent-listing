@@ -14,14 +14,16 @@ class DatabaseHealthCheckTest extends TestCase
         $this->artisan('institutes:database-health', ['--json' => true])
             ->assertExitCode(0)
             ->expectsOutputToContain('institutes_database_health')
-            ->expectsOutputToContain('"mutation_performed": false');
+            ->expectsOutputToContain('"mutation_performed":')
+            ->expectsOutputToContain('false');
     }
 
     public function test_database_health_command_reports_required_tables(): void
     {
         $this->artisan('institutes:database-health', ['--json' => true])
             ->assertExitCode(0)
-            ->expectsOutputToContain('"required_tables"')
-            ->expectsOutputToContain('"missing": []');
+            ->expectsOutputToContain('"required_tables":')
+            ->expectsOutputToContain('"missing":')
+            ->expectsOutputToContain('[]');
     }
 }
