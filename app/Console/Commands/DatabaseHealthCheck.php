@@ -85,9 +85,41 @@ class DatabaseHealthCheck extends Command
             $report['summary']['geography_integrity'] = $geographyIntegrity->validate();
             $report['summary']['campuses_with_geography_gaps'] = $geographyGaps->campuses()->count();
 
+            $geographyCounts = DB::table('geographies')
+                ->select('type', 'status', DB::raw('COUNT(*) as total'))
+                ->groupBy('type', 'status')
+                ->orderBy('type')
+                ->orderBy('status')
+                ->get()
+                ->map(fn ($row): array => [
+                    'type' => $row->type,
+                    'status' => $row->status,
+                    'count' => (int) $row->total,
+                ])
+                ->all();
+
+            $activeGeographyCount = collect($geographyCounts)
+                ->where('status', 'active')
+                ->sum('count');
+
+            $report['summary']['geography_population'] = [
+                'total' => array_sum(array_column($geographyCounts, 'count')),
+                'active' => $activeGeographyCount,
+                'by_type_and_status' => $geographyCounts,
+            ];
+
             $readinessIssues = (int) ($report['summary']['data_readiness']['blocking_findings'] ?? 0);
             $geographyValid = (bool) ($report['summary']['geography_integrity']['valid'] ?? false);
             $geographyGapCount = (int) $report['summary']['campuses_with_geography_gaps'];
+            $geographyPopulationStatus = $activeGeographyCount > 0 ? 'healthy' : 'warning';
+
+            $report['checks']['geography_reference_data'] = [
+                'status' => $geographyPopulationStatus,
+                'active_records' => $activeGeographyCount,
+                'note' => $activeGeographyCount > 0
+                    ? 'Active geography records exist; verify expected coverage separately.'
+                    : 'No active geography records found; province and location selectors may have no options.',
+            ];
 
             $report['checks']['directory_integrity'] = [
                 'status' => $readinessIssues === 0 && $geographyValid && $geographyGapCount === 0
@@ -95,7 +127,10 @@ class DatabaseHealthCheck extends Command
                     : 'warning',
             ];
 
-            if ($report['checks']['directory_integrity']['status'] === 'warning') {
+            if (
+                $report['checks']['directory_integrity']['status'] === 'warning'
+                || $geographyPopulationStatus === 'warning'
+            ) {
                 $report['status'] = 'warning';
             }
         } catch (Throwable $exception) {
