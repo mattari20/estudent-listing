@@ -17,7 +17,7 @@ class GeographySeedPreflightTest extends TestCase
             ->expectsOutputToContain('country:pakistan')
             ->expectsOutputToContain('province:punjab')
             ->expectsOutputToContain('Read-only preflight; mutation performed: no')
-            ->expectsOutputToContain('Create: 8; update: 0; unchanged: 0');
+            ->expectsOutputToContain('Create: 8; update: 0; unchanged: 0; duplicate identities: 0; conflicts: 0');
 
         $this->assertSame(0, Geography::query()->count());
     }
@@ -44,7 +44,7 @@ class GeographySeedPreflightTest extends TestCase
         $this->artisan('institutes:geography-seed-preflight')
             ->assertExitCode(1)
             ->expectsOutputToContain('Overall status: critical')
-            ->expectsOutputToContain('Create: 7; update: 1; unchanged: 0');
+            ->expectsOutputToContain('Create: 7; update: 0; unchanged: 0; duplicate identities: 1; conflicts: 1');
 
         $this->assertSame(2, Geography::query()->where('slug', 'pakistan')->count());
     }
