@@ -49,7 +49,7 @@ class GeographySeedPreflight extends Command
                     ->where('type', $expected['type'])
                     ->first();
 
-                $expectedParentId = $index === 0 ? null : ($country->id ?? null);
+                $expectedParentId = $index === 0 ? null : ($country->id ?? 'country_to_be_created');
                 $expectedValues = [
                     'name' => $expected['name'],
                     'code' => $expected['code'],
@@ -69,7 +69,7 @@ class GeographySeedPreflight extends Command
                 $changes = [];
                 foreach ($expectedValues as $field => $value) {
                     $actual = $existing->{$field};
-                    if ($field === 'parent_id') {
+                    if ($field === 'parent_id' && $value !== 'country_to_be_created') {
                         $actual = $actual === null ? null : (int) $actual;
                         $value = $value === null ? null : (int) $value;
                     }
