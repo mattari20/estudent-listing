@@ -22,6 +22,33 @@ class GeographySeedPreflightTest extends TestCase
         $this->assertSame(0, Geography::query()->count());
     }
 
+    public function test_preflight_fails_closed_when_duplicate_seed_identities_exist(): void
+    {
+        Geography::query()->create([
+            'parent_id' => null,
+            'name' => 'Pakistan One',
+            'slug' => 'pakistan',
+            'type' => 'country',
+            'code' => 'PK',
+            'status' => 'active',
+        ]);
+        Geography::query()->create([
+            'parent_id' => null,
+            'name' => 'Pakistan Two',
+            'slug' => 'pakistan',
+            'type' => 'country',
+            'code' => 'PK',
+            'status' => 'active',
+        ]);
+
+        $this->artisan('institutes:geography-seed-preflight')
+            ->assertExitCode(1)
+            ->expectsOutputToContain('Overall status: critical')
+            ->expectsOutputToContain('Create: 7; update: 1; unchanged: 0');
+
+        $this->assertSame(2, Geography::query()->where('slug', 'pakistan')->count());
+    }
+
     public function test_preflight_detects_existing_record_changes_without_applying_them(): void
     {
         Geography::query()->create([
