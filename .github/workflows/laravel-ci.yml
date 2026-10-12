@@ -51,6 +51,10 @@ jobs:
           app/Services/StructuredEnrichmentService.php
           tests/Feature/InstitutesDirectoryTest.php
           tests/Feature/InstituteAgentBootstrapTest.php
+          app/Console/Commands/DatabaseHealthCheck.php
+          tests/Feature/DatabaseHealthCheckTest.php
+          app/Console/Commands/DatabaseHealthCheck.php
+          tests/Feature/DatabaseHealthCheckTest.php
 
       - name: Verify formatted discovery files
         run: >-
