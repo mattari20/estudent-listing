@@ -44,11 +44,24 @@ class GeographySeedPreflight extends Command
                 ->first();
 
             foreach (PakistanGeographySeedService::TOP_LEVEL as $index => $expected) {
-                $existing = DB::table('geographies')
+                $matches = DB::table('geographies')
                     ->where('slug', $expected['slug'])
                     ->where('type', $expected['type'])
-                    ->first();
+                    ->get();
 
+                if ($matches->count() > 1) {
+                    $duplicate = [
+                        'identity' => $expected['type'].':'.$expected['slug'],
+                        'action' => 'duplicate_identity',
+                        'record_ids' => $matches->pluck('id')->all(),
+                        'matching_records' => $matches->count(),
+                    ];
+                    $report['actions'][] = $duplicate;
+                    $report['conflicts'][] = $duplicate;
+                    continue;
+                }
+
+                $existing = $matches->first();
                 $expectedParentId = $index === 0 ? null : ($country->id ?? 'country_to_be_created');
                 $expectedValues = [
                     'name' => $expected['name'],
