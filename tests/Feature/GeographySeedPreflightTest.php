@@ -12,13 +12,12 @@ class GeographySeedPreflightTest extends TestCase
 
     public function test_preflight_reports_expected_records_without_seeding_them(): void
     {
-        $this->artisan('institutes:geography-seed-preflight', ['--json' => true])
+        $this->artisan('institutes:geography-seed-preflight')
             ->assertExitCode(0)
-            ->expectsOutputToContain('institutes_geography_seed_preflight')
-            ->expectsOutputToContain('mutation_performed')
-            ->expectsOutputToContain('false')
-            ->expectsOutputToContain('create_count')
-            ->expectsOutputToContain('8');
+            ->expectsOutputToContain('country:pakistan')
+            ->expectsOutputToContain('province:punjab')
+            ->expectsOutputToContain('Read-only preflight; mutation performed: no')
+            ->expectsOutputToContain('Create: 8; update: 0; unchanged: 0');
 
         $this->assertSame(0, Geography::query()->count());
     }
@@ -34,11 +33,11 @@ class GeographySeedPreflightTest extends TestCase
             'status' => 'active',
         ]);
 
-        $this->artisan('institutes:geography-seed-preflight', ['--json' => true])
+        $this->artisan('institutes:geography-seed-preflight')
             ->assertExitCode(1)
+            ->expectsOutputToContain('country:pakistan')
             ->expectsOutputToContain('update_existing')
-            ->expectsOutputToContain('approval_required')
-            ->expectsOutputToContain('true');
+            ->expectsOutputToContain('Approval required: yes');
 
         $this->assertSame('Pakistan - operator value', Geography::query()->where('slug', 'pakistan')->value('name'));
         $this->assertSame(1, Geography::query()->count());
