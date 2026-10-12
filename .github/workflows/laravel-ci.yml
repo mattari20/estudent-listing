@@ -52,7 +52,9 @@ jobs:
           tests/Feature/InstitutesDirectoryTest.php
           tests/Feature/InstituteAgentBootstrapTest.php
           app/Console/Commands/DatabaseHealthCheck.php
+          app/Console/Commands/GeographySeedPreflight.php
           tests/Feature/DatabaseHealthCheckTest.php
+          tests/Feature/GeographySeedPreflightTest.php
 
       - name: Verify formatted discovery files
         run: >-
