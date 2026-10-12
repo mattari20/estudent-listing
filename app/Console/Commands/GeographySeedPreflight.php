@@ -1,11 +1,11 @@
 <?php
 
-namespace App\\Console\\Commands;
+namespace App\Console\Commands;
 
-use App\\Services\\PakistanGeographySeedService;
-use Illuminate\\Console\\Command;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Schema;
+use App\Services\PakistanGeographySeedService;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class GeographySeedPreflight extends Command
 {
@@ -29,14 +29,14 @@ class GeographySeedPreflight extends Command
             'approval_required' => true,
         ];
 
-        if (! Schema::hasTable('geographies')) {
-            $report['status'] = 'critical';
-            $report['error'] = 'Required geographies table is missing.';
-
-            return $this->finish($report, $startedAt, self::FAILURE);
-        }
-
         try {
+            if (! Schema::hasTable('geographies')) {
+                $report['status'] = 'critical';
+                $report['error'] = 'Required geographies table is missing.';
+
+                return $this->finish($report, $startedAt, self::FAILURE);
+            }
+
             $report['existing_geography_count'] = DB::table('geographies')->count();
             $country = DB::table('geographies')
                 ->where('slug', 'pakistan')
@@ -97,7 +97,7 @@ class GeographySeedPreflight extends Command
             $report['no_change_count'] = count(array_filter($report['actions'], fn (array $action): bool => $action['action'] === 'no_change'));
             $report['status'] = $report['conflicts'] === [] ? 'warning' : 'critical';
             $report['note'] = 'This is a preview only. It does not execute the seed command. Review the full impact and confirm a verified backup before any separately approved production write.';
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             $report['status'] = 'critical';
             $report['error_type'] = class_basename($exception);
         }
