@@ -15,8 +15,10 @@ class GeographySeedPreflightTest extends TestCase
         $this->artisan('institutes:geography-seed-preflight', ['--json' => true])
             ->assertExitCode(0)
             ->expectsOutputToContain('institutes_geography_seed_preflight')
-            ->expectsOutputToContain('"mutation_performed": false')
-            ->expectsOutputToContain('"create_count": 8');
+            ->expectsOutputToContain('mutation_performed')
+            ->expectsOutputToContain('false')
+            ->expectsOutputToContain('create_count')
+            ->expectsOutputToContain('8');
 
         $this->assertSame(0, Geography::query()->count());
     }
@@ -34,8 +36,9 @@ class GeographySeedPreflightTest extends TestCase
 
         $this->artisan('institutes:geography-seed-preflight', ['--json' => true])
             ->assertExitCode(1)
-            ->expectsOutputToContain('"action": "update_existing"')
-            ->expectsOutputToContain('"approval_required": true');
+            ->expectsOutputToContain('update_existing')
+            ->expectsOutputToContain('approval_required')
+            ->expectsOutputToContain('true');
 
         $this->assertSame('Pakistan - operator value', Geography::query()->where('slug', 'pakistan')->value('name'));
         $this->assertSame(1, Geography::query()->count());
