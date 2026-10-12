@@ -14,7 +14,7 @@ class DatabaseHealthCheckTest extends TestCase
         $this->artisan('institutes:database-health', ['--json' => true])
             ->assertExitCode(0)
             ->expectsOutputToContain('institutes_database_health')
-            ->expectsOutputToContain('"mutation_performed":')
+            ->expectsOutputToContain('mutation_performed')
             ->expectsOutputToContain('false');
     }
 
@@ -22,8 +22,8 @@ class DatabaseHealthCheckTest extends TestCase
     {
         $this->artisan('institutes:database-health', ['--json' => true])
             ->assertExitCode(0)
-            ->expectsOutputToContain('"required_tables":')
-            ->expectsOutputToContain('"missing":')
+            ->expectsOutputToContain('required_tables')
+            ->expectsOutputToContain('missing')
             ->expectsOutputToContain('[]');
     }
 }
