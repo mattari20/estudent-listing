@@ -54,6 +54,8 @@ jobs:
           app/Console/Commands/DatabaseHealthCheck.php
           app/Console/Commands/GeographySeedPreflight.php
           tests/Feature/DatabaseHealthCheckTest.php
+          app/Console/Commands/GeographySeedPreflight.php
+          tests/Feature/GeographySeedPreflightTest.php
           tests/Feature/GeographySeedPreflightTest.php
 
       - name: Verify formatted discovery files
