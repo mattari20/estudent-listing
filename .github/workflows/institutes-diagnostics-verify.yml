@@ -1,0 +1,113 @@
+name: Institutes Protected Diagnostics Verification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: institutes-protected-diagnostics-verification
+  cancel-in-progress: false
+
+jobs:
+  verify-protected-diagnostics:
+    name: Verify protected diagnostics without exposing report data
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      INSTITUTES_DIAGNOSTICS_TOKEN: ${{ secrets.INSTITUTES_DIAGNOSTICS_TOKEN }}
+    steps:
+      - name: Verify authentication and report contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json
+          import os
+          import ssl
+          import sys
+          import urllib.error
+          import urllib.request
+
+          endpoint = "https://estudent.pk/institutes/automation/diagnostics"
+          token = os.environ.get("INSTITUTES_DIAGNOSTICS_TOKEN", "")
+
+          # Never print the token, request headers, response body, or report fields.
+          if len(token) < 32:
+              print("FAIL | required repository secret is missing or too short")
+              sys.exit(1)
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+
+          opener = urllib.request.build_opener(
+              NoRedirect(),
+              urllib.request.HTTPSHandler(context=ssl.create_default_context()),
+          )
+
+          def request_status(auth_value=None):
+              headers = {"Accept": "application/json"}
+              if auth_value is not None:
+                  headers["Authorization"] = auth_value
+              request = urllib.request.Request(endpoint, headers=headers, method="GET")
+              try:
+                  with opener.open(request, timeout=20) as response:
+                      return response.status, response.read(), dict(response.headers)
+              except urllib.error.HTTPError as error:
+                  # Consume privately in memory; never log or persist response content.
+                  body = error.read()
+                  return error.code, body, dict(error.headers)
+              except Exception:
+                  # Suppress exception details to avoid accidental header or URL leakage.
+                  print("FAIL | HTTPS request failed; details suppressed")
+                  sys.exit(1)
+
+          missing_status, _, _ = request_status()
+          if missing_status != 403:
+              print("FAIL | unauthenticated request was not rejected with HTTP 403")
+              sys.exit(1)
+          print("PASS | unauthenticated request rejected")
+
+          invalid_status, _, _ = request_status("Bearer invalid-token-for-negative-test")
+          if invalid_status != 403:
+              print("FAIL | invalid bearer token was not rejected with HTTP 403")
+              sys.exit(1)
+          print("PASS | invalid bearer token rejected")
+
+          valid_status, body, headers = request_status("Bearer " + token)
+          if valid_status != 200:
+              print("FAIL | configured token did not receive HTTP 200; response details suppressed")
+              sys.exit(1)
+
+          if headers.get("Cache-Control", "").lower() != "no-store":
+              print("FAIL | response did not include the expected no-store cache policy")
+              sys.exit(1)
+
+          try:
+              payload = json.loads(body.decode("utf-8"))
+          except Exception:
+              print("FAIL | successful response was not valid JSON; body suppressed")
+              sys.exit(1)
+
+          report = payload.get("report")
+          if not isinstance(report, dict):
+              print("FAIL | expected report object missing; response details suppressed")
+              sys.exit(1)
+          if report.get("check") != "institutes_data_gap_report":
+              print("FAIL | report contract check failed; response details suppressed")
+              sys.exit(1)
+          if report.get("mutation_performed") is not False:
+              print("FAIL | read-only safety marker missing or unexpected; response details suppressed")
+              sys.exit(1)
+          if "diagnostic_exit_code" not in payload or "status" not in payload:
+              print("FAIL | expected response fields missing; response details suppressed")
+              sys.exit(1)
+
+          print("PASS | valid bearer token accepted")
+          print("PASS | JSON report contract verified without displaying report data")
+          print("PASS | no-store cache policy verified")
+          print("PASS | report explicitly marks mutation_performed=false")
+          print("SUMMARY | verification passed; report contents and production counts were not logged or saved")
+          PY
