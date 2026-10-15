@@ -1,59 +1,67 @@
-# Institutes Operations Inventory — Batch 5
+# Institutes Operations Inventory — Batch 6
 
 | Field | Value |
 | --- | --- |
 | Project | eStudent.pk — Institutes & Education Directory |
-| Status | Repository-derived inventory; hosting-side items remain unverified |
-| Updated | 2026-10-12 |
-| Scope | Existing scheduler, monitoring commands, health visibility, backups, notifications |
+| Status | Repository inventory; hosting-side facts remain unverified |
+| Updated | 2026-10-15 |
+| Scope | Read-only diagnostics, scheduler, monitoring, backups and recovery |
 
 ## Purpose
 
-Record what is already present before adding any database-operations automation. This inventory is based on the repository branch and does not claim that hosting-side services have been inspected.
+Inventory existing diagnostic capabilities before adding database-operations automation. Repository presence does not prove that a command has been deployed or run in Hostinger.
 
 ## Confirmed in repository
 
-### Laravel scheduler
+### Scheduler
 
-`bootstrap/app.php` registers two hourly commands:
+`bootstrap/app.php` registers these hourly commands with `withoutOverlapping(55)`:
 
-- `institutes:bootstrap-agent` with `withoutOverlapping(55)`.
-- `institutes:monitor-changes` with `withoutOverlapping(55)`.
+- `institutes:bootstrap-agent`
+- `institutes:monitor-changes`
 
-The scheduler callback is application code; this alone does not prove that Hostinger's cron entry or Laravel scheduler is running in production. Verify that separately before relying on scheduled operations.
+This is application scheduling configuration only. It does not prove Hostinger invokes Laravel's scheduler or that a scheduled task has completed successfully.
 
-### Existing monitoring commands
+### Read-only database and directory diagnostics
 
-- `institutes:monitor-health` reports the source-monitoring health summary through `MonitoringHealthService`.
-- `institutes:monitor-alerts` lists up to 100 open or acknowledged monitoring alerts.
-- `institutes:monitor-changes` is the existing monitoring execution command; its documented scheduling is external/configurable, while `bootstrap/app.php` currently registers it hourly.
-- `institutes:database-health` is the new read-only database and directory diagnostic introduced on the review branch.
-- `institutes:geography-seed-preflight` is the new read-only preview of the top-level geography seed impact introduced on the review branch.
+- `institutes:database-health --json`: connection, required-table, canonical readiness and geography integrity/population checks.
+- `institutes:geography-seed-preflight --json`: previews top-level geography seed effects without running the seed.
+- `institutes:data-gap-report --json`: aggregates canonical counts and relationship gaps, geography, potential duplicate institution names, import-pipeline counts, and source/evidence/monitoring counts where the corresponding tables exist.
 
-The two new database commands have not yet been merged or deployed. Do not assume they exist on production.
+The data-gap report is intended for diagnosis before correction. It does not modify records, prove national coverage, establish that candidate duplicate names are actual duplicates, or authorize import/promotion.
 
-### Existing monitoring UI and services
+Use `PRODUCTION_READ_ONLY_VERIFICATION_RUNBOOK.md` for the health check and geography preflight, and `PRODUCTION_DATA_GAP_REPORT_RUNBOOK.md` for the aggregated report. Verify the deployed commit and command availability before running anything in production.
 
-The repository contains monitoring operations/dashboard controllers, alert and policy services, monitoring history views, and tests covering monitoring operations and scheduling governance. These are source-monitoring features; they should not automatically be treated as a complete database-operations dashboard or backup monitor.
+### Monitoring features
 
-## Not verified from repository
+The repository also contains:
 
-| Area | Current evidence | Required verification |
+- `institutes:monitor-health` for source-monitoring health;
+- `institutes:monitor-alerts` for open/acknowledged monitoring alerts;
+- source monitoring operations, policies and history views.
+
+Source-monitoring alerts are not, by themselves, proof that database-health checks, backups, or restore procedures are monitored.
+
+## Hosting-side items not verified
+
+| Area | Current evidence | Required evidence |
 | --- | --- | --- |
-| Hostinger cron / Laravel scheduler execution | Application scheduler entries exist | Confirm the actual cron/scheduler invocation and last successful run in Hostinger |
-| Database backup cadence and retention | No hosting-side evidence in this repository inventory | Inspect Hostinger backup settings and document retention, restore method, and last successful backup |
-| Restore readiness | No restore-drill evidence found in this inventory | Arrange a restore drill only in a non-production environment |
-| Notifications for database-health failures | Existing monitoring alerts concern source monitoring; no database-health notification integration established here | Inventory configured delivery channels without exposing credentials, then propose a separate reviewed change |
-| Production availability of the new commands | Commands exist only on the review branch | Merge after review, wait for approved auto-deployment, then verify command availability using the runbook |
+| Deployed release | Repository commit can be inspected | Hostinger deployment record or deployed revision confirmation |
+| Scheduler execution | Scheduler entries exist in code | Actual Hostinger cron configuration and a successful execution record |
+| Backups | No hosting-side verification in this inventory | Backup cadence, retention, last successful backup and restore procedure |
+| Restore readiness | No restore-drill evidence recorded | A successful restore drill in a non-production environment |
+| Production data-gap results | No direct production database connection available to this audit | Actual command output from the confirmed deployed release, reviewed privately |
+| Database-health notifications | No verified database-health notification integration | Separate reviewed design and safe channel verification |
 
-## Safe next actions
+## Safe sequence
 
-1. Complete independent review and required CI for the current pull request.
-2. After merge and approved auto-deployment, follow `PRODUCTION_READ_ONLY_VERIFICATION_RUNBOOK.md` exactly.
-3. Verify scheduler and backup configuration in Hostinger without changing the existing Git deployment connection or enabling Remote MySQL.
-4. Record observed settings and evidence; do not invent backup status or claim scheduler health without direct verification.
-5. Create separate reviewed specifications before enabling recurring database-health checks, notifications, backup automation, or production remediation.
+1. Review and test the data-gap report change.
+2. Merge only after required checks pass and the change is approved.
+3. Confirm the existing Hostinger auto-deployment has deployed the intended commit.
+4. Run the read-only report following its runbook and securely review the result.
+5. Record a sanitized summary and prioritize gaps before proposing any write.
+6. Verify scheduler, backup and restore settings independently; do not infer them from source code.
 
 ## Safety boundary
 
-This inventory is documentation-only. It does not change application scheduling, production data, database schema, hosting configuration, backup settings, or notification credentials. It does not authorize migrations, seeding, or repairs.
+No production database changes, migrations, seeds, imports, promotion, publication, hosting changes, or credentials are authorized by this inventory. Do not alter the existing Hostinger Git integration or enable Remote MySQL.
