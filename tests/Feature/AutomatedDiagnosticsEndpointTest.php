@@ -59,13 +59,14 @@ class AutomatedDiagnosticsEndpointTest extends TestCase
             ->twice()
             ->andReturn(json_encode($aggregate), json_encode($recordAudit));
 
-        $this->withHeader('Authorization', 'Bearer '.str_repeat('a', 64))
+        $response = $this->withHeader('Authorization', 'Bearer '.str_repeat('a', 64))
             ->getJson('/institutes/automation/diagnostics')
             ->assertOk()
-            ->assertHeader('Cache-Control', 'no-store')
             ->assertJsonPath('report.check', 'institutes_data_gap_report')
             ->assertJsonPath('record_audit.check', 'institutes_data_gap_record_audit')
             ->assertJsonPath('report.mutation_performed', false)
             ->assertJsonPath('record_audit.mutation_performed', false);
+
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
     }
 }
