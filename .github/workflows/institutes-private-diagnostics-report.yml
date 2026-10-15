@@ -1,0 +1,153 @@
+name: Retrieve Institutes Production Diagnostics (Private)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: institutes-private-diagnostics-report
+  cancel-in-progress: false
+
+jobs:
+  retrieve-and-store:
+    name: Retrieve report to private repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      INSTITUTES_DIAGNOSTICS_TOKEN: ${{ secrets.INSTITUTES_DIAGNOSTICS_TOKEN }}
+      INSTITUTES_PRIVATE_REPORTS_TOKEN: ${{ secrets.INSTITUTES_PRIVATE_REPORTS_TOKEN }}
+    steps:
+      - name: Retrieve report and store only in private repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import base64
+          import datetime
+          import json
+          import os
+          import ssl
+          import sys
+          import urllib.error
+          import urllib.request
+
+          endpoint = "https://estudent.pk/institutes/automation/diagnostics"
+          report_repo = "mattari20/institutes-private-reports"
+          diagnostics_token = os.environ.get("INSTITUTES_DIAGNOSTICS_TOKEN", "")
+          reports_token = os.environ.get("INSTITUTES_PRIVATE_REPORTS_TOKEN", "")
+
+          # Never print credentials, response bodies, report fields, counts, or API errors.
+          if len(diagnostics_token) < 32:
+              print("FAIL | diagnostics repository secret is missing or too short")
+              sys.exit(1)
+          if len(reports_token) < 32:
+              print("FAIL | private-report repository token secret is missing or too short")
+              sys.exit(1)
+
+          tls = ssl.create_default_context()
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+
+          opener = urllib.request.build_opener(
+              NoRedirect(),
+              urllib.request.HTTPSHandler(context=tls),
+          )
+
+          def request(url, method="GET", headers=None, data=None, timeout=25):
+              req = urllib.request.Request(url, data=data, headers=headers or {}, method=method)
+              try:
+                  with opener.open(req, timeout=timeout) as response:
+                      return response.status, response.read(), dict(response.headers)
+              except urllib.error.HTTPError as exc:
+                  # Read into memory only; never log or persist error response content.
+                  exc.read()
+                  return exc.code, b"", dict(exc.headers)
+              except Exception:
+                  print("FAIL | HTTPS request failed; details suppressed")
+                  sys.exit(1)
+
+          # Confirm the public endpoint denies unauthenticated and invalid credentials.
+          status, _, _ = request(endpoint, headers={"Accept": "application/json"})
+          if status != 403:
+              print("FAIL | unauthenticated request was not rejected")
+              sys.exit(1)
+
+          status, _, _ = request(
+              endpoint,
+              headers={"Accept": "application/json", "Authorization": "Bearer invalid-token-for-negative-test"},
+          )
+          if status != 403:
+              print("FAIL | invalid bearer token was not rejected")
+              sys.exit(1)
+
+          status, body, response_headers = request(
+              endpoint,
+              headers={"Accept": "application/json", "Authorization": "Bearer " + diagnostics_token},
+          )
+          if status != 200:
+              print("FAIL | authenticated diagnostics request failed; response details suppressed")
+              sys.exit(1)
+          if "no-store" not in response_headers.get("Cache-Control", "").lower():
+              print("FAIL | expected no-store cache policy missing")
+              sys.exit(1)
+
+          try:
+              payload = json.loads(body.decode("utf-8"))
+          except Exception:
+              print("FAIL | response JSON invalid; response details suppressed")
+              sys.exit(1)
+
+          report = payload.get("report")
+          if not isinstance(report, dict):
+              print("FAIL | expected report object missing")
+              sys.exit(1)
+          if report.get("check") != "institutes_data_gap_report":
+              print("FAIL | expected diagnostic report contract missing")
+              sys.exit(1)
+          if report.get("mutation_performed") is not False:
+              print("FAIL | read-only safety marker missing or unexpected")
+              sys.exit(1)
+          if "diagnostic_exit_code" not in payload or "status" not in payload:
+              print("FAIL | expected diagnostic metadata missing")
+              sys.exit(1)
+
+          # Store report only in the private repository. No public artifact or summary.
+          now = datetime.datetime.now(datetime.timezone.utc)
+          stamp = now.strftime("%Y%m%dT%H%M%SZ")
+          report_document = {
+              "retrieved_at_utc": now.isoformat(),
+              "source": "https://estudent.pk/institutes/automation/diagnostics",
+              "repository": report_repo,
+              "payload": payload,
+          }
+          encoded = base64.b64encode(
+              (json.dumps(report_document, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+          ).decode("ascii")
+          path = f"reports/data-gap-report-{stamp}.json"
+          api_url = f"https://api.github.com/repos/{report_repo}/contents/{path}"
+          api_body = json.dumps({
+              "message": "Store protected Institutes production diagnostics report",
+              "content": encoded,
+          }).encode("utf-8")
+          api_headers = {
+              "Accept": "application/vnd.github+json",
+              "Authorization": "Bearer " + reports_token,
+              "X-GitHub-Api-Version": "2022-11-28",
+              "Content-Type": "application/json",
+              "User-Agent": "institutes-protected-diagnostics",
+          }
+          api_status, _, _ = request(api_url, method="PUT", headers=api_headers, data=api_body, timeout=25)
+          if api_status not in (200, 201):
+              print("FAIL | private repository storage failed; API details suppressed")
+              sys.exit(1)
+
+          # Deliberately do not print filename, report fields, counts, or payload.
+          print("PASS | unauthenticated and invalid-token checks passed")
+          print("PASS | authenticated read-only report contract verified")
+          print("PASS | report stored in the configured private repository")
+          print("SUMMARY | private report retrieval succeeded; production contents were not logged or uploaded as a public artifact")
+          PY
