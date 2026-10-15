@@ -142,7 +142,8 @@ jobs:
           }
           api_status, _, _ = request(api_url, method="PUT", headers=api_headers, data=api_body, timeout=25)
           if api_status not in (200, 201):
-              print("FAIL | private repository storage failed; API details suppressed")
+              # HTTP status is safe to log; never emit the response body or credentials.
+              print(f"FAIL | private repository storage failed (HTTP {api_status}); API details suppressed")
               sys.exit(1)
 
           # Deliberately do not print filename, report fields, counts, or payload.
