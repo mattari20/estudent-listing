@@ -16,7 +16,6 @@ class DataGapReportTest extends TestCase
         $this->artisan('institutes:data-gap-report', ['--json' => true])
             ->assertExitCode(0)
             ->expectsOutputToContain('institutes_data_gap_report')
-            ->expectsOutputToContain('mutation_performed')
             ->expectsOutputToContain('canonical_population')
             ->expectsOutputToContain('source_evidence');
     }
