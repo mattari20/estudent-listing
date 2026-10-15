@@ -2,6 +2,8 @@ name: Retrieve Institutes Production Diagnostics (Private)
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * *' # Daily at 04:00 UTC (09:00 Pakistan time)
 
 permissions:
   contents: read
