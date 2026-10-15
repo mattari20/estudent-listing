@@ -109,7 +109,20 @@ jobs:
               print("FAIL | expected diagnostic report contract missing")
               sys.exit(1)
           if report.get("mutation_performed") is not False:
-              print("FAIL | read-only safety marker missing or unexpected")
+              print("FAIL | aggregate read-only safety marker missing or unexpected")
+              sys.exit(1)
+          record_audit = payload.get("record_audit")
+          if not isinstance(record_audit, dict):
+              print("FAIL | protected record-level audit missing")
+              sys.exit(1)
+          if record_audit.get("check") != "institutes_data_gap_record_audit":
+              print("FAIL | record-level audit contract missing")
+              sys.exit(1)
+          if record_audit.get("mutation_performed") is not False:
+              print("FAIL | record-level read-only safety marker missing or unexpected")
+              sys.exit(1)
+          if "record_audit_exit_code" not in payload:
+              print("FAIL | record-level audit exit metadata missing")
               sys.exit(1)
           if "diagnostic_exit_code" not in payload or "status" not in payload:
               print("FAIL | expected diagnostic metadata missing")
@@ -148,7 +161,7 @@ jobs:
 
           # Deliberately do not print filename, report fields, counts, or payload.
           print("PASS | unauthenticated and invalid-token checks passed")
-          print("PASS | authenticated read-only report contract verified")
+          print("PASS | aggregate and record-level read-only report contracts verified")
           print("PASS | report stored in the configured private repository")
           print("SUMMARY | private report retrieval succeeded; production contents were not logged or uploaded as a public artifact")
           PY

@@ -22,22 +22,41 @@ class AutomatedDiagnosticsController
             abort(403);
         }
 
-        $exitCode = Artisan::call('institutes:data-gap-report', ['--json' => true]);
-        $output = trim(Artisan::output());
-        $report = json_decode($output, true);
+        $aggregateExitCode = Artisan::call('institutes:data-gap-report', ['--json' => true]);
+        $aggregateOutput = trim(Artisan::output());
+        $aggregateReport = json_decode($aggregateOutput, true);
 
-        if (! is_array($report) || ($report['check'] ?? null) !== 'institutes_data_gap_report') {
-            return response()->json([
-                'status' => 'critical',
-                'error' => 'diagnostic_report_unavailable',
-                'mutation_performed' => false,
-            ], 500, ['Cache-Control' => 'no-store']);
+        if (! is_array($aggregateReport) || ($aggregateReport['check'] ?? null) !== 'institutes_data_gap_report') {
+            return $this->unavailable();
+        }
+
+        $recordAuditExitCode = Artisan::call('institutes:data-gap-record-audit', ['--json' => true]);
+        $recordAuditOutput = trim(Artisan::output());
+        $recordAudit = json_decode($recordAuditOutput, true);
+
+        if (
+            ! is_array($recordAudit)
+            || ($recordAudit['check'] ?? null) !== 'institutes_data_gap_record_audit'
+            || ($recordAudit['mutation_performed'] ?? null) !== false
+        ) {
+            return $this->unavailable();
         }
 
         return response()->json([
-            'status' => $report['status'] ?? 'unknown',
-            'diagnostic_exit_code' => $exitCode,
-            'report' => $report,
+            'status' => $aggregateReport['status'] ?? 'unknown',
+            'diagnostic_exit_code' => $aggregateExitCode,
+            'report' => $aggregateReport,
+            'record_audit_exit_code' => $recordAuditExitCode,
+            'record_audit' => $recordAudit,
         ], 200, ['Cache-Control' => 'no-store']);
+    }
+
+    private function unavailable(): JsonResponse
+    {
+        return response()->json([
+            'status' => 'critical',
+            'error' => 'diagnostic_report_unavailable',
+            'mutation_performed' => false,
+        ], 500, ['Cache-Control' => 'no-store']);
     }
 }
