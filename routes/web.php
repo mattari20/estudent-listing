@@ -35,6 +35,9 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
     Route::get('/', [InstitutionController::class, 'index'])->name('index');
     Route::get('/search', InstituteSearchController::class)->name('search');
     Route::get('/sitemap.xml', InstituteSitemapController::class)->name('sitemap');
+    Route::get('/automation/diagnostics', AutomatedDiagnosticsController::class)
+        ->middleware('throttle:5,1')
+        ->name('automation.diagnostics');
     Route::get('/robots.txt', InstituteRobotsController::class)->name('robots');
     Route::get('/login', [InstituteAuthController::class, 'create'])->name('login');
     Route::get('/setup', [InstituteSetupController::class, 'create'])->name('setup');
