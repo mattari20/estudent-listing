@@ -1,0 +1,79 @@
+name: Institutes Public Site Monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 08:30 Pakistan Standard Time (03:30 UTC).
+    - cron: "30 3 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: institutes-public-site-monitor
+  cancel-in-progress: false
+
+jobs:
+  public-smoke-check:
+    name: Public directory smoke check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check public directory pages
+        shell: bash
+        run: |
+          set -uo pipefail
+          report="$RUNNER_TEMP/institutes-public-health.txt"
+          : > "$report"
+          failures=0
+
+          check_url() {
+            local url="$1"
+            local body="$RUNNER_TEMP/response-$RANDOM.html"
+            local status
+            status="$(curl --location --silent --show-error --max-time 30 \
+              --output "$body" --write-out '%{http_code}' "$url" 2>"$RUNNER_TEMP/curl-error.txt" || true)"
+
+            if [[ "$status" == "200" ]]; then
+              printf 'PASS | HTTP %s | %s\n' "$status" "$url" | tee -a "$report"
+            else
+              printf 'FAIL | HTTP %s | %s\n' "${status:-request-error}" "$url" | tee -a "$report"
+              if [[ -s "$RUNNER_TEMP/curl-error.txt" ]]; then
+                sed -n '1,2p' "$RUNNER_TEMP/curl-error.txt" | tee -a "$report"
+              fi
+              failures=$((failures + 1))
+            fi
+            rm -f "$body" "$RUNNER_TEMP/curl-error.txt"
+          }
+
+          check_url "https://estudent.pk/institutes/"
+          check_url "https://estudent.pk/institutes/university-of-the-punjab"
+
+          {
+            echo "## Institutes public-site health check"
+            echo
+            echo "- Checked at (UTC): $(date -u '+%Y-%m-%d %H:%M:%S')"
+            echo "- Scope: public HTTP availability only"
+            echo "- Production database queried: no"
+            echo "- Production data changed: no"
+            echo
+            echo '~~~text'
+            cat "$report"
+            echo '~~~'
+            echo
+            echo "Failure count: $failures"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if (( failures > 0 )); then
+            echo "::error::One or more public Institutes pages failed the HTTP smoke check."
+            exit 1
+          fi
+
+      - name: Save sanitized report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: institutes-public-health-report
+          path: ${{ runner.temp }}/institutes-public-health.txt
+          if-no-files-found: ignore
+          retention-days: 14
