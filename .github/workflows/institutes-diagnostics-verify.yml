@@ -81,7 +81,7 @@ jobs:
               print("FAIL | configured token did not receive HTTP 200; response details suppressed")
               sys.exit(1)
 
-          if headers.get("Cache-Control", "").lower() != "no-store":
+          if "no-store" not in headers.get("Cache-Control", "").lower():
               print("FAIL | response did not include the expected no-store cache policy")
               sys.exit(1)
 
