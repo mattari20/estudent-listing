@@ -6,14 +6,14 @@
 | Route | `GET /institutes/automation/diagnostics` |
 | Authentication | Bearer token from `INSTITUTES_DIAGNOSTICS_TOKEN` |
 | Rate limit | 5 requests per minute |
-| Command | `institutes:data-gap-report --json` |
+| Commands | `institutes:data-gap-report --json` and `institutes:data-gap-record-audit --json` |
 | Writes | None |
 
 ## Security behavior
 
 - Returns 404 until `INSTITUTES_DIAGNOSTICS_TOKEN` is configured with at least 32 characters.
 - Rejects requests without a valid bearer token; comparison uses `hash_equals`.
-- Runs only the existing read-only data-gap report command; callers cannot choose a command or supply SQL.
+- Runs only the two fixed read-only data-gap commands; callers cannot choose a command or supply SQL.\n- Returns aggregate diagnostics plus a record-level audit of canonical institutions, programs, campuses, import batches, and import-row linkage metadata.\n- Excludes import payloads, normalized payloads, notes, and full validation error text from the record-level audit.
 - Adds `Cache-Control: no-store`.
 - Rate-limits requests.
 - Returns the structured report and command exit code, without exposing environment variables, credentials, exception messages, or raw SQL errors.
@@ -27,7 +27,7 @@
 4. Add it to the Laravel environment as `INSTITUTES_DIAGNOSTICS_TOKEN` without committing it to GitHub or placing it in a URL. Do not share it in chat.
 5. Store the same value as a GitHub Actions repository secret named `INSTITUTES_DIAGNOSTICS_TOKEN`.
 6. Add a workflow that sends the secret only in the HTTPS Authorization header, validates TLS normally, captures the JSON response, and uploads only the sanitized report as a private Actions artifact. Never echo the token or request headers.
-7. Test missing-token, invalid-token, valid-token, rate-limit, report JSON, and no-mutation behavior before enabling a schedule.
+7. Test missing-token, invalid-token, valid-token, rate-limit, both report contracts, and no-mutation behavior before enabling a schedule.\n8. Store the combined record-level report only in the private `institutes-private-reports` repository; do not publish it as an artifact or include report contents in workflow logs.
 
 ## Stop conditions
 
