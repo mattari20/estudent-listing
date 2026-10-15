@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AutomatedDiagnosticsController;
 use App\Http\Controllers\GeographyImportController;
 use App\Http\Controllers\InstituteAuthController;
 use App\Http\Controllers\InstituteBulkPromotionController;
