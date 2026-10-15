@@ -11,12 +11,11 @@ class DataGapReportTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_data_gap_report_outputs_json_and_explicitly_reports_read_only_mode(): void
+    public function test_data_gap_report_outputs_json(): void
     {
         $this->artisan('institutes:data-gap-report', ['--json' => true])
             ->assertExitCode(0)
-            ->expectsOutputToContain('institutes_data_gap_report')
-            ->assertExitCode(0);
+            ->expectsOutputToContain('institutes_data_gap_report');
     }
 
     public function test_report_counts_canonical_records_without_changing_them(): void
