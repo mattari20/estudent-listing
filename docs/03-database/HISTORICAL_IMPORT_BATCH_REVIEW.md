@@ -132,3 +132,7 @@ The report must remain private. Do not copy record-level names, internal IDs, ro
 The next review group must not start from the historic 5-batch/24-row count without refresh. First verify that the newest private report is tied to the deployed release, then reconcile its batch/row totals against the record-level audit. Preserve one private review row per import row with provenance, source/evidence status, validation outcome, canonical link, and promotion/reversal history. Where provenance or supporting evidence is absent, classify the row as `UNVERIFIED`; do not silently mark it safe or invalid.
 
 Output from this group is a sanitized findings summary and a proposed, source-backed change set only. It is not authorization to promote rows, seed geography, or modify canonical data.
+
+## Evidence-linked disposition rule (next review group)
+
+Every import row must receive a provisional disposition based on retrieved evidence: `SUPPORTED`, `INSUFFICIENT_EVIDENCE`, `CONFLICTING_EVIDENCE`, `DUPLICATE_CANDIDATE`, or `INVALID_STRUCTURE`. Record the source/evidence reference and reviewer rationale for each disposition. A promoted status alone is not proof of correctness; a rejected status alone is not proof that the underlying institution is invalid. Rows without source evidence remain unverified and must not be promoted or republished as part of this audit.
