@@ -142,3 +142,38 @@ Every import row must receive a provisional disposition based on retrieved evide
 Keep one row per import row in the private review workspace. Record: report retrieval/run identifier; batch identifier; import-row identifier; source reference and retrieval date; institution/program/campus candidate; source agreement or conflict; current row state; canonical relationship if present; validation findings; duplicate candidates; promotion/reversal history; provisional disposition; reviewer rationale; confidence; and next action. Do not copy internal identifiers or row-level details into public PRs. Missing values must be recorded as `UNKNOWN` or `NOT PROVIDED`, never inferred as zero or treated as proof of invalidity.
 
 A row is ready for a proposed correction only when its evidence reference is reviewable, the proposed change is specific, the current canonical relationship is understood, and a second check confirms the change will not create a duplicate or break linked programs/campuses. Otherwise keep it in the unresolved queue.
+
+## Next execution group: 20 controlled review batches
+
+This group is a sequence of review work items, not permission to write to production. Execute each item only after the report acceptance gate in `PRODUCTION_DATA_GAP_REPORT_RUNBOOK.md` passes. Keep raw rows and identifiers in the private review workspace. Do not infer current counts from historical reports.
+
+### Batch checklist
+
+- [ ] **Batch 01 — Release identity:** confirm the deployed Hostinger release/commit using existing deployment evidence.
+- [ ] **Batch 02 — Report freshness:** capture the latest successful diagnostics run and report timestamp.
+- [ ] **Batch 03 — Contract completeness:** verify aggregate report, record-level audit and geography preflight belong to one retrieval.
+- [ ] **Batch 04 — Read-only markers:** validate all `mutation_performed: false` markers and geography's `seed_command_executed: false`.
+- [ ] **Batch 05 — Aggregate reconciliation:** compare current aggregate totals with record-level totals; document any mismatch.
+- [ ] **Batch 06 — Batch inventory:** enumerate import batches from the accepted private report, not old screenshots or historical totals.
+- [ ] **Batch 07 — Row coverage:** confirm every row in scope has a unique private audit entry.
+- [ ] **Batch 08 — Provenance coverage:** record source reference, retrieval date and evidence availability for each row.
+- [ ] **Batch 09 — Evidence quality:** distinguish official/primary evidence from secondary or unverified references.
+- [ ] **Batch 10 — Identity normalization:** compare institution names and alternate names without changing canonical records.
+- [ ] **Batch 11 — Campus relationships:** review campus identity and parent-institution relationships.
+- [ ] **Batch 12 — Geography mapping:** compare country/province/district/city references and report orphaned or conflicting links.
+- [ ] **Batch 13 — Program relationships:** check program ownership and campus association against evidence.
+- [ ] **Batch 14 — Duplicate candidates:** cluster possible duplicates for human comparison; do not auto-merge.
+- [ ] **Batch 15 — Structural validation:** identify reproducible schema/relationship rule failures without changing records.
+- [ ] **Batch 16 — Promotion history:** reconcile import, promotion and reversal history where available.
+- [ ] **Batch 17 — Row disposition:** assign only the documented provisional outcome and rationale to each reviewed row.
+- [ ] **Batch 18 — Correction proposals:** draft source-backed, minimal proposed changes for fully evidenced rows only.
+- [ ] **Batch 19 — Independent review:** recheck proposed changes, duplicates, linked relationships and rollback implications.
+- [ ] **Batch 20 — Final readiness report:** publish a sanitized summary of counts, unresolved blockers, proposed changes and required approvals.
+
+### Completion record
+
+For each batch, record status (`PASS`, `BLOCKED`, or `NOT STARTED`), evidence reference, reviewer, timestamp, findings, and next action. Mark a batch `PASS` only when its required evidence exists and its acceptance criteria are met. A blocked batch stops dependent batches; it must not be marked complete merely to preserve speed.
+
+### Explicit no-write boundary
+
+This checklist does not authorize database updates, imports, promotion/reversal, publication, geography seeding, migrations, or deployment changes. Proposed corrections remain proposals until separately reviewed and explicitly approved. If deployment identity or report freshness is unknown, stop at Batch 01 or 02 and report the blocker rather than auditing stale data.
