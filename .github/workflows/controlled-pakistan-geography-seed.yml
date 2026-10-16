@@ -50,11 +50,45 @@ jobs:
             case "$PROJECT_PATH" in
               *".."*) echo "ERROR: project_path must not contain .."; exit 2 ;;
             esac
+
+            # Normalize accidental surrounding whitespace from the manual input.
+            PROJECT_PATH="$(printf '%s' "$PROJECT_PATH" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+            echo "=== Supplied project path (quoted) ==="
+            printf 'PROJECT_PATH=<%s>\n' "$PROJECT_PATH"
+
+            # The read-only diagnostic already found the Institutes artisan file.
+            # If the manual input does not resolve, check only known Institutes roots.
             if [ ! -f "$PROJECT_PATH/artisan" ]; then
-              echo "ERROR: artisan not found in the supplied project_path"
-              exit 3
+              echo "Supplied path did not contain artisan; checking known Institutes roots."
+              ACCOUNT_USER="$(id -un)"
+              CANDIDATES=""
+              for candidate in \
+                "$HOME/domains/estudent.pk/public_html/institutes" \
+                "/home/$ACCOUNT_USER/domains/estudent.pk/public_html/institutes" \
+                "$HOME/public_html/institutes" \
+                "/home/$ACCOUNT_USER/public_html/institutes"; do
+                if [ -f "$candidate/artisan" ]; then
+                  case "$CANDIDATES" in
+                    "") CANDIDATES="$candidate" ;;
+                    *) CANDIDATES="$CANDIDATES
+            $candidate" ;;
+                  esac
+                fi
+              done
+              CANDIDATE_COUNT="$(printf '%s\n' "$CANDIDATES" | sed '/^$/d' | wc -l | tr -d ' ')"
+              if [ "$CANDIDATE_COUNT" -ne 1 ]; then
+                echo "ERROR: expected exactly one known Institutes Laravel root; found $CANDIDATE_COUNT."
+                printf 'Candidates:\n%s\n' "$CANDIDATES"
+                exit 3
+              fi
+              PROJECT_PATH="$CANDIDATES"
+              echo "Using the single verified Institutes project root:"
+              printf 'PROJECT_PATH=<%s>\n' "$PROJECT_PATH"
             fi
+
             cd "$PROJECT_PATH"
+            echo "=== Verified artisan file ==="
+            ls -l "$PROJECT_PATH/artisan"
             echo "=== Application environment ==="
             php artisan env
             echo "=== Geography preflight BEFORE seed ==="
