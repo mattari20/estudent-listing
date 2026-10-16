@@ -1,0 +1,73 @@
+name: Controlled Pakistan Geography Seed
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_path:
+        description: "Absolute path to the existing Institutes Laravel project (directory containing artisan)"
+        required: true
+        type: string
+      confirm_seed:
+        description: "Explicitly authorize creating the 8 canonical Pakistan geography records"
+        required: true
+        type: choice
+        options:
+          - "no"
+          - "yes"
+        default: "no"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: controlled-pakistan-geography-seed
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    name: Preflight, seed geography, and verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate input and inspect preflight
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
+          CONFIRM_SEED: ${{ inputs.confirm_seed }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,CONFIRM_SEED
+          command_timeout: 3m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in
+              /*) ;;
+              *) echo "ERROR: project_path must be an absolute path"; exit 2 ;;
+            esac
+            case "$PROJECT_PATH" in
+              *".."*) echo "ERROR: project_path must not contain .."; exit 2 ;;
+            esac
+            if [ ! -f "$PROJECT_PATH/artisan" ]; then
+              echo "ERROR: artisan not found in the supplied project_path"
+              exit 3
+            fi
+            cd "$PROJECT_PATH"
+            echo "=== Application environment ==="
+            php artisan env
+            echo "=== Geography preflight BEFORE seed ==="
+            php artisan institutes:geography-seed-preflight --json
+            if [ "$CONFIRM_SEED" != "yes" ]; then
+              echo "Preflight only: confirm_seed was not yes; no changes made."
+              exit 0
+            fi
+            echo "=== Explicitly confirmed geography seed ==="
+            php artisan institutes:seed-pakistan-geography
+            echo "=== Geography preflight AFTER seed ==="
+            php artisan institutes:geography-seed-preflight --json
+            echo "=== Updated data-gap report ==="
+            php artisan institutes:data-gap-report --json
+            echo "=== Updated record-level audit ==="
+            php artisan institutes:data-gap-record-audit --json
