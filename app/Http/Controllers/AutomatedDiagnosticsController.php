@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\\Http\\Controllers;
 
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\\Http\\JsonResponse;
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Facades\\Artisan;
 
 class AutomatedDiagnosticsController
 {
@@ -22,33 +22,53 @@ class AutomatedDiagnosticsController
             abort(403);
         }
 
-        $aggregateExitCode = Artisan::call('institutes:data-gap-report', ['--json' => true]);
-        $aggregateOutput = trim(Artisan::output());
-        $aggregateReport = json_decode($aggregateOutput, true);
+        $reports = [
+            'report' => [
+                'command' => 'institutes:data-gap-report',
+                'check' => 'institutes_data_gap_report',
+            ],
+            'record_audit' => [
+                'command' => 'institutes:data-gap-record-audit',
+                'check' => 'institutes_data_gap_record_audit',
+            ],
+            'geography_preflight' => [
+                'command' => 'institutes:geography-seed-preflight',
+                'check' => 'institutes_geography_seed_preflight',
+            ],
+        ];
 
-        if (! is_array($aggregateReport) || ($aggregateReport['check'] ?? null) !== 'institutes_data_gap_report') {
-            return $this->unavailable();
+        $payload = [
+            'status' => 'complete',
+            'mutation_performed' => false,
+            'reports' => [],
+        ];
+
+        foreach ($reports as $key => $definition) {
+            $exitCode = Artisan::call($definition['command'], ['--json' => true]);
+            $output = trim(Artisan::output());
+            $decoded = json_decode($output, true);
+
+            if (
+                ! is_array($decoded)
+                || ($decoded['check'] ?? null) !== $definition['check']
+                || ($decoded['mutation_performed'] ?? null) !== false
+            ) {
+                return $this->unavailable();
+            }
+
+            $payload['reports'][$key] = [
+                'exit_code' => $exitCode,
+                'data' => $decoded,
+            ];
+
+            if ($exitCode !== 0 || ($decoded['status'] ?? null) === 'critical') {
+                $payload['status'] = 'critical';
+            } elseif (($decoded['status'] ?? null) === 'warning' && $payload['status'] === 'complete') {
+                $payload['status'] = 'warning';
+            }
         }
 
-        $recordAuditExitCode = Artisan::call('institutes:data-gap-record-audit', ['--json' => true]);
-        $recordAuditOutput = trim(Artisan::output());
-        $recordAudit = json_decode($recordAuditOutput, true);
-
-        if (
-            ! is_array($recordAudit)
-            || ($recordAudit['check'] ?? null) !== 'institutes_data_gap_record_audit'
-            || ($recordAudit['mutation_performed'] ?? null) !== false
-        ) {
-            return $this->unavailable();
-        }
-
-        return response()->json([
-            'status' => $aggregateReport['status'] ?? 'unknown',
-            'diagnostic_exit_code' => $aggregateExitCode,
-            'report' => $aggregateReport,
-            'record_audit_exit_code' => $recordAuditExitCode,
-            'record_audit' => $recordAudit,
-        ], 200, ['Cache-Control' => 'no-store']);
+        return response()->json($payload, 200, ['Cache-Control' => 'no-store']);
     }
 
     private function unavailable(): JsonResponse
