@@ -123,4 +123,23 @@ class GeographySeedPreflightTest extends TestCase
         $this->assertSame(2, Geography::query()->where('slug', 'pakistan')->count());
         $this->assertSame(['Pakistan One', 'Pakistan Two'], Geography::query()->where('slug', 'pakistan')->orderBy('id')->pluck('name')->all());
     }
+
+    public function test_seed_stops_when_existing_child_has_no_country_without_modifying_it(): void
+    {
+        Geography::query()->create([
+            'parent_id' => null,
+            'name' => 'Punjab',
+            'slug' => 'punjab',
+            'type' => 'province',
+            'code' => 'PK-PB',
+            'status' => 'active',
+        ]);
+
+        $this->artisan('institutes:seed-pakistan-geography')
+            ->assertExitCode(1)
+            ->expectsOutputToContain('existing province:punjab has no canonical Pakistan country');
+
+        $this->assertSame(1, Geography::query()->count());
+        $this->assertSame(null, Geography::query()->where('slug', 'punjab')->value('parent_id'));
+    }
 }
