@@ -68,11 +68,15 @@ jobs:
                 "$HOME/public_html/institutes" \
                 "/home/$ACCOUNT_USER/public_html/institutes"; do
                 if [ -f "$candidate/artisan" ]; then
-                  case "$CANDIDATES" in
-                    "") CANDIDATES="$candidate" ;;
-                    *) CANDIDATES="$CANDIDATES
-            $candidate" ;;
-                  esac
+                  # Resolve symlinks and duplicate spellings before counting roots.
+                  canonical_candidate="$(cd "$candidate" && pwd -P)"
+                  if ! printf '%s\n' "$CANDIDATES" | grep -Fxq -- "$canonical_candidate"; then
+                    case "$CANDIDATES" in
+                      "") CANDIDATES="$canonical_candidate" ;;
+                      *) CANDIDATES="$CANDIDATES
+            $canonical_candidate" ;;
+                    esac
+                  fi
                 fi
               done
               CANDIDATE_COUNT="$(printf '%s\n' "$CANDIDATES" | sed '/^$/d' | wc -l | tr -d ' ')"
