@@ -1,0 +1,47 @@
+name: Diagnose Hostinger Laravel Path
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagnose-hostinger-laravel-path
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    name: Find Laravel artisan path (read-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Inspect likely project locations over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 2m
+          script: |
+            set -eu
+            echo "=== SSH account and home ==="
+            id
+            printf 'HOME=%s\n' "$HOME"
+            pwd
+            echo "=== Domain directory candidates ==="
+            for base in "$HOME/domains/estudent.pk" "$HOME/domains" "$HOME/public_html" "/home/$(id -un)/domains/estudent.pk" "/home/$(id -un)/public_html"; do
+              if [ -d "$base" ]; then
+                echo "--- $base ---"
+                ls -ld "$base"
+                ls -la "$base" | head -40
+              fi
+            done
+            echo "=== artisan files under likely account locations (read-only) ==="
+            for base in "$HOME/domains/estudent.pk" "$HOME/public_html" "$HOME"; do
+              if [ -d "$base" ]; then
+                find "$base" -maxdepth 7 -type f -name artisan -print 2>/dev/null | head -30
+              fi
+            done
+            echo "=== End of read-only path diagnostics ==="
