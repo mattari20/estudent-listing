@@ -23,15 +23,17 @@ jobs:
     steps:
       - name: Run diagnostics on Hostinger
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH
           command_timeout: 3m
           script: |
             set -eu
-            PROJECT_PATH='${{ inputs.project_path }}'
             case "$PROJECT_PATH" in
               /*) ;;
               *) echo "ERROR: project_path must be an absolute path"; exit 2 ;;
