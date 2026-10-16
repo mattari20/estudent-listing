@@ -84,3 +84,10 @@ A one-time seed may be considered only after an independently verified backup is
 ## Evidence to record
 
 Record the deployment commit, date/time, command exit codes, overall statuses, current geography count, proposed create/update/no-change counts, and reviewer. Redact credentials and any sensitive details. No scheduled automation is enabled by this runbook.
+
+
+## Protected diagnostics and record-level report gate
+
+The repository currently defines the protected endpoint at `/institutes/automation/diagnostics` and the private-report workflow expects aggregate, record-level, and geography-preflight sections. After the reviewed commit is confirmed deployed, verify freshness using a successful run of **Retrieve Institutes Production Diagnostics (Private)**. Check only the workflow outcome, timestamp, and private repository's newest report metadata; inspect record-level JSON only within the private repository.
+
+A successful GitHub workflow alone does not prove the intended commit is deployed to Hostinger. Do not claim production record-level verification until deployment identity and the latest private report are confirmed. If either is unknown, stop and record the audit as blocked. Keep all database operations read-only; do not run migrations, seeders, imports, promotions, or SQL writes.
