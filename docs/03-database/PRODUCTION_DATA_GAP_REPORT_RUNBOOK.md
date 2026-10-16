@@ -81,3 +81,10 @@ Any write requires a separate reviewed plan, a verified backup, a preflight repo
 ## Historical import batch review
 
 For row-by-row reconciliation after the latest private report is retrieved, follow [`HISTORICAL_IMPORT_BATCH_REVIEW.md`](./HISTORICAL_IMPORT_BATCH_REVIEW.md). Keep the record-level matrix private, record missing inputs as unknown rather than zero, and preserve the read-only boundary until a record-specific change plan and explicit owner approval exist.
+
+
+## Freshness and deployment identity gate
+
+A merged commit or successful GitHub workflow is not proof that the same release is running on Hostinger. Record the deployed release/commit from the existing Hostinger deployment record before interpreting report values. Record the report's `checked_at` timestamp and the workflow run timestamp. If either is unavailable, label deployment identity or freshness `UNKNOWN` and stop before any remediation proposal.
+
+When a protected diagnostics report is available, confirm the aggregate report, record-level audit, and geography preflight are present; each must declare `mutation_performed: false`, and geography preflight must declare `seed_command_executed: false`. Keep raw output in the private report repository only. Publish only a sanitized summary without internal IDs, institution-level audit rows, credentials, or raw JSON.
