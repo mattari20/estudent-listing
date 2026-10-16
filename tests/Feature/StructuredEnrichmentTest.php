@@ -26,4 +26,15 @@ class StructuredEnrichmentTest extends TestCase {
   $this->expectException(\RuntimeException::class);
   app(StructuredEnrichmentService::class)->promote($row);
  }
+
+ public function test_program_offering_rejects_campus_from_another_institution(): void {
+  $owner=Institution::create(['name'=>'Owner University','slug'=>'owner-university','status'=>'active']);
+  $other=Institution::create(['name'=>'Other University','slug'=>'other-university','status'=>'active']);
+  $program=Program::create(['institution_id'=>$owner->id,'name'=>'BS Computer Science','slug'=>'bs-computer-science','status'=>'active']);
+  $campus=\App\Models\Campus::create(['institution_id'=>$other->id,'name'=>'Other Campus','slug'=>'other-campus','status'=>'active']);
+  $row=$this->row('program_offering',['campus_id'=>$campus->id,'delivery_mode'=>'on_campus'],$program);
+  $this->expectException(\RuntimeException::class);
+  $this->expectExceptionMessage('The selected campus does not belong to the institution that owns this program.');
+  app(StructuredEnrichmentService::class)->promote($row);
+ }
 }
