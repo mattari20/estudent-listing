@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Artisan;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 
 class AutomatedDiagnosticsController
 {
@@ -22,61 +22,50 @@ class AutomatedDiagnosticsController
             abort(403);
         }
 
-        $reports = [
-            'report' => [
-                'command' => 'institutes:data-gap-report',
-                'check' => 'institutes_data_gap_report',
-            ],
-            'record_audit' => [
-                'command' => 'institutes:data-gap-record-audit',
-                'check' => 'institutes_data_gap_record_audit',
-            ],
-            'geography_preflight' => [
-                'command' => 'institutes:geography-seed-preflight',
-                'check' => 'institutes_geography_seed_preflight',
-            ],
+        $reportCommands = [
+            'report' => 'institutes:data-gap-report',
+            'record_audit' => 'institutes:data-gap-record-audit',
+            'geography_preflight' => 'institutes:geography-seed-preflight',
         ];
 
-        $payload = [
-            'status' => 'complete',
-            'mutation_performed' => false,
-            'reports' => [],
-        ];
-
-        foreach ($reports as $key => $definition) {
-            $exitCode = Artisan::call($definition['command'], ['--json' => true]);
+        $reports = [];
+        foreach ($reportCommands as $key => $command) {
+            $exitCode = Artisan::call($command, ['--json' => true]);
             $output = trim(Artisan::output());
             $decoded = json_decode($output, true);
 
-            if (
-                ! is_array($decoded)
-                || ($decoded['check'] ?? null) !== $definition['check']
-                || ($decoded['mutation_performed'] ?? null) !== false
-            ) {
-                return $this->unavailable();
-            }
-
-            $payload['reports'][$key] = [
+            $reports[$key] = [
                 'exit_code' => $exitCode,
-                'data' => $decoded,
+                'data' => is_array($decoded) ? $decoded : null,
             ];
+        }
 
-            if ($exitCode !== 0 || ($decoded['status'] ?? null) === 'critical') {
-                $payload['status'] = 'critical';
-            } elseif (($decoded['status'] ?? null) === 'warning' && $payload['status'] === 'complete') {
-                $payload['status'] = 'warning';
+        $allReadOnly = true;
+        foreach ($reports as $entry) {
+            $data = $entry['data'] ?? null;
+            if (! is_array($data) || ($data['mutation_performed'] ?? null) !== false) {
+                $allReadOnly = false;
             }
         }
 
-        return response()->json($payload, 200, ['Cache-Control' => 'no-store']);
-    }
+        $geographyData = $reports['geography_preflight']['data'] ?? null;
+        if (! is_array($geographyData) || ($geographyData['seed_command_executed'] ?? null) !== false) {
+            $allReadOnly = false;
+        }
 
-    private function unavailable(): JsonResponse
-    {
+        $hasFailures = false;
+        foreach ($reports as $entry) {
+            if (($entry['exit_code'] ?? 1) !== 0) {
+                $hasFailures = true;
+            }
+        }
+
+        $status = ! $allReadOnly ? 'critical' : ($hasFailures ? 'warning' : 'complete');
+
         return response()->json([
-            'status' => 'critical',
-            'error' => 'diagnostic_report_unavailable',
-            'mutation_performed' => false,
-        ], 500, ['Cache-Control' => 'no-store']);
+            'status' => $status,
+            'mutation_performed' => ! $allReadOnly,
+            'reports' => $reports,
+        ])->header('Cache-Control', 'no-store, private');
     }
 }
