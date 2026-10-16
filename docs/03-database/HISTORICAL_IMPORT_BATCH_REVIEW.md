@@ -126,3 +126,9 @@ The audit is complete only when every row in the selected historical batches has
 The protected diagnostics controller on repository `main` now includes the record-level audit alongside the aggregate report and geography preflight, and the private-report workflow validates all three sections. This is a repository-level fact, not confirmation of production deployment. Before starting the row-level review, confirm the deployed release and use the newest successful private report. The current workflow is configured for manual and daily scheduled execution; verify the actual latest run timestamp rather than assuming a scheduled run succeeded.
 
 The report must remain private. Do not copy record-level names, internal IDs, row details, or raw JSON into this public repository or chat. No production correction is authorized by this review procedure.
+
+## 10. Evidence gate for the next review group
+
+The next review group must not start from the historic 5-batch/24-row count without refresh. First verify that the newest private report is tied to the deployed release, then reconcile its batch/row totals against the record-level audit. Preserve one private review row per import row with provenance, source/evidence status, validation outcome, canonical link, and promotion/reversal history. Where provenance or supporting evidence is absent, classify the row as `UNVERIFIED`; do not silently mark it safe or invalid.
+
+Output from this group is a sanitized findings summary and a proposed, source-backed change set only. It is not authorization to promote rows, seed geography, or modify canonical data.
