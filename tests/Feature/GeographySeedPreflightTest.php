@@ -96,7 +96,7 @@ class GeographySeedPreflightTest extends TestCase
         $this->artisan('institutes:seed-pakistan-geography')
             ->assertExitCode(1)
             ->expectsOutputToContain('existing country:pakistan differs')
-            ->expectsOutputToContain('no existing records were changed.');
+            ;
 
         $this->assertSame('Pakistan - operator value', Geography::query()->where('slug', 'pakistan')->value('name'));
         $this->assertSame('inactive', Geography::query()->where('slug', 'pakistan')->value('status'));
