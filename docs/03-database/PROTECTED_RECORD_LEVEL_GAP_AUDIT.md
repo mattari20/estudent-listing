@@ -18,6 +18,6 @@ The report deliberately excludes import payloads, normalized payloads, free-text
 
 ## Operational status
 
-This command is proposed in PR review. It is not yet confirmed deployed or exposed through the protected production diagnostics endpoint. Do not attempt to access it through a public URL or claim that a production record-level report has been retrieved until a separately reviewed integration is merged, deployed and verified.
+The current `main` branch's `AutomatedDiagnosticsController` includes this command in the authenticated diagnostics response, and the private-report workflow validates and stores the record-level section. This confirms repository integration only. Production deployment and a fresh record-level report must still be verified independently before treating production output as available.
 
-The protected endpoint integration is a separate change because it increases the sensitivity of the data returned by that endpoint. Any integration must preserve bearer-token authentication, fail-closed behavior, rate limiting, no-store headers, sanitized errors, and private-only report storage.
+Do not attempt to access the command through a public URL or expose its output publicly. Preserve bearer-token authentication, fail-closed behavior, no-store headers, sanitized errors, and private-only report storage. If rate limiting is not independently verified in the deployed route/middleware, record that as an unresolved hardening item rather than assuming it exists.
