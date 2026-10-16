@@ -33,19 +33,29 @@ jobs:
           check_url() {
             local url="$1"
             local body="$RUNNER_TEMP/response-$RANDOM.html"
-            local status
-            status="$(curl --location --silent --show-error --max-time 30 \
-              --output "$body" --write-out '%{http_code}' "$url" 2>"$RUNNER_TEMP/curl-error.txt" || true)"
+            local status="request-error"
+            local attempt
 
-            if [[ "$status" == "200" ]]; then
-              printf 'PASS | HTTP %s | %s\n' "$status" "$url" | tee -a "$report"
-            else
-              printf 'FAIL | HTTP %s | %s\n' "${status:-request-error}" "$url" | tee -a "$report"
-              if [[ -s "$RUNNER_TEMP/curl-error.txt" ]]; then
-                sed -n '1,2p' "$RUNNER_TEMP/curl-error.txt" | tee -a "$report"
+            # Hostinger Git deployment can start shortly after a push. Retry
+            # for up to ~5 minutes rather than failing on the first transient response.
+            for attempt in {1..10}; do
+              status="$(curl --location --silent --show-error --max-time 20 \
+                --output "$body" --write-out '%{http_code}' "$url" 2>"$RUNNER_TEMP/curl-error.txt" || true)"
+              if [[ "$status" == "200" && -s "$body" ]]; then
+                printf 'PASS | HTTP %s | non-empty response | %s | attempt %s/10\n' "$status" "$url" "$attempt" | tee -a "$report"
+                rm -f "$body" "$RUNNER_TEMP/curl-error.txt"
+                return
               fi
-              failures=$((failures + 1))
+              if (( attempt < 10 )); then
+                sleep 30
+              fi
+            done
+
+            printf 'FAIL | HTTP %s | %s | retries exhausted\n' "${status:-request-error}" "$url" | tee -a "$report"
+            if [[ -s "$RUNNER_TEMP/curl-error.txt" ]]; then
+              sed -n '1,2p' "$RUNNER_TEMP/curl-error.txt" | tee -a "$report"
             fi
+            failures=$((failures + 1))
             rm -f "$body" "$RUNNER_TEMP/curl-error.txt"
           }
 
@@ -56,7 +66,7 @@ jobs:
             echo "## Institutes public-site health check"
             echo
             echo "- Checked at (UTC): $(date -u '+%Y-%m-%d %H:%M:%S')"
-            echo "- Scope: public HTTP availability only"
+            echo "- Scope: post-push public HTTP smoke check with retries (not Hostinger deployment-commit confirmation)"
             echo "- Production database queried: no"
             echo "- Production data changed: no"
             echo
