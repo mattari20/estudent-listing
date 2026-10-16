@@ -91,3 +91,11 @@ Record the deployment commit, date/time, command exit codes, overall statuses, c
 The repository currently defines the protected endpoint at `/institutes/automation/diagnostics` and the private-report workflow expects aggregate, record-level, and geography-preflight sections. After the reviewed commit is confirmed deployed, verify freshness using a successful run of **Retrieve Institutes Production Diagnostics (Private)**. Check only the workflow outcome, timestamp, and private repository's newest report metadata; inspect record-level JSON only within the private repository.
 
 A successful GitHub workflow alone does not prove the intended commit is deployed to Hostinger. Do not claim production record-level verification until deployment identity and the latest private report are confirmed. If either is unknown, stop and record the audit as blocked. Keep all database operations read-only; do not run migrations, seeders, imports, promotions, or SQL writes.
+
+## Batch 3 — Protected report cross-check
+
+If the protected diagnostics integration is deployed, compare its report timestamp and release identity with the Hostinger deployment record and latest successful **Retrieve Institutes Production Diagnostics (Private)** workflow. Confirm all three report sections exist and their safety markers are false. Check the private repository's newest file metadata; do not copy its record-level contents into the public repository.
+
+## Mandatory stop conditions
+
+Stop without making changes if the deployed release cannot be identified, report timestamps are stale/unknown, any expected section is missing, a safety marker is true/missing, counts disagree across reports, or a command exits non-zero. Do not use historical counts as a substitute. No migration, seed, import, promotion, or SQL write is part of this verification.
