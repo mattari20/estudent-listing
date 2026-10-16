@@ -33,6 +33,16 @@ class StructuredEnrichmentService {
   return Program::create(['institution_id'=>$i->id,'slug'=>$slug,'name'=>$name,'program_level'=>$p['program_level']??null,'award'=>$p['award']??null,'discipline'=>$p['discipline']??null,'status'=>$p['status']??'active','description'=>$p['description']??null]);
  }
  private function offering(array $p,Program $program): ProgramOffering {
-  return ProgramOffering::firstOrCreate(['program_id'=>$program->id,'campus_id'=>$p['campus_id']??null,'delivery_mode'=>$p['delivery_mode']??null,'intake_label'=>$p['intake_label']??null],['status'=>$p['status']??'active','duration'=>$p['duration']??null,'availability'=>$p['availability']??null,'effective_from'=>$p['effective_from']??null,'effective_until'=>$p['effective_until']??null]);
+  $campusId=$p['campus_id']??null;
+  if($campusId!==null && $campusId!=='') {
+   $campus=Campus::query()->findOrFail($campusId);
+   if((int)$campus->institution_id !== (int)$program->institution_id) {
+    throw new RuntimeException('The selected campus does not belong to the institution that owns this program.');
+   }
+   $campusId=$campus->id;
+  } else {
+   $campusId=null;
+  }
+  return ProgramOffering::firstOrCreate(['program_id'=>$program->id,'campus_id'=>$campusId,'delivery_mode'=>$p['delivery_mode']??null,'intake_label'=>$p['intake_label']??null],['status'=>$p['status']??'active','duration'=>$p['duration']??null,'availability'=>$p['availability']??null,'effective_from'=>$p['effective_from']??null,'effective_until'=>$p['effective_until']??null]);
  }
 }
