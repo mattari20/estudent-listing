@@ -69,4 +69,58 @@ class GeographySeedPreflightTest extends TestCase
         $this->assertSame('Pakistan - operator value', Geography::query()->where('slug', 'pakistan')->value('name'));
         $this->assertSame(1, Geography::query()->count());
     }
+
+    public function test_seed_creates_missing_records_and_reports_created_count(): void
+    {
+        $this->artisan('institutes:seed-pakistan-geography')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('Created 8 Pakistan geography records; existing records were not modified.');
+
+        $this->assertSame(8, Geography::query()->count());
+        $country = Geography::query()->where('slug', 'pakistan')->firstOrFail();
+        $this->assertSame('country', $country->type);
+        $this->assertSame(7, Geography::query()->where('parent_id', $country->id)->count());
+    }
+
+    public function test_seed_does_not_modify_existing_records_when_values_differ(): void
+    {
+        Geography::query()->create([
+            'parent_id' => null,
+            'name' => 'Pakistan - operator value',
+            'slug' => 'pakistan',
+            'type' => 'country',
+            'code' => 'PK',
+            'status' => 'inactive',
+        ]);
+
+        $this->artisan('institutes:seed-pakistan-geography')
+            ->assertExitCode(1)
+            ->expectsOutputToContain('existing country:pakistan differs')
+            ->expectsOutputToContain('no existing records were changed.');
+
+        $this->assertSame('Pakistan - operator value', Geography::query()->where('slug', 'pakistan')->value('name'));
+        $this->assertSame('inactive', Geography::query()->where('slug', 'pakistan')->value('status'));
+        $this->assertSame(1, Geography::query()->count());
+    }
+
+    public function test_seed_stops_on_duplicate_identity_without_modifying_records(): void
+    {
+        foreach (['Pakistan One', 'Pakistan Two'] as $name) {
+            Geography::query()->create([
+                'parent_id' => null,
+                'name' => $name,
+                'slug' => 'pakistan',
+                'type' => 'country',
+                'code' => 'PK',
+                'status' => 'active',
+            ]);
+        }
+
+        $this->artisan('institutes:seed-pakistan-geography')
+            ->assertExitCode(1)
+            ->expectsOutputToContain('duplicate identity country:pakistan');
+
+        $this->assertSame(2, Geography::query()->where('slug', 'pakistan')->count());
+        $this->assertSame(['Pakistan One', 'Pakistan Two'], Geography::query()->where('slug', 'pakistan')->orderBy('id')->pluck('name')->all());
+    }
 }
