@@ -101,3 +101,9 @@ A release is considered operationally validated only when:
 - post-release checks show no blocking issue.
 
 This document does not claim that these checks have been executed; it defines the required final validation procedure.
+
+## 8. Deployment evidence and read-only audit gate
+
+A passing GitHub Actions run proves only the checks represented by that workflow; it does not prove Hostinger deployment, production database contents, backup recoverability, or external source correctness. Record the deployed commit from Hostinger's existing deployment history and compare it with the reviewed `main` commit before production checks. Do not change the existing Git integration to obtain this evidence.
+
+For the protected data-gap audit, confirm the newest successful private diagnostics workflow, report timestamp, all expected sections, and read-only safety flags. Keep raw record-level output private. If deployment identity or report freshness is unknown, mark production validation blocked and do not proceed to controlled promotion.
