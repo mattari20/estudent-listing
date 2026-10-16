@@ -103,9 +103,15 @@ jobs:
               print("FAIL | response JSON invalid; response details suppressed")
               sys.exit(1)
 
-          report = payload.get("report")
+          reports = payload.get("reports")
+          if not isinstance(reports, dict):
+              print("FAIL | expected reports object missing")
+              sys.exit(1)
+
+          report_entry = reports.get("report")
+          report = report_entry.get("data") if isinstance(report_entry, dict) else None
           if not isinstance(report, dict):
-              print("FAIL | expected report object missing")
+              print("FAIL | aggregate diagnostic report missing")
               sys.exit(1)
           if report.get("check") != "institutes_data_gap_report":
               print("FAIL | expected diagnostic report contract missing")
@@ -113,7 +119,12 @@ jobs:
           if report.get("mutation_performed") is not False:
               print("FAIL | aggregate read-only safety marker missing or unexpected")
               sys.exit(1)
-          record_audit = payload.get("record_audit")
+          if "exit_code" not in report_entry:
+              print("FAIL | aggregate diagnostic exit metadata missing")
+              sys.exit(1)
+
+          audit_entry = reports.get("record_audit")
+          record_audit = audit_entry.get("data") if isinstance(audit_entry, dict) else None
           if not isinstance(record_audit, dict):
               print("FAIL | protected record-level audit missing")
               sys.exit(1)
@@ -123,11 +134,29 @@ jobs:
           if record_audit.get("mutation_performed") is not False:
               print("FAIL | record-level read-only safety marker missing or unexpected")
               sys.exit(1)
-          if "record_audit_exit_code" not in payload:
+          if "exit_code" not in audit_entry:
               print("FAIL | record-level audit exit metadata missing")
               sys.exit(1)
-          if "diagnostic_exit_code" not in payload or "status" not in payload:
-              print("FAIL | expected diagnostic metadata missing")
+
+          geography_entry = reports.get("geography_preflight")
+          geography = geography_entry.get("data") if isinstance(geography_entry, dict) else None
+          if not isinstance(geography, dict):
+              print("FAIL | geography preflight report missing")
+              sys.exit(1)
+          if geography.get("check") != "institutes_geography_seed_preflight":
+              print("FAIL | geography preflight contract missing")
+              sys.exit(1)
+          if geography.get("mutation_performed") is not False:
+              print("FAIL | geography read-only safety marker missing or unexpected")
+              sys.exit(1)
+          if geography.get("seed_command_executed") is not False:
+              print("FAIL | geography preflight indicates seed command execution")
+              sys.exit(1)
+          if "exit_code" not in geography_entry:
+              print("FAIL | geography preflight exit metadata missing")
+              sys.exit(1)
+          if payload.get("mutation_performed") is not False or "status" not in payload:
+              print("FAIL | combined read-only status metadata missing or unexpected")
               sys.exit(1)
 
           # Store report only in the private repository. No public artifact or summary.
