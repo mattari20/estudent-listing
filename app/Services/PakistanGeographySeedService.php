@@ -21,7 +21,6 @@ class PakistanGeographySeedService
 
     /**
      * Create missing top-level geography records without modifying existing records.
-     *
      * Any duplicate identity or mismatch stops the transaction before writes occur.
      */
     public function seedTopLevel(): int
@@ -52,28 +51,29 @@ class PakistanGeographySeedService
             foreach (self::TOP_LEVEL as $index => $row) {
                 $key = $row['type'] . ':' . $row['slug'];
                 $existing = $existingByIdentity[$key];
-                $expectedParentId = $index === 0 ? null : $countryId;
 
                 if ($existing === null) {
-                    if ($index !== 0 && $countryId === null) {
-                        continue;
-                    }
-
                     continue;
+                }
+
+                if ($index > 0 && $countryId === null) {
+                    throw new RuntimeException(
+                        "Geography seed stopped: existing {$key} has no canonical Pakistan country; no existing records were changed."
+                    );
                 }
 
                 $expected = [
                     'name' => $row['name'],
                     'code' => $row['code'],
                     'status' => 'active',
-                    'parent_id' => $expectedParentId,
+                    'parent_id' => $index === 0 ? null : $countryId,
                 ];
 
                 $actual = [
                     'name' => $existing->name,
                     'code' => $existing->code,
                     'status' => $existing->status,
-                    'parent_id' => $existing->parent_id,
+                    'parent_id' => $existing->parent_id === null ? null : (int) $existing->parent_id,
                 ];
 
                 foreach ($expected as $field => $value) {
