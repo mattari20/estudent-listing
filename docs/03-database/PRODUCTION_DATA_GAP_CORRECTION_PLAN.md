@@ -133,3 +133,10 @@ Execute corrections in small, independently verifiable batches through supported
 The first report prioritizes the investigation but does not safely identify every target row or authorize bulk corrections. The immediate technical step is a protected, read-only record-level preflight that identifies canonical records and import-row links without exposing secrets or changing data. Then geography and campus candidates can be researched and validated and packaged into a reviewed dry-run correction set.
 
 **No production data was changed during this assessment.**
+
+
+## 5. Report freshness gate before remediation
+
+The counts in the baseline above are historical and must not be treated as current indefinitely. Before preparing a record-specific change set, retrieve the newest successful private diagnostics report and compare its timestamp with the last scheduled/manual workflow run. Confirm the aggregate report, record-level audit, and geography preflight are all present and each reports `mutation_performed: false` (and geography preflight reports `seed_command_executed: false`). Reconcile totals before interpreting individual records.
+
+If the private report is unavailable, stale, malformed, or inconsistent with aggregate counts, stop at read-only investigation and resolve the reporting gap. Do not use old counts to seed geography, create campuses, promote rows, or deactivate institutions.

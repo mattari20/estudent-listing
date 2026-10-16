@@ -119,3 +119,10 @@ This document does not authorize deployment, migrations, seed commands, imports,
 ## 8. Completion criteria for the audit
 
 The audit is complete only when every row in the selected historical batches has a classification, each promoted row is traced to a canonical target or explicitly marked unresolved, all count discrepancies are explained, and the private evidence matrix is available for owner review. If the private report cannot be accessed, report the audit as blocked rather than guessing.
+
+
+## 9. Current operational integration checkpoint
+
+The protected diagnostics controller on repository `main` now includes the record-level audit alongside the aggregate report and geography preflight, and the private-report workflow validates all three sections. This is a repository-level fact, not confirmation of production deployment. Before starting the row-level review, confirm the deployed release and use the newest successful private report. The current workflow is configured for manual and daily scheduled execution; verify the actual latest run timestamp rather than assuming a scheduled run succeeded.
+
+The report must remain private. Do not copy record-level names, internal IDs, row details, or raw JSON into this public repository or chat. No production correction is authorized by this review procedure.

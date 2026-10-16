@@ -2,9 +2,9 @@
 
 ## Purpose
 
-The manual-only workflow `.github/workflows/institutes-private-diagnostics-report.yml` retrieves the protected read-only Institutes data-gap report and stores it in the separate private repository `mattari20/institutes-private-reports`.
+The workflow `.github/workflows/institutes-private-diagnostics-report.yml` retrieves the protected read-only Institutes data-gap report and stores it in the separate private repository `mattari20/institutes-private-reports`.
 
-It is deliberately manual-only. It does not run on pushes or on a schedule.
+The current workflow supports both manual dispatch and a daily scheduled run (04:00 UTC / 09:00 Pakistan time). It does not run on pushes. Confirm the schedule in the deployed `main` workflow before relying on freshness; a successful run is not proof that the latest expected scheduled run occurred.
 
 ## Required Actions secrets in `mattari20/estudent-listing`
 
