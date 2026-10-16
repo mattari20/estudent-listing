@@ -22,22 +22,31 @@ class InstituteImportPromotionController {
  public function quickApprove(Request $request, ImportRow $importRow, EnrichmentPromotionService $service, ImportPromotionAuditService $audit): RedirectResponse {
   abort_unless($importRow->status==='candidate',409);
   $importRow->load('batch');
-  $reason='Quick approval from the import operations review queue.';
+
+  // Institution identity is high risk: never infer "new institution" or select
+  // the highest-scoring identity candidate from a one-click action. Require the
+  // operator to review and record an explicit identity-resolution decision.
   if($importRow->batch?->entity_type==='institution'){
-   $openConflict=ImportConflict::query()->where('import_row_id',$importRow->id)->where('status','open')->exists();
-   if($openConflict) return back()->withErrors(['approval'=>'This row has an open conflict. Review the details before approving it.']);
-   $candidate=IdentityMatchCandidate::query()->where('import_row_id',$importRow->id)->orderByDesc('confidence')->first();
-   $decisionType='identity_resolution';
-   $decision=$candidate
-    ? IdentityResolutionDecision::create(['import_row_id'=>$importRow->id,'institution_id'=>$candidate->institution_id,'decision'=>'approved_match','actor_type'=>'user','actor_id'=>$request->user()->id,'reason'=>$reason.' Existing identity candidate selected automatically.','decided_at'=>now()])
-    : IdentityResolutionDecision::create(['import_row_id'=>$importRow->id,'institution_id'=>null,'decision'=>'approved_new','actor_type'=>'user','actor_id'=>$request->user()->id,'reason'=>$reason.' No identity candidate was present; row approved as a new institution.','decided_at'=>now()]);
-   $audit->record($importRow,'promotion_approved',$request->user()->id,$decision->reason,['operator_action'=>'quick_approve','decision'=>$decision->decision],$decisionType,$decision->id);
-  } else {
-   $service->validateParent($importRow);
-   $decisionType='import_promotion';
-   $decision=ImportPromotionDecision::create(['import_row_id'=>$importRow->id,'decision'=>'approved','actor_type'=>'user','actor_id'=>$request->user()->id,'reason'=>$reason,'decided_at'=>now()]);
-   $audit->record($importRow,'promotion_approved',$request->user()->id,$reason,['operator_action'=>'quick_approve','decision'=>'approved'],$decisionType,$decision->id);
+   return back()->withErrors([
+    'approval'=>'Quick approval is disabled for institution identity rows. Review identity candidates and conflicts, then record an explicit approved-new or approved-match decision before promotion.',
+   ]);
   }
+
+  $service->validateParent($importRow);
+  $reason='Quick approval from the import operations review queue.';
+  $decision=ImportPromotionDecision::create([
+   'import_row_id'=>$importRow->id,
+   'decision'=>'approved',
+   'actor_type'=>'user',
+   'actor_id'=>$request->user()->id,
+   'reason'=>$reason,
+   'decided_at'=>now(),
+  ]);
+  $audit->record($importRow,'promotion_approved',$request->user()->id,$reason,[
+   'operator_action'=>'quick_approve',
+   'decision'=>'approved',
+  ],'import_promotion',$decision->id);
+
   return back()->with('status','Import row '.$importRow->row_number.' approved. It is now ready for promotion.');
  }
  public function reject(Request $request, ImportRow $importRow, ImportPromotionAuditService $audit): RedirectResponse {
