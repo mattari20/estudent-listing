@@ -32,7 +32,7 @@ class InstituteImportPromoter
             throw new RuntimeException('An active source record is required before promotion.');
         }
 
-        $hasActiveEvidence = \\App\\Models\\Assertion::query()
+        $hasActiveEvidence = Assertion::query()
             ->where('subject_type', ImportRow::class)
             ->where('subject_id', $row->id)
             ->whereHas('evidence', fn ($query) => $query->where('status', 'active'))
