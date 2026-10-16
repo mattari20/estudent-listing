@@ -2,6 +2,9 @@
 namespace Tests\Feature;
 use App\Models\ImportBatch;
 use App\Models\ImportRow;
+use App\Models\Source;
+use App\Models\Evidence;
+use App\Models\Assertion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
