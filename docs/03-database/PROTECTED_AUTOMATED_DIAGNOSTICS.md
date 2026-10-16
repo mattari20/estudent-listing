@@ -32,3 +32,8 @@
 ## Stop conditions
 
 Do not enable the workflow if HTTPS certificate validation fails, the token is exposed in logs, the route responds without authentication, or the returned report contains unexpected sensitive fields. Do not alter the existing Hostinger Git deployment integration, enable Remote MySQL, or perform production writes. No production environment variable or GitHub secret has been configured by this repository change.
+
+
+## Repository integration status (2026-10-16)
+
+The repository contains `.github/workflows/institutes-private-diagnostics-report.yml`, which is configured for daily scheduled runs and manual dispatch. It validates aggregate, record-level, and geography-preflight report contracts and stores the response only in `mattari20/institutes-private-reports`. This is repository configuration evidence only; it does not prove the production endpoint is enabled, secrets are configured, or the latest run succeeded. Confirm those separately before relying on report freshness. Keep raw reports private.

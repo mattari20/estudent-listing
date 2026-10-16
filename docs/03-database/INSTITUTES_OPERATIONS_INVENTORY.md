@@ -65,3 +65,8 @@ Source-monitoring alerts are not, by themselves, proof that database-health chec
 ## Safety boundary
 
 No production database changes, migrations, seeds, imports, promotion, publication, hosting changes, or credentials are authorized by this inventory. Do not alter the existing Hostinger Git integration or enable Remote MySQL.
+
+
+## Diagnostics execution evidence gate — 2026-10-16
+
+The repository includes a protected diagnostics verification workflow and a private-report retrieval workflow. Their presence does not independently confirm production endpoint configuration, valid GitHub secrets, Hostinger deployment identity, or the latest report's freshness. Before using any report for remediation, record the latest successful run ID/time, report timestamp, deployed commit evidence, all three expected sections, and all read-only safety markers. If any value is unavailable, mark it unknown and keep production work read-only.

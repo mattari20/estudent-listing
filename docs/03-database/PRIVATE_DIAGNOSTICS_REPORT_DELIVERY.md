@@ -42,3 +42,8 @@ The workflow intentionally does not print report contents, counts, tokens, API r
 - A successful run proves retrieval and private-repository storage. It does not mean the production data is complete or correct.
 - The report is retained as a JSON file in the private repository's Git history. Limit repository collaborators and use the repository's retention and access controls appropriately.
 - Keep this workflow manual-only until reviewed and explicitly approved.
+
+
+## Cadence status clarification (2026-10-16)
+
+The workflow currently defines both `workflow_dispatch` and a daily cron at 04:00 UTC. Therefore the repository configuration is **scheduled daily**, not manual-only. Do not describe it as manual-only. A configured schedule is not proof that a run succeeded or that the endpoint returned a current production report; use the latest successful run timestamp and report `checked_at` to assess freshness. If the endpoint or required secrets are not configured, the workflow should fail closed without storing a report.
