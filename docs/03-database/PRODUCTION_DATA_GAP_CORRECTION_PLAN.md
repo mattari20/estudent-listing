@@ -140,3 +140,9 @@ The first report prioritizes the investigation but does not safely identify ever
 The counts in the baseline above are historical and must not be treated as current indefinitely. Before preparing a record-specific change set, retrieve the newest successful private diagnostics report and compare its timestamp with the last scheduled/manual workflow run. Confirm the aggregate report, record-level audit, and geography preflight are all present and each reports `mutation_performed: false` (and geography preflight reports `seed_command_executed: false`). Reconcile totals before interpreting individual records.
 
 If the private report is unavailable, stale, malformed, or inconsistent with aggregate counts, stop at read-only investigation and resolve the reporting gap. Do not use old counts to seed geography, create campuses, promote rows, or deactivate institutions.
+
+## 6. Baseline freshness status (2026-10-16)
+
+The figures in Section 1 are a historical snapshot from 2026-10-15, not a verified current production baseline. A newer private-report workflow artifact is visible in the private-report repository, but this plan does not yet establish that its report was generated from the currently deployed Hostinger release or that its three report sections reconcile. Therefore, do not use the table above as today's counts for record-specific remediation.
+
+Before progressing, record: (1) deployed release identity, (2) newest successful protected workflow run and timestamp, (3) report `checked_at`, (4) aggregate/record-level/geography-preflight section presence, and (5) reconciliation result. If any item is unknown or inconsistent, keep the correction plan in blocked/read-only status.
