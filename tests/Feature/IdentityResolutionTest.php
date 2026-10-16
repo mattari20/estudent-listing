@@ -3,6 +3,8 @@ namespace Tests\Feature;
 use App\Models\IdentityResolutionDecision;
 use App\Models\ImportBatch;
 use App\Models\ImportRow;
+use App\Models\Evidence;
+use App\Models\Assertion;
 use App\Models\Institution;
 use App\Models\Source;
 use App\Services\InstituteIdentityResolver;
@@ -11,7 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 class IdentityResolutionTest extends TestCase {
  use RefreshDatabase;
- private function row(array $payload): ImportRow {
+ private function attachEvidence(ImportRow $row): void {\n  $source=$row->batch->source;\n  $evidence=Evidence::create(['source_id'=>$source->id,'reference'=>'https://example.test/evidence-'.$row->id,'excerpt'=>'Official source confirms institution','content_hash'=>'identity-evidence-'.$row->id,'observed_at'=>now(),'status'=>'active']);\n  Assertion::create(['evidence_id'=>$evidence->id,'subject_type'=>ImportRow::class,'subject_id'=>$row->id,'attribute'=>'source_record','value'=>'official','verification_state'=>'observed','confidence'=>1]);\n }\n private function row(array $payload): ImportRow {
   $source=Source::create(['source_type'=>'primary','name'=>'Test Source','status'=>'active']);
   $batch=ImportBatch::create(['batch_key'=>uniqid('batch-'),'entity_type'=>'institution','source_type'=>'primary','source_id'=>$source->id,'status'=>'validated']);
   return ImportRow::create(['import_batch_id'=>$batch->id,'row_number'=>1,'status'=>'candidate','match_state'=>'unresolved','payload'=>$payload,'normalized_payload'=>$payload]);
@@ -33,7 +35,7 @@ class IdentityResolutionTest extends TestCase {
  public function test_promotion_requires_explicit_approved_decision(): void {
   $row=$this->row(['name'=>'New University','slug'=>'new-university']);
   app(InstituteIdentityResolver::class)->resolve($row);
-  $decision=IdentityResolutionDecision::create(['import_row_id'=>$row->id,'institution_id'=>null,'decision'=>'approved_new','actor_type'=>'test','reason'=>'Reviewed','decided_at'=>now()]);
+  $this->attachEvidence($row);\n  $decision=IdentityResolutionDecision::create(['import_row_id'=>$row->id,'institution_id'=>null,'decision'=>'approved_new','actor_type'=>'test','reason'=>'Reviewed','decided_at'=>now()]);
   $institution=app(InstituteImportPromoter::class)->promote($row,$decision);
   $this->assertDatabaseHas('institutions',['id'=>$institution->id,'slug'=>'new-university']);
   $this->assertDatabaseHas('institution_names',['institution_id'=>$institution->id,'name'=>'New University']);
@@ -42,7 +44,7 @@ class IdentityResolutionTest extends TestCase {
   $institution=Institution::create(['name'=>'Example University','slug'=>'example-university','status'=>'active']);
   $row=$this->row(['name'=>'Example University','slug'=>'example-university']);
   app(InstituteIdentityResolver::class)->resolve($row);
-  $decision=IdentityResolutionDecision::create(['import_row_id'=>$row->id,'institution_id'=>$institution->id,'decision'=>'approved_match','actor_type'=>'test','reason'=>'Confirmed','decided_at'=>now()]);
+  $this->attachEvidence($row);\n  $decision=IdentityResolutionDecision::create(['import_row_id'=>$row->id,'institution_id'=>$institution->id,'decision'=>'approved_match','actor_type'=>'test','reason'=>'Confirmed','decided_at'=>now()]);
   $result=app(InstituteImportPromoter::class)->promote($row,$decision);
   $this->assertSame($institution->id,$result->id);
   $this->assertDatabaseCount('institutions',1);
