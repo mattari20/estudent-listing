@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\IdentityResolutionDecision;
 use App\Models\ImportConflict;
 use App\Models\ImportRow;
+use App\Models\Assertion;
 use App\Models\Institution;
 use App\Models\InstitutionName;
 use Illuminate\Support\Str;
@@ -16,6 +17,30 @@ class InstituteImportPromoter
     {
         if ($decision->import_row_id !== $row->id) {
             throw new RuntimeException('Resolution decision does not belong to import row.');
+        }
+
+        $row->loadMissing('batch.source');
+
+        if ($row->status !== 'candidate') {
+            throw new RuntimeException('Only candidate import rows can be promoted.');
+        }
+
+        if ($row->batch?->status !== 'validated') {
+            throw new RuntimeException('Only rows from a validated import batch can be promoted.');
+        }
+
+        if ($row->batch?->source?->status !== 'active') {
+            throw new RuntimeException('An active source record is required before promotion.');
+        }
+
+        $hasActiveEvidence = Assertion::query()
+            ->where('subject_type', ImportRow::class)
+            ->where('subject_id', $row->id)
+            ->whereHas('evidence', fn ($query) => $query->where('status', 'active'))
+            ->exists();
+
+        if (! $hasActiveEvidence) {
+            throw new RuntimeException('Active source evidence is required before promotion.');
         }
 
         if (! in_array($decision->decision, ['approved_new', 'approved_match'], true)) {

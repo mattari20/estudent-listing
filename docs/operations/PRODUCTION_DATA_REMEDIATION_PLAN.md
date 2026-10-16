@@ -70,7 +70,7 @@ Before any write:
 - Resolve duplicates and mismatched existing records explicitly.
 - Treat this as a reviewed change list, not a command to run the existing seed.
 
-**Seed safety gate:** `PakistanGeographySeedService::seedTopLevel()` uses `updateOrCreate` and can update existing records/reactivate them. Do not run the broad seed against production solely because preflight reports zero conflicts. Any implementation change to make the operation create-only or explicitly diff-driven must be proposed and tested separately before use.
+**Seed safety gate (updated after PR #176):** `PakistanGeographySeedService::seedTopLevel()` now checks for duplicate identities and mismatched existing values and stops before writes when it finds them; it creates missing rows without updating existing rows. This is a code-level safety improvement, not authorization to run the seeder against production. Before any production use, refresh the preflight, validate the proposed administrative codes/types against the selected authoritative standard, confirm deployment identity and backup/restore readiness, and obtain explicit approval for the exact change.
 
 Exit gate:
 - Each geography item is marked create, update, no-change, or unresolved with evidence and rationale.
