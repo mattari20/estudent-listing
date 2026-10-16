@@ -70,3 +70,16 @@ No production database changes, migrations, seeds, imports, promotion, publicati
 ## Diagnostics execution evidence gate — 2026-10-16
 
 The repository includes a protected diagnostics verification workflow and a private-report retrieval workflow. Their presence does not independently confirm production endpoint configuration, valid GitHub secrets, Hostinger deployment identity, or the latest report's freshness. Before using any report for remediation, record the latest successful run ID/time, report timestamp, deployed commit evidence, all three expected sections, and all read-only safety markers. If any value is unavailable, mark it unknown and keep production work read-only.
+
+## Evidence levels
+
+Use these labels consistently in progress reports:
+
+- `REPOSITORY_VERIFIED`: source files and workflow definitions exist on the expected branch.
+- `CI_VERIFIED`: required automated checks passed for the exact commit.
+- `WORKFLOW_VERIFIED`: the relevant production-diagnostics workflow run completed successfully, with run URL and timestamp recorded.
+- `DEPLOYMENT_VERIFIED`: an existing Hostinger deployment record confirms the exact commit/release is running.
+- `REPORT_VERIFIED`: a fresh private report satisfies the runbook's complete contract and safety markers.
+- `DATA_REVIEWED`: source evidence and row-level findings have been reviewed by a human.
+
+Do not promote a lower level into a higher one by assumption. In particular, `CI_VERIFIED` does not imply `DEPLOYMENT_VERIFIED`, and `REPORT_VERIFIED` does not imply the data is correct.

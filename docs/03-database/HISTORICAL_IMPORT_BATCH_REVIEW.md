@@ -136,3 +136,9 @@ Output from this group is a sanitized findings summary and a proposed, source-ba
 ## Evidence-linked disposition rule (next review group)
 
 Every import row must receive a provisional disposition based on retrieved evidence: `SUPPORTED`, `INSUFFICIENT_EVIDENCE`, `CONFLICTING_EVIDENCE`, `DUPLICATE_CANDIDATE`, or `INVALID_STRUCTURE`. Record the source/evidence reference and reviewer rationale for each disposition. A promoted status alone is not proof of correctness; a rejected status alone is not proof that the underlying institution is invalid. Rows without source evidence remain unverified and must not be promoted or republished as part of this audit.
+
+## Private audit matrix fields for each row
+
+Keep one row per import row in the private review workspace. Record: report retrieval/run identifier; batch identifier; import-row identifier; source reference and retrieval date; institution/program/campus candidate; source agreement or conflict; current row state; canonical relationship if present; validation findings; duplicate candidates; promotion/reversal history; provisional disposition; reviewer rationale; confidence; and next action. Do not copy internal identifiers or row-level details into public PRs. Missing values must be recorded as `UNKNOWN` or `NOT PROVIDED`, never inferred as zero or treated as proof of invalidity.
+
+A row is ready for a proposed correction only when its evidence reference is reviewable, the proposed change is specific, the current canonical relationship is understood, and a second check confirms the change will not create a duplicate or break linked programs/campuses. Otherwise keep it in the unresolved queue.

@@ -92,3 +92,7 @@ When a protected diagnostics report is available, confirm the aggregate report, 
 ## Required evidence reconciliation before remediation
 
 Before preparing a record-specific change set, reconcile the aggregate report with the record-level audit and geography preflight from the same retrieval run. Verify that the combined response and every section explicitly report `mutation_performed: false`; geography preflight must also report `seed_command_executed: false`. Record report time, workflow run time, and deployed release identity. Do not combine sections from different timestamps or use the historical counts in the correction plan as current data. Any mismatch, missing marker, non-zero diagnostic exit code, or unknown deployment identity blocks remediation planning.
+
+## Report acceptance criteria
+
+Accept a retrieval for analysis only if all are true: (1) the workflow run completed successfully; (2) the production release identity is independently confirmed; (3) the report timestamp is present and meets the freshness policy; (4) aggregate report, record-level audit, and geography preflight came from the same response/run; (5) each section's expected `check` value matches; (6) every section declares `mutation_performed: false`; (7) geography preflight declares `seed_command_executed: false`; and (8) command exit codes are reviewed. If any criterion fails, preserve the report privately for troubleshooting, mark the audit `BLOCKED`, and do not derive a correction list from it.

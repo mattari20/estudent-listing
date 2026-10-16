@@ -47,3 +47,7 @@ The workflow intentionally does not print report contents, counts, tokens, API r
 ## Cadence status clarification (2026-10-16)
 
 The workflow currently defines both `workflow_dispatch` and a daily cron at 04:00 UTC. Therefore the repository configuration is **scheduled daily**, not manual-only. Do not describe it as manual-only. A configured schedule is not proof that a run succeeded or that the endpoint returned a current production report; use the latest successful run timestamp and report `checked_at` to assess freshness. If the endpoint or required secrets are not configured, the workflow should fail closed without storing a report.
+
+## Sanitized summary format
+
+The public progress note may contain only: verification level reached; workflow run time and link; deployed release verification status; report freshness status; whether all three report sections and safety markers passed; high-level categories of gaps; number of rows reviewed only when computed from the accepted fresh report; and unresolved blockers. Do not include institution names, database/internal IDs, row-by-row findings, credentials, raw JSON, or source material that belongs in the private audit. If the report is stale, incomplete, or not available, do not publish numeric findings and say the current production totals remain unknown.
