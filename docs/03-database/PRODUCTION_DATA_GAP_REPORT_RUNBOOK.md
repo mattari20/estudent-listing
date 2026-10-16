@@ -76,3 +76,8 @@ Do not commit live production record-level details, personal data, secrets, conn
 - claiming production verification when no report was actually run.
 
 Any write requires a separate reviewed plan, a verified backup, a preflight report, and explicit owner approval for the specific change.
+
+
+## Historical import batch review
+
+For row-by-row reconciliation after the latest private report is retrieved, follow [`HISTORICAL_IMPORT_BATCH_REVIEW.md`](./HISTORICAL_IMPORT_BATCH_REVIEW.md). Keep the record-level matrix private, record missing inputs as unknown rather than zero, and preserve the read-only boundary until a record-specific change plan and explicit owner approval exist.
