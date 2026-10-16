@@ -1,0 +1,54 @@
+name: Hostinger Read-only Diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_path:
+        description: "Absolute path to the existing Institutes Laravel project (directory containing artisan)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hostinger-readonly-diagnostics
+  cancel-in-progress: false
+
+jobs:
+  diagnostics:
+    name: Run read-only Institutes diagnostics over SSH
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run diagnostics on Hostinger
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -eu
+            PROJECT_PATH='${{ inputs.project_path }}'
+            case "$PROJECT_PATH" in
+              /*) ;;
+              *) echo "ERROR: project_path must be an absolute path"; exit 2 ;;
+            esac
+            case "$PROJECT_PATH" in
+              *".."*) echo "ERROR: project_path must not contain .."; exit 2 ;;
+            esac
+            if [ ! -f "$PROJECT_PATH/artisan" ]; then
+              echo "ERROR: artisan not found in the supplied project_path"
+              exit 3
+            fi
+            cd "$PROJECT_PATH"
+            echo "=== Application environment ==="
+            php artisan env
+            echo "=== Data-gap report (read-only) ==="
+            php artisan institutes:data-gap-report --json
+            echo "=== Record-level audit (read-only) ==="
+            php artisan institutes:data-gap-record-audit --json
+            echo "=== Geography seed preflight (read-only) ==="
+            php artisan institutes:geography-seed-preflight --json
