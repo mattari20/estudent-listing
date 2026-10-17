@@ -117,6 +117,7 @@ class StructuredEnrichmentTest extends TestCase
         $row = $this->row('campus', [
             'name' => 'Test Campus',
             'slug' => 'test-campus',
+            'campus_type' => 'main',
             'geography_id' => 999999,
         ], $institution);
 
@@ -141,6 +142,7 @@ class StructuredEnrichmentTest extends TestCase
         $row = $this->row('campus', [
             'name' => 'Valid Campus',
             'slug' => 'valid-campus',
+            'campus_type' => 'main',
             'geography_id' => $geography->id,
         ], $institution);
 
