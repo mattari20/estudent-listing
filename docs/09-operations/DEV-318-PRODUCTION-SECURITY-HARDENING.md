@@ -49,3 +49,33 @@ For production deployments, use:
 - SESSION_SECURE_COOKIE=true when HTTPS is used
 
 Do not commit real environment secrets to the repository.
+
+## Account password and recovery controls
+
+The account-security change set adds:
+
+- Current-password verification before an authenticated operator changes a password.
+- A minimum password length of 12 characters plus letter, mixed-case, number, and symbol rules.
+- Administrator-only account creation and role assignment; the operator middleware protects operations routes.
+- A generic forgot-password response so the page does not reveal whether an email belongs to an authorized account.
+- Rate limits on forgot-password form requests, reset-link requests, and reset submissions.
+- Password reset tokens managed by Laravel's password broker, with a 60-minute expiry and one-time use.
+- Remember-token rotation after a successful password change or reset.
+
+## Account-security release checklist
+
+Do not treat password recovery as production-ready until all applicable checks are complete:
+
+- [ ] Latest Test and Laravel CI workflows pass for the exact commit being released.
+- [ ] Review the PR diff and confirm account creation remains behind the administrator middleware.
+- [ ] Configure Hostinger SMTP values privately in the production environment: MAIL_MAILER, MAIL_SCHEME, MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM_ADDRESS, and MAIL_FROM_NAME. Never commit real credentials.
+- [ ] Verify the sender address/domain and confirm outbound mail works from the deployed environment.
+- [ ] Back up the production database and confirm the normal migration/rollback procedure before applying the password-reset-token table migration.
+- [ ] Apply the migration during the approved deployment window; do not assume CI's temporary SQLite database changes production.
+- [ ] Test a real authorized operator recovery email end-to-end, including link expiry and successful one-time reset.
+- [ ] Confirm unknown and non-operator email addresses receive the same public response and cannot reset a password.
+- [ ] Confirm an operator can change their password only after supplying the current password, and an operator cannot create accounts.
+- [ ] Confirm HTTPS, APP_ENV=production, APP_DEBUG=false, a strong APP_KEY, and secure session cookies remain configured.
+- [ ] Record deployment and smoke-test evidence before marking the feature released.
+
+The latest successful CI run validates the automated test environment only. It does not prove that Hostinger SMTP is configured, the production migration has run, or a live email has been delivered.

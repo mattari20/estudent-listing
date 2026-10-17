@@ -3,6 +3,7 @@
 use App\Http\Controllers\AutomatedDiagnosticsController;
 use App\Http\Controllers\GeographyImportController;
 use App\Http\Controllers\InstituteAuthController;
+use App\Http\Controllers\InstitutePasswordResetController;
 use App\Http\Controllers\InstituteBulkPromotionController;
 use App\Http\Controllers\InstituteDataReadinessController;
 use App\Http\Controllers\InstituteGeographyIntegrityController;
@@ -41,6 +42,10 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         ->name('automation.diagnostics');
     Route::get('/robots.txt', InstituteRobotsController::class)->name('robots');
     Route::get('/login', [InstituteAuthController::class, 'create'])->name('login');
+    Route::get('/forgot-password', [InstitutePasswordResetController::class, 'requestForm'])->middleware('throttle:5,1')->name('password.request');
+    Route::post('/forgot-password', [InstitutePasswordResetController::class, 'sendLink'])->middleware('throttle:3,1')->name('password.email');
+    Route::get('/reset-password/{token}', [InstitutePasswordResetController::class, 'resetForm'])->name('password.reset');
+    Route::post('/reset-password', [InstitutePasswordResetController::class, 'reset'])->middleware('throttle:5,1')->name('password.update');
     Route::get('/setup', [InstituteSetupController::class, 'create'])->name('setup');
     Route::post('/setup', [InstituteSetupController::class, 'store'])->name('setup.store');
     Route::post('/login', [InstituteAuthController::class, 'store'])->name('login.store');
@@ -48,6 +53,8 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
 
     Route::middleware(['auth', 'institute.operator'])->prefix('operations')->name('operations.')->group(function (): void {
         Route::get('/', [InstituteOperationsController::class, 'queue'])->name('queue');
+        Route::get('/account/password', [InstituteUserController::class, 'editPassword'])->name('account.password.edit');
+        Route::put('/account/password', [InstituteUserController::class, 'updatePassword'])->name('account.password.update');
         Route::post('/agent/discover', [InstituteOperationsController::class, 'discover'])->name('agent.discover');
         Route::get('/integrity', InstituteGeographyIntegrityController::class)->name('integrity');
         Route::get('/data-readiness', InstituteDataReadinessController::class)->name('data-readiness');
