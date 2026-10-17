@@ -2,7 +2,7 @@
 namespace Tests\Feature;
 use App\Models\ImportBatch;
 use App\Models\ImportRow;
-use App\Models\Institution;
+use App\Models\Institution;\nuse App\Models\Geography;
 use App\Models\Program;
 use App\Services\StructuredEnrichmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
