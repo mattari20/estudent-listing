@@ -23,8 +23,11 @@ class InstitutePasswordResetController
     {
         $request->validate(['email' => ['required', 'email', 'max:255']]);
 
-        // Use a generic response so the endpoint does not disclose which accounts exist.
-        Password::sendResetLink($request->only('email'));
+        // Only operations accounts may use this flow; keep the response generic to avoid account enumeration.
+        $user = User::query()->where('email', $request->input('email'))->first();
+        if ($user && $user->isOperator()) {
+            Password::sendResetLink($request->only('email'));
+        }
 
         return back()->with('status', 'If an authorized account exists for that email address, a password reset link will be sent shortly. Check your inbox and spam folder.');
     }
@@ -44,6 +47,12 @@ class InstitutePasswordResetController
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', PasswordRule::min(12)->letters()->mixedCase()->numbers()->symbols(), 'confirmed'],
         ]);
+
+        $user = User::query()->where('email', $validated['email'])->first();
+        if (!$user || !$user->isOperator()) {
+            return back()->withInput($request->only('email'))
+                ->withErrors(['email' => 'This reset link is invalid or expired. Request a new password reset link and try again.']);
+        }
 
         $status = Password::reset(
             $validated,
