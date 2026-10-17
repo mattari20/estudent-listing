@@ -37,4 +37,20 @@ class StructuredEnrichmentTest extends TestCase {
   $this->expectExceptionMessage('The selected campus does not belong to the institution that owns this program.');
   app(StructuredEnrichmentService::class)->promote($row);
  }
-}
+
+ public function test_campus_promotion_rejects_unknown_geography(): void {
+  $institution=Institution::create(['name'=>'Geography Test University','slug'=>'geography-test-university','status'=>'active']);
+  $row=$this->row('campus',['name'=>'Test Campus','slug'=>'test-campus','geography_id'=>999999],$institution);
+  $this->expectException(\\RuntimeException::class);
+  $this->expectExceptionMessage('The selected geography does not exist or is not active.');
+  app(StructuredEnrichmentService::class)->promote($row);
+ }
+
+ public function test_campus_promotion_accepts_active_geography(): void {
+  $institution=Institution::create(['name'=>'Geography Valid University','slug'=>'geography-valid-university','status'=>'active']);
+  $geography=Geography::create(['name'=>'Punjab','slug'=>'punjab','type'=>'province','status'=>'active']);
+  $row=$this->row('campus',['name'=>'Valid Campus','slug'=>'valid-campus','geography_id'=>$geography->id],$institution);
+  $campus=app(StructuredEnrichmentService::class)->promote($row);
+  $this->assertSame($geography->id,$campus->geography_id);
+ }
+\n}\n
