@@ -26,7 +26,7 @@ class InstitutePasswordRecoveryTest extends TestCase
         $this->get(route('institutes.password.request'))
             ->assertOk()
             ->assertSee('Forgot your password?')
-            ->assertSee('Email reset link');
+            ->assertSee('Email recovery unavailable');
     }
 
     public function test_forgot_password_response_explains_manual_recovery_without_email_service(): void
