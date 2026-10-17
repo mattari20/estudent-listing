@@ -48,6 +48,8 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
 
     Route::middleware(['auth', 'institute.operator'])->prefix('operations')->name('operations.')->group(function (): void {
         Route::get('/', [InstituteOperationsController::class, 'queue'])->name('queue');
+        Route::get('/account/password', [InstituteUserController::class, 'editPassword'])->name('account.password.edit');
+        Route::put('/account/password', [InstituteUserController::class, 'updatePassword'])->name('account.password.update');
         Route::post('/agent/discover', [InstituteOperationsController::class, 'discover'])->name('agent.discover');
         Route::get('/integrity', InstituteGeographyIntegrityController::class)->name('integrity');
         Route::get('/data-readiness', InstituteDataReadinessController::class)->name('data-readiness');
