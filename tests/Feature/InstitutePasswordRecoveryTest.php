@@ -14,6 +14,12 @@ class InstitutePasswordRecoveryTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutMiddleware(ThrottleRequests::class);
+    }
+
     public function test_forgot_password_form_is_available_without_sign_in(): void
     {
         $this->get(route('institutes.password.request'))
