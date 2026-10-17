@@ -34,8 +34,8 @@ class InstituteAccountSecurityTest extends TestCase
             'email' => 'admin@example.test',
             'password' => 'Old!StrongPassphrase2026',
             'role' => 'admin',
-            'remember_token' => 'old-remember-token',
         ]);
+        $user->forceFill(['remember_token' => 'old-remember-token'])->save();
 
         $this->actingAs($user)
             ->put(route('institutes.operations.account.password.update'), [
