@@ -29,24 +29,12 @@ class InstitutePasswordRecoveryTest extends TestCase
             ->assertSee('Email reset link');
     }
 
-    public function test_forgot_password_requests_a_reset_link_for_an_authorized_account(): void
+    public function test_forgot_password_response_explains_manual_recovery_without_email_service(): void
     {
-        User::create([
-            'name' => 'Operator',
-            'email' => 'operator@example.test',
-            'password' => 'Old!StrongPassphrase2026',
-            'role' => 'operator',
-        ]);
-
-        Password::shouldReceive('sendResetLink')
-            ->once()
-            ->with(['email' => 'operator@example.test'])
-            ->andReturn(Password::RESET_LINK_SENT);
-
         $this->post(route('institutes.password.email'), [
             'email' => 'operator@example.test',
         ])->assertRedirect()
-          ->assertSessionHas('status');
+          ->assertSessionHas('status', 'Email recovery is not configured. Contact an authorized administrator for a password reset.');
     }
 
     public function test_non_operator_account_does_not_receive_an_institute_reset_link(): void
