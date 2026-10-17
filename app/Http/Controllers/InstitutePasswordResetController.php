@@ -23,13 +23,7 @@ class InstitutePasswordResetController
     {
         $request->validate(['email' => ['required', 'email', 'max:255']]);
 
-        // Only operations accounts may use this flow; keep the response generic to avoid account enumeration.
-        $user = User::query()->where('email', $request->input('email'))->first();
-        if ($user && $user->isOperator()) {
-            Password::sendResetLink($request->only('email'));
-        }
-
-        return back()->with('status', 'If an authorized account exists for that email address, a password reset link will be sent shortly. Check your inbox and spam folder.');
+        return back()->with('status', 'Email recovery is not configured. Contact an authorized administrator for a password reset.');
     }
 
     public function resetForm(Request $request, string $token): View
