@@ -49,6 +49,23 @@ class InstitutePasswordRecoveryTest extends TestCase
           ->assertSessionHas('status');
     }
 
+    public function test_non_operator_account_does_not_receive_an_institute_reset_link(): void
+    {
+        User::create([
+            'name' => 'Student',
+            'email' => 'student@example.test',
+            'password' => 'Old!StrongPassphrase2026',
+            'role' => 'student',
+        ]);
+
+        Password::shouldReceive('sendResetLink')->never();
+
+        $this->post(route('institutes.password.email'), [
+            'email' => 'student@example.test',
+        ])->assertRedirect()
+          ->assertSessionHas('status', 'If an authorized account exists for that email address, a password reset link will be sent shortly. Check your inbox and spam folder.');
+    }
+
     public function test_forgot_password_response_does_not_disclose_unknown_email(): void
     {
         Notification::fake();
