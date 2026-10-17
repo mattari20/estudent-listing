@@ -3,6 +3,7 @@
 use App\Http\Controllers\AutomatedDiagnosticsController;
 use App\Http\Controllers\GeographyImportController;
 use App\Http\Controllers\InstituteAuthController;
+use App\Http\Controllers\InstitutePasswordResetController;
 use App\Http\Controllers\InstituteBulkPromotionController;
 use App\Http\Controllers\InstituteDataReadinessController;
 use App\Http\Controllers\InstituteGeographyIntegrityController;
