@@ -51,7 +51,7 @@ class InstitutePasswordRecoveryTest extends TestCase
         $this->post(route('institutes.password.email'), [
             'email' => 'student@example.test',
         ])->assertRedirect()
-          ->assertSessionHas('status', 'If an authorized account exists for that email address, a password reset link will be sent shortly. Check your inbox and spam folder.');
+          ->assertSessionHas('status', 'Email recovery is not configured. Contact an authorized administrator for a password reset.');
     }
 
     public function test_forgot_password_response_does_not_disclose_unknown_email(): void
@@ -61,7 +61,7 @@ class InstitutePasswordRecoveryTest extends TestCase
         $this->post(route('institutes.password.email'), [
             'email' => 'unknown@example.test',
         ])->assertRedirect()
-          ->assertSessionHas('status', 'If an authorized account exists for that email address, a password reset link will be sent shortly. Check your inbox and spam folder.');
+          ->assertSessionHas('status', 'Email recovery is not configured. Contact an authorized administrator for a password reset.');
 
         Notification::assertNothingSent();
     }
