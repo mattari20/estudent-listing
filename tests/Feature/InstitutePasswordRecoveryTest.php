@@ -29,10 +29,8 @@ class InstitutePasswordRecoveryTest extends TestCase
             ->assertSee('Email reset link');
     }
 
-    public function test_forgot_password_sends_reset_notification_for_an_account(): void
+    public function test_forgot_password_requests_a_reset_link_for_an_authorized_account(): void
     {
-        Notification::fake();
-
         User::create([
             'name' => 'Operator',
             'email' => 'operator@example.test',
@@ -40,15 +38,15 @@ class InstitutePasswordRecoveryTest extends TestCase
             'role' => 'operator',
         ]);
 
+        Password::shouldReceive('sendResetLink')
+            ->once()
+            ->with(['email' => 'operator@example.test'])
+            ->andReturn(Password::RESET_LINK_SENT);
+
         $this->post(route('institutes.password.email'), [
             'email' => 'operator@example.test',
         ])->assertRedirect()
           ->assertSessionHas('status');
-
-        Notification::assertSentTo(
-            User::where('email', 'operator@example.test')->first(),
-            InstituteResetPasswordNotification::class
-        );
     }
 
     public function test_forgot_password_response_does_not_disclose_unknown_email(): void
