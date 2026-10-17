@@ -85,6 +85,26 @@ class InstitutePasswordRecoveryTest extends TestCase
         $this->assertNotSame('old-remember-token', $updated->remember_token);
     }
 
+    public function test_non_operator_account_cannot_reset_its_password_through_institute_recovery(): void
+    {
+        $user = User::create([
+            'name' => 'Non Operator',
+            'email' => 'student@example.test',
+            'password' => 'Old!StrongPassphrase2026',
+            'role' => 'student',
+        ]);
+        $token = Password::createToken($user);
+
+        $this->post(route('institutes.password.update'), [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'N3w!SecurePassphrase2026',
+            'password_confirmation' => 'N3w!SecurePassphrase2026',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertTrue(Hash::check('Old!StrongPassphrase2026', $user->fresh()->password));
+    }
+
     public function test_invalid_reset_token_does_not_change_password(): void
     {
         $user = User::create([
