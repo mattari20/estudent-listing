@@ -41,6 +41,10 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         ->name('automation.diagnostics');
     Route::get('/robots.txt', InstituteRobotsController::class)->name('robots');
     Route::get('/login', [InstituteAuthController::class, 'create'])->name('login');
+    Route::get('/forgot-password', [InstitutePasswordResetController::class, 'requestForm'])->middleware('throttle:5,1')->name('password.request');
+    Route::post('/forgot-password', [InstitutePasswordResetController::class, 'sendLink'])->middleware('throttle:3,1')->name('password.email');
+    Route::get('/reset-password/{token}', [InstitutePasswordResetController::class, 'resetForm'])->name('password.reset');
+    Route::post('/reset-password', [InstitutePasswordResetController::class, 'reset'])->middleware('throttle:5,1')->name('password.update');
     Route::get('/setup', [InstituteSetupController::class, 'create'])->name('setup');
     Route::post('/setup', [InstituteSetupController::class, 'store'])->name('setup.store');
     Route::post('/login', [InstituteAuthController::class, 'store'])->name('login.store');
