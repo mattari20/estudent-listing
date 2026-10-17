@@ -75,3 +75,29 @@ The latest available report is dated 2026-10-16 and is not a fresh post-repair r
 6. Re-run diagnostics and record expected vs. actual counts.
 
 Never mark a source as verified merely because it is active, and never claim national coverage from the current small test dataset.
+
+## Verified execution update — 2026-10-16
+
+The controlled GitHub Actions run completed successfully against the configured application and recorded the following:
+
+- Application environment reported as `production`; the operator says the data itself is disposable test data. Keep this environment/data distinction explicit.
+- Geography seed output: **8 Pakistan geography records created**; the command stated existing records were not modified.
+- Post-seed preflight: **8 existing geography records**, all eight expected records resolved as `no_change`, zero create actions remaining, zero conflicts.
+- Geography integrity: valid, with no reported errors.
+- Required database tables were present and MySQL was healthy.
+- The refreshed data-gap report still showed 10 active institutions, 0 campuses, 1 active program, 0 program offerings, 0 admission intakes, 24 import rows (11 promoted, 6 candidate, 7 rejected), 0 import conflicts, 0 enrichment import rows, 5 active sources, and 0 evidence/snapshots/monitoring policies/retrieval runs.
+- All 10 active institutions had no active campus. This is a relationship/coverage gap, not permission to create speculative campuses.
+- The single active program was `BS (Computer Sciences)`, linked to institution ID 9 (`COMSATS University Islamabad Lahore Campus`).
+- Two validated test import batches were campus batches (batch IDs 4 and 5), each with one candidate row, but the canonical campus table remained empty. The record audit intentionally omits row payloads, so the campus names/locations and rejection reasons are not established by this report.
+
+The preflight JSON's `seed_command_executed: false` is expected because the **preflight command itself is read-only**. The explicit seed command output and post-seed count of eight verify that the seed ran. Do not rerun the geography seed just to change that flag.
+
+## Next repair pass — inspect before mutating
+
+1. Retrieve a fresh private record-level audit after this run before any further repair. The available run is dated 2026-10-16 and does not prove the live deployment commit.
+2. Inspect the payload and validation result for campus import rows associated with batches 4 and 5 through the existing private/admin workflow. Do not expose raw payloads in public GitHub Actions logs or public artifacts.
+3. For each campus candidate, verify the exact campus name, parent institution, city/region, and valid geography reference. If a candidate is ambiguous or lacks a verified parent/location, leave it pending.
+4. Use the existing structured enrichment/import promotion path and its validation/transaction safeguards. Do not insert campuses with ad-hoc SQL.
+5. Review the existing promoted test records and the one program separately. Because the operator identified the dataset as dummy data, classify which records are disposable, but do not delete them until the record-level impact and foreign-key relationships are known.
+6. After any approved change, rerun the geography preflight, data-gap report, and record-level audit; compare counts and relationship gaps with this verified baseline.
+
