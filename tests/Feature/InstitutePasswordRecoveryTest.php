@@ -56,7 +56,7 @@ class InstitutePasswordRecoveryTest extends TestCase
         $this->post(route('institutes.password.email'), [
             'email' => 'unknown@example.test',
         ])->assertRedirect()
-          ->assertSessionHas('status', 'If an authorized account exists for that email address, a password reset link will be sent shortly.');
+          ->assertSessionHas('status', 'If an authorized account exists for that email address, a password reset link will be sent shortly. Check your inbox and spam folder.');
 
         Notification::assertNothingSent();
     }
