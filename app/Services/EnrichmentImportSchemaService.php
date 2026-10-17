@@ -11,7 +11,7 @@ class EnrichmentImportSchemaService
         return match ($entityType) {
             'campus' => [
                 'version' => '1.0',
-                'columns' => ['name', 'slug', 'campus_type', 'status', 'address', 'postal_code', 'latitude', 'longitude'],
+                'columns' => ['name', 'slug', 'campus_type', 'status', 'geography_id', 'address', 'postal_code', 'latitude', 'longitude'],
                 'required' => ['name'],
             ],
             'program' => [
@@ -93,6 +93,10 @@ class EnrichmentImportSchemaService
         }
 
         if ($entityType === 'campus') {
+            if (($payload['geography_id'] ?? '') !== '' && (! ctype_digit((string) $payload['geography_id']) || (int) $payload['geography_id'] < 1)) {
+                $errors[] = 'geography_id must be a positive integer';
+            }
+
             foreach (['latitude', 'longitude'] as $field) {
                 if (($payload[$field] ?? '') !== '' && ! is_numeric($payload[$field])) {
                     $errors[] = "{$field} must be numeric";
