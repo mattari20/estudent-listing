@@ -23,8 +23,9 @@ class StructuredEnrichmentService {
  private function campus(array $p,Institution $i): Campus {
   $name=trim((string)($p['name']??'')); if($name==='') throw new RuntimeException('Campus name is required.');
   $slug=$p['slug']??str()->slug($name);
-  if($existing=Campus::query()->where('institution_id',$i->id)->where('slug',$slug)->first()) throw new RuntimeException('This campus already exists in canonical data (ID '.$existing->id.'). The import will not overwrite it. Reject this duplicate row or review the existing campus.');
-  return Campus::create(['institution_id'=>$i->id,'slug'=>$slug,'name'=>$name,'campus_type'=>$p['campus_type']??null,'status'=>$p['status']??'active','geography_id'=>$p['geography_id']??null,'address'=>$p['address']??null,'postal_code'=>$p['postal_code']??null,'latitude'=>$p['latitude']??null,'longitude'=>$p['longitude']??null]);
+  $geographyId=$p['geography_id']??null;
+  if($geographyId!==null && $geographyId!=='') {\n   $geography=Geography::query()->whereKey($geographyId)->where('status','active')->first();\n   if(!$geography) throw new RuntimeException('The selected geography does not exist or is not active.');\n   $geographyId=$geography->id;\n  } else { $geographyId=null; }\n  if($existing=Campus::query()->where('institution_id',$i->id)->where('slug',$slug)->first()) throw new RuntimeException('This campus already exists in canonical data (ID '.$existing->id.'). The import will not overwrite it. Reject this duplicate row or review the existing campus.');
+  return Campus::create(['institution_id'=>$i->id,'slug'=>$slug,'name'=>$name,'campus_type'=>$p['campus_type']??null,'status'=>$p['status']??'active','geography_id'=>$geographyId,'address'=>$p['address']??null,'postal_code'=>$p['postal_code']??null,'latitude'=>$p['latitude']??null,'longitude'=>$p['longitude']??null]);
  }
  private function program(array $p,Institution $i): Program {
   $name=trim((string)($p['name']??'')); if($name==='') throw new RuntimeException('Program name is required.');
