@@ -131,6 +131,6 @@ class InstituteAccountSecurityTest extends TestCase
 
         $this->actingAs($operator)
             ->get(route('institutes.operations.users.create'))
-            ->assertRedirect(route('institutes.operations.queue'));
+            ->assertRedirect(route('institutes.login'));
     }
 }
