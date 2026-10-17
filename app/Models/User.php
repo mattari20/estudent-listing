@@ -7,6 +7,7 @@ class User extends Authenticatable {
  protected $fillable=['name','email','password','role'];
  protected $hidden=['password','remember_token'];
  protected $casts=['password'=>'hashed'];
+ public function sendPasswordResetNotification($token): void { $this->notify(new InstituteResetPasswordNotification($token)); }
  public function isOperator(): bool { return in_array($this->role,['operator','admin'],true); }
  public function isAdmin(): bool { return $this->role==='admin'; }
 }
