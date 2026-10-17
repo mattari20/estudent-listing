@@ -26,27 +26,15 @@ class InstitutePasswordRecoveryTest extends TestCase
         $this->get(route('institutes.password.request'))
             ->assertOk()
             ->assertSee('Forgot your password?')
-            ->assertSee('Email reset link');
+            ->assertSee('Email recovery unavailable');
     }
 
-    public function test_forgot_password_requests_a_reset_link_for_an_authorized_account(): void
+    public function test_forgot_password_response_explains_manual_recovery_without_email_service(): void
     {
-        User::create([
-            'name' => 'Operator',
-            'email' => 'operator@example.test',
-            'password' => 'Old!StrongPassphrase2026',
-            'role' => 'operator',
-        ]);
-
-        Password::shouldReceive('sendResetLink')
-            ->once()
-            ->with(['email' => 'operator@example.test'])
-            ->andReturn(Password::RESET_LINK_SENT);
-
         $this->post(route('institutes.password.email'), [
             'email' => 'operator@example.test',
         ])->assertRedirect()
-          ->assertSessionHas('status');
+          ->assertSessionHas('status', 'Email recovery is not configured. Contact an authorized administrator for a password reset.');
     }
 
     public function test_non_operator_account_does_not_receive_an_institute_reset_link(): void
@@ -63,7 +51,7 @@ class InstitutePasswordRecoveryTest extends TestCase
         $this->post(route('institutes.password.email'), [
             'email' => 'student@example.test',
         ])->assertRedirect()
-          ->assertSessionHas('status', 'If an authorized account exists for that email address, a password reset link will be sent shortly. Check your inbox and spam folder.');
+          ->assertSessionHas('status', 'Email recovery is not configured. Contact an authorized administrator for a password reset.');
     }
 
     public function test_forgot_password_response_does_not_disclose_unknown_email(): void
@@ -73,7 +61,7 @@ class InstitutePasswordRecoveryTest extends TestCase
         $this->post(route('institutes.password.email'), [
             'email' => 'unknown@example.test',
         ])->assertRedirect()
-          ->assertSessionHas('status', 'If an authorized account exists for that email address, a password reset link will be sent shortly. Check your inbox and spam folder.');
+          ->assertSessionHas('status', 'Email recovery is not configured. Contact an authorized administrator for a password reset.');
 
         Notification::assertNothingSent();
     }

@@ -45,6 +45,37 @@ class InstituteUserController
             ->with('status', 'User account created successfully.');
     }
 
+    public function resetPassword(Request $request, User $user): RedirectResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        abort_if((int) $request->user()->id === (int) $user->id, 422, 'Use Change Password for your own account.');
+        abort_if($user->role === 'admin' && User::query()->where('role', 'admin')->count() < 2, 422, 'The last administrator cannot be reset through this action.');
+
+        $temporaryPassword = Str::password(24, symbols: true);
+        $user->forceFill([
+            'password' => $temporaryPassword,
+            'remember_token' => Str::random(60),
+            'must_change_password' => true,
+        ])->save();
+
+        SecurityAuditEvent::create([
+            'event_type' => 'account.password.admin_reset',
+            'actor_type' => User::class,
+            'actor_id' => $request->user()->id,
+            'subject_type' => User::class,
+            'subject_id' => $user->id,
+            'severity' => 'high',
+            'description' => 'Administrator reset password; temporary password displayed once and password change required.',
+            'request_id' => (string) Str::uuid(),
+        ]);
+
+        $request->session()->regenerate();
+        return redirect()->route('institutes.operations.users.index')
+            ->with('temporary_password_once', $temporaryPassword)
+            ->with('temporary_password_user', $user->email)
+            ->with('status', 'Password reset. Copy the temporary password now; it will not be shown again.');
+    }
+
     public function editPassword(): View
     {
         return view('institutes.account.password');
@@ -64,6 +95,7 @@ class InstituteUserController
             'password' => $validated['password'],
             // Invalidate remembered-login cookies created before this password change.
             'remember_token' => Str::random(60),
+            'must_change_password' => false,
         ])->save();
 
         $request->session()->regenerate();

@@ -100,6 +100,7 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         Route::post('/geography-import', [GeographyImportController::class, 'store'])->name('geography-import.store');
         Route::middleware('institute.admin')->prefix('users')->name('users.')->group(function (): void {
             Route::get('/', [InstituteUserController::class, 'index'])->name('index');
+            Route::post('/{user}/reset-password', [InstituteUserController::class, 'resetPassword'])->name('reset-password');
             Route::get('/create', [InstituteUserController::class, 'create'])->name('create');
             Route::post('/', [InstituteUserController::class, 'store'])->name('store');
         });
