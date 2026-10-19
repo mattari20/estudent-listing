@@ -23,7 +23,7 @@ class InstituteAdminAssistedRecoveryTest extends TestCase
             ->assertSessionHas('temporary_password_user', 'admin2@example.test');
 
         $target->refresh();
-        $this->assertTrue($target->must_change_password);
+        $this->assertDatabaseHas('users', ['id' => $target->id, 'must_change_password' => true]);
         $this->assertFalse(Hash::check('Old!StrongPassphrase2026', $target->password));
     }
 
