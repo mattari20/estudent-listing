@@ -79,3 +79,18 @@ Do not treat password recovery as production-ready until all applicable checks a
 - [ ] Record deployment and smoke-test evidence before marking the feature released.
 
 The latest successful CI run validates the automated test environment only. It does not prove that Hostinger SMTP is configured, the production migration has run, or a live email has been delivered.
+
+
+## Administrator-assisted password recovery
+
+For the initial team of two administrators and two operators, paid SMTP is not required for routine recovery.
+
+- An administrator may reset another account, but may not reset their own password through user management.
+- A reset generates a strong temporary password. It is displayed once for the administrator to copy and share privately; never place it in email, logs, or support tickets.
+- The account is marked as requiring a password change. Operator middleware redirects the account to Change Password until the temporary password is replaced.
+- Reset rotates the remember token and records an audit event.
+- If both administrators are locked out, recovery must use authorized hosting access and a controlled server-side procedure. Never add a public bypass.
+- Keep two independently accessible administrator accounts and test recovery with non-production accounts before release.
+- Email reset is marked unavailable until a transactional mail provider is configured and delivery is tested.
+
+This code change requires applying `2026_10_17_000002_add_must_change_password_to_users_table.php` in each deployed environment after a verified backup.
