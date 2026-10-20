@@ -175,12 +175,21 @@ jobs:
             if ((int) $admin1->id !== (int) $source->id) {
                 $fail('existing Admin_01 record ID changed unexpectedly');
             }
-            if (!Hash::check($password1, $admin1->password) || !Hash::check($password2, $admin2->password)) {
-                $fail('password hash verification failed; inspect the database before retrying');
+            if (!Hash::check($password1, $admin1->password)) {
+                $fail('Admin_01 password hash verification failed; inspect the database before retrying');
+            }
+            if (!$admin2Existing && !Hash::check($password2, $admin2->password)) {
+                $fail('new Admin_02 password hash verification failed; inspect the database before retrying');
+            }
+            if ((bool) $admin1->must_change_password !== true || (bool) $admin2->must_change_password !== true) {
+                $fail('password-change requirement verification failed');
             }
 
             echo "PASS: existing administrator record preserved (ID ".$admin1->id.") and credentials reset.".PHP_EOL;
             echo "PASS: second administrator exists (ID ".$admin2->id.").".PHP_EOL;
-            echo "PASS: both passwords are hashed and both accounts require a private password change.".PHP_EOL;
+            echo $admin2Existing
+                ? "PASS: existing Admin_02 administrator preserved without changing its password.".PHP_EOL
+                : "PASS: new Admin_02 password hash verified.".PHP_EOL;
+            echo "PASS: both accounts require a private password change.".PHP_EOL;
             echo "SUMMARY: administrators=".$adminCount."; passwords, hashes, and database credentials were not printed.".PHP_EOL;
             PHP
