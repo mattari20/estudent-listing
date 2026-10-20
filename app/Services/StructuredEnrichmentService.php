@@ -94,8 +94,8 @@ class StructuredEnrichmentService
             'geography_id' => $geographyId,
             'address' => $payload['address'] ?? null,
             'postal_code' => $payload['postal_code'] ?? null,
-            'latitude' => $payload['latitude'] ?? null,
-            'longitude' => $payload['longitude'] ?? null,
+            'latitude' => ($payload['latitude'] ?? null) === '' ? null : ($payload['latitude'] ?? null),
+            'longitude' => ($payload['longitude'] ?? null) === '' ? null : ($payload['longitude'] ?? null),
         ]);
     }
 
