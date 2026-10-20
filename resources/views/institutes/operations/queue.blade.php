@@ -100,6 +100,9 @@
                         <strong>{{ $batch->source?->name ?? 'Source not recorded' }}</strong>
                         <span class="batch-table__subtext">{{ ucfirst(str_replace('_', ' ', (string) $batch->entity_type)) }} · {{ $batch->total_rows }} total rows</span>
                         <span class="batch-table__subtext">Source type: {{ $batch->source?->source_type ?? $batch->source_type ?? 'Not recorded' }}</span>
+                        @if($batch->notes)
+                            <details class="batch-table__notes"><summary>Batch notes / technical details</summary><span>{{ $batch->notes }}</span></details>
+                        @endif
                         @if($batch->source?->url)
                             <a class="batch-table__source-link" href="{{ $batch->source->url }}" target="_blank" rel="noopener noreferrer">Open source ↗</a>
                         @endif
@@ -200,6 +203,9 @@
 .batch-table__batch-key{display:block;overflow-wrap:anywhere;font-size:.8rem}
 .batch-table__subtext{display:block;margin-top:5px;color:#64748b;font-size:.75rem;line-height:1.45}
 .batch-table__source-link{display:inline-block;margin-top:6px;font-size:.76rem}
+.batch-table__notes{margin-top:7px;color:#475569;font-size:.74rem;max-width:220px}
+.batch-table__notes summary{cursor:pointer;color:#1d4ed8;font-weight:700}
+.batch-table__notes span{display:block;margin-top:5px;overflow-wrap:anywhere;white-space:pre-wrap}
 .batch-table__muted{color:#64748b;font-size:.8rem}
 .batch-table__warning{color:#b45309;font-weight:700}
 .batch-status-badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:.74rem;font-weight:800;white-space:nowrap;background:#e2e8f0;color:#334155}
