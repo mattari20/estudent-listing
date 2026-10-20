@@ -7,3 +7,12 @@
 .import-row-action{margin:18px 0;padding:18px 20px;border:1px solid var(--line);border-radius:16px;background:#fff}.import-row-action--danger{border-left:6px solid #d92d20;background:#fff8f7}.import-row-action h2{margin-top:0}.import-row-action textarea{display:block;width:100%;min-height:90px;margin:8px 0 12px;border:1px solid #d0d5dd;border-radius:10px;padding:10px 12px;font:inherit}.button--danger{background:#d92d20!important;color:#fff}.button--danger:hover{background:#b42318!important}.import-row-card__top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}@media(max-width:620px){.import-row-card__top-actions{width:100%;flex-direction:column;align-items:stretch}.import-row-card__top-actions form,.import-row-card__top-actions .button{width:100%}}
 
 .button--approve{background:#12a150!important;color:#fff}.button--approve:hover{background:#087443!important}
+
+
+/* Accessible show/hide password controls */
+.password-input-wrap{display:flex;align-items:stretch;gap:8px;width:100%}
+.password-input-wrap input{flex:1;min-width:0}
+.password-toggle{flex:0 0 auto;min-height:44px;padding:8px 12px;background:#fff;color:var(--accent-dark);border:1px solid #d0d5dd;font-size:.88rem;font-weight:700;white-space:nowrap}
+.password-toggle:hover{background:#eef4ff;color:var(--accent-dark)}
+.password-toggle:focus-visible{outline:3px solid rgba(23,105,224,.3);outline-offset:2px}
+@media(max-width:420px){.password-input-wrap{flex-wrap:wrap}.password-toggle{width:100%}}

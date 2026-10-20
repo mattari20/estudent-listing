@@ -11,14 +11,23 @@
         @csrf
         @method('PUT')
         <label>Current password
-            <input type="password" name="current_password" required autocomplete="current-password">
+            <span class="password-input-wrap">
+                <input id="current-password" type="password" name="current_password" required autocomplete="current-password" data-password-toggle-input>
+                <button type="button" class="password-toggle" data-password-toggle aria-controls="current-password" aria-pressed="false">Show password</button>
+            </span>
         </label>
         <label>New password
-            <input type="password" name="password" required minlength="12" autocomplete="new-password" aria-describedby="password-policy">
+            <span class="password-input-wrap">
+                <input id="change-password" type="password" name="password" required minlength="12" autocomplete="new-password" data-password-toggle-input aria-describedby="password-policy">
+                <button type="button" class="password-toggle" data-password-toggle aria-controls="change-password" aria-pressed="false">Show password</button>
+            </span>
         </label>
         <p id="password-policy">At least 12 characters, including uppercase and lowercase letters, a number, and a symbol. A longer unique passphrase is recommended.</p>
         <label>Confirm new password
-            <input type="password" name="password_confirmation" required minlength="12" autocomplete="new-password">
+            <span class="password-input-wrap">
+                <input id="change-password-confirmation" type="password" name="password_confirmation" required minlength="12" autocomplete="new-password" data-password-toggle-input>
+                <button type="button" class="password-toggle" data-password-toggle aria-controls="change-password-confirmation" aria-pressed="false">Show password</button>
+            </span>
         </label>
         <button type="submit">Update Password</button>
     </form>
