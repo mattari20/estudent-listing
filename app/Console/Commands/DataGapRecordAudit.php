@@ -132,10 +132,11 @@ class DataGapRecordAudit extends Command
                 $record['has_notes'] = Schema::hasColumn('import_rows', 'notes')
                     && DB::table('import_rows')->where('id', $record['id'])->whereNotNull('notes')->where('notes', '<>', '')->exists();
 
-                $record['has_approved_promotion_decision'] = DB::table('import_promotion_decisions')
-                    ->where('import_row_id', $record['id'])
-                    ->where('decision', 'approved')
-                    ->exists();
+                $record['has_approved_promotion_decision'] = Schema::hasTable('import_promotion_decisions')
+                    && DB::table('import_promotion_decisions')
+                        ->where('import_row_id', $record['id'])
+                        ->where('decision', 'approved')
+                        ->exists();
 
                 $latestEvent = Schema::hasTable('import_promotion_events')
                     ? DB::table('import_promotion_events')
