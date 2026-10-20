@@ -186,7 +186,7 @@ class StructuredEnrichmentTest extends TestCase
             'status' => 'active',
         ], $institution);
 
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('This campus already exists in canonical data');
 
         try {
