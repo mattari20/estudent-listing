@@ -149,5 +149,55 @@ class StructuredEnrichmentTest extends TestCase
         $campus = app(StructuredEnrichmentService::class)->promote($row);
 
         $this->assertSame($geography->id, $campus->geography_id);
+        $this->assertSame($institution->id, $campus->institution_id);
+        $this->assertSame('Valid Campus', $campus->name);
+        $this->assertSame('active', $campus->status);
+        $this->assertDatabaseHas('campuses', [
+            'id' => $campus->id,
+            'institution_id' => $institution->id,
+            'geography_id' => $geography->id,
+            'slug' => 'valid-campus',
+            'status' => 'active',
+        ]);
+        $this->assertDatabaseHas('import_rows', [
+            'id' => $row->id,
+            'status' => 'promoted',
+            'canonical_subject_type' => \\App\\Models\\Campus::class,
+            'canonical_subject_id' => $campus->id,
+        ]);
+    }
+
+    public function test_campus_promotion_does_not_overwrite_an_existing_canonical_campus(): void
+    {
+        $institution = Institution::create([
+            'name' => 'Duplicate Campus University',
+            'slug' => 'duplicate-campus-university',
+            'status' => 'active',
+        ]);
+        $existing = \\App\\Models\\Campus::create([
+            'institution_id' => $institution->id,
+            'name' => 'Existing Main Campus',
+            'slug' => 'main-campus',
+            'status' => 'active',
+        ]);
+        $row = $this->row('campus', [
+            'name' => 'Different Name From Import',
+            'slug' => 'main-campus',
+            'status' => 'active',
+        ], $institution);
+
+        $this->expectException(\\RuntimeException::class);
+        $this->expectExceptionMessage('This campus already exists in canonical data');
+
+        try {
+            app(StructuredEnrichmentService::class)->promote($row);
+        } finally {
+            $this->assertDatabaseCount('campuses', 1);
+            $this->assertDatabaseHas('campuses', [
+                'id' => $existing->id,
+                'name' => 'Existing Main Campus',
+                'slug' => 'main-campus',
+            ]);
+        }
     }
 }
