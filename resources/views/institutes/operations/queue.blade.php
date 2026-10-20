@@ -29,49 +29,53 @@
         <div>
             <p class="batch-management__eyebrow">IMPORT CONTROL CENTRE</p>
             <h2 id="batch-management-title">Import batches</h2>
-            <p class="batch-management__intro">Search, compare and audit every import batch. Approval and publication are tracked separately.</p>
+            <p class="batch-management__intro">A single view of source evidence, approval status and publishing outcomes.</p>
         </div>
         <div class="batch-management__summary">
-            <span>{{ $batches->total() }} batches</span>
-            <span>{{ $batches->count() }} on this page</span>
+            <span>{{ $batches->total() }} total batches</span>
+            <span>{{ $batches->count() }} shown</span>
         </div>
     </div>
+
     <div class="batch-management__filters" role="search" aria-label="Filter import batches">
-        <label class="batch-management__search-label" for="batch-search">Search batches</label>
-        <input id="batch-search" type="search" placeholder="Search source, parent, batch ID…" autocomplete="off">
-        <label for="batch-status-filter">Status</label>
-        <select id="batch-status-filter">
-            <option value="">All statuses</option>
-            <option value="validated">Validated</option>
-            <option value="failed">Failed</option>
-            <option value="pending">Pending review</option>
-            <option value="approved">Approved</option>
-            <option value="promoted">Promoted</option>
-            <option value="rejected">Rejected</option>
-            <option value="conflict">Conflict</option>
-        </select>
-        <button type="button" id="batch-filter-reset" class="button button--ghost">Clear filters</button>
+        <div class="batch-management__filter-field">
+            <label for="batch-search">Search</label>
+            <input id="batch-search" type="search" placeholder="Batch ID, source, parent institution…" autocomplete="off">
+        </div>
+        <div class="batch-management__filter-field">
+            <label for="batch-status-filter">Show status</label>
+            <select id="batch-status-filter">
+                <option value="">All statuses</option>
+                <option value="validated">Validated</option>
+                <option value="failed">Failed</option>
+                <option value="pending">Pending review</option>
+                <option value="approved">Approved</option>
+                <option value="promoted">Promoted</option>
+                <option value="rejected">Rejected</option>
+                <option value="conflict">Conflict</option>
+            </select>
+        </div>
+        <button type="button" id="batch-filter-reset" class="batch-filter-reset">Reset</button>
     </div>
+
     <div class="batch-table-wrap">
         <table class="batch-table">
-            <caption>Import batches, review status, timestamps and row-level outcomes</caption>
+            <caption>Batch-level status and row-level decisions. Approval and promotion are separate steps.</caption>
             <thead>
                 <tr>
-                    <th scope="col">Batch / created</th>
-                    <th scope="col">Source &amp; entity</th>
-                    <th scope="col">Parent institution</th>
-                    <th scope="col">Batch status</th>
-                    <th scope="col">Review progress</th>
+                    <th scope="col">Batch &amp; source</th>
+                    <th scope="col">Entity / parent</th>
+                    <th scope="col">Review status</th>
                     <th scope="col">Row outcomes</th>
                     <th scope="col">Last activity</th>
-                    <th scope="col">Actions</th>
+                    <th scope="col">Action</th>
                 </tr>
             </thead>
-            <tbody id="batch-table-body">
+            <tbody>
             @forelse($batches as $batch)
                 @php
                     $batchStatus = strtolower((string) $batch->status);
-                    $pendingCount = max(0, (int) $batch->pending_rows_count - (int) $batch->approved_rows_count);
+                    $pendingCount = (int) $batch->pending_rows_count;
                     $approvedCount = (int) $batch->approved_rows_count;
                     $promotedCount = (int) $batch->promoted_rows_count;
                     $rejectedCount = (int) $batch->rejected_rows_count;
@@ -91,49 +95,41 @@
                     if ($conflictCount > 0) $batchSearchStatuses[] = 'conflict';
                 @endphp
                 <tr class="batch-table__row" data-search="{{ $filterText }}" data-statuses="{{ implode(' ', $batchSearchStatuses) }}">
-                    <td data-label="Batch / created">
-                        <strong class="batch-table__batch-key">#{{ $batch->batch_key }}</strong>
-                        <span class="batch-table__subtext">{{ $createdAt ? $createdAt->timezone('Asia/Karachi')->format('d M Y, h:i A') . ' PKT' : 'Creation time unavailable' }}</span>
-                        <span class="batch-table__subtext">ID: {{ $batch->id }}</span>
-                    </td>
-                    <td data-label="Source & entity">
-                        <strong>{{ $batch->source?->name ?? 'Source not recorded' }}</strong>
-                        <span class="batch-table__subtext">{{ ucfirst(str_replace('_', ' ', (string) $batch->entity_type)) }} · {{ $batch->total_rows }} total rows</span>
+                    <td data-label="Batch & source">
+                        <div class="batch-table__batch-heading">
+                            <strong>{{ $batch->batch_key }}</strong>
+                            <span class="batch-status-badge batch-status-badge--{{ preg_replace('/[^a-z0-9_-]/', '', $batchStatus) }}">{{ ucfirst(str_replace('_', ' ', $batchStatus)) }}</span>
+                        </div>
+                        <span class="batch-table__subtext">Batch ID: {{ $batch->id }} · {{ $batch->total_rows }} rows</span>
+                        <strong class="batch-table__source">{{ $batch->source?->name ?? 'Source not recorded' }}</strong>
                         <span class="batch-table__subtext">Source type: {{ $batch->source?->source_type ?? $batch->source_type ?? 'Not recorded' }}</span>
-                        @if($batch->notes)
-                            <details class="batch-table__notes"><summary>Batch notes / technical details</summary><span>{{ $batch->notes }}</span></details>
-                        @endif
                         @if($batch->source?->url)
-                            <a class="batch-table__source-link" href="{{ $batch->source->url }}" target="_blank" rel="noopener noreferrer">Open source ↗</a>
+                            <a class="batch-table__source-link" href="{{ $batch->source->url }}" target="_blank" rel="noopener noreferrer">Open official source ↗</a>
+                        @endif
+                        @if($batch->notes)
+                            <details class="batch-table__notes"><summary>Technical notes</summary><span>{{ $batch->notes }}</span></details>
                         @endif
                     </td>
-                    <td data-label="Parent institution">
+                    <td data-label="Entity / parent">
+                        <span class="batch-table__entity">{{ ucfirst(str_replace('_', ' ', (string) $batch->entity_type)) }}</span>
                         @if($batch->entity_type === 'institution')
-                            <span class="batch-table__muted">New institution import</span>
+                            <span class="batch-table__subtext">New institution import</span>
                         @elseif($parentInstitution)
-                            <a href="{{ route('institutes.show',$parentInstitution) }}">{{ $parentInstitution->name }}</a>
+                            <a class="batch-table__parent" href="{{ route('institutes.show',$parentInstitution) }}">{{ $parentInstitution->name }}</a>
                             <span class="batch-table__subtext">Institution ID: {{ $parentInstitution->id }}</span>
                         @else
-                            <span class="batch-table__muted">Parent not resolved</span>
+                            <span class="batch-table__subtext batch-table__warning">Parent not resolved</span>
                         @endif
                     </td>
-                    <td data-label="Batch status">
-                        <span class="batch-status-badge batch-status-badge--{{ preg_replace('/[^a-z0-9_-]/', '', $batchStatus) }}">{{ ucfirst(str_replace('_', ' ', $batchStatus)) }}</span>
-                        @if($batchStatus === 'failed')
-                            <span class="batch-table__subtext batch-table__warning">Import failed — inspect details</span>
+                    <td data-label="Review status">
+                        <div class="batch-review-count"><span>Pending</span><strong>{{ $pendingCount }}</strong></div>
+                        <div class="batch-review-count"><span>Approved</span><strong>{{ $approvedCount }}</strong></div>
+                        <div class="batch-review-count"><span>Promoted</span><strong>{{ $promotedCount }}</strong></div>
+                        @if($batch->total_rows > 0)
+                            <div class="batch-progress__track" role="img" aria-label="{{ $promotedCount }} of {{ $batch->total_rows }} rows promoted">
+                                <span style="width: {{ min(100, round(($promotedCount / max(1, (int) $batch->total_rows)) * 100)) }}%"></span>
+                            </div>
                         @endif
-                    </td>
-                    <td data-label="Review progress">
-                        <div class="batch-progress">
-                            <div><span>Pending</span><strong>{{ $pendingCount }}</strong></div>
-                            <div><span>Approved</span><strong>{{ $approvedCount }}</strong></div>
-                            <div><span>Promoted</span><strong>{{ $promotedCount }}</strong></div>
-                            @if($batch->total_rows > 0)
-                                <div class="batch-progress__track" role="img" aria-label="{{ $promotedCount }} of {{ $batch->total_rows }} rows promoted">
-                                    <span style="width: {{ min(100, round(($promotedCount / max(1, (int) $batch->total_rows)) * 100)) }}%"></span>
-                                </div>
-                            @endif
-                        </div>
                     </td>
                     <td data-label="Row outcomes">
                         <div class="batch-outcomes">
@@ -150,88 +146,92 @@
                             <span class="batch-table__subtext">Completed {{ $batch->completed_at->timezone('Asia/Karachi')->format('d M Y, h:i A') }} PKT</span>
                         @endif
                     </td>
-                    <td data-label="Actions">
+                    <td data-label="Action">
                         <div class="batch-table__actions">
-                            <a class="button button--ghost" href="{{ route('institutes.operations.queue',['batch_id'=>$batch->id]) }}">Review batch</a>
+                            <a class="batch-action-link" href="{{ route('institutes.operations.queue',['batch_id'=>$batch->id]) }}">Review batch <span aria-hidden="true">→</span></a>
                             @if($batch->entity_type === 'institution' && $pendingCount > 0)
                                 <form method="post" action="{{ route('institutes.operations.imports.approve-and-promote-new',$batch) }}" onsubmit="return confirm('Approve and promote all unmatched new institutions in this batch? Rows with identity matches or conflicts will remain for individual review.');">
                                     @csrf
                                     <input type="hidden" name="reason" value="Bulk operator approval of unmatched new institutions from this import batch.">
-                                    <button type="submit" class="button--approve">Approve &amp; promote eligible</button>
+                                    <button type="submit" class="batch-action-approve">Approve eligible</button>
                                 </form>
                             @endif
                         </div>
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="8" class="batch-table__empty">No import batches have been recorded.</td></tr>
+                <tr><td colspan="6" class="batch-table__empty">No import batches have been recorded.</td></tr>
             @endforelse
             </tbody>
         </table>
-        <p id="batch-no-results" class="batch-table__empty" hidden>No batches match these filters. Clear filters to see all batches.</p>
+        <p id="batch-no-results" class="batch-table__empty" hidden>No batches match these filters. Reset filters to see all batches.</p>
     </div>
     <div class="batch-management__footer">
-        <span>All timestamps shown in Pakistan Standard Time (PKT).</span>
-        <span>Approval does not publish data; promotion is tracked separately.</span>
+        <span>Times shown in Pakistan Standard Time (PKT).</span>
+        <span>Approval is not publication; promoted rows are tracked separately.</span>
     </div>
     {{ $batches->links() }}
 </section>
 
 <style>
-.batch-management{margin:24px 0 32px;color:var(--text-color,#172033)}
+.batch-management{margin:24px 0 32px;color:#172033}
 .batch-management__heading{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:18px}
-.batch-management__eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.12em;color:#2563eb;margin:0 0 6px}
-.batch-management__heading h2{margin:0 0 6px}
-.batch-management__intro{margin:0;color:#64748b;max-width:720px}
-.batch-management__summary{display:flex;gap:8px;flex-wrap:wrap}
-.batch-management__summary span{background:#eff6ff;border:1px solid #dbeafe;border-radius:999px;padding:7px 11px;font-size:.8rem;font-weight:700;color:#1d4ed8;white-space:nowrap}
-.batch-management__filters{display:grid;grid-template-columns:minmax(220px,1fr) minmax(160px,220px) auto;gap:10px;align-items:end;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:14px}
-.batch-management__filters label{font-size:.8rem;font-weight:700;color:#334155}
-.batch-management__search-label{grid-column:1}
-.batch-management__filters input,.batch-management__filters select{width:100%;min-width:0;min-height:42px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:8px 10px;color:#0f172a}
-.batch-management__filters input{grid-column:1;grid-row:2}
-.batch-management__filters label[for="batch-status-filter"]{grid-column:2;grid-row:1}
-.batch-management__filters select{grid-column:2;grid-row:2}
-.batch-management__filters button{grid-column:3;grid-row:2;min-height:42px}
-.batch-table-wrap{overflow-x:auto;border:1px solid #dbe2ea;border-radius:14px;background:#fff}
-.batch-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px;font-size:.86rem}
-.batch-table caption{padding:12px 16px;text-align:left;color:#64748b;background:#f8fafc;font-size:.78rem}
-.batch-table th{position:sticky;top:0;background:#eef3f9;color:#334155;text-align:left;font-size:.72rem;letter-spacing:.035em;text-transform:uppercase;padding:13px 12px;border-top:1px solid #dbe2ea;border-bottom:1px solid #dbe2ea;white-space:nowrap}
-.batch-table td{vertical-align:top;padding:14px 12px;border-bottom:1px solid #edf0f4;max-width:260px}
+.batch-management__eyebrow{font-size:.7rem;font-weight:800;letter-spacing:.13em;color:#2563eb;margin:0 0 7px}
+.batch-management__heading h2{margin:0 0 6px;font-size:1.35rem}
+.batch-management__intro{margin:0;color:#64748b;max-width:680px;font-size:.9rem}
+.batch-management__summary{display:flex;gap:7px;flex-wrap:wrap}
+.batch-management__summary span{background:#eff6ff;border:1px solid #dbeafe;border-radius:8px;padding:7px 10px;font-size:.76rem;font-weight:750;color:#1d4ed8;white-space:nowrap}
+.batch-management__filters{display:grid;grid-template-columns:minmax(220px,1fr) minmax(170px,240px) auto;gap:12px;align-items:end;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:13px;margin-bottom:14px}
+.batch-management__filter-field{display:grid;gap:6px}
+.batch-management__filter-field label{font-size:.76rem;font-weight:750;color:#334155}
+.batch-management__filter-field input,.batch-management__filter-field select{width:100%;min-width:0;min-height:40px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:8px 10px;color:#0f172a;font:inherit;font-size:.82rem}
+.batch-filter-reset{min-height:40px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:8px 13px;color:#334155;font-weight:700;cursor:pointer}
+.batch-filter-reset:hover{background:#f1f5f9}
+.batch-table-wrap{overflow-x:auto;border:1px solid #dbe2ea;border-radius:12px;background:#fff;box-shadow:0 3px 12px rgba(15,23,42,.035)}
+.batch-table{border-collapse:separate;border-spacing:0;width:100%;min-width:820px;font-size:.79rem}
+.batch-table caption{padding:11px 14px;text-align:left;color:#64748b;background:#f8fafc;font-size:.74rem;border-bottom:1px solid #e2e8f0}
+.batch-table th{background:#eef3f9;color:#334155;text-align:left;font-size:.68rem;letter-spacing:.055em;text-transform:uppercase;padding:12px 11px;border-bottom:1px solid #dbe2ea;white-space:nowrap}
+.batch-table td{vertical-align:top;padding:13px 11px;border-bottom:1px solid #edf0f4;max-width:240px}
 .batch-table tbody tr:last-child td{border-bottom:0}
 .batch-table tbody tr:hover{background:#f8fbff}
-.batch-table__batch-key{display:block;overflow-wrap:anywhere;font-size:.8rem}
-.batch-table__subtext{display:block;margin-top:5px;color:#64748b;font-size:.75rem;line-height:1.45}
-.batch-table__source-link{display:inline-block;margin-top:6px;font-size:.76rem}
-.batch-table__notes{margin-top:7px;color:#475569;font-size:.74rem;max-width:220px}
+.batch-table__batch-heading{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.batch-table__batch-heading>strong{overflow-wrap:anywhere;font-size:.8rem}
+.batch-table__source{display:block;margin-top:9px;font-size:.82rem;line-height:1.35}
+.batch-table__subtext{display:block;margin-top:5px;color:#64748b;font-size:.72rem;line-height:1.45}
+.batch-table__source-link{display:inline-block;margin-top:6px;font-size:.73rem;font-weight:700}
+.batch-table__entity{display:inline-block;background:#f1f5f9;border-radius:5px;padding:4px 6px;font-size:.72rem;font-weight:750;color:#475569}
+.batch-table__parent{display:block;margin-top:8px;font-weight:700;line-height:1.4}
+.batch-table__warning{color:#b45309;font-weight:700}
+.batch-table__notes{margin-top:7px;color:#475569;font-size:.72rem}
 .batch-table__notes summary{cursor:pointer;color:#1d4ed8;font-weight:700}
 .batch-table__notes span{display:block;margin-top:5px;overflow-wrap:anywhere;white-space:pre-wrap}
-.batch-table__muted{color:#64748b;font-size:.8rem}
-.batch-table__warning{color:#b45309;font-weight:700}
-.batch-status-badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:.74rem;font-weight:800;white-space:nowrap;background:#e2e8f0;color:#334155}
+.batch-status-badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:.66rem;font-weight:800;white-space:nowrap;background:#e2e8f0;color:#334155}
 .batch-status-badge--validated,.batch-status-badge--completed{background:#dcfce7;color:#166534}
 .batch-status-badge--failed,.batch-status-badge--error{background:#fee2e2;color:#991b1b}
 .batch-status-badge--pending,.batch-status-badge--waiting,.batch-status-badge--processing{background:#fef3c7;color:#92400e}
 .batch-status-badge--approved{background:#dbeafe;color:#1d4ed8}
 .batch-status-badge--promoted{background:#d1fae5;color:#065f46}
 .batch-status-badge--rejected{background:#fee2e2;color:#991b1b}
-.batch-progress{min-width:110px}
-.batch-progress>div:not(.batch-progress__track){display:flex;justify-content:space-between;gap:12px;margin:0 0 5px;font-size:.76rem}
-.batch-progress>div span{color:#64748b}
-.batch-progress__track{height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:9px}
+.batch-review-count{display:flex;justify-content:space-between;gap:14px;margin:0 0 5px;font-size:.75rem}
+.batch-review-count span{color:#64748b}
+.batch-review-count strong{font-variant-numeric:tabular-nums}
+.batch-progress__track{height:5px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:8px}
 .batch-progress__track span{display:block;height:100%;background:#059669;border-radius:99px}
-.batch-outcomes{display:flex;flex-wrap:wrap;gap:5px;min-width:130px}
-.batch-outcome{display:inline-flex;gap:5px;align-items:center;border-radius:6px;padding:4px 6px;font-size:.7rem;white-space:nowrap;background:#f1f5f9;color:#475569}
+.batch-outcomes{display:flex;flex-wrap:wrap;gap:5px;min-width:110px}
+.batch-outcome{display:inline-flex;gap:4px;align-items:center;border-radius:5px;padding:4px 6px;font-size:.66rem;white-space:nowrap;background:#f1f5f9;color:#475569}
 .batch-outcome--promoted{background:#dcfce7;color:#166534}
 .batch-outcome--rejected{background:#fee2e2;color:#991b1b}
 .batch-outcome--conflict{background:#ffedd5;color:#9a3412}
 .batch-outcome--invalid{background:#fef3c7;color:#92400e}
-.batch-table__actions{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:125px}
-.batch-table__actions .button,.batch-table__actions button{font-size:.76rem;white-space:normal;line-height:1.35}
+.batch-table__actions{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:100px}
+.batch-action-link{display:inline-flex;justify-content:space-between;gap:8px;align-items:center;border:1px solid #bfdbfe;border-radius:7px;padding:7px 8px;background:#eff6ff;color:#1d4ed8;text-decoration:none;font-size:.74rem;font-weight:800;white-space:nowrap}
+.batch-action-link:hover{background:#dbeafe}
 .batch-table__actions form{margin:0}
+.batch-action-approve{width:100%;border:1px solid #047857;border-radius:7px;background:#047857;color:#fff;padding:7px 8px;font-size:.72rem;font-weight:800;cursor:pointer}
+.batch-action-approve:hover{background:#065f46}
 .batch-table__empty{padding:22px!important;text-align:center;color:#64748b}
-.batch-management__footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 3px;color:#64748b;font-size:.76rem}
-@media(max-width:760px){.batch-management__heading{align-items:flex-start;flex-direction:column}.batch-management__filters{grid-template-columns:1fr}.batch-management__filters label,.batch-management__filters input,.batch-management__filters select,.batch-management__filters button{grid-column:1;grid-row:auto}.batch-table{min-width:1050px}}
+.batch-management__footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 3px;color:#64748b;font-size:.72rem}
+@media(max-width:760px){.batch-management__heading{align-items:flex-start;flex-direction:column}.batch-management__filters{grid-template-columns:1fr}.batch-table{min-width:760px}}
 </style>
 
 <script>
@@ -263,8 +263,6 @@
     });
 })();
 </script>
-{{ $batches->links() }}
-
 @if($qualityReport)<h2>Import quality report</h2><div class="filter-grid">@foreach($qualityReport as $key=>$value)<div class="institute-card"><strong>{{ ucfirst(str_replace('_',' ',$key)) }}</strong><div>{{ is_float($value) ? number_format($value*100,2).'%' : $value }}</div></div>@endforeach</div>@endif
 @if($summary)<h2>Batch reconciliation</h2><div class="filter-grid">@foreach($summary as $key=>$value)<div class="institute-card"><strong>{{ ucfirst(str_replace('_',' ',$key)) }}</strong><div>{{ $value }}</div></div>@endforeach</div>@endif
 
