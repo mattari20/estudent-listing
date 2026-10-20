@@ -195,7 +195,7 @@ class StructuredEnrichmentTest extends TestCase
         $this->assertDatabaseHas('import_rows', [
             'id' => $row->id,
             'status' => 'promoted',
-            'canonical_subject_type' => \\App\\Models\\Campus::class,
+            'canonical_subject_type' => \App\Models\Campus::class,
             'canonical_subject_id' => $campus->id,
         ]);
     }
