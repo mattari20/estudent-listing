@@ -101,22 +101,62 @@ class DataGapRecordAudit extends Command
             ];
 
             $rowColumns = array_values(array_filter(
-                ['id', 'import_batch_id', 'row_number', 'status', 'match_state', 'canonical_subject_type', 'canonical_subject_id', 'parent_subject_type', 'parent_subject_id'],
+                ['id', 'import_batch_id', 'row_number', 'status', 'match_state', 'canonical_subject_type', 'canonical_subject_id', 'parent_subject_type', 'parent_subject_id', 'validation_errors'],
                 fn (string $column): bool => Schema::hasColumn('import_rows', $column),
             ));
 
             $rows = DB::table('import_rows')
-                ->select($rowColumns)
-                ->orderBy('import_batch_id')
-                ->orderBy('row_number')
+                ->leftJoin('import_batches', 'import_batches.id', '=', 'import_rows.import_batch_id')
+                ->select(array_map(fn (string $column): string => 'import_rows.'.$column, $rowColumns))
+                ->addSelect('import_batches.entity_type as entity_type')
+                ->orderBy('import_rows.import_batch_id')
+                ->orderBy('import_rows.row_number')
                 ->get();
+
+            $rowRecords = $rows->map(function ($row): array {
+                $record = (array) $row;
+                $validationErrors = $record['validation_errors'] ?? null;
+                unset($record['validation_errors']);
+
+                if (is_string($validationErrors)) {
+                    $validationErrors = json_decode($validationErrors, true);
+                }
+
+                $record['validation_error_count'] = is_array($validationErrors)
+                    ? array_sum(array_map(
+                        fn ($messages): int => is_array($messages) ? count($messages) : (is_string($messages) && trim($messages) !== '' ? 1 : 0),
+                        $validationErrors,
+                    ))
+                    : 0;
+                $record['validation_error_fields'] = is_array($validationErrors) ? array_keys($validationErrors) : [];
+                $record['has_notes'] = Schema::hasColumn('import_rows', 'notes')
+                    && DB::table('import_rows')->where('id', $record['id'])->whereNotNull('notes')->where('notes', '<>', '')->exists();
+
+                $record['has_approved_promotion_decision'] = DB::table('import_promotion_decisions')
+                    ->where('import_row_id', $record['id'])
+                    ->where('decision', 'approved')
+                    ->exists();
+
+                $latestEvent = Schema::hasTable('import_promotion_events')
+                    ? DB::table('import_promotion_events')
+                        ->where('import_row_id', $record['id'])
+                        ->orderByDesc('occurred_at')
+                        ->orderByDesc('id')
+                        ->first(['event_type', 'metadata'])
+                    : null;
+                $record['latest_promotion_event_type'] = $latestEvent->event_type ?? null;
+                $metadata = isset($latestEvent->metadata) ? json_decode((string) $latestEvent->metadata, true) : [];
+                $record['latest_promotion_error_class'] = is_array($metadata) ? ($metadata['error_class'] ?? null) : null;
+
+                return $record;
+            })->all();
 
             $report['sections']['import_rows'] = [
                 'total' => $rows->count(),
                 'by_status' => $rows->groupBy(fn ($row) => (string) ($row->status ?? 'null'))
                     ->map(fn ($items) => $items->count())->all(),
-                'records' => $rows->map(fn ($row): array => (array) $row)->all(),
-                'excluded_fields' => ['payload', 'normalized_payload', 'notes', 'full validation error text'],
+                'records' => $rowRecords,
+                'excluded_fields' => ['payload', 'normalized_payload', 'notes', 'full validation error text', 'full promotion event reason'],
             ];
 
             $report['sections']['campuses'] = [
