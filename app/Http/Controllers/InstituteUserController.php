@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\\Http\\Controllers;
 
-use App\Models\SecurityAuditEvent;
-use App\Models\User;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password;
-use Illuminate\View\View;
+use App\\Models\\SecurityAuditEvent;
+use App\\Models\\User;
+use Illuminate\\Http\\RedirectResponse;
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Str;
+use Illuminate\\Validation\\Rules\\Password;
+use Illuminate\\View\\View;
 
 class InstituteUserController
 {
@@ -30,19 +30,38 @@ class InstituteUserController
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'role' => ['required', 'in:admin,operator'],
-            'password' => ['required', 'string', Password::min(12)->letters()->mixedCase()->numbers()->symbols(), 'confirmed'],
         ]);
 
-        User::create([
+        // Never derive credentials from usernames or email addresses.
+        // Generate a unique high-entropy password and require a change at first login.
+        $temporaryPassword = Str::password(24, symbols: true);
+
+        $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'role' => $validated['role'],
-            'password' => $validated['password'],
+            'password' => $temporaryPassword,
+            'must_change_password' => true,
         ]);
+
+        SecurityAuditEvent::create([
+            'event_type' => 'account.created',
+            'actor_type' => User::class,
+            'actor_id' => $request->user()->id,
+            'subject_type' => User::class,
+            'subject_id' => $user->id,
+            'severity' => 'high',
+            'description' => 'Administrator created account with an automatically generated temporary password; password change required.',
+            'request_id' => (string) Str::uuid(),
+        ]);
+
+        $request->session()->regenerate();
 
         return redirect()
             ->route('institutes.operations.users.index')
-            ->with('status', 'User account created successfully.');
+            ->with('temporary_password_once', $temporaryPassword)
+            ->with('temporary_password_user', $user->email)
+            ->with('status', 'User account created. Copy the temporary password now; it will not be shown again.');
     }
 
     public function resetPassword(Request $request, User $user): RedirectResponse
@@ -93,7 +112,6 @@ class InstituteUserController
 
         $request->user()->forceFill([
             'password' => $validated['password'],
-            // Invalidate remembered-login cookies created before this password change.
             'remember_token' => Str::random(60),
             'must_change_password' => false,
         ])->save();
