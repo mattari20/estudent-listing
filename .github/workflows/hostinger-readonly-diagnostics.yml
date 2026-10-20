@@ -61,9 +61,9 @@ jobs:
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
-            $app->make(\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-            $rows = \Illuminate\\Support\\Facades\\DB::table('import_rows')
+            $rows = \Illuminate\Support\Facades\DB::table('import_rows')
                 ->join('import_batches', 'import_batches.id', '=', 'import_rows.import_batch_id')
                 ->where('import_batches.entity_type', 'campus')
                 ->orderBy('import_rows.import_batch_id')
@@ -98,12 +98,12 @@ jobs:
                         fn ($messages) => is_array($messages) ? count($messages) : (is_string($messages) && trim($messages) !== '' ? 1 : 0),
                         $errors,
                     )) : 0,
-                    'has_approved_promotion_decision' => \Illuminate\\Support\\Facades\\Schema::hasTable('import_promotion_decisions')
-                        && \Illuminate\\Support\\Facades\\DB::table('import_promotion_decisions')
+                    'has_approved_promotion_decision' => \Illuminate\Support\Facades\Schema::hasTable('import_promotion_decisions')
+                        && \Illuminate\Support\Facades\DB::table('import_promotion_decisions')
                             ->where('import_row_id', $row->id)->where('decision', 'approved')->exists(),
                 ];
-                if (\Illuminate\\Support\\Facades\\Schema::hasTable('import_promotion_events')) {
-                    $event = \Illuminate\\Support\\Facades\\DB::table('import_promotion_events')
+                if (\Illuminate\Support\Facades\Schema::hasTable('import_promotion_events')) {
+                    $event = \Illuminate\Support\Facades\DB::table('import_promotion_events')
                         ->where('import_row_id', $row->id)->orderByDesc('occurred_at')->orderByDesc('id')
                         ->first(['event_type', 'metadata']);
                     $metadata = isset($event->metadata) ? json_decode((string) $event->metadata, true) : [];
