@@ -56,5 +56,61 @@ jobs:
             php artisan institutes:data-gap-report --json
             echo "=== Record-level audit (read-only) ==="
             php artisan institutes:data-gap-record-audit --json
-            echo "=== Geography seed preflight (read-only) ==="
-            php artisan institutes:geography-seed-preflight --json
+            echo "=== Campus import row trace (read-only; no payloads or notes) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+            $rows = \Illuminate\Support\Facades\DB::table('import_rows')
+                ->join('import_batches', 'import_batches.id', '=', 'import_rows.import_batch_id')
+                ->where('import_batches.entity_type', 'campus')
+                ->orderBy('import_rows.import_batch_id')
+                ->orderBy('import_rows.row_number')
+                ->get([
+                    'import_rows.id',
+                    'import_rows.import_batch_id',
+                    'import_rows.row_number',
+                    'import_rows.status',
+                    'import_rows.match_state',
+                    'import_rows.parent_subject_type',
+                    'import_rows.parent_subject_id',
+                    'import_rows.validation_errors',
+                ]);
+
+            $report = ['check' => 'campus_import_row_trace', 'mutation_performed' => false, 'rows' => []];
+            foreach ($rows as $row) {
+                $errors = $row->validation_errors;
+                if (is_string($errors)) {
+                    $errors = json_decode($errors, true);
+                }
+                $reportRow = [
+                    'id' => (int) $row->id,
+                    'batch_id' => (int) $row->import_batch_id,
+                    'row_number' => (int) $row->row_number,
+                    'status' => $row->status,
+                    'match_state' => $row->match_state,
+                    'parent_subject_type' => $row->parent_subject_type,
+                    'parent_subject_id' => $row->parent_subject_id === null ? null : (int) $row->parent_subject_id,
+                    'validation_error_fields' => is_array($errors) ? array_keys($errors) : [],
+                    'validation_error_count' => is_array($errors) ? array_sum(array_map(
+                        fn ($messages) => is_array($messages) ? count($messages) : (is_string($messages) && trim($messages) !== '' ? 1 : 0),
+                        $errors,
+                    )) : 0,
+                    'has_approved_promotion_decision' => \Illuminate\Support\Facades\Schema::hasTable('import_promotion_decisions')
+                        && \Illuminate\Support\Facades\DB::table('import_promotion_decisions')
+                            ->where('import_row_id', $row->id)->where('decision', 'approved')->exists(),
+                ];
+                if (\Illuminate\Support\Facades\Schema::hasTable('import_promotion_events')) {
+                    $event = \Illuminate\Support\Facades\DB::table('import_promotion_events')
+                        ->where('import_row_id', $row->id)->orderByDesc('occurred_at')->orderByDesc('id')
+                        ->first(['event_type', 'metadata']);
+                    $metadata = isset($event->metadata) ? json_decode((string) $event->metadata, true) : [];
+                    $reportRow['latest_promotion_event_type'] = $event->event_type ?? null;
+                    $reportRow['latest_promotion_error_class'] = is_array($metadata) ? ($metadata['error_class'] ?? null) : null;
+                }
+                $report['rows'][] = $reportRow;
+            }
+            echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
