@@ -167,6 +167,39 @@ class StructuredEnrichmentTest extends TestCase
         ]);
     }
 
+    public function test_campus_promotion_normalizes_empty_optional_coordinates_to_null(): void
+    {
+        $institution = Institution::create([
+            'name' => 'Empty Coordinates University',
+            'slug' => 'empty-coordinates-university',
+            'status' => 'active',
+        ]);
+        $row = $this->row('campus', [
+            'name' => 'Coordinate Normalization Campus',
+            'slug' => 'coordinate-normalization-campus',
+            'campus_type' => 'main',
+            'latitude' => '',
+            'longitude' => '',
+        ], $institution);
+
+        $campus = app(StructuredEnrichmentService::class)->promote($row);
+
+        $this->assertNull($campus->latitude);
+        $this->assertNull($campus->longitude);
+        $this->assertDatabaseHas('campuses', [
+            'id' => $campus->id,
+            'institution_id' => $institution->id,
+            'latitude' => null,
+            'longitude' => null,
+        ]);
+        $this->assertDatabaseHas('import_rows', [
+            'id' => $row->id,
+            'status' => 'promoted',
+            'canonical_subject_type' => \\App\\Models\\Campus::class,
+            'canonical_subject_id' => $campus->id,
+        ]);
+    }
+
     public function test_campus_promotion_does_not_overwrite_an_existing_canonical_campus(): void
     {
         $institution = Institution::create([
