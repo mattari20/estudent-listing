@@ -162,7 +162,7 @@ class StructuredEnrichmentTest extends TestCase
         $this->assertDatabaseHas('import_rows', [
             'id' => $row->id,
             'status' => 'promoted',
-            'canonical_subject_type' => \\App\\Models\\Campus::class,
+            'canonical_subject_type' => \App\Models\Campus::class,
             'canonical_subject_id' => $campus->id,
         ]);
     }
@@ -174,7 +174,7 @@ class StructuredEnrichmentTest extends TestCase
             'slug' => 'duplicate-campus-university',
             'status' => 'active',
         ]);
-        $existing = \\App\\Models\\Campus::create([
+        $existing = \App\Models\Campus::create([
             'institution_id' => $institution->id,
             'name' => 'Existing Main Campus',
             'slug' => 'main-campus',
