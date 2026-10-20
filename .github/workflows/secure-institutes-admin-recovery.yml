@@ -1,197 +1,122 @@
-name: Secure Institutes Administrator Recovery
+name: Recover Existing Institutes Administrator
 
 on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "Type RECOVER-AND-ENSURE-TWO-ADMINS to authorize this operation"
+        description: "Type RECOVER-EXISTING-ADMIN-1 to authorize recovery"
         required: true
         type: string
       project_path:
-        description: "Absolute path to the deployed Laravel project (directory containing artisan)"
+        description: "Absolute path to deployed Laravel project"
         required: true
         default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
         type: string
+      expected_user_id:
+        description: "Existing user ID shown in phpMyAdmin"
+        required: true
+        default: "1"
+        type: string
       existing_admin_email:
-        description: "Email of the existing administrator account to preserve and recover"
+        description: "Existing administrator email; must remain unchanged"
         required: true
         default: "m_attari20@yahoo.com"
-        type: string
-      admin1_name:
-        description: "Desired name for the recovered existing administrator"
-        required: true
-        default: "Admin_01"
-        type: string
-      admin1_email:
-        description: "Desired login email for the recovered existing administrator"
-        required: true
-        default: "mattari20@gmail.com"
-        type: string
-      admin2_name:
-        description: "Name for the second administrator"
-        required: true
-        default: "Admin_02"
-        type: string
-      admin2_email:
-        description: "Unique login email for the second administrator"
-        required: true
         type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: institutes-admin-recovery
+  group: institutes-existing-admin-recovery
   cancel-in-progress: false
 
 jobs:
   recover:
-    name: Validate and recover administrator accounts over SSH
+    name: Preflight and recover existing administrator
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify server and apply controlled account repair
+      - name: Validate identity and reset existing account password
         uses: appleboy/ssh-action@v1.2.0
         env:
           CONFIRMATION: ${{ inputs.confirmation }}
           PROJECT_PATH: ${{ inputs.project_path }}
+          EXPECTED_USER_ID: ${{ inputs.expected_user_id }}
           EXISTING_ADMIN_EMAIL: ${{ inputs.existing_admin_email }}
-          ADMIN1_NAME: ${{ inputs.admin1_name }}
-          ADMIN1_EMAIL: ${{ inputs.admin1_email }}
-          ADMIN2_NAME: ${{ inputs.admin2_name }}
-          ADMIN2_EMAIL: ${{ inputs.admin2_email }}
-          ADMIN1_TEMP_PASSWORD: ${{ secrets.INSTITUTES_ADMIN1_TEMP_PASSWORD }}
-          ADMIN2_TEMP_PASSWORD: ${{ secrets.INSTITUTES_ADMIN2_TEMP_PASSWORD }}
+          RECOVERY_PASSWORD: ${{ secrets.INSTITUTES_ADMIN_RECOVERY_PASSWORD }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          envs: CONFIRMATION,PROJECT_PATH,EXISTING_ADMIN_EMAIL,ADMIN1_NAME,ADMIN1_EMAIL,ADMIN2_NAME,ADMIN2_EMAIL,ADMIN1_TEMP_PASSWORD,ADMIN2_TEMP_PASSWORD
+          envs: CONFIRMATION,PROJECT_PATH,EXPECTED_USER_ID,EXISTING_ADMIN_EMAIL,RECOVERY_PASSWORD
           command_timeout: 4m
           script: |
             set -eu
-            [ "$CONFIRMATION" = "RECOVER-AND-ENSURE-TWO-ADMINS" ] || { echo "STOP: confirmation phrase did not match"; exit 2; }
+            [ "$CONFIRMATION" = "RECOVER-EXISTING-ADMIN-1" ] || { echo "STOP: confirmation phrase mismatch"; exit 2; }
+            [ "$EXPECTED_USER_ID" = "1" ] || { echo "STOP: this recovery is restricted to verified existing user ID 1"; exit 2; }
+            [ "$EXISTING_ADMIN_EMAIL" = "m_attari20@yahoo.com" ] || { echo "STOP: source email must remain m_attari20@yahoo.com"; exit 2; }
             case "$PROJECT_PATH" in /*) ;; *) echo "STOP: project path must be absolute"; exit 2 ;; esac
             case "$PROJECT_PATH" in *".."*) echo "STOP: project path must not contain .."; exit 2 ;; esac
             [ -f "$PROJECT_PATH/artisan" ] || { echo "STOP: Laravel artisan file not found"; exit 3; }
-            [ -n "$ADMIN1_TEMP_PASSWORD" ] && [ -n "$ADMIN2_TEMP_PASSWORD" ] || { echo "STOP: required temporary-password GitHub secrets are missing"; exit 4; }
-            [ "$ADMIN1_EMAIL" != "$ADMIN2_EMAIL" ] || { echo "STOP: administrator emails must be different"; exit 5; }
+            [ -n "$RECOVERY_PASSWORD" ] || { echo "STOP: repository secret INSTITUTES_ADMIN_RECOVERY_PASSWORD is missing"; exit 4; }
             cd "$PROJECT_PATH"
-            export ADMIN1_TEMP_PASSWORD ADMIN2_TEMP_PASSWORD EXISTING_ADMIN_EMAIL ADMIN1_EMAIL ADMIN1_NAME ADMIN2_EMAIL ADMIN2_NAME
-            echo "CHECK: Laravel project found; checking migration state before any account mutation."
-            php artisan migrate --path=database/migrations/2026_10_17_000002_add_must_change_password_to_users_table.php --force --no-interaction
+            export RECOVERY_PASSWORD EXISTING_ADMIN_EMAIL EXPECTED_USER_ID
             php <<'PHP'
             <?php
             declare(strict_types=1);
+
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
-            $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-
-            use App\Models\User;
-            use Illuminate\Support\Facades\DB;
-            use Illuminate\Support\Facades\Hash;
-            use Illuminate\Support\Facades\Schema;
-            use Illuminate\Support\Str;
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
             $fail = static function (string $message): never {
-                fwrite(STDERR, "STOP: ".$message.PHP_EOL);
+                fwrite(STDERR, 'STOP: '.$message.PHP_EOL);
                 exit(10);
             };
-            $validPassword = static function (string $password): bool {
-                return strlen($password) >= 12
-                    && preg_match('/[a-z]/', $password) === 1
-                    && preg_match('/[A-Z]/', $password) === 1
-                    && preg_match('/[0-9]/', $password) === 1
-                    && preg_match('/[^A-Za-z0-9]/', $password) === 1;
-            };
 
-            foreach (['users', 'migrations'] as $table) {
-                if (!Schema::hasTable($table)) $fail("required database table missing: ".$table);
-            }
-            if (!Schema::hasColumn('users', 'must_change_password')) {
-                $fail('must_change_password migration is not present after migration attempt');
+            $email = trim((string) getenv('EXISTING_ADMIN_EMAIL'));
+            $expectedId = (int) getenv('EXPECTED_USER_ID');
+            $password = (string) getenv('RECOVERY_PASSWORD');
+
+            if (strlen($password) < 12
+                || preg_match('/[a-z]/', $password) !== 1
+                || preg_match('/[A-Z]/', $password) !== 1
+                || preg_match('/[0-9]/', $password) !== 1
+                || preg_match('/[^A-Za-z0-9]/', $password) !== 1) {
+                $fail('recovery password must be at least 12 characters and include lowercase, uppercase, number, and symbol');
             }
 
-            $sourceEmail = trim((string) getenv('EXISTING_ADMIN_EMAIL'));
-            $admin1Email = trim((string) getenv('ADMIN1_EMAIL'));
-            $admin2Email = trim((string) getenv('ADMIN2_EMAIL'));
-            $admin1Name = trim((string) getenv('ADMIN1_NAME'));
-            $admin2Name = trim((string) getenv('ADMIN2_NAME'));
-            $password1 = (string) getenv('ADMIN1_TEMP_PASSWORD');
-            $password2 = (string) getenv('ADMIN2_TEMP_PASSWORD');
-
-            if (!$validPassword($password1) || !$validPassword($password2)) {
-                $fail('temporary-password secrets must each be at least 12 characters with lowercase, uppercase, number, and symbol');
-            }
-            if (strcasecmp($admin1Email, $admin2Email) === 0) $fail('administrator emails must be unique');
-            if ($sourceEmail === '' || $admin1Email === '' || $admin2Email === '' || $admin1Name === '' || $admin2Name === '') {
-                $fail('required account identity input is empty');
+            if (!\Illuminate\Support\Facades\Schema::hasTable('users')) {
+                $fail('users table is missing');
             }
 
-            $source = User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($sourceEmail)])->first();
-            if (!$source) $fail('existing administrator was not found by the supplied source email; no user rows changed');
-            if ($source->role !== 'admin') $fail('source account is not currently an administrator; no user rows changed');
-
-            $admin1Conflict = User::query()
-                ->whereRaw('LOWER(email) = ?', [mb_strtolower($admin1Email)])
-                ->where('id', '!=', $source->id)->first();
-            if ($admin1Conflict) $fail('target Admin_01 email is already attached to a different user; no user rows changed');
-
-            $admin2Existing = User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($admin2Email)])->first();
-            if ($admin2Existing && (int) $admin2Existing->id === (int) $source->id) {
-                $fail('Admin_02 email resolves to the existing Admin_01 row; no user rows changed');
+            $user = \App\Models\User::query()->find($expectedId);
+            if (!$user) $fail('expected user ID was not found; no changes made');
+            if (strcasecmp((string) $user->email, $email) !== 0) {
+                $fail('user ID and expected email do not match; no changes made');
             }
-            if ($admin2Existing && $admin2Existing->role !== 'admin') {
-                $fail('Admin_02 email is already assigned to a non-admin account; no user rows changed');
+            if ($user->role !== 'admin') {
+                $fail('verified account does not currently have admin role; no changes made');
             }
 
-            DB::transaction(function () use ($source, $admin1Name, $admin1Email, $password1, $admin2Existing, $admin2Name, $admin2Email, $password2): void {
-                $source->forceFill([
-                    'name' => $admin1Name,
-                    'email' => $admin1Email,
-                    'password' => $password1,
-                    'remember_token' => Str::random(60),
-                    'must_change_password' => true,
+            \Illuminate\Support\Facades\DB::transaction(function () use ($user, $password): void {
+                $user->forceFill([
+                    'password' => $password,
+                    'remember_token' => \Illuminate\Support\Str::random(60),
                 ])->save();
-
-                if (!$admin2Existing) {
-                    User::query()->create([
-                        'name' => $admin2Name,
-                        'email' => $admin2Email,
-                        'password' => $password2,
-                        'role' => 'admin',
-                        'must_change_password' => true,
-                    ]);
-                }
             });
 
-            $adminCount = User::query()->where('role', 'admin')->count();
-            $admin1 = User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($admin1Email)])->first();
-            $admin2 = User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($admin2Email)])->first();
-            if (!$admin1 || !$admin2 || $admin1->role !== 'admin' || $admin2->role !== 'admin') {
-                $fail('post-write verification failed; inspect the database before retrying');
-            }
-            if ((int) $admin1->id !== (int) $source->id) {
-                $fail('existing Admin_01 record ID changed unexpectedly');
-            }
-            if (!Hash::check($password1, $admin1->password)) {
-                $fail('Admin_01 password hash verification failed; inspect the database before retrying');
-            }
-            if (!$admin2Existing && !Hash::check($password2, $admin2->password)) {
-                $fail('new Admin_02 password hash verification failed; inspect the database before retrying');
-            }
-            if ((bool) $admin1->must_change_password !== true || (!$admin2Existing && (bool) $admin2->must_change_password !== true)) {
-                $fail('password-change requirement verification failed');
+            $verified = \App\Models\User::query()->find($expectedId);
+            if (!$verified
+                || strcasecmp((string) $verified->email, $email) !== 0
+                || $verified->role !== 'admin'
+                || !\Illuminate\Support\Facades\Hash::check($password, (string) $verified->password)) {
+                $fail('post-write verification failed; inspect the account before retrying');
             }
 
-            echo "PASS: existing administrator record preserved (ID ".$admin1->id.") and credentials reset.".PHP_EOL;
-            echo "PASS: second administrator exists (ID ".$admin2->id.").".PHP_EOL;
-            echo $admin2Existing
-                ? "PASS: existing Admin_02 administrator preserved without changing its password.".PHP_EOL
-                : "PASS: new Admin_02 password hash verified.".PHP_EOL;
-            echo $admin2Existing
-                ? "PASS: Admin_01 requires a password change; existing Admin_02 was left unchanged.".PHP_EOL
-                : "PASS: both accounts require a private password change.".PHP_EOL;
-            echo "SUMMARY: administrators=".$adminCount."; passwords, hashes, and database credentials were not printed.".PHP_EOL;
+            echo 'PASS: existing admin record ID '.$verified->id.' preserved.'.PHP_EOL;
+            echo 'PASS: email remains '.$verified->email.'.'.PHP_EOL;
+            echo 'PASS: admin role preserved and password hash verified.'.PHP_EOL;
+            echo 'PASS: remember token rotated; password and hash were not printed.'.PHP_EOL;
             PHP
