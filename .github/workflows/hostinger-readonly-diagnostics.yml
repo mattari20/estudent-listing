@@ -63,8 +63,8 @@ jobs:
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
-            $app->make(\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
-            $db = \Illuminate\\Support\\Facades\\DB::class;
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $db = \Illuminate\Support\Facades\DB::class;
             $report = ['check' => 'institution_profile_record_trace', 'mutation_performed' => false, 'institutions' => []];
             foreach (['lahore-university-of-management-sciences', 'university-of-veterinary-and-animal-sciences-lahore'] as $slug) {
                 $institution = $db::table('institutions')->where('slug', $slug)->first(['id', 'name', 'slug', 'status']);
