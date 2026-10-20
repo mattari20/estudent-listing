@@ -1,12 +1,16 @@
 name: Hostinger Read-only Diagnostics
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       project_path:
         description: "Absolute path to the existing Institutes Laravel project (directory containing artisan)"
         required: true
         type: string
+        default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
 
 permissions:
   contents: read
@@ -24,7 +28,7 @@ jobs:
       - name: Run diagnostics on Hostinger
         uses: appleboy/ssh-action@v1.2.0
         env:
-          PROJECT_PATH: ${{ inputs.project_path }}
+          PROJECT_PATH: ${{ inputs.project_path || '/home/u537436044/domains/estudent.pk/public_html/institutes' }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
