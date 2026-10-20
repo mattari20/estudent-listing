@@ -6,7 +6,7 @@
 <label>Email<input type="email" name="email" value="{{ old('email') }}" required autocomplete="username"></label>
 <label>Password
 <span class="password-input-wrap">
-<input type="password" name="password" required autocomplete="current-password" data-password-toggle-input>
+<input id="login-password" type="password" name="password" required autocomplete="current-password" data-password-toggle-input>
 <button type="button" class="password-toggle" data-password-toggle aria-controls="login-password" aria-pressed="false">Show password</button>
 </span>
 </label>
