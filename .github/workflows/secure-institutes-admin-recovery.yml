@@ -181,7 +181,7 @@ jobs:
             if (!$admin2Existing && !Hash::check($password2, $admin2->password)) {
                 $fail('new Admin_02 password hash verification failed; inspect the database before retrying');
             }
-            if ((bool) $admin1->must_change_password !== true || (bool) $admin2->must_change_password !== true) {
+            if ((bool) $admin1->must_change_password !== true || (!$admin2Existing && (bool) $admin2->must_change_password !== true)) {
                 $fail('password-change requirement verification failed');
             }
 
@@ -190,6 +190,8 @@ jobs:
             echo $admin2Existing
                 ? "PASS: existing Admin_02 administrator preserved without changing its password.".PHP_EOL
                 : "PASS: new Admin_02 password hash verified.".PHP_EOL;
-            echo "PASS: both accounts require a private password change.".PHP_EOL;
+            echo $admin2Existing
+                ? "PASS: Admin_01 requires a password change; existing Admin_02 was left unchanged.".PHP_EOL
+                : "PASS: both accounts require a private password change.".PHP_EOL;
             echo "SUMMARY: administrators=".$adminCount."; passwords, hashes, and database credentials were not printed.".PHP_EOL;
             PHP
