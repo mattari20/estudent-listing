@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SecurityAuditEvent;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,10 +28,11 @@ class InstituteUserController
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'role' => ['required', 'in:admin,operator'],
+            'role' => ['required', 'in:master_admin,admin,operator'],
             'password' => ['required', 'string', Password::min(12)->letters()->mixedCase()->numbers()->symbols(), 'confirmed'],
         ]);
 
+        // The creator sets the account's password explicitly; no generated temporary password.
         User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -49,7 +49,7 @@ class InstituteUserController
     {
         abort_unless($request->user()->isAdmin(), 403);
         abort_if((int) $request->user()->id === (int) $user->id, 422, 'Use Change Password for your own account.');
-        abort_if($user->role === 'admin' && User::query()->where('role', 'admin')->count() < 2, 422, 'The last administrator cannot be reset through this action.');
+        abort_if($user->isAdmin() && User::query()->whereIn('role', ['admin', 'master_admin'])->count() < 2, 422, 'The last administrator cannot be reset through this action.');
 
         $temporaryPassword = Str::password(24, symbols: true);
         $user->forceFill([
@@ -58,7 +58,7 @@ class InstituteUserController
             'must_change_password' => true,
         ])->save();
 
-        SecurityAuditEvent::create([
+        \App\Models\SecurityAuditEvent::create([
             'event_type' => 'account.password.admin_reset',
             'actor_type' => User::class,
             'actor_id' => $request->user()->id,
@@ -93,7 +93,6 @@ class InstituteUserController
 
         $request->user()->forceFill([
             'password' => $validated['password'],
-            // Invalidate remembered-login cookies created before this password change.
             'remember_token' => Str::random(60),
             'must_change_password' => false,
         ])->save();
