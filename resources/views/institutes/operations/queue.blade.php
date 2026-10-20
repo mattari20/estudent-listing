@@ -71,14 +71,14 @@
             @forelse($batches as $batch)
                 @php
                     $batchStatus = strtolower((string) $batch->status);
-                    $pendingCount = (int) $batch->pending_rows_count;
+                    $pendingCount = max(0, (int) $batch->pending_rows_count - (int) $batch->approved_rows_count);
                     $approvedCount = (int) $batch->approved_rows_count;
                     $promotedCount = (int) $batch->promoted_rows_count;
                     $rejectedCount = (int) $batch->rejected_rows_count;
                     $conflictCount = (int) $batch->conflict_rows_count;
                     $parentInstitution = $batchParentInstitutions[$batch->id] ?? null;
                     $filterText = strtolower(implode(' ', [
-                        $batch->batch_key, $batch->source?->name, $batch->source?->source_type,
+                        $batch->batch_key, $batch->id, $batch->source?->name, $batch->source?->source_type,
                         $batch->entity_type, $parentInstitution?->name, $batch->status,
                     ]));
                     $createdAt = $batch->created_at ?? $batch->received_at;
