@@ -17,9 +17,19 @@
 <option value="master_admin" @selected(old('role')==='master_admin')>Master Administrator — highest administrative access</option>
 </select>
 </label>
-<label>Password<input type="password" name="password" required minlength="12" autocomplete="new-password" aria-describedby="new-user-password-policy"></label>
+<label>Password
+<span class="password-input-wrap">
+<input id="create-user-password" type="password" name="password" required minlength="12" autocomplete="new-password" data-password-toggle-input aria-describedby="new-user-password-policy">
+<button type="button" class="password-toggle" data-password-toggle aria-controls="create-user-password" aria-pressed="false">Show password</button>
+</span>
+</label>
 <p id="new-user-password-policy">Use at least 12 characters, including uppercase and lowercase letters, a number, and a symbol. Do not reuse another account's password.</p>
-<label>Confirm password<input type="password" name="password_confirmation" required minlength="12" autocomplete="new-password"></label>
+<label>Confirm password
+<span class="password-input-wrap">
+<input id="create-user-password-confirmation" type="password" name="password_confirmation" required minlength="12" autocomplete="new-password" data-password-toggle-input>
+<button type="button" class="password-toggle" data-password-toggle aria-controls="create-user-password-confirmation" aria-pressed="false">Show password</button>
+</span>
+</label>
 <button type="submit">Create User</button>
 </form>
 </div>
