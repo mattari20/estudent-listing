@@ -52,6 +52,54 @@ jobs:
             cd "$PROJECT_PATH"
             echo "=== Application environment ==="
             php artisan env
+            echo "=== Deployed code revision (read-only) ==="
+            if git rev-parse --show-toplevel >/dev/null 2>&1; then
+              git rev-parse HEAD
+            else
+              echo "git_metadata_unavailable"
+            fi
+            echo "=== Profile-to-canonical-record trace (read-only) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+            $db = \\Illuminate\\Support\\Facades\\DB::class;
+            $report = ['check' => 'institution_profile_record_trace', 'mutation_performed' => false, 'institutions' => []];
+            foreach (['lahore-university-of-management-sciences', 'university-of-veterinary-and-animal-sciences-lahore'] as $slug) {
+                $institution = $db::table('institutions')->where('slug', $slug)->first(['id', 'name', 'slug', 'status']);
+                if (!$institution) {
+                    $report['institutions'][] = ['requested_slug' => $slug, 'found' => false];
+                    continue;
+                }
+                $campuses = $db::table('campuses')->where('institution_id', $institution->id)
+                    ->orderBy('id')->get(['id', 'name', 'slug', 'status', 'geography_id']);
+                $programs = $db::table('programs')->where('institution_id', $institution->id)
+                    ->orderBy('id')->get(['id', 'name', 'slug', 'status']);
+                $report['institutions'][] = [
+                    'id' => (int) $institution->id,
+                    'name' => $institution->name,
+                    'slug' => $institution->slug,
+                    'status' => $institution->status,
+                    'active_campus_count' => $campuses->where('status', 'active')->count(),
+                    'campuses' => $campuses->map(fn ($row) => [
+                        'id' => (int) $row->id,
+                        'name' => $row->name,
+                        'slug' => $row->slug,
+                        'status' => $row->status,
+                        'geography_id' => $row->geography_id === null ? null : (int) $row->geography_id,
+                    ])->values()->all(),
+                    'active_program_count' => $programs->where('status', 'active')->count(),
+                    'programs' => $programs->map(fn ($row) => [
+                        'id' => (int) $row->id,
+                        'name' => $row->name,
+                        'slug' => $row->slug,
+                        'status' => $row->status,
+                    ])->values()->all(),
+                ];
+            }
+            echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
             echo "=== Data-gap report (read-only) ==="
             php artisan institutes:data-gap-report --json
             echo "=== Record-level audit (read-only) ==="
