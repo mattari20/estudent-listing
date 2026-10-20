@@ -13,11 +13,17 @@
             <input type="email" name="email" value="{{ old('email', $email) }}" required maxlength="255" autocomplete="email">
         </label>
         <label>New password
-            <input type="password" name="password" required minlength="12" autocomplete="new-password" aria-describedby="reset-password-policy">
+            <span class="password-input-wrap">
+                <input id="reset-password" type="password" name="password" required minlength="12" autocomplete="new-password" data-password-toggle-input aria-describedby="reset-password-policy">
+                <button type="button" class="password-toggle" data-password-toggle aria-controls="reset-password" aria-pressed="false">Show password</button>
+            </span>
         </label>
         <p id="reset-password-policy">At least 12 characters, including uppercase and lowercase letters, a number, and a symbol. Use a unique password.</p>
         <label>Confirm new password
-            <input type="password" name="password_confirmation" required minlength="12" autocomplete="new-password">
+            <span class="password-input-wrap">
+                <input id="reset-password-confirmation" type="password" name="password_confirmation" required minlength="12" autocomplete="new-password" data-password-toggle-input>
+                <button type="button" class="password-toggle" data-password-toggle aria-controls="reset-password-confirmation" aria-pressed="false">Show password</button>
+            </span>
         </label>
         <button type="submit">Reset password</button>
     </form>
