@@ -33,6 +33,7 @@ class DirectoryUiTest extends TestCase
             ->assertSee('Institute type')
             ->assertSee('Province / territory')
             ->assertSee('Program level')
+            ->assertSee('</select></div><div class="field"><label for="program">Program / discipline</label>', false)
             ->assertSee('Search results are discovery results, not quality rankings.');
     }
 
