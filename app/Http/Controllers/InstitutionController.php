@@ -11,10 +11,16 @@ class InstitutionController
 {
     public function index(): View
     {
+        $perPage = (int) request()->query('per_page', 12);
+        if (! in_array($perPage, [12, 24, 48], true)) {
+            $perPage = 12;
+        }
+
         $institutions = Institution::query()
             ->where('status', 'active')
             ->orderBy('name')
-            ->paginate(24);
+            ->paginate($perPage)
+            ->withQueryString();
 
         return view('institutes.index', compact('institutions'));
     }
