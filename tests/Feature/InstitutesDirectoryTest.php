@@ -42,7 +42,7 @@ class InstitutesDirectoryTest extends TestCase
 
         $this->get('/institutes?page=2')
             ->assertOk()
-            ->assertSee('AAA Pagination Test Institution 13')
+            ->assertSee('AAA Pagination Test Institution 10')
             ->assertDontSee('AAA Pagination Test Institution 01');
     }
 
@@ -64,14 +64,14 @@ class InstitutesDirectoryTest extends TestCase
 
         $this->get('/institutes?per_page=999')
             ->assertOk()
-            ->assertSee('12 per page')
+            ->assertSee('9 per page')
             ->assertSee('AAA Page Size Test Institution 01')
             ->assertDontSee('AAA Page Size Test Institution 30');
 
-        $this->get('/institutes?per_page=12&page=2')
+        $this->get('/institutes?per_page=9&page=2')
             ->assertOk()
-            ->assertSee('AAA Page Size Test Institution 13')
+            ->assertSee('AAA Page Size Test Institution 10')
             ->assertDontSee('AAA Page Size Test Institution 01')
-            ->assertSee('per_page=12');
+            ->assertSee('per_page=9');
     }
 }
