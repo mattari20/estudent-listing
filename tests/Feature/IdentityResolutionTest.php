@@ -6,6 +6,7 @@ use App\Models\ImportRow;
 use App\Models\Evidence;
 use App\Models\Assertion;
 use App\Models\Institution;
+use App\Models\InstitutionName;
 use App\Models\Source;
 use App\Services\InstituteIdentityResolver;
 use App\Services\InstituteImportPromoter;
@@ -30,6 +31,21 @@ class IdentityResolutionTest extends TestCase {
   $this->assertSame(1,$count);
   $this->assertDatabaseHas('identity_match_candidates',['import_row_id'=>$row->id,'institution_id'=>$institution->id,'match_type'=>'exact_slug','status'=>'candidate']);
   $this->assertSame('matched',$row->fresh()->match_state);
+ }
+ public function test_official_name_and_short_name_can_match_existing_institution(): void {
+  $institution=Institution::create(['name'=>'National University of Example','official_name'=>'National University of Example Pakistan','short_name'=>'NUE','slug'=>'nue','status'=>'active']);
+  $row=$this->row(['name'=>'NUE','official_name'=>'National University of Example Pakistan','slug'=>'candidate-nue']);
+  $count=app(InstituteIdentityResolver::class)->resolve($row);
+  $this->assertSame(1,$count);
+  $this->assertDatabaseHas('identity_match_candidates',['import_row_id'=>$row->id,'institution_id'=>$institution->id,'match_type'=>'exact_official_name','status'=>'candidate']);
+ }
+ public function test_recorded_alias_can_match_existing_institution(): void {
+  $institution=Institution::create(['name'=>'Example University','slug'=>'example-university','status'=>'active']);
+  InstitutionName::create(['institution_id'=>$institution->id,'name'=>'Example Institute','name_type'=>'former_name','language'=>'en','is_current'=>false]);
+  $row=$this->row(['name'=>'Example Institute','slug'=>'example-institute']);
+  $count=app(InstituteIdentityResolver::class)->resolve($row);
+  $this->assertSame(1,$count);
+  $this->assertDatabaseHas('identity_match_candidates',['import_row_id'=>$row->id,'institution_id'=>$institution->id,'match_type'=>'exact_alias','status'=>'candidate']);
  }
  public function test_unmatched_row_becomes_new_candidate_without_creating_institution(): void {
   $row=$this->row(['name'=>'New University','slug'=>'new-university']);
