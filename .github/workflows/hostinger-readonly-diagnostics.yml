@@ -67,6 +67,11 @@ jobs:
             $rows = \Illuminate\Support\Facades\DB::table('institutions')
                 ->orderBy('id')
                 ->get(['id', 'name', 'official_name', 'short_name', 'slug', 'status']);
+            $aliases = \Illuminate\Support\Facades\DB::table('institution_names')
+                ->orderBy('institution_id')
+                ->orderBy('name')
+                ->get(['institution_id', 'name', 'name_type', 'language', 'is_current'])
+                ->groupBy('institution_id');
             echo json_encode([
                 'check' => 'canonical_institution_identity_export',
                 'mutation_performed' => false,
@@ -78,7 +83,14 @@ jobs:
                     'short_name' => $row->short_name,
                     'slug' => $row->slug,
                     'status' => $row->status,
+                    'aliases' => ($aliases->get($row->id, collect()))->map(fn ($alias) => [
+                        'name' => $alias->name,
+                        'name_type' => $alias->name_type,
+                        'language' => $alias->language,
+                        'is_current' => (bool) $alias->is_current,
+                    ])->values()->all(),
                 ])->values()->all(),
+                'alias_record_count' => $aliases->flatten(1)->count(),
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP
             echo "=== Profile-to-canonical-record trace (read-only) ==="
