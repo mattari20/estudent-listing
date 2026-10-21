@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\ImportSchemaProfileService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class InstitutionImportIdentityIntegrationTest extends TestCase
@@ -29,6 +30,7 @@ class InstitutionImportIdentityIntegrationTest extends TestCase
             'slug' => 'example-university',
             'status' => 'active',
         ]);
+        $institutionCountBeforeUpload = Institution::count();
 
         $profile = app(ImportSchemaProfileService::class)->institution();
         $csv = implode("\n", [
@@ -47,18 +49,20 @@ class InstitutionImportIdentityIntegrationTest extends TestCase
         ]);
 
         $response->assertOk();
+        $batchId = $response->viewData('batch')->id;
+        $rowId = DB::table('import_rows')->where('import_batch_id', $batchId)->value('id');
 
-        $this->assertDatabaseCount('institutions', 1);
+        // Migrations seed baseline institutions, so compare with the pre-upload count.
+        $this->assertSame($institutionCountBeforeUpload, Institution::count());
         $this->assertDatabaseHas('import_rows', [
-            'import_batch_id' => $response->viewData('batch')->id,
+            'id' => $rowId,
+            'import_batch_id' => $batchId,
             'row_number' => 2,
             'status' => 'candidate',
             'match_state' => 'matched',
         ]);
         $this->assertDatabaseHas('identity_match_candidates', [
-            'import_row_id' => \Illuminate\Support\Facades\DB::table('import_rows')
-                ->where('import_batch_id', $response->viewData('batch')->id)
-                ->value('id'),
+            'import_row_id' => $rowId,
             'institution_id' => $existing->id,
             'match_type' => 'exact_slug',
             'status' => 'candidate',
