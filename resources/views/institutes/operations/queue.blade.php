@@ -283,7 +283,6 @@
 </div>
 @endif
 
-<form method="post" action="{{ route('institutes.operations.bulk-promote') }}" id="bulk-row-form">@csrf
 <div class="institute-card">
     <label><input type="checkbox" id="select-all-rows"> <strong>Select all rows on this page</strong></label>
     <p>{{ $rows->total() }} import row(s) in this batch/query. Select rows below, then choose one action.</p>
@@ -337,15 +336,17 @@
         @endif
     </div>
     @if(!in_array($state, ['promoted', 'rejected'], true))
-        <label class="import-row-card__select"><input class="row-checkbox" type="checkbox" name="row_ids[]" value="{{ $row->id }}"> Select row</label>
+        <label class="import-row-card__select"><input class="row-checkbox" type="checkbox" name="row_ids[]" value="{{ $row->id }}" form="bulk-row-form"> Select row</label>
     @endif
 </article>
 @empty<p>No import rows match the current queue.</p>@endforelse
 <div class="bulk-row-actions" style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0;">
-    <button type="submit" formaction="{{ route('institutes.operations.bulk-decision') }}" name="decision" value="approve" onclick="return confirm('Approve selected eligible campus/program rows? Institution identity rows and conflicts will be skipped. Approval does not publish records.');" class="button--approve">Approve selected</button>
+    <form method="post" action="{{ route('institutes.operations.bulk-promote') }}" id="bulk-row-form">@csrf
+    <button type="submit" formaction="{{ route('institutes.operations.bulk-decision') }}" name="decision" value="approve" onclick="return confirm('Approve selected eligible enrichment rows? Institution identity rows and conflicts will be skipped. Approval does not publish records.');" class="button--approve">Approve selected</button>
     <button type="submit" formaction="{{ route('institutes.operations.bulk-decision') }}" name="decision" value="reject" onclick="return confirm('Reject all selected rows? This action will remove eligible rows from the active review queue.');" class="button--danger">Reject selected</button>
     <button type="submit" formaction="{{ route('institutes.operations.bulk-promote') }}" onclick="return confirm('Promote selected rows that already have an approval decision?');">Promote selected approved rows</button>
-</div></form>
+</form>
+</div>
 {{ $rows->links() }}
 
 <script>
