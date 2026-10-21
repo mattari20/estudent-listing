@@ -70,7 +70,7 @@ class InstitutesDirectoryTest extends TestCase
 
         $this->get('/institutes?per_page=12&page=2')
             ->assertOk()
-            ->assertSee('AAA Page Size Test Institution 30')
+            ->assertSee('AAA Page Size Test Institution 13')
             ->assertDontSee('AAA Page Size Test Institution 01')
             ->assertSee('per_page=12');
     }
