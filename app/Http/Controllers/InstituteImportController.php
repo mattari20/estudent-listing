@@ -5,6 +5,7 @@ use App\Models\ImportRow;
 use App\Models\Source;
 use App\Services\ImportSchemaProfileService;
 use App\Services\InstituteImportControllerSupport;
+use App\Services\InstituteIdentityResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -13,7 +14,7 @@ class InstituteImportController {
  public function template(ImportSchemaProfileService $profiles) {
   $profile=$profiles->institution(); return response($profiles->template($profile),200,['Content-Type'=>'text/csv','Content-Disposition'=>'attachment; filename="institution-import-template-v'.$profile->version.'.csv"']);
  }
- public function store(Request $request,ImportSchemaProfileService $profiles,InstituteImportControllerSupport $support): View {
+ public function store(Request $request,ImportSchemaProfileService $profiles,InstituteImportControllerSupport $support,InstituteIdentityResolver $identityResolver): View {
   $validated=$request->validate(['source_name'=>['required','string','max:255'],'source_type'=>['required','string','max:100'],'source_url'=>['nullable','url','max:2048'],'entity_type'=>['required','in:institution'],'schema_version'=>['required','string','max:20'],'csv'=>['required','file','mimes:csv,txt','max:5120']]);
   $profile=$profiles->institution($validated['schema_version']);
   $source=Source::create(['source_type'=>$validated['source_type'],'name'=>$validated['source_name'],'url'=>$validated['source_url']??null,'status'=>'active']);
@@ -31,6 +32,11 @@ class InstituteImportController {
   }
   fclose($handle); if($pending)$support->insertRows($pending);
   $batch->update(['status'=>'validated','total_rows'=>$rowNumber-1,'valid_rows'=>$valid,'invalid_rows'=>$invalid,'candidate_rows'=>$candidate,'completed_at'=>now()]);
+  // Resolve identity against canonical institutions immediately after staging.
+  // This creates review candidates/conflicts only; it never approves or promotes a row.
+  $batch->rows()->where('status','candidate')->orderBy('id')->chunkById(200,function($rows) use ($identityResolver): void {
+   foreach($rows as $row) $identityResolver->resolve($row);
+  });
   return view('institutes.import-result',compact('batch'));
  }
 }
