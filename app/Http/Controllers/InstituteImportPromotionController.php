@@ -100,17 +100,44 @@ class InstituteImportPromotionController {
   return back()->with('status','Import conflict resolved with an explicit operator reason.');
  }
  public function promote(Request $request, ImportRow $importRow, InstituteImportPromoter $promoter, ImportCrossSourceComparisonService $comparison, ImportChangeDetectionService $changes): RedirectResponse {
-  $decision=IdentityResolutionDecision::query()->where('import_row_id',$importRow->id)->whereIn('decision',['approved_new','approved_match'])->latest('id')->first();
-  if ($decision === null) {
-   return back()->withErrors(['promotion'=>'Record an approved identity decision before promoting this institution.']);
+  try {
+   abort_unless($importRow->batch?->entity_type==='institution', 409);
+   $decision=IdentityResolutionDecision::query()->where('import_row_id',$importRow->id)->whereIn('decision',['approved_new','approved_match'])->latest('id')->first();
+   if ($decision === null) return back()->withErrors(['promotion'=>'Record an approved identity decision before promoting this institution.']);
+   if($decision->decision==='approved_match'){
+    $institution=Institution::findOrFail($decision->institution_id);
+    if($comparison->compareInstitution($importRow,$institution)>0) return back()->withErrors(['promotion'=>'Canonical data differs from the import source; resolve the resulting conflict before promotion.']);
+   }
+   $institution=$promoter->promote($importRow,$decision);
+   if($decision->decision==='approved_match') $changes->detect($importRow);
+   return redirect()->route('institutes.operations.row',$importRow)->with('status','Canonical institution promoted: '.$institution->name);
+  } catch (\Throwable $exception) {
+   report($exception);
+   return back()->withErrors(['promotion'=>$exception instanceof \RuntimeException ? $exception->getMessage() : 'Promotion failed unexpectedly. The error has been logged; no success was recorded.']);
   }
-  if($decision->decision==='approved_match'){
-   $institution=Institution::findOrFail($decision->institution_id);
-   if($comparison->compareInstitution($importRow,$institution)>0) return back()->withErrors(['promotion'=>'Canonical data differs from the import source; resolve the resulting conflict before promotion.']);
-  }
-  $institution=$promoter->promote($importRow,$decision);
-  if($decision->decision==='approved_match') $changes->detect($importRow);
-  return redirect()->route('institutes.operations.row',$importRow)->with('status','Canonical institution promoted: '.$institution->name);
+ }
+ public function captureRowEvidence(Request $request, ImportRow $importRow, \App\Services\InstituteSourceEvidenceCaptureService $service): RedirectResponse {
+  abort_unless($importRow->batch?->entity_type==='institution' && $importRow->status==='candidate', 409);
+  $data=$request->validate([
+   'reference'=>['required','url','max:2048'],
+   'excerpt'=>['required','string','min:20','max:10000'],
+  ]);
+  $source=\App\Models\Source::create([
+   'source_type'=>'official_institutional',
+   'name'=>'Official source evidence for institution import row '.$importRow->id,
+   'url'=>$data['reference'],
+   'status'=>'active',
+  ]);
+  $evidence=$service->capture($source,$data['reference'],$data['excerpt'],null,[[
+   'subject_type'=>ImportRow::class,
+   'subject_id'=>$importRow->id,
+   'attribute'=>'institution_identity',
+   'value'=>(string) (($importRow->normalized_payload ?? $importRow->payload)['official_name'] ?? ($importRow->normalized_payload ?? $importRow->payload)['name'] ?? ''),
+   'verification_state'=>'operator_observed',
+   'verified_at'=>now()->toDateTimeString(),
+  ]]);
+  app(ImportPromotionAuditService::class)->record($importRow,'source_evidence_captured',$request->user()->id,'Operator captured official source evidence.',['evidence_id'=>$evidence->id,'reference'=>$data['reference']],'source_evidence',$evidence->id);
+  return back()->with('status','Source evidence recorded. You may now retry promotion after checking the identity decision and conflicts.');
  }
  public function enrichmentPromote(Request $request, ImportRow $importRow, EnrichmentPromotionService $service, ImportPromotionAuditService $audit): RedirectResponse {
   abort_unless($importRow->status==='candidate',409); $decision=ImportPromotionDecision::query()->where('import_row_id',$importRow->id)->where('decision','approved')->latest('id')->firstOrFail();

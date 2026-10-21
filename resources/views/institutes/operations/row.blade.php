@@ -35,6 +35,14 @@
 <form method="post" action="{{ route('institutes.operations.resolve',$importRow) }}">@csrf<button type="submit">Refresh identity matches</button></form>
 <h2>Identity candidates</h2>
 @forelse($matches as $match)<div class="institute-card"><strong>{{ $match->institution?->name }}</strong><p>{{ $match->match_type }} · {{ $match->reason }}</p><p>ID: {{ $match->institution_id }}</p></div>@empty<p>No deterministic identity candidate found. This may be a new institution.</p>@endforelse
+<h2>Official source evidence</h2>
+<p>Promotion requires evidence tied to this exact import row. Open the institution's official website, verify the institution name, then enter the official page URL and a short excerpt copied from that page. Do not enter invented or AI-generated text as source evidence.</p>
+<form method="post" action="{{ route('institutes.operations.row.evidence.store',$importRow) }}">
+@csrf
+<label>Official page URL<input type="url" name="reference" required maxlength="2048" placeholder="https://official-institution-domain/..."></label>
+<label>Verified excerpt<textarea name="excerpt" required minlength="20" maxlength="10000" placeholder="Paste the relevant wording from the official page showing the institution's name."></textarea></label>
+<button type="submit">Record official source evidence</button>
+</form>
 <h2>Identity decision</h2>
 @if($identityDecision)<p>Latest: <strong>{{ $identityDecision->decision }}</strong> — {{ $identityDecision->reason }}</p>@endif
 @if($importRow->status==='candidate')
