@@ -1,9 +1,9 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use Illuminate\\Support\\Facades\\Route;
-use Tests\\TestCase;
+use Illuminate\Support\Facades\Route;
+use Tests\TestCase;
 
 class InstituteBatchEvidenceCaptureTest extends TestCase
 {
