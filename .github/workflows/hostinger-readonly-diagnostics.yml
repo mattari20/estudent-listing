@@ -139,6 +139,92 @@ jobs:
             php artisan institutes:data-gap-report --json
             echo "=== Record-level audit (read-only) ==="
             php artisan institutes:data-gap-record-audit --json
+            echo "=== Institution import row trace (read-only; no payloads or notes) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $db = \Illuminate\Support\Facades\DB::class;
+            $schema = \Illuminate\Support\Facades\Schema::class;
+
+            $rows = $db::table('import_rows')
+                ->join('import_batches', 'import_batches.id', '=', 'import_rows.import_batch_id')
+                ->where('import_batches.entity_type', 'institution')
+                ->orderBy('import_rows.import_batch_id')
+                ->orderBy('import_rows.row_number')
+                ->get([
+                    'import_rows.id',
+                    'import_rows.import_batch_id',
+                    'import_rows.row_number',
+                    'import_rows.status',
+                    'import_rows.match_state',
+                    'import_rows.parent_subject_type',
+                    'import_rows.parent_subject_id',
+                    'import_rows.validation_errors',
+                ]);
+
+            $report = ['check' => 'institution_import_row_trace', 'mutation_performed' => false, 'rows' => []];
+            foreach ($rows as $row) {
+                $errors = $row->validation_errors;
+                if (is_string($errors)) {
+                    $errors = json_decode($errors, true);
+                }
+                $item = [
+                    'id' => (int) $row->id,
+                    'batch_id' => (int) $row->import_batch_id,
+                    'row_number' => (int) $row->row_number,
+                    'status' => $row->status,
+                    'match_state' => $row->match_state,
+                    'parent_subject_type' => $row->parent_subject_type,
+                    'parent_subject_id' => $row->parent_subject_id === null ? null : (int) $row->parent_subject_id,
+                    'validation_error_fields' => is_array($errors) ? array_keys($errors) : [],
+                    'validation_error_count' => is_array($errors) ? array_sum(array_map(
+                        fn ($messages) => is_array($messages) ? count($messages) : (is_string($messages) && trim($messages) !== '' ? 1 : 0),
+                        $errors,
+                    )) : 0,
+                ];
+
+                if ($schema::hasTable('import_promotion_decisions')) {
+                    $item['promotion_decisions'] = $db::table('import_promotion_decisions')
+                        ->where('import_row_id', $row->id)
+                        ->orderBy('id')
+                        ->get(['decision'])
+                        ->pluck('decision')->values()->all();
+                } else {
+                    $item['promotion_decisions_table_available'] = false;
+                }
+
+                if ($schema::hasTable('import_promotion_events')) {
+                    $event = $db::table('import_promotion_events')
+                        ->where('import_row_id', $row->id)
+                        ->orderByDesc('occurred_at')->orderByDesc('id')
+                        ->first(['event_type', 'metadata']);
+                    $metadata = isset($event->metadata) ? json_decode((string) $event->metadata, true) : [];
+                    $item['latest_promotion_event_type'] = $event->event_type ?? null;
+                    $item['latest_promotion_error_class'] = is_array($metadata) ? ($metadata['error_class'] ?? null) : null;
+                }
+
+                if ($schema::hasTable('institution_identity_decisions')) {
+                    $decisionQuery = $db::table('institution_identity_decisions');
+                    if ($schema::hasColumn('institution_identity_decisions', 'import_row_id')) {
+                        $item['identity_decisions'] = $decisionQuery->where('import_row_id', $row->id)
+                            ->orderBy('id')->get()->map(function ($decision) {
+                                $result = [];
+                                foreach (['decision', 'status', 'match_type', 'canonical_institution_id'] as $field) {
+                                    if (isset($decision->$field)) {
+                                        $result[$field] = $decision->$field;
+                                    }
+                                }
+                                return $result;
+                            })->values()->all();
+                    }
+                }
+
+                $report['rows'][] = $item;
+            }
+            echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
             echo "=== Campus import row trace (read-only; no payloads or notes) ==="
             php <<'PHP'
             <?php
