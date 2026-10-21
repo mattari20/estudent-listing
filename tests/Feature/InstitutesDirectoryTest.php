@@ -38,7 +38,7 @@ class InstitutesDirectoryTest extends TestCase
             ->assertSee('of')
             ->assertSee('13')
             ->assertSee('Test Institution 01')
-            ->assertDontSee('Test Institution 13')
+            ->assertDontSee('/institutes/test-institution-13')
             ->assertDontSee('Inactive Test Institution')
             ->assertSee('directory-pagination', false)
             ->assertSee('directory-per-page', false);
@@ -66,7 +66,8 @@ class InstitutesDirectoryTest extends TestCase
             ->assertSee('Showing')
             ->assertSee('1–24')
             ->assertSee('of')
-            ->assertSee('25');
+            ->assertSee('25')
+            ->assertDontSee('/institutes/page-size-institution-25');
 
         $this->get('/institutes?per_page=999')
             ->assertOk()
