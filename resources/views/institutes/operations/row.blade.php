@@ -68,8 +68,8 @@
 @endif
 @endif
 @if($importRow->status==='promoted')
-@if($importRow->batch->entity_type==='institution' && $importRow->canonical_subject_type===\\App\\Models\\Institution::class && $importRow->canonical_subject_id)
-@php($canonicalInstitution = \\App\\Models\\Institution::find($importRow->canonical_subject_id))
+@if($importRow->batch->entity_type==='institution' && $importRow->canonical_subject_type===\App\Models\Institution::class && $importRow->canonical_subject_id)
+@php($canonicalInstitution = \App\Models\Institution::find($importRow->canonical_subject_id))
 @if($canonicalInstitution)
 <p><strong>Directory publication:</strong> {{ $canonicalInstitution->status === 'active' ? 'Published / active' : 'Promoted but not yet published (status: '.$canonicalInstitution->status.')' }}</p>
 @if($canonicalInstitution->status !== 'active')
