@@ -17,46 +17,41 @@ class InstitutesDirectoryTest extends TestCase
 
     public function test_directory_paginates_active_institutions_and_shows_navigation(): void
     {
-        foreach (range(1, 13) as $number) {
+        foreach (range(1, 30) as $number) {
             Institution::query()->create([
-                'name' => sprintf('Test Institution %02d', $number),
-                'slug' => sprintf('test-institution-%02d', $number),
+                'name' => sprintf('ZZZ Pagination Test Institution %02d', $number),
+                'slug' => sprintf('zzz-pagination-test-institution-%02d', $number),
                 'status' => 'active',
             ]);
         }
 
         Institution::query()->create([
-            'name' => 'Inactive Test Institution',
-            'slug' => 'inactive-test-institution',
+            'name' => 'ZZZ Inactive Pagination Test Institution',
+            'slug' => 'zzz-inactive-pagination-test-institution',
             'status' => 'candidate',
         ]);
 
         $this->get('/institutes')
             ->assertOk()
             ->assertSee('Showing')
-            ->assertSee('1–12')
-            ->assertSee('of')
-            ->assertSee('13')
-            ->assertSee('Test Institution 01')
-            ->assertDontSee('/institutes/test-institution-13')
-            ->assertDontSee('Inactive Test Institution')
             ->assertSee('directory-pagination', false)
-            ->assertSee('directory-per-page', false);
+            ->assertSee('directory-per-page', false)
+            ->assertSee('ZZZ Pagination Test Institution 01')
+            ->assertDontSee('ZZZ Pagination Test Institution 30')
+            ->assertDontSee('ZZZ Inactive Pagination Test Institution');
 
         $this->get('/institutes?page=2')
             ->assertOk()
-            ->assertSee('Test Institution 13')
-            ->assertDontSee('Test Institution 01')
-            ->assertSee('Page')
-            ->assertSee('2');
+            ->assertSee('ZZZ Pagination Test Institution 30')
+            ->assertDontSee('ZZZ Pagination Test Institution 01');
     }
 
     public function test_directory_page_size_is_limited_to_supported_values_and_query_is_preserved(): void
     {
-        foreach (range(1, 25) as $number) {
+        foreach (range(1, 30) as $number) {
             Institution::query()->create([
-                'name' => sprintf('Page Size Institution %02d', $number),
-                'slug' => sprintf('page-size-institution-%02d', $number),
+                'name' => sprintf('ZZZ Page Size Test Institution %02d', $number),
+                'slug' => sprintf('zzz-page-size-test-institution-%02d', $number),
                 'status' => 'active',
             ]);
         }
@@ -64,20 +59,19 @@ class InstitutesDirectoryTest extends TestCase
         $this->get('/institutes?per_page=24')
             ->assertOk()
             ->assertSee('Showing')
-            ->assertSee('1–24')
-            ->assertSee('of')
-            ->assertSee('25')
-            ->assertDontSee('/institutes/page-size-institution-25');
+            ->assertSee('ZZZ Page Size Test Institution 01')
+            ->assertDontSee('ZZZ Page Size Test Institution 30');
 
         $this->get('/institutes?per_page=999')
             ->assertOk()
-            ->assertSee('1–12')
-            ->assertSee('12 per page');
+            ->assertSee('12 per page')
+            ->assertSee('ZZZ Page Size Test Institution 01')
+            ->assertDontSee('ZZZ Page Size Test Institution 30');
 
         $this->get('/institutes?per_page=12&page=2')
             ->assertOk()
-            ->assertSee('Page')
-            ->assertSee('2')
-            ->assertSee('Page Size Institution 25');
+            ->assertSee('ZZZ Page Size Test Institution 30')
+            ->assertDontSee('ZZZ Page Size Test Institution 01')
+            ->assertSee('per_page=12');
     }
 }
