@@ -1,34 +1,35 @@
-# Institution import preflight: one clean upload file
+# Institution import preflight: clean import CSV plus evidence sidecar
 
 ## Goal
 
-Prepare **one and only one CSV for the institution importer**. Source manifests and machine-generated duplicate reports are audit/review artifacts and must never be uploaded as institution records.
+Prepare one clean CSV for the institution importer and, separately, an evidence sidecar for official-source research. The sidecar is **not** an importer file and must never be uploaded as institution records.
 
 ## Workflow
 
-1. Research agent assembles candidates and source evidence from authoritative sources.
-2. Preflight normalizes names and slugs, removes exact duplicates inside the candidate file, and compares candidates against a read-only canonical institution export.
-3. High-confidence existing matches are excluded from the upload CSV and written to the JSON review report.
-4. Similar-but-not-certain matches are held out of the upload CSV and listed as `hold_ambiguous_match` for focused human review.
-5. Remaining rows are written in the exact importer schema order: `name, official_name, short_name, slug, institution_type, status`.
-6. The operator uploads only the generated clean CSV, then reviews/approves through the existing workflow. This tool never imports, approves, promotes, or writes to the database.
+1. Research each institution from an official university website or authoritative regulator page.
+2. Populate optional candidate columns `official_source_url` and `source_excerpt`. The excerpt must be copied from the actual page; never generate or invent it.
+3. Run preflight to normalize names/slugs, remove exact duplicates, and compare candidates against a read-only canonical institution export.
+4. The tool writes the importer CSV with only the six supported fields and optionally writes a separate evidence sidecar.
+5. Sidecar rows are marked `ready_for_review` only when the URL is HTTPS and the excerpt is at least 20 characters. This is a syntactic preflight, **not proof the source was visited or the excerpt is authentic**.
+6. Keep rows with missing or incomplete evidence held for research. The Laravel application still requires evidence to be captured and linked to each import row before promotion; generating a sidecar alone does not promote or publish records.
 
 ## Run
 
 ```bash
 python scripts/data-quality/prepare_institution_import.py \
-  --input data/imports/2026-10-review-pack/institution-candidates-v1.0.csv \
+  --input data/imports/candidates.csv \
   --canonical path/to/read-only-canonical-institutions.csv \
   --output /tmp/institutions-clean-import.csv \
-  --report /tmp/institutions-preflight-report.json
+  --report /tmp/institutions-preflight-report.json \
+  --evidence-output /tmp/institutions-evidence-sidecar.csv
 ```
 
-The canonical export must be read-only and include `id,name,official_name,short_name,slug`. If `--canonical` is omitted, the tool explicitly reports that database-level duplicate checking was **not** performed. Do not treat that output as ready for production import.
+Candidate source columns are optional: `official_source_url` (or `source_url`) and `source_excerpt`. The importer output remains exactly `name, official_name, short_name, slug, institution_type, status`. The sidecar is for review and future integration with the application's evidence-capture workflow.
 
 ## Safety and limitations
 
-- Matching is deterministic and conservative; it is not a claim that AI can infer identity perfectly.
-- Ambiguous matches are excluded from the upload file rather than silently accepted.
-- Only the clean CSV is an importer input. Do not upload the source manifest or JSON report.
-- A CSV-only comparison cannot detect aliases absent from both files, merger/name-history cases, or semantic relationships. Keep authoritative source links and use the application's identity-conflict checks too.
-- No production DB access or write operation is part of this script.
+- No database writes, approvals, promotion, or publication are performed.
+- Do not add dummy links or AI-generated excerpts as evidence.
+- Duplicate matching is deterministic and conservative; ambiguous matches are held rather than silently accepted.
+- Without `--canonical`, canonical duplicate checking is explicitly marked incomplete.
+- A URL/excerpt pair still requires verification against the source and explicit capture in the application's evidence system. Do not treat a syntactically valid sidecar as proof of verified evidence.

@@ -13,6 +13,7 @@ import json
 import re
 import sys
 import unicodedata
+from urllib.parse import urlparse
 from difflib import SequenceMatcher
 from pathlib import Path
 
@@ -126,6 +127,7 @@ def main() -> int:
     parser.add_argument("--canonical", type=Path, help="Read-only canonical institution export CSV (id,name,official_name,short_name,slug)")
     parser.add_argument("--output", required=True, type=Path, help="Single clean CSV to upload into the institution importer")
     parser.add_argument("--report", required=True, type=Path, help="JSON report; not an import file")
+    parser.add_argument("--evidence-output", type=Path, help="Optional evidence sidecar CSV; never an importer file")
     args = parser.parse_args()
 
     candidates = read_csv(args.input)
@@ -136,6 +138,29 @@ def main() -> int:
     canonical = read_csv(args.canonical) if args.canonical else None
     accepted, excluded = prepare(candidates, canonical)
     write_csv(args.output, accepted, IMPORT_COLUMNS)
+
+    # Keep evidence separate because the Laravel importer schema intentionally
+    # accepts only institution fields. Never fabricate a source or excerpt.
+    evidence_rows = []
+    for index, original in enumerate(candidates, start=2):
+        row_name = (original.get("name") or original.get("official_name") or "").strip()
+        url = (original.get("official_source_url") or original.get("source_url") or "").strip()
+        excerpt = (original.get("source_excerpt") or "").strip()
+        parsed = urlparse(url) if url else None
+        valid_url = bool(parsed and parsed.scheme == "https" and parsed.netloc)
+        state = "ready_for_review" if valid_url and len(excerpt) >= 20 else "missing_or_incomplete"
+        evidence_rows.append({
+            "source_row": index,
+            "name": row_name,
+            "official_source_url": url if valid_url else "",
+            "source_excerpt": excerpt if valid_url and len(excerpt) >= 20 else "",
+            "evidence_preflight": state,
+            "note": "URL and excerpt require verification against the official page before capture" if state == "ready_for_review" else "Do not invent evidence; research official source and copy a relevant excerpt",
+        })
+    if args.evidence_output:
+        write_csv(args.evidence_output, evidence_rows, [
+            "source_row", "name", "official_source_url", "source_excerpt", "evidence_preflight", "note"
+        ])
     args.report.parent.mkdir(parents=True, exist_ok=True)
     report = {
         "input_file": str(args.input),
@@ -147,6 +172,9 @@ def main() -> int:
         "counts_by_decision": {decision: sum(1 for row in excluded if row["decision"] == decision)
                                for decision in sorted({str(row["decision"]) for row in excluded})},
         "excluded_or_held": excluded,
+        "evidence_sidecar_written": bool(args.evidence_output),
+        "evidence_rows_ready_for_review": sum(1 for row in evidence_rows if row["evidence_preflight"] == "ready_for_review"),
+        "evidence_rows_missing_or_incomplete": sum(1 for row in evidence_rows if row["evidence_preflight"] != "ready_for_review"),
         "safety_note": ("No database writes performed. Rows held as ambiguous require review. "
                         "Canonical duplicate checking is incomplete unless --canonical is supplied.")
     }
