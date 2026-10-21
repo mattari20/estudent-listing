@@ -31,8 +31,8 @@
         <form class="directory-page-size" method="get" action="{{ route('institutes.index') }}">
             <label for="directory-per-page">Institutions per page</label>
             <select id="directory-per-page" name="per_page" onchange="this.form.submit()">
-                @foreach ([12, 24, 48] as $pageSize)
-                    <option value="{{ $pageSize }}" @selected((int) request()->query('per_page', 12) === $pageSize)>{{ $pageSize }} per page</option>
+                @foreach ([9, 12, 24, 48] as $pageSize)
+                    <option value="{{ $pageSize }}" @selected((int) request()->query('per_page', 9) === $pageSize)>{{ $pageSize }} per page</option>
                 @endforeach
             </select>
             <noscript><button type="submit" class="button button--ghost">Apply</button></noscript>
@@ -59,7 +59,7 @@
     @endforelse
 </section>
 
-@if ($institutions->hasPages())
+@if ($institutions->total() > 0)
     <nav class="directory-pagination" aria-label="Institution directory pages">
         <div class="directory-pagination__meta">
             Page <strong>{{ $institutions->currentPage() }}</strong> of <strong>{{ $institutions->lastPage() }}</strong>

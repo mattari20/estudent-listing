@@ -11,9 +11,9 @@ class InstitutionController
 {
     public function index(): View
     {
-        $perPage = (int) request()->query('per_page', 12);
-        if (! in_array($perPage, [12, 24, 48], true)) {
-            $perPage = 12;
+        $perPage = (int) request()->query('per_page', 9);
+        if (! in_array($perPage, [9, 12, 24, 48], true)) {
+            $perPage = 9;
         }
 
         $institutions = Institution::query()
