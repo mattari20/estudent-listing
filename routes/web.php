@@ -74,6 +74,7 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         Route::post('/rows/{importRow}/reject', [InstituteImportPromotionController::class, 'reject'])->name('reject');
         Route::post('/rows/{importRow}/quick-approve', [InstituteImportPromotionController::class, 'quickApprove'])->name('quick-approve');
         Route::post('/rows/{importRow}/decision', [InstituteImportPromotionController::class, 'decide'])->name('decide');
+        Route::post('/rows/{importRow}/evidence', [InstituteImportPromotionController::class, 'captureRowEvidence'])->name('row.evidence.store');
         Route::post('/rows/{importRow}/conflict-resolve', [InstituteImportPromotionController::class, 'resolveConflict'])->name('conflict-resolve');
         Route::post('/rows/{importRow}/enrichment-decision', [InstituteImportPromotionController::class, 'enrichmentDecision'])->name('enrichment-decision');
         Route::post('/rows/{importRow}/geography-resolve', [InstituteImportPromotionController::class, 'geographyResolve'])->name('geography-resolve');
