@@ -16,3 +16,26 @@
 .password-toggle:hover{background:#eef4ff;color:var(--accent-dark)}
 .password-toggle:focus-visible{outline:3px solid rgba(23,105,224,.3);outline-offset:2px}
 @media(max-width:420px){.password-input-wrap{flex-wrap:wrap}.password-toggle{width:100%}}
+
+
+/* Public directory pagination */
+.directory-section-heading{align-items:flex-end}
+.directory-results-summary{margin:7px 0 0;color:var(--muted);font-size:.92rem}
+.directory-results-summary strong{color:var(--ink);font-variant-numeric:tabular-nums}
+.directory-toolbar{display:flex;align-items:flex-end;justify-content:flex-end;gap:18px;flex-wrap:wrap}
+.directory-page-size{display:grid;gap:5px;min-width:160px}
+.directory-page-size label{font-size:.78rem;font-weight:750;color:var(--muted)}
+.directory-page-size select{min-height:40px;padding:7px 34px 7px 10px;font-size:.9rem}
+.directory-pagination{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-top:28px;padding:18px 20px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,#fff,#f8faff);box-shadow:0 5px 18px rgba(16,24,40,.035)}
+.directory-pagination__meta{color:var(--muted);font-size:.9rem;white-space:nowrap}
+.directory-pagination__meta strong{color:var(--ink)}
+.directory-pagination .pagination-wrap{margin:0;min-width:0;flex:1}
+.directory-pagination nav{display:flex;align-items:center;justify-content:flex-end;gap:12px}
+.directory-pagination nav>div:first-child{display:none}
+.directory-pagination nav>div:last-child{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.directory-pagination a,.directory-pagination span[aria-current],.directory-pagination span[aria-disabled]{display:inline-flex;align-items:center;justify-content:center;min-width:38px;min-height:38px;padding:6px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:.9rem;font-weight:700;text-decoration:none;box-shadow:0 1px 2px rgba(16,24,40,.03)}
+.directory-pagination a:hover{border-color:#9bbdf6;background:#eef4ff;color:var(--accent-dark)}
+.directory-pagination span[aria-current]{border-color:var(--accent);background:var(--accent);color:#fff}
+.directory-pagination span[aria-disabled]{color:#98a2b3;background:#f9fafb}
+.directory-pagination svg{width:16px;height:16px}
+@media(max-width:700px){.directory-toolbar{width:100%;justify-content:space-between;align-items:flex-start}.directory-page-size{min-width:145px;flex:1}.directory-pagination{align-items:flex-start;padding:14px}.directory-pagination .pagination-wrap{flex-basis:100%}.directory-pagination nav{justify-content:flex-start}.directory-pagination nav>div:last-child{justify-content:flex-start}}
