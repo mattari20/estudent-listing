@@ -35,7 +35,7 @@ class InstituteBulkPromotionController {
      if(!$row || !in_array($row->status,['candidate','validated','duplicate','invalid'],true)) { $result['skipped']++; return; }
      if(ImportConflict::where('import_row_id',$row->id)->where('status','open')->exists()) { $result['skipped']++; return; }
      if($data['decision']==='approve') {
-      if($row->batch?->entity_type==='institution' || $row->status!=='candidate') { $result['skipped']++; return; }
+      if($row->batch?->entity_type==='institution' || !in_array($row->batch?->entity_type,['campus','program','program_offering','admission_intake','eligibility_rule','merit_record','selection_outcome','fee_record','scholarship','accreditation'],true) || $row->status!=='candidate') { $result['skipped']++; return; }
       $enrichment->validateParent($row);
       $decision=ImportPromotionDecision::create([
        'import_row_id'=>$row->id,'decision'=>'approved','actor_type'=>'user','actor_id'=>$request->user()->id,
