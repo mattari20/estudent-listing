@@ -5,10 +5,12 @@ use RuntimeException;
 class ImportSchemaProfileService {
  public function institution(string $version='1.0'): ImportSchemaProfile {
   if($version!=='1.0') throw new RuntimeException("Unsupported institution import schema version: {$version}");
-  return ImportSchemaProfile::firstOrCreate(
+  $profile=ImportSchemaProfile::firstOrCreate(
    ['profile_key'=>'institution-csv','version'=>$version],
-   ['entity_type'=>'institution','status'=>'active','columns'=>['name','official_name','short_name','slug','institution_type','status'],'required_columns'=>['name'],'normalization_rules'=>['trim_strings'=>true,'generate_slug_from_name'=>true],'description'=>'Governed institution CSV import schema.']
+   ['entity_type'=>'institution','status'=>'active','columns'=>['name','official_name','short_name','slug','institution_type','status'],'required_columns'=>['name'],'normalization_rules'=>['trim_strings'=>true,'generate_slug_from_name'=>true],'description'=>'Governed institution CSV schema with optional official-source evidence fields.']
   );
+  $profile->columns=array_values(array_unique(array_merge($profile->columns??[],['official_source_url','source_excerpt'])));
+  return $profile;
  }
  public function validateHeaders(array $headers, ImportSchemaProfile $profile): array {
   $headers=array_values(array_unique(array_map(fn($v)=>trim((string)$v),$headers)));
