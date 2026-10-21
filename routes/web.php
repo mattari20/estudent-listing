@@ -85,6 +85,7 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         Route::post('/reverification/{item}/resolve', [InstituteImportPromotionController::class, 'resolveReverification'])->name('reverification.resolve');
         Route::post('/reverification/{item}/refresh', [InstituteImportPromotionController::class, 'refreshCanonical'])->name('reverification.refresh');
         Route::post('/bulk-promote', [InstituteBulkPromotionController::class, 'store'])->name('bulk-promote');
+        Route::post('/bulk-decision', [InstituteBulkPromotionController::class, 'bulkDecision'])->name('bulk-decision');
         Route::post('/imports/{importBatch}/approve-and-promote-new', [InstituteBulkPromotionController::class, 'approveAndPromoteNew'])->name('imports.approve-and-promote-new');
         Route::get('/monitoring', [MonitoringOperationsController::class, 'dashboard'])->name('monitoring.dashboard');
         Route::get('/monitoring/policies/create', [MonitoringPolicyController::class, 'create'])->name('monitoring.policies.create');
