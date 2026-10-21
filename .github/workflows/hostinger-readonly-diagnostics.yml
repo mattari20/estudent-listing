@@ -234,14 +234,14 @@ jobs:
                     && $schema::hasColumn('assertions', 'evidence_id')) {
                     $item['has_active_source_evidence'] = $db::table('assertions')
                         ->join('evidences', 'evidences.id', '=', 'assertions.evidence_id')
-                        ->where('assertions.subject_type', 'App\\\\Models\\\\ImportRow')
+                        ->where('assertions.subject_type', 'App\\Models\\ImportRow')
                         ->where('assertions.subject_id', $row->id)
                         ->where('evidences.status', 'active')
                         ->exists();
                 }
 
                 $item['canonical_institution_status'] = null;
-                if ($row->parent_subject_type === 'App\\\\Models\\\\Institution' && $row->parent_subject_id !== null
+                if ($row->parent_subject_type === 'App\\Models\\Institution' && $row->parent_subject_id !== null
                     && $schema::hasTable('institutions')) {
                     $item['canonical_institution_status'] = $db::table('institutions')
                         ->where('id', $row->parent_subject_id)->value('status');
@@ -250,7 +250,7 @@ jobs:
                     && $schema::hasColumn('import_rows', 'canonical_subject_id')) {
                     $canonical = $db::table('import_rows')->where('id', $row->id)
                         ->first(['canonical_subject_type', 'canonical_subject_id']);
-                    if ($canonical && $canonical->canonical_subject_type === 'App\\\\Models\\\\Institution'
+                    if ($canonical && $canonical->canonical_subject_type === 'App\\Models\\Institution'
                         && $canonical->canonical_subject_id !== null) {
                         $item['canonical_institution_status'] = $db::table('institutions')
                             ->where('id', $canonical->canonical_subject_id)->value('status');
