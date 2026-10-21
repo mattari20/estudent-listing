@@ -88,6 +88,8 @@ class InstituteImportPromoter
         }
 
         $slug = trim((string) ($payload['slug'] ?? '')) ?: Str::slug((string) $payload['name']);
+        $institutionType = trim((string) ($payload['institution_type'] ?? ''));
+        $requestedStatus = trim((string) ($payload['status'] ?? ''));
 
         if (Institution::where('slug', $slug)->exists()) {
             throw new RuntimeException('Institution slug already exists; explicit identity resolution is required.');
@@ -98,8 +100,10 @@ class InstituteImportPromoter
             'official_name' => $payload['official_name'] ?? null,
             'short_name' => $payload['short_name'] ?? null,
             'slug' => $slug,
-            'institution_type' => $payload['institution_type'] ?? null,
-            'status' => $payload['status'] ?? 'candidate',
+            'institution_type' => $institutionType !== '' ? $institutionType : null,
+            // Blank CSV cells are empty strings, not null. Never persist them as a status.
+            // New imports remain unpublished until the explicit publication workflow.
+            'status' => $requestedStatus !== '' ? $requestedStatus : 'candidate',
         ]);
 
         InstitutionName::create([
