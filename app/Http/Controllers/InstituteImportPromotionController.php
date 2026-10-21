@@ -122,8 +122,12 @@ class InstituteImportPromotionController {
    'reference'=>['required','url','max:2048'],
    'excerpt'=>['required','string','min:20','max:10000'],
   ]);
-  $source=$importRow->batch->source;
-  abort_unless($source && $source->status==='active', 409, 'An active source is required before capturing evidence.');
+  $source=\\App\\Models\\Source::create([
+   'source_type'=>'official_institutional',
+   'name'=>'Official source evidence for institution import row '.$importRow->id,
+   'url'=>$data['reference'],
+   'status'=>'active',
+  ]);
   $evidence=$service->capture($source,$data['reference'],$data['excerpt'],null,[[
    'subject_type'=>ImportRow::class,
    'subject_id'=>$importRow->id,
