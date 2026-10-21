@@ -116,6 +116,43 @@ class InstituteImportPromotionController {
    return back()->withErrors(['promotion'=>$exception instanceof \RuntimeException ? $exception->getMessage() : 'Promotion failed unexpectedly. The error has been logged; no success was recorded.']);
   }
  }
+ public function publishInstitution(Request $request, ImportRow $importRow, ImportPromotionAuditService $audit): RedirectResponse {
+  abort_unless($importRow->batch?->entity_type === 'institution', 409);
+  abort_unless($importRow->status === 'promoted', 409);
+  abort_unless($importRow->canonical_subject_type === Institution::class && $importRow->canonical_subject_id, 409);
+
+  $institution = Institution::query()->findOrFail($importRow->canonical_subject_id);
+  if ($institution->status === 'active') {
+   return back()->with('status', 'Institution is already published in the directory.');
+  }
+
+  $decision = IdentityResolutionDecision::query()
+   ->where('import_row_id', $importRow->id)
+   ->whereIn('decision', ['approved_new', 'approved_match'])
+   ->latest('id')->firstOrFail();
+
+  $hasActiveEvidence = \App\Models\Assertion::query()
+   ->where('subject_type', ImportRow::class)
+   ->where('subject_id', $importRow->id)
+   ->whereHas('evidence', fn ($query) => $query->where('status', 'active'))
+   ->exists();
+  abort_unless($hasActiveEvidence, 409, 'Active official source evidence is required before publication.');
+  abort_unless(!ImportConflict::where('import_row_id', $importRow->id)->where('status', 'open')->exists(), 409, 'Resolve all open import conflicts before publication.');
+
+  $previousStatus = $institution->status;
+  $institution->update(['status' => 'active', 'verified_at' => now()]);
+  $audit->record(
+   $importRow,
+   'institution_published',
+   $request->user()->id,
+   'Operator explicitly published the promoted institution to the public directory.',
+   ['institution_id' => $institution->id, 'previous_status' => $previousStatus, 'new_status' => 'active'],
+   'identity_resolution',
+   $decision->id
+  );
+
+  return redirect()->route('institutes.operations.row', $importRow)->with('status', 'Institution published. It should now appear in the public directory.');
+ }
  public function captureRowEvidence(Request $request, ImportRow $importRow, \App\Services\InstituteSourceEvidenceCaptureService $service): RedirectResponse {
   abort_unless($importRow->batch?->entity_type==='institution' && $importRow->status==='candidate', 409);
   $data=$request->validate([

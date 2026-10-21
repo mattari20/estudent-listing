@@ -68,6 +68,18 @@
 @endif
 @endif
 @if($importRow->status==='promoted')
+@if($importRow->batch->entity_type==='institution' && $importRow->canonical_subject_type===\App\Models\Institution::class && $importRow->canonical_subject_id)
+@php($canonicalInstitution = \App\Models\Institution::find($importRow->canonical_subject_id))
+@if($canonicalInstitution)
+<p><strong>Directory publication:</strong> {{ $canonicalInstitution->status === 'active' ? 'Published / active' : 'Promoted but not yet published (status: '.$canonicalInstitution->status.')' }}</p>
+@if($canonicalInstitution->status !== 'active')
+<form method="post" action="{{ route('institutes.operations.publish',$importRow) }}" onsubmit="return confirm('Publish this verified institution to the public directory?');">
+@csrf
+<button type="submit">Publish to public directory</button>
+</form>
+@endif
+@endif
+@endif
 @if($parentInstitution)<p><strong>Published canonical record:</strong> <a href="{{ route('institutes.show',$parentInstitution) }}">View public institute page →</a></p>@endif
 <h2>Safe reversal</h2>
 <p>Reversal never hard-deletes provenance. Existing canonical matches are preserved.</p>

@@ -80,6 +80,7 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         Route::post('/rows/{importRow}/geography-resolve', [InstituteImportPromotionController::class, 'geographyResolve'])->name('geography-resolve');
         Route::post('/rows/{importRow}/geography-promote', [InstituteImportPromotionController::class, 'geographyPromote'])->name('geography-promote');
         Route::post('/rows/{importRow}/promote', [InstituteImportPromotionController::class, 'promote'])->name('promote');
+        Route::post('/rows/{importRow}/publish', [InstituteImportPromotionController::class, 'publishInstitution'])->name('publish');
         Route::post('/rows/{importRow}/enrichment-promote', [InstituteImportPromotionController::class, 'enrichmentPromote'])->name('enrichment-promote');
         Route::post('/rows/{importRow}/reverse', [InstituteImportPromotionController::class, 'reverse'])->name('reverse');
         Route::post('/reverification/{item}/start', [InstituteImportPromotionController::class, 'startReverification'])->name('reverification.start');

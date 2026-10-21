@@ -20,5 +20,13 @@ class ImportPromotionAuditTest extends TestCase {
   $this->actingAs($user)->post(route('institutes.operations.decide',$row),['decision'=>'approved_new','reason'=>'Explicit operator approval'])->assertRedirect();
   $this->actingAs($user)->post(route('institutes.operations.promote',$row))->assertRedirect();
   $this->assertDatabaseHas('import_promotion_events',['import_row_id'=>$row->id,'event_type'=>'promotion_succeeded','decision_type'=>'identity_resolution']);
+  $row->refresh();
+  $this->assertSame('promoted',$row->status);
+  $institutionId=$row->canonical_subject_id;
+  $this->assertNotNull($institutionId);
+  $this->assertDatabaseHas('institutions',['id'=>$institutionId,'status'=>'candidate']);
+  $this->actingAs($user)->post(route('institutes.operations.publish',$row))->assertRedirect();
+  $this->assertDatabaseHas('institutions',['id'=>$institutionId,'status'=>'active']);
+  $this->assertDatabaseHas('import_promotion_events',['import_row_id'=>$row->id,'event_type'=>'institution_published','decision_type'=>'identity_resolution']);
  }
 }
