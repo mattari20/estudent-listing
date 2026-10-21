@@ -111,18 +111,18 @@ class InstituteImportPromotionController {
    $institution=$promoter->promote($importRow,$decision);
    if($decision->decision==='approved_match') $changes->detect($importRow);
    return redirect()->route('institutes.operations.row',$importRow)->with('status','Canonical institution promoted: '.$institution->name);
-  } catch (\\Throwable $exception) {
+  } catch (\Throwable $exception) {
    report($exception);
-   return back()->withErrors(['promotion'=>$exception instanceof \\RuntimeException ? $exception->getMessage() : 'Promotion failed unexpectedly. The error has been logged; no success was recorded.']);
+   return back()->withErrors(['promotion'=>$exception instanceof \RuntimeException ? $exception->getMessage() : 'Promotion failed unexpectedly. The error has been logged; no success was recorded.']);
   }
  }
- public function captureRowEvidence(Request $request, ImportRow $importRow, \\App\\Services\\InstituteSourceEvidenceCaptureService $service): RedirectResponse {
+ public function captureRowEvidence(Request $request, ImportRow $importRow, \App\Services\InstituteSourceEvidenceCaptureService $service): RedirectResponse {
   abort_unless($importRow->batch?->entity_type==='institution' && $importRow->status==='candidate', 409);
   $data=$request->validate([
    'reference'=>['required','url','max:2048'],
    'excerpt'=>['required','string','min:20','max:10000'],
   ]);
-  $source=\\App\\Models\\Source::create([
+  $source=\App\Models\Source::create([
    'source_type'=>'official_institutional',
    'name'=>'Official source evidence for institution import row '.$importRow->id,
    'url'=>$data['reference'],
