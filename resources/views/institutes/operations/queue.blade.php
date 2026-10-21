@@ -310,11 +310,13 @@
             <p class="import-row-card__meta">Row {{ $row->row_number }} · {{ ucfirst($row->batch->entity_type) }} · {{ $row->match_state }}</p>
         </div>
         <div class="import-row-card__top-actions">
-            @if($state === 'waiting' && $row->status === 'candidate')
-            <form method="post" action="{{ route('institutes.operations.quick-approve',$row) }}" onsubmit="return confirm('Approve this row without opening the detailed review? The row will be approved but will not be promoted automatically.');">
+            @if($state === 'waiting' && $row->status === 'candidate' && $row->batch->entity_type !== 'institution')
+            <form method="post" action="{{ route('institutes.operations.quick-approve',$row) }}" onsubmit="return confirm('Approve this enrichment row? Approval does not publish it; promotion remains a separate step.');">
                 @csrf
-                <button type="submit" class="button--approve">Approve</button>
+                <button type="submit" class="button--approve">Approve enrichment</button>
             </form>
+            @elseif($state === 'waiting' && $row->status === 'candidate' && $row->batch->entity_type === 'institution')
+                <a class="button button--approve" href="{{ route('institutes.operations.row',$row) }}">Review identity</a>
             @endif
             <a class="button button--ghost" href="{{ route('institutes.operations.row',$row) }}">Review details →</a>
             @if($state !== 'promoted')
@@ -342,7 +344,7 @@
 @empty<p>No import rows match the current queue.</p>@endforelse
 <div class="bulk-row-actions" style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0;">
     <form method="post" action="{{ route('institutes.operations.bulk-promote') }}" id="bulk-row-form">@csrf
-    <button type="submit" formaction="{{ route('institutes.operations.bulk-decision') }}" name="decision" value="approve" onclick="return confirm('Approve selected eligible enrichment rows? Institution identity rows and conflicts will be skipped. Approval does not publish records.');" class="button--approve">Approve selected</button>
+    <button type="submit" formaction="{{ route('institutes.operations.bulk-decision') }}" name="decision" value="approve" onclick="return confirm('Approve selected eligible campus/program enrichment rows? Institution identity rows and conflicts will be skipped. Approval does not publish records.');" class="button--approve">Approve selected enrichment</button>
     <button type="submit" formaction="{{ route('institutes.operations.bulk-decision') }}" name="decision" value="reject" onclick="return confirm('Reject all selected rows? This action will remove eligible rows from the active review queue.');" class="button--danger">Reject selected</button>
     <button type="submit" formaction="{{ route('institutes.operations.bulk-promote') }}" onclick="return confirm('Promote selected rows that already have an approval decision?');">Promote selected approved rows</button>
 </form>
