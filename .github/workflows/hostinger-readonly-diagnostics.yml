@@ -63,8 +63,8 @@ jobs:
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
-            $app->make(\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
-            $rows = \Illuminate\\Support\\Facades\\DB::table('institutions')
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $rows = \Illuminate\Support\Facades\DB::table('institutions')
                 ->orderBy('id')
                 ->get(['id', 'name', 'official_name', 'short_name', 'slug', 'status']);
             echo json_encode([
