@@ -131,7 +131,7 @@ class InstituteImportPromotionController {
    ->whereIn('decision', ['approved_new', 'approved_match'])
    ->latest('id')->firstOrFail();
 
-  $hasActiveEvidence = \\App\\Models\\Assertion::query()
+  $hasActiveEvidence = \App\Models\Assertion::query()
    ->where('subject_type', ImportRow::class)
    ->where('subject_id', $importRow->id)
    ->whereHas('evidence', fn ($query) => $query->where('status', 'active'))
@@ -139,13 +139,14 @@ class InstituteImportPromotionController {
   abort_unless($hasActiveEvidence, 409, 'Active official source evidence is required before publication.');
   abort_unless(!ImportConflict::where('import_row_id', $importRow->id)->where('status', 'open')->exists(), 409, 'Resolve all open import conflicts before publication.');
 
+  $previousStatus = $institution->status;
   $institution->update(['status' => 'active', 'verified_at' => now()]);
   $audit->record(
    $importRow,
    'institution_published',
    $request->user()->id,
    'Operator explicitly published the promoted institution to the public directory.',
-   ['institution_id' => $institution->id, 'previous_status' => $institution->getOriginal('status'), 'new_status' => 'active'],
+   ['institution_id' => $institution->id, 'previous_status' => $previousStatus, 'new_status' => 'active'],
    'identity_resolution',
    $decision->id
   );
