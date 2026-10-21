@@ -3,10 +3,13 @@ namespace App\Http\Controllers;
 use App\Models\ImportBatch;
 use App\Models\ImportRow;
 use App\Models\Source;
+use App\Models\Assertion;
 use App\Services\ImportSchemaProfileService;
 use App\Services\InstituteImportControllerSupport;
 use App\Services\InstituteIdentityResolver;
+use App\Services\InstituteSourceEvidenceCaptureService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 class InstituteImportController {
@@ -14,7 +17,7 @@ class InstituteImportController {
  public function template(ImportSchemaProfileService $profiles) {
   $profile=$profiles->institution(); return response($profiles->template($profile),200,['Content-Type'=>'text/csv','Content-Disposition'=>'attachment; filename="institution-import-template-v'.$profile->version.'.csv"']);
  }
- public function store(Request $request,ImportSchemaProfileService $profiles,InstituteImportControllerSupport $support,InstituteIdentityResolver $identityResolver): View {
+ public function store(Request $request,ImportSchemaProfileService $profiles,InstituteImportControllerSupport $support,InstituteIdentityResolver $identityResolver,InstituteSourceEvidenceCaptureService $evidenceCapture): View {
   $validated=$request->validate(['source_name'=>['required','string','max:255'],'source_type'=>['required','string','max:100'],'source_url'=>['nullable','url','max:2048'],'entity_type'=>['required','in:institution'],'schema_version'=>['required','string','max:20'],'csv'=>['required','file','mimes:csv,txt','max:5120']]);
   $profile=$profiles->institution($validated['schema_version']);
   $source=Source::create(['source_type'=>$validated['source_type'],'name'=>$validated['source_name'],'url'=>$validated['source_url']??null,'status'=>'active']);
@@ -32,11 +35,31 @@ class InstituteImportController {
   }
   fclose($handle); if($pending)$support->insertRows($pending);
   $batch->update(['status'=>'validated','total_rows'=>$rowNumber-1,'valid_rows'=>$valid,'invalid_rows'=>$invalid,'candidate_rows'=>$candidate,'completed_at'=>now()]);
-  // Resolve identity against canonical institutions immediately after staging.
-  // This creates review candidates/conflicts only; it never approves or promotes a row.
   $batch->rows()->where('status','candidate')->orderBy('id')->chunkById(200,function($rows) use ($identityResolver): void {
    foreach($rows as $row) $identityResolver->resolve($row);
   });
+  // Supplied official evidence is recorded automatically during import. Evidence never approves,
+  // promotes, or publishes an institution; identity decisions remain a separate governed step.
+  $captured=0;
+  $batch->rows()->where('status','candidate')->orderBy('id')->chunkById(200,function($rows) use ($evidenceCapture,&$captured): void {
+   foreach($rows as $row) {
+    $payload=$row->normalized_payload ?? $row->payload ?? [];
+    $url=trim((string)($payload['official_source_url']??''));
+    $excerpt=trim((string)($payload['source_excerpt']??''));
+    if($url==='' || $excerpt==='') continue;
+    $name=trim((string)($payload['official_name']??$payload['name']??''));
+    if($name==='') continue;
+    DB::transaction(function() use ($row,$url,$excerpt,$name,$evidenceCapture,&$captured): void {
+     $source=Source::create(['source_type'=>'official_institutional','name'=>'Official source evidence for institution import row '.$row->id,'url'=>$url,'status'=>'active']);
+     $evidenceCapture->capture($source,$url,$excerpt,null,[[
+      'subject_type'=>ImportRow::class,'subject_id'=>$row->id,'attribute'=>'institution_identity','value'=>$name,
+      'verification_state'=>'operator_supplied','verified_at'=>now()->toDateTimeString(),
+     ]]);
+     $captured++;
+    });
+   }
+  });
+  $batch->update(['notes'=>trim((string)$batch->notes.'; evidence_captured='.$captured)]);
   return view('institutes.import-result',compact('batch'));
  }
 }
