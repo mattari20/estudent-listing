@@ -36,6 +36,7 @@
 <h2>Identity candidates</h2>
 @forelse($matches as $match)<div class="institute-card"><strong>{{ $match->institution?->name }}</strong><p>{{ $match->match_type }} · {{ $match->reason }}</p><p>ID: {{ $match->institution_id }}</p></div>@empty<p>No deterministic identity candidate found. This may be a new institution.</p>@endforelse
 <h2>Official source evidence</h2>
+<p><a href="{{ route('institutes.operations.imports.evidence-capture', $importRow->import_batch_id) }}">Open batch evidence capture for this import</a> — upload a CSV with verified source URLs and copied excerpts for multiple rows at once.</p>
 <p>Promotion requires evidence tied to this exact import row. Open the institution's official website, verify the institution name, then enter the official page URL and a short excerpt copied from that page. Do not enter invented or AI-generated text as source evidence.</p>
 <form method="post" action="{{ route('institutes.operations.row.evidence.store',$importRow) }}">
 @csrf

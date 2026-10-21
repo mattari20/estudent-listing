@@ -20,6 +20,7 @@ use App\Http\Controllers\InstituteEndToEndReadinessController;
 use App\Http\Controllers\InstituteProvenanceReadinessController;
 use App\Http\Controllers\InstituteSourceVerificationReadinessController;
 use App\Http\Controllers\InstituteSourceEvidenceCaptureController;
+use App\Http\Controllers\InstituteBatchEvidenceCaptureController;
 use App\Http\Controllers\InstituteImportPromotionController;
 use App\Http\Controllers\InstituteOperationsController;
 use App\Http\Controllers\InstituteRobotsController;
@@ -59,6 +60,8 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         Route::get('/integrity', InstituteGeographyIntegrityController::class)->name('integrity');
         Route::get('/data-readiness', InstituteDataReadinessController::class)->name('data-readiness');
         Route::get('/imports/{importBatch}/verification', InstituteImportVerificationController::class)->name('imports.verification');
+        Route::get('/imports/{importBatch}/evidence-capture', [InstituteBatchEvidenceCaptureController::class, 'create'])->name('imports.evidence-capture');
+        Route::post('/imports/{importBatch}/evidence-capture', [InstituteBatchEvidenceCaptureController::class, 'store'])->name('imports.evidence-capture.store');
         Route::get('/imports/{importBatch}/source-readiness', InstituteSourceVerificationReadinessController::class)->name('imports.source-readiness');
         Route::get('/imports/{importBatch}/promotion-readiness', InstituteProductionPromotionReadinessController::class)->name('imports.promotion-readiness');
         Route::get('/imports/{importBatch}/final-readiness', InstituteFinalReadinessController::class)->name('imports.final-readiness');
