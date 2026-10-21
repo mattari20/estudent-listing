@@ -58,6 +58,29 @@ jobs:
             else
               echo "git_metadata_unavailable"
             fi
+            echo "=== Canonical institution identity export (read-only; names and slugs only) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+            $rows = \\Illuminate\\Support\\Facades\\DB::table('institutions')
+                ->orderBy('id')
+                ->get(['id', 'name', 'official_name', 'short_name', 'slug', 'status']);
+            echo json_encode([
+                'check' => 'canonical_institution_identity_export',
+                'mutation_performed' => false,
+                'record_count' => $rows->count(),
+                'institutions' => $rows->map(fn ($row) => [
+                    'id' => (int) $row->id,
+                    'name' => $row->name,
+                    'official_name' => $row->official_name,
+                    'short_name' => $row->short_name,
+                    'slug' => $row->slug,
+                    'status' => $row->status,
+                ])->values()->all(),
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
             echo "=== Profile-to-canonical-record trace (read-only) ==="
             php <<'PHP'
             <?php
