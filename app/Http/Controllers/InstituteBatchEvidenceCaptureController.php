@@ -65,6 +65,7 @@ class InstituteBatchEvidenceCaptureController
         }
 
         $records = [];
+        $seenRowIds = [];
         $line = 1;
         while (($values = fgetcsv($handle)) !== false) {
             $line++;
@@ -85,6 +86,12 @@ class InstituteBatchEvidenceCaptureController
                 fclose($handle);
                 return back()->withErrors(['evidence_csv' => 'CSV line '.$line.': '.$validator->errors()->first()]);
             }
+            $rowId = (string) $record['import_row_id'];
+            if (isset($seenRowIds[$rowId])) {
+                fclose($handle);
+                return back()->withErrors(['evidence_csv' => 'CSV line '.$line.' repeats import row ID '.$rowId.'. No evidence was recorded.']);
+            }
+            $seenRowIds[$rowId] = true;
             $records[] = $record;
         }
         fclose($handle);
