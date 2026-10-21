@@ -162,6 +162,8 @@ jobs:
                     'import_rows.parent_subject_type',
                     'import_rows.parent_subject_id',
                     'import_rows.validation_errors',
+                    'import_batches.status as batch_status',
+                    'import_batches.source_id as batch_source_id',
                 ]);
 
             $report = ['check' => 'institution_import_row_trace', 'mutation_performed' => false, 'rows' => []];
@@ -175,6 +177,11 @@ jobs:
                     'batch_id' => (int) $row->import_batch_id,
                     'row_number' => (int) $row->row_number,
                     'status' => $row->status,
+                    'batch_status' => $row->batch_status,
+                    'batch_source_id' => $row->batch_source_id === null ? null : (int) $row->batch_source_id,
+                    'source_status' => $schema::hasTable('sources') && $row->batch_source_id !== null
+                        ? $db::table('sources')->where('id', $row->batch_source_id)->value('status')
+                        : null,
                     'match_state' => $row->match_state,
                     'parent_subject_type' => $row->parent_subject_type,
                     'parent_subject_id' => $row->parent_subject_id === null ? null : (int) $row->parent_subject_id,
@@ -203,6 +210,51 @@ jobs:
                     $metadata = isset($event->metadata) ? json_decode((string) $event->metadata, true) : [];
                     $item['latest_promotion_event_type'] = $event->event_type ?? null;
                     $item['latest_promotion_error_class'] = is_array($metadata) ? ($metadata['error_class'] ?? null) : null;
+                }
+
+                if ($schema::hasTable('institution_identity_decisions')
+                    && $schema::hasColumn('institution_identity_decisions', 'import_row_id')) {
+                    $identityDecisions = $db::table('institution_identity_decisions')
+                        ->where('import_row_id', $row->id)
+                        ->orderByDesc('id')
+                        ->get(['decision']);
+                    $item['identity_decisions'] = $identityDecisions->pluck('decision')->values()->all();
+                    $item['has_approved_identity_decision'] = $identityDecisions->contains(
+                        fn ($decision) => in_array($decision->decision, ['approved_new', 'approved_match'], true)
+                    );
+                }
+
+                $item['open_conflict_count'] = $schema::hasTable('import_conflicts')
+                    ? $db::table('import_conflicts')->where('import_row_id', $row->id)->where('status', 'open')->count()
+                    : null;
+
+                if ($schema::hasTable('assertions') && $schema::hasTable('evidences')
+                    && $schema::hasColumn('assertions', 'subject_type')
+                    && $schema::hasColumn('assertions', 'subject_id')
+                    && $schema::hasColumn('assertions', 'evidence_id')) {
+                    $item['has_active_source_evidence'] = $db::table('assertions')
+                        ->join('evidences', 'evidences.id', '=', 'assertions.evidence_id')
+                        ->where('assertions.subject_type', 'App\\Models\\ImportRow')
+                        ->where('assertions.subject_id', $row->id)
+                        ->where('evidences.status', 'active')
+                        ->exists();
+                }
+
+                $item['canonical_institution_status'] = null;
+                if ($row->parent_subject_type === 'App\\Models\\Institution' && $row->parent_subject_id !== null
+                    && $schema::hasTable('institutions')) {
+                    $item['canonical_institution_status'] = $db::table('institutions')
+                        ->where('id', $row->parent_subject_id)->value('status');
+                }
+                if ($schema::hasTable('institutions') && $schema::hasColumn('import_rows', 'canonical_subject_type')
+                    && $schema::hasColumn('import_rows', 'canonical_subject_id')) {
+                    $canonical = $db::table('import_rows')->where('id', $row->id)
+                        ->first(['canonical_subject_type', 'canonical_subject_id']);
+                    if ($canonical && $canonical->canonical_subject_type === 'App\\Models\\Institution'
+                        && $canonical->canonical_subject_id !== null) {
+                        $item['canonical_institution_status'] = $db::table('institutions')
+                            ->where('id', $canonical->canonical_subject_id)->value('status');
+                    }
                 }
 
                 if ($schema::hasTable('institution_identity_decisions')) {
