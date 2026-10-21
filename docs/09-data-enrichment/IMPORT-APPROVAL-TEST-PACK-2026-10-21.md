@@ -13,7 +13,7 @@ Provide one versioned place for source-led institution candidates and a safe, re
 
 The review pack contains ten institution candidates:
 - COMSATS University Islamabad
-- Federal Urdu University of Arts Sciences and Technology
+- Federal Urdu University of Arts, Sciences & Technology
 - National University of Modern Languages
 - National College of Arts
 - Bahria University
@@ -21,7 +21,7 @@ The review pack contains ten institution candidates:
 - Virtual University of Pakistan
 - Karakoram International University
 - National Textile University
-- National University of Sciences and Technology
+- National University of Sciences & Technology
 
 The source manifest records official institutional websites and HEC source pages. Several HEC pages use legacy names or include campus/study-centre information whose meaning must be preserved. The candidate list must not be treated as an authoritative complete list of Pakistani HEIs.
 
