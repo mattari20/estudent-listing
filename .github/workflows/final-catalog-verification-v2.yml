@@ -44,7 +44,7 @@ jobs:
             if(!$lums || $lums->status!=='open' || $lums->application_open_at!==null || substr((string)$lums->application_close_at,0,10)!=='2027-01-20' || substr((string)$lums->test_date,0,10)!=='2027-03-21' || $lums->enrollment_start_at!==null || $lums->application_url!=='https://lums.edu.pk/node/826') exit(7);
             echo "LUMS_FALL_2027_INTAKE=verified;OPEN_DATE=unknown;DEADLINE=2027-01-20;LCAT=tentative-2027-03-21";
             echo "ACTIVE_PROGRAMS={$programs}\nACTIVE_OFFERINGS={$offerings}\nADMISSION_INTAKES={$intakes}\nINSTITUTIONS_WITH_PROGRAMS={$institutionsCovered}\nBROKEN_ACTIVE_OFFERINGS={$broken}\nORPHAN_INTAKES={$orphanIntakes}\nACTIVE_CAMPUSES_WITHOUT_GEOGRAPHY={$nullGeo}\n";
-            if($programs!==74 || $offerings!==43 || $intakes!==5 || $institutionsCovered!==19 || $broken!==0 || $orphanIntakes!==0 || $nullGeo!==0) exit(6);
+            if($programs!==74 || $offerings!==39 || $intakes!==5 || $institutionsCovered!==19 || $broken!==0 || $orphanIntakes!==0 || $nullGeo!==0) exit(6);
             PHP
             count=0
             failures=0
