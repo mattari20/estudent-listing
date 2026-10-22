@@ -21,7 +21,7 @@ jobs:
   public-smoke-check:
     name: Public directory smoke check
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - name: Check public directory pages
         shell: bash
@@ -41,8 +41,8 @@ jobs:
 
             # Hostinger Git deployment can start shortly after a push. Retry
             # for up to ~5 minutes rather than failing on the first transient response.
-            for attempt in {1..10}; do
-              status="$(curl --location --silent --show-error --max-time 20 \
+            for attempt in {1..6}; do
+              status="$(curl --location --silent --show-error --max-time 15 \
                 --output "$body" --write-out '%{http_code}' "$url" 2>"$RUNNER_TEMP/curl-error.txt" || true)"
               if [[ "$status" == "200" && -s "$body" ]]; then
                 if [[ -n "$expected_pattern" ]] && ! grep -Eiq "$expected_pattern" "$body"; then
@@ -55,8 +55,8 @@ jobs:
                   return
                 fi
               fi
-              if (( attempt < 10 )); then
-                sleep 30
+              if (( attempt < 6 )); then
+                sleep 15
               fi
             done
 
