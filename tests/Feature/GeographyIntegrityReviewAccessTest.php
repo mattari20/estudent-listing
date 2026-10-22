@@ -57,4 +57,18 @@ class GeographyIntegrityReviewAccessTest extends TestCase
             ->get(route('institutes.operations.integrity'))
             ->assertOk();
     }
+
+    public function test_master_admin_can_access_geography_integrity_review(): void
+    {
+        $user = User::create([
+            'name' => 'Integrity Master Admin',
+            'email' => 'integrity-master-admin@example.test',
+            'password' => 'test-password',
+            'role' => 'master_admin',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('institutes.operations.integrity'))
+            ->assertOk();
+    }
 }
