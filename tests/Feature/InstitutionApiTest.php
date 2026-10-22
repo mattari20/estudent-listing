@@ -254,4 +254,10 @@ class InstitutionApiTest extends TestCase
         Institution::create(['name' => 'Inactive API University', 'slug' => 'inactive-api-university', 'status' => 'inactive']);
         $this->getJson('/api/v1/institutions/inactive-api-university')->assertNotFound();
     }
+
+    public function test_api_does_not_return_candidate_institution_profile(): void
+    {
+        Institution::create(['name' => 'Candidate API University', 'slug' => 'candidate-api-university', 'status' => 'candidate']);
+        $this->getJson('/api/v1/institutions/candidate-api-university')->assertNotFound();
+    }
 }
