@@ -33,7 +33,7 @@ jobs:
             $db=Illuminate\Support\Facades\DB::class;
             $profiles=[
               8=>['name'=>'Lahore University of Management Sciences','description'=>'Lahore University of Management Sciences (LUMS) is a private university based in Lahore, Pakistan. Official website: https://lums.edu.pk/'],
-              9=>['name'=>'COMSATS University Islamabad','description'=>'COMSATS University Islamabad is a public-sector university with a campus in Lahore. Official website: https://www.comsats.edu.pk/'],
+              9=>['name'=>'COMSATS University Islamabad Lahore Campus','description'=>'COMSATS University Islamabad Lahore Campus is a campus of the public-sector COMSATS University Islamabad, located on Defence Road, Lahore. Official website: https://lahore.comsats.edu.pk/'],
               13=>['name'=>'National College of Arts','description'=>'National College of Arts is a public degree-awarding institute specializing in art, design and related disciplines, with campuses in Lahore and Rawalpindi. Official website: https://www.nca.edu.pk/'],
               14=>['name'=>'Bahria University','description'=>'Bahria University is a federally chartered public-sector university with campuses in Islamabad, Karachi and Lahore. Official website: https://www.bahria.edu.pk/'],
               15=>['name'=>'Air University','description'=>'Air University is a public-sector university headquartered in Islamabad with additional campuses in Pakistan. Official website: https://www.au.edu.pk/'],
@@ -42,7 +42,7 @@ jobs:
               18=>['name'=>'National Textile University','description'=>'National Textile University is a public-sector university based in Faisalabad with programs in textile engineering, computing, design and related disciplines. Official website: https://ntu.edu.pk/'],
               19=>['name'=>'National University of Sciences & Technology','description'=>'National University of Sciences & Technology (NUST) is a public-sector university headquartered in Islamabad, with schools and constituent institutions across Pakistan. Official website: https://nust.edu.pk/'],
             ];
-            $types=[8=>'Private University',9=>'Public University',13=>'Public Degree-Awarding Institute',14=>'Public University',15=>'Public University',16=>'Public University',17=>'Public University',18=>'Public University',19=>'Public University'];
+            $types=[8=>'Private University',9=>'Public University Campus',13=>'Public Degree-Awarding Institute',14=>'Public University',15=>'Public University',16=>'Public University',17=>'Public University',18=>'Public University',19=>'Public University'];
             $db::transaction(function() use ($db,$profiles,$types) {
               foreach($profiles as $id=>$p) {
                 $i=$db::table('institutions')->where('id',$id)->lockForUpdate()->first();
