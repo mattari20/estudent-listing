@@ -8,6 +8,15 @@ use Illuminate\Http\JsonResponse;
 
 class InstituteImportRowDiagnosticController
 {
+    public function view(ImportBatch $importBatch, InstituteImportRowDiagnosticService $diagnostics): \\Illuminate\\View\\View
+    {
+        abort_unless($importBatch->entity_type === 'institution', 404);
+
+        $report = $diagnostics->build($importBatch);
+
+        return view('institutes.operations.row-diagnostics', compact('report'));
+    }
+
     public function __invoke(
         ImportBatch $importBatch,
         InstituteImportRowDiagnosticService $diagnostics
