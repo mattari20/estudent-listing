@@ -26,21 +26,22 @@ jobs:
             $app = require_once 'bootstrap/app.php';
             $kernel = $app->make('Illuminate\\Contracts\\Console\\Kernel');
             $kernel->bootstrap();
-            $db = \\Illuminate\\Support\\Facades\\DB::class;
-            $rows = $db::table('institutions as i')
+            $db = $app['db']->connection();
+            $rows = $db->table('institutions as i')
               ->leftJoin('campuses as c', function($j) { $j->on('c.institution_id','=','i.id')->where('c.status','=','active'); })
               ->leftJoin('programs as p', function($j) { $j->on('p.institution_id','=','i.id')->where('p.status','=','active'); })
               ->where('i.status','active')
               ->groupBy('i.id','i.name','i.slug')
               ->orderBy('i.id')
-              ->get(['i.id','i.name','i.slug',\\Illuminate\\Support\\Facades\\DB::raw('COUNT(DISTINCT c.id) as active_campuses'),\\Illuminate\\Support\\Facades\\DB::raw('COUNT(DISTINCT p.id) as active_programs')]);
+              ->selectRaw('COUNT(DISTINCT c.id) as active_campuses, COUNT(DISTINCT p.id) as active_programs')
+              ->get(['i.id','i.name','i.slug']);
             foreach ($rows as $r) {
-              $offerings = $db::table('program_offerings as o')->join('programs as p','p.id','=','o.program_id')->join('campuses as c','c.id','=','o.campus_id')->where('p.institution_id',$r->id)->where('p.status','active')->where('c.status','active')->where('o.status','active')->count();
+              $offerings = $db->table('program_offerings as o')->join('programs as p','p.id','=','o.program_id')->join('campuses as c','c.id','=','o.campus_id')->where('p.institution_id',$r->id)->where('p.status','active')->where('c.status','active')->where('o.status','active')->count();
               echo 'INSTITUTION=' . json_encode(['id'=>(int)$r->id,'name'=>$r->name,'slug'=>$r->slug,'active_campuses'=>(int)$r->active_campuses,'active_programs'=>(int)$r->active_programs,'active_offerings'=>$offerings], JSON_UNESCAPED_SLASHES) . PHP_EOL;
             }
-            $activeInstitutions = $db::table('institutions')->where('status','active')->count();
-            $badCampus = $db::table('campuses as c')->join('institutions as i','i.id','=','c.institution_id')->leftJoin('geographies as g','g.id','=','c.geography_id')->where('i.status','active')->where('c.status','active')->whereNull('g.id')->count();
-            $badOffering = $db::table('program_offerings as o')->leftJoin('programs as p','p.id','=','o.program_id')->leftJoin('campuses as c','c.id','=','o.campus_id')->where('o.status','active')->where(function($q) { $q->whereNull('p.id')->orWhereNull('c.id')->orWhere('p.status','<>','active')->orWhere('c.status','<>','active'); })->count();
+            $activeInstitutions = $db->table('institutions')->where('status','active')->count();
+            $badCampus = $db->table('campuses as c')->join('institutions as i','i.id','=','c.institution_id')->leftJoin('geographies as g','g.id','=','c.geography_id')->where('i.status','active')->where('c.status','active')->whereNull('g.id')->count();
+            $badOffering = $db->table('program_offerings as o')->leftJoin('programs as p','p.id','=','o.program_id')->leftJoin('campuses as c','c.id','=','o.campus_id')->where('o.status','active')->where(function($q) { $q->whereNull('p.id')->orWhereNull('c.id')->orWhere('p.status','<>','active')->orWhere('c.status','<>','active'); })->count();
             echo 'ACTIVE_INSTITUTIONS=' . $activeInstitutions . PHP_EOL;
             echo 'ACTIVE_CAMPUSES_WITHOUT_GEOGRAPHY=' . $badCampus . PHP_EOL;
             echo 'BROKEN_ACTIVE_OFFERINGS=' . $badOffering . PHP_EOL;
