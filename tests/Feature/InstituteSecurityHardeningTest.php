@@ -48,4 +48,9 @@ class InstituteSecurityHardeningTest extends TestCase
 
         $response->assertStatus(429);
     }
+
+    public function test_operations_queue_redirects_unauthenticated_visitors(): void
+    {
+        $this->get('/institutes/operations')->assertRedirect('/institutes/login');
+    }
 }
