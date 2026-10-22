@@ -128,4 +128,9 @@ class InstitutePasswordRecoveryTest extends TestCase
 
         $this->assertTrue(Hash::check('Old!StrongPassphrase2026', $user->fresh()->password));
     }
+
+    public function test_forgot_password_form_is_available(): void
+    {
+        $this->get(route('institutes.password.request'))->assertOk();
+    }
 }
