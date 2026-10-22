@@ -1,0 +1,56 @@
+name: Audit Remaining Institutes Data
+
+on:
+  push:
+    branches:
+      - ops/audit-remaining-institutes-data
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read-only remaining gaps and public routes
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -eu
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app = require_once 'bootstrap/app.php';
+            $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db = Illuminate\Support\Facades\DB::class;
+            echo "INSTITUTIONS_WITHOUT_ACTIVE_CAMPUS_BEGIN\n";
+            $rows = $db::table('institutions as i')->leftJoin('campuses as c',function($j){$j->on('c.institution_id','=','i.id')->where('c.status','=','active');})
+              ->where('i.status','active')->whereNull('c.id')->orderBy('i.id')
+              ->get(['i.id','i.name','i.institution_type','i.slug','i.description','i.verified_at']);
+            foreach($rows as $r) echo json_encode($r,JSON_UNESCAPED_SLASHES)."\n";
+            echo "INSTITUTIONS_WITHOUT_ACTIVE_CAMPUS_END\n";
+            echo "ALL_CAMPUSES_BEGIN\n";
+            $campuses=$db::table('campuses as c')->leftJoin('geographies as g','g.id','=','c.geography_id')->orderBy('c.id')
+              ->get(['c.id','c.institution_id','c.name','c.slug','c.campus_type','c.status','c.geography_id','g.name as geography_name','g.type as geography_type','g.status as geography_status','c.address']);
+            foreach($campuses as $r) echo json_encode($r,JSON_UNESCAPED_SLASHES)."\n";
+            echo "ALL_CAMPUSES_END\n";
+            echo "PROGRAMS_BEGIN\n";
+            foreach($db::table('programs')->orderBy('id')->get() as $r) echo json_encode($r,JSON_UNESCAPED_SLASHES)."\n";
+            echo "PROGRAMS_END\n";
+            echo "PROFILE_COLUMNS=" . implode(',', $db::getSchemaBuilder()->getColumnListing('institutions')) . "\n";
+            echo "PROGRAM_COLUMNS=" . implode(',', $db::getSchemaBuilder()->getColumnListing('programs')) . "\n";
+            PHP
+            echo "DIRECTORY_HTTP_STATUS=$(curl -sS -o /tmp/institutes-index.html -w '%{http_code}' https://estudent.pk/institutes/)"
+            test -s /tmp/institutes-index.html
+            echo "DIRECTORY_NONEMPTY=yes"
+            echo "KNOWN_PROFILE_HTTP_STATUS=$(curl -sS -o /tmp/institutes-pu.html -w '%{http_code}' https://estudent.pk/institutes/university-of-the-punjab)"
+            test -s /tmp/institutes-pu.html
+            echo "KNOWN_PROFILE_NONEMPTY=yes"
