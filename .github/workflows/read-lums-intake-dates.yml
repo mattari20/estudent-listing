@@ -1,0 +1,31 @@
+name: Read LUMS Intake Dates
+on:
+  push:
+    branches:
+      - ops/read-lums-intake-dates
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read-only current intake row
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          script: |
+            set -euo pipefail
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db=Illuminate\Support\Facades\DB::class;
+            $r=$db::table('admission_intakes as a')->join('program_offerings as o','o.id','=','a.program_offering_id')->join('programs as p','p.id','=','o.program_id')->where('p.slug','lums-bs-computer-science')->where('a.label','Fall 2027')->first(['a.id','a.status','a.application_open_at','a.application_close_at','a.test_date','a.enrollment_start_at','a.application_url','a.notes','o.id as offering_id','o.campus_id','p.slug']);
+            echo json_encode($r,JSON_UNESCAPED_SLASHES)."\n";
+            PHP
