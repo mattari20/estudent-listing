@@ -1,0 +1,48 @@
+name: Fix COMSATS Program Source URL
+on:
+  push:
+    branches:
+      - ops/fix-comsats-program-source
+permissions:
+  contents: read
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add verified official source URL to existing COMSATS program
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db=Illuminate\Support\Facades\DB::class;
+            $db::transaction(function() use ($db) {
+              $i=$db::table('institutions')->where('id',9)->lockForUpdate()->first();
+              $p=$db::table('programs')->where('id',1)->lockForUpdate()->first();
+              if(!$i || $i->name!=='COMSATS University Islamabad Lahore Campus' || $i->status!=='active') throw new RuntimeException('COMSATS institution guard failed');
+              if(!$p || (int)$p->institution_id!==9 || $p->slug!=='bs-computer-sciences' || $p->name!=='BS (Computer Sciences)' || $p->status!=='active') throw new RuntimeException('COMSATS program identity guard failed');
+              $url='https://lahore.comsats.edu.pk/admissions/Prospectus/Guide-Spring-2023.pdf';
+              if(strpos((string)$p->description,$url)!==false) { echo "SOURCE_ALREADY_PRESENT\n"; return; }
+              $description=trim((string)$p->description);
+              $description=($description!==''?$description." | ":"")."Official COMSATS Lahore undergraduate prospectus lists BS (Computer Sciences): ".$url;
+              $db::table('programs')->where('id',1)->update(['description'=>$description,'updated_at'=>now()]);
+              echo "SOURCE_URL_ADDED=program_id_1;".$url."\n";
+            });
+            $p=$db::table('programs')->where('id',1)->first();
+            if(!$p || strpos((string)$p->description,'https://lahore.comsats.edu.pk/admissions/Prospectus/Guide-Spring-2023.pdf')===false) throw new RuntimeException('Source URL verification failed');
+            $missing=$db::table('programs')->where('status','active')->where(function($q){$q->whereNull('description')->orWhere('description','not like','%http://%')->where('description','not like','%https://%');})->count();
+            echo "ACTIVE_PROGRAMS_MISSING_SOURCE_URL=".$missing."\n";
+            if($missing!==0) throw new RuntimeException('Some active programs still lack source URLs');
+            PHP
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "DATA_GAP_STATUS=".($d["status"]??"unknown")."\n"; echo "POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\n"; echo "GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if(($d["mutation_performed"]??null)!==false || ($d["status"]??null)!=="healthy") exit(5);'
