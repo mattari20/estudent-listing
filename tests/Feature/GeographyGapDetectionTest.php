@@ -108,4 +108,11 @@ class GeographyGapDetectionTest extends TestCase
 
         $this->assertCount(0, (new GeographyGapDetectionService)->campuses());
     }
+
+    public function test_inactive_campus_without_geography_is_not_reported_as_active_gap(): void
+    {
+        $institution = Institution::create(['name' => 'Inactive Campus Institute', 'slug' => 'inactive-campus-institute', 'status' => 'active']);
+        Campus::create(['institution_id' => $institution->id, 'geography_id' => null, 'name' => 'Closed Campus', 'slug' => 'closed-campus', 'status' => 'inactive']);
+        $this->assertCount(0, (new GeographyGapDetectionService)->campuses());
+    }
 }
