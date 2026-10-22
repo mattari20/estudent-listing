@@ -53,4 +53,14 @@ class DirectoryUiTest extends TestCase
             ->assertSee('href="#recognition"', false)
             ->assertSee(route('institutes.show', $institution), false);
     }
+
+    public function test_directory_page_size_options_include_supported_sizes(): void
+    {
+        $this->get('/institutes/')
+            ->assertOk()
+            ->assertSee('value="9"', false)
+            ->assertSee('value="12"', false)
+            ->assertSee('value="24"', false)
+            ->assertSee('value="48"', false);
+    }
 }
