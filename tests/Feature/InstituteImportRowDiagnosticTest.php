@@ -72,7 +72,7 @@ class InstituteImportRowDiagnosticTest extends TestCase
             'invalid_rows' => 0,
             'candidate_rows' => 1,
         ]);
-        $institution = \\App\\Models\\Institution::query()->create([
+        $institution = \App\Models\Institution::query()->create([
             'name' => 'Existing Canonical University',
             'slug' => 'existing-canonical-university',
             'status' => 'active',
