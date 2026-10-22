@@ -33,7 +33,6 @@ jobs:
             $db=Illuminate\Support\Facades\DB::class;
             foreach($db::table('institutions')->where('status','active')->orderBy('id')->get(['slug']) as $i) echo $i->slug."\n";
             PHP
-            sed -i '/^COUNTS_NOT_IN_FILE=/d' /tmp/uvas-profile-slugs.txt
             status=$(curl -sS -L --max-time 15 -o /tmp/uvas-directory.html -w '%{http_code}' https://estudent.pk/institutes/)
             echo "DIRECTORY_HTTP=$status"
             [ "$status" = "200" ] && [ "$(wc -c < /tmp/uvas-directory.html)" -gt 100 ]
