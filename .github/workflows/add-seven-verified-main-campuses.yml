@@ -119,7 +119,5 @@ jobs:
             foreach ($rows as $r) echo json_encode($r, JSON_UNESCAPED_SLASHES)."\n";
             if ($rows->count() !== 7) throw new RuntimeException("Verification failed: expected 7 campuses, found ".$rows->count());
             if ($rows->contains(fn($r)=>$r->institution_status!=='active'||$r->campus_status!=='active'||$r->geography_type!=='city'||$r->geography_status!=='active')) throw new RuntimeException("Verification failed: status or geography mismatch.");
-            $gaps = app(App\\Services\\InstituteDataReadinessService::class)->summarize();
-            echo "CANONICAL_POPULATION=".json_encode($gaps['population'],JSON_UNESCAPED_SLASHES)."\n";
-            echo "CANONICAL_RELATIONSHIP_GAPS=".json_encode($gaps['integrity'],JSON_UNESCAPED_SLASHES)."\n";
             PHP
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); echo "POST_WRITE_REPORT_STATUS=".($d["status"]??"unknown")."\\n"; echo "POST_WRITE_POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\\n"; echo "POST_WRITE_GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\\n"; if (($d["mutation_performed"]??null)!==false) exit(4);'
