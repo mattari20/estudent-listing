@@ -133,4 +133,9 @@ class InstituteAccountSecurityTest extends TestCase
             ->get(route('institutes.operations.users.create'))
             ->assertRedirect(route('institutes.login'));
     }
+
+    public function test_password_settings_redirect_guests_to_login(): void
+    {
+        $this->get(route('institutes.operations.account.password.edit'))->assertRedirect(route('institutes.login'));
+    }
 }
