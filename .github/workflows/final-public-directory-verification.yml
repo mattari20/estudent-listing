@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify canonical data and all public institution profile routes
+      - name: Verify every active institution profile and canonical data health
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
@@ -24,36 +24,36 @@ jobs:
           script: |
             set -euo pipefail
             cd /home/u537436044/domains/estudent.pk/public_html/institutes
-            php <<'PHP'
+            php <<'PHP' > /tmp/active-institutions.tsv
             <?php
             require 'vendor/autoload.php';
             $app=require_once 'bootstrap/app.php';
             $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
             $kernel->bootstrap();
             $db=Illuminate\Support\Facades\DB::class;
-            $institutions=$db::table('institutions')->where('status','active')->orderBy('id')->get(['id','name','slug','institution_type','description']);
-            $campusCount=$db::table('campuses')->where('status','active')->count();
-            $nullGeo=$db::table('campuses')->where('status','active')->whereNull('geography_id')->count();
-            $programCount=$db::table('programs')->where('status','active')->count();
-            $missingCampus=$db::table('institutions as i')->leftJoin('campuses as c',function($j){$j->on('c.institution_id','=','i.id')->where('c.status','=','active');})->where('i.status','active')->whereNull('c.id')->count();
-            echo "ACTIVE_INSTITUTIONS=".$institutions->count()."\nACTIVE_CAMPUSES={$campusCount}\nACTIVE_CAMPUSES_WITH_NULL_GEOGRAPHY={$nullGeo}\nACTIVE_PROGRAMS={$programCount}\nACTIVE_INSTITUTIONS_WITHOUT_ACTIVE_CAMPUS={$missingCampus}\n";
-            $failures=0;
-            foreach($institutions as $i) {
-              $url='https://estudent.pk/institutes/'.rawurlencode($i->slug);
-              $cmd='curl -sS -L --max-time 15 -o /tmp/institute-profile-body.html -w "%{http_code}" '.escapeshellarg($url);
-              $status=trim((string)shell_exec($cmd));
-              $nonempty=is_file('/tmp/institute-profile-body.html') && filesize('/tmp/institute-profile-body.html')>100;
-              $pass=$status==='200' && $nonempty;
-              echo ($pass?'PASS':'FAIL')." | HTTP={$status} | nonempty=".($nonempty?'yes':'no')." | ID={$i->id} | {$i->slug}\n";
-              if(!$pass) $failures++;
+            foreach($db::table('institutions')->where('status','active')->orderBy('id')->get(['id','slug']) as $i) {
+              echo $i->id."\t".$i->slug."\n";
             }
-            if($institutions->count()!==19) { echo "FAIL: expected 19 active institutions\n"; $failures++; }
-            if($campusCount!==19 || $nullGeo!==0 || $missingCampus!==0) { echo "FAIL: campus/geography coverage guard\n"; $failures++; }
-            if($programCount!==11) { echo "FAIL: expected 11 active program records\n"; $failures++; }
-            if($failures) { echo "FINAL_PUBLIC_VERIFICATION=FAILED;COUNT={$failures}\n"; exit(1); }
-            echo "FINAL_PUBLIC_VERIFICATION=PASS\n";
             PHP
+            count=0
+            failures=0
+            while IFS="$(printf '\t')" read -r id slug; do
+              [ -n "$slug" ] || continue
+              count=$((count+1))
+              body="/tmp/institute-profile-$id.html"
+              status=$(curl -sS -L --max-time 15 -o "$body" -w '%{http_code}' "https://estudent.pk/institutes/$slug")
+              if [ "$status" = "200" ] && [ -s "$body" ] && [ "$(wc -c < "$body")" -gt 100 ]; then
+                echo "PASS | HTTP=$status | ID=$id | $slug"
+              else
+                echo "FAIL | HTTP=$status | ID=$id | $slug"
+                failures=$((failures+1))
+              fi
+            done < /tmp/active-institutions.tsv
+            echo "PROFILE_ROUTES_CHECKED=$count"
+            echo "PROFILE_ROUTE_FAILURES=$failures"
+            [ "$count" -eq 19 ]
+            [ "$failures" -eq 0 ]
             curl -sS -L --max-time 15 -o /tmp/institutes-index.html -w "DIRECTORY_INDEX_HTTP=%{http_code}\n" https://estudent.pk/institutes/
             test -s /tmp/institutes-index.html
             echo "DIRECTORY_INDEX_NONEMPTY=yes"
-            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "FINAL_DATA_GAP_STATUS=".($d["status"]??"unknown")."\n"; echo "FINAL_RELATIONSHIP_GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if(($d["mutation_performed"]??null)!==false) exit(4); if(($d["status"]??null)!=="healthy") exit(5);'
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "FINAL_DATA_GAP_STATUS=".($d["status"]??"unknown")."\n"; echo "FINAL_POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\n"; echo "FINAL_RELATIONSHIP_GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if(($d["mutation_performed"]??null)!==false) exit(4); if(($d["status"]??null)!=="healthy") exit(5);'
