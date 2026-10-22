@@ -5,10 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\ImportBatch;
 use App\Services\InstituteImportRowDiagnosticService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 
 class InstituteImportRowDiagnosticController
 {
-    public function view(ImportBatch $importBatch, InstituteImportRowDiagnosticService $diagnostics): \\Illuminate\\View\\View
+    public function view(ImportBatch $importBatch, InstituteImportRowDiagnosticService $diagnostics): View
     {
         abort_unless($importBatch->entity_type === 'institution', 404);
 
