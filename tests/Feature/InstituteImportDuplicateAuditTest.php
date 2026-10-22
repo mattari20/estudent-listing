@@ -178,10 +178,10 @@ class InstituteImportDuplicateAuditTest extends TestCase
         $second = Institution::query()->create([
             'name' => 'Second Example University', 'slug' => 'second-example-university', 'status' => 'active',
         ]);
-        \\App\\Models\\InstitutionName::query()->create([
+        \App\Models\InstitutionName::query()->create([
             'institution_id' => $first->id, 'name' => 'Shared University Alias',
         ]);
-        \\App\\Models\\InstitutionName::query()->create([
+        \App\Models\InstitutionName::query()->create([
             'institution_id' => $second->id, 'name' => 'Shared-University Alias',
         ]);
 
