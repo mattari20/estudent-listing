@@ -28,4 +28,12 @@ class InstituteBatchEvidenceCaptureTest extends TestCase
             $this->assertContains('institute.operator', $middleware, $name.' should require operator access.');
         }
     }
+
+    public function test_evidence_capture_store_route_requires_authentication(): void
+ {
+  $route = Route::getRoutes()->getByName('institutes.operations.imports.evidence-capture.store');
+  $this->assertNotNull($route);
+  $this->assertContains('auth', $route->gatherMiddleware());
+  $this->assertContains('institute.operator', $route->gatherMiddleware());
+ }
 }
