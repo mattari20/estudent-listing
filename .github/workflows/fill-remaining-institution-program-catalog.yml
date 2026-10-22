@@ -1,0 +1,98 @@
+name: Fill Remaining Institution Program Catalog
+
+on:
+  push:
+    branches:
+      - ops/fill-remaining-institution-program-catalog
+
+permissions:
+  contents: read
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Add source-backed programs and verified campus offerings for remaining institutions
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db=Illuminate\Support\Facades\DB::class;
+            $programs=[
+              ['institution_id'=>6,'institution'=>'University of Education Lahore','name'=>'BS Computer Science','slug'=>'ue-lahore-bs-computer-science','level'=>'undergraduate','award'=>'BS','discipline'=>'Computer Science','source'=>'https://ue.edu.pk/degreeprograms.php'],
+              ['institution_id'=>6,'institution'=>'University of Education Lahore','name'=>'BS Information Technology','slug'=>'ue-lahore-bs-information-technology','level'=>'undergraduate','award'=>'BS','discipline'=>'Information Technology','source'=>'https://ue.edu.pk/degreeprograms.php'],
+              ['institution_id'=>6,'institution'=>'University of Education Lahore','name'=>'BS English','slug'=>'ue-lahore-bs-english','level'=>'undergraduate','award'=>'BS','discipline'=>'English Language and Literature','source'=>'https://ue.edu.pk/degreeprograms.php'],
+              ['institution_id'=>6,'institution'=>'University of Education Lahore','name'=>'BS Business Analytics','slug'=>'ue-lahore-bs-business-analytics','level'=>'undergraduate','award'=>'BS','discipline'=>'Business Analytics','source'=>'https://ue.edu.pk/degreeprograms.php'],
+              ['institution_id'=>7,'institution'=>'Lahore College for Women University','name'=>'BS Artificial Intelligence','slug'=>'lcwu-bs-artificial-intelligence','level'=>'undergraduate','award'=>'BS','discipline'=>'Artificial Intelligence','source'=>'https://www.lcwu.edu.pk/news-archive-2025/july/4732-the-96th-syndicate-meeting-of-lahore-college-for-women-university-lcwu.html'],
+              ['institution_id'=>7,'institution'=>'Lahore College for Women University','name'=>'BS Information Technology','slug'=>'lcwu-bs-information-technology','level'=>'undergraduate','award'=>'BS','discipline'=>'Information Technology','source'=>'https://www.lcwu.edu.pk/news-archive-2025/july/4732-the-96th-syndicate-meeting-of-lahore-college-for-women-university-lcwu.html'],
+              ['institution_id'=>7,'institution'=>'Lahore College for Women University','name'=>'BS Computer Science','slug'=>'lcwu-bs-computer-science','level'=>'undergraduate','award'=>'BS','discipline'=>'Computer Science','source'=>'https://www.lcwu.edu.pk/'],
+              ['institution_id'=>10,'institution'=>'University of Lahore','name'=>'BS Financial Technology','slug'=>'uol-bs-financial-technology','level'=>'undergraduate','award'=>'BS','discipline'=>'Financial Technology','source'=>'https://lbs.uol.edu.pk/'],
+              ['institution_id'=>10,'institution'=>'University of Lahore','name'=>'BS Business Analytics','slug'=>'uol-bs-business-analytics','level'=>'undergraduate','award'=>'BS','discipline'=>'Business Analytics','source'=>'https://lbs.uol.edu.pk/'],
+              ['institution_id'=>10,'institution'=>'University of Lahore','name'=>'BS Game Design','slug'=>'uol-bs-game-design','level'=>'undergraduate','award'=>'BS','discipline'=>'Game Design','source'=>'https://uol.edu.pk/'],
+              ['institution_id'=>11,'institution'=>'Federal Urdu University of Arts, Sciences & Technology','name'=>'BS Computer Science','slug'=>'fuuast-islamabad-bs-computer-science','level'=>'undergraduate','award'=>'BS','discipline'=>'Computer Science','source'=>'https://fuuastisb.edu.pk/MeritLists.aspx'],
+              ['institution_id'=>11,'institution'=>'Federal Urdu University of Arts, Sciences & Technology','name'=>'BS Accounting & Finance','slug'=>'fuuast-islamabad-bs-accounting-finance','level'=>'undergraduate','award'=>'BS','discipline'=>'Accounting and Finance','source'=>'https://fuuastisb.edu.pk/MeritLists.aspx'],
+              ['institution_id'=>11,'institution'=>'Federal Urdu University of Arts, Sciences & Technology','name'=>'BS English','slug'=>'fuuast-islamabad-bs-english','level'=>'undergraduate','award'=>'BS','discipline'=>'English Language and Literature','source'=>'https://fuuastisb.edu.pk/MeritLists.aspx'],
+              ['institution_id'=>13,'institution'=>'National College of Arts','name'=>'Bachelor of Fine Arts','slug'=>'nca-lahore-bachelor-fine-arts','level'=>'undergraduate','award'=>'BFA','discipline'=>'Fine Arts','source'=>'https://www.nca.edu.pk/prospectus/bfa-propspectus-25-8-24rv.pdf'],
+              ['institution_id'=>13,'institution'=>'National College of Arts','name'=>'Bachelor of Design','slug'=>'nca-lahore-bachelor-design','level'=>'undergraduate','award'=>'Bachelor','discipline'=>'Design','source'=>'https://www.nca.edu.pk/prospectus/bfa-propspectus-25-8-24rv.pdf'],
+            ];
+            $offerings=[
+              ['slug'=>'lcwu-bs-artificial-intelligence','institution_id'=>7,'campus_id'=>17,'duration'=>null],
+              ['slug'=>'lcwu-bs-information-technology','institution_id'=>7,'campus_id'=>17,'duration'=>null],
+              ['slug'=>'lcwu-bs-computer-science','institution_id'=>7,'campus_id'=>17,'duration'=>null],
+              ['slug'=>'uol-bs-financial-technology','institution_id'=>10,'campus_id'=>18,'duration'=>'4 years'],
+              ['slug'=>'uol-bs-business-analytics','institution_id'=>10,'campus_id'=>18,'duration'=>'4 years'],
+              ['slug'=>'fuuast-islamabad-bs-computer-science','institution_id'=>11,'campus_id'=>19,'duration'=>'4 years'],
+              ['slug'=>'fuuast-islamabad-bs-english','institution_id'=>11,'campus_id'=>19,'duration'=>'4 years'],
+              ['slug'=>'nca-lahore-bachelor-fine-arts','institution_id'=>13,'campus_id'=>3,'duration'=>'4 years'],
+            ];
+            $db::transaction(function() use ($db,$programs,$offerings) {
+              foreach($programs as $p) {
+                $i=$db::table('institutions')->where('id',$p['institution_id'])->lockForUpdate()->first();
+                if(!$i || $i->name!==$p['institution'] || $i->status!=='active') throw new RuntimeException("Institution guard failed ".$p['slug']);
+                $found=$db::table('programs')->where('institution_id',$p['institution_id'])->where('slug',$p['slug'])->lockForUpdate()->get();
+                if($found->count()>1) throw new RuntimeException("Duplicate program ".$p['slug']);
+                if($found->count()===1) {
+                  if($found->first()->name!==$p['name'] || $found->first()->status!=='active') throw new RuntimeException("Program mismatch ".$p['slug']);
+                } else {
+                  $db::table('programs')->insert(['institution_id'=>$p['institution_id'],'name'=>$p['name'],'slug'=>$p['slug'],'program_level'=>$p['level'],'award'=>$p['award'],'discipline'=>$p['discipline'],'status'=>'active','description'=>'Official program listing: '.$p['source'],'created_at'=>now(),'updated_at'=>now()]);
+                  echo "PROGRAM_ADDED=".$p['slug']."\n";
+                }
+              }
+              foreach($offerings as $o) {
+                $p=$db::table('programs')->where('institution_id',$o['institution_id'])->where('slug',$o['slug'])->where('status','active')->first();
+                $c=$db::table('campuses')->where('id',$o['campus_id'])->where('institution_id',$o['institution_id'])->where('status','active')->whereNotNull('geography_id')->first();
+                if(!$p || !$c) throw new RuntimeException("Offering identity/campus guard failed ".$o['slug']);
+                $found=$db::table('program_offerings')->where('program_id',$p->id)->where('campus_id',$c->id)->where('delivery_mode','on_campus')->lockForUpdate()->get();
+                if($found->count()>1) throw new RuntimeException("Duplicate offering ".$o['slug']);
+                if($found->count()===0) {
+                  $db::table('program_offerings')->insert(['program_id'=>$p->id,'campus_id'=>$c->id,'delivery_mode'=>'on_campus','status'=>'active','intake_label'=>null,'duration'=>$o['duration'],'availability'=>'unknown','effective_from'=>null,'effective_until'=>null,'created_at'=>now(),'updated_at'=>now()]);
+                  echo "OFFERING_ADDED=".$o['slug'].";CAMPUS=".$c->name."\n";
+                }
+              }
+              $p=$db::table('programs')->where('institution_id',10)->where('slug','uol-bs-business-analytics')->first();
+              $o=$db::table('program_offerings')->where('program_id',$p->id)->where('status','active')->first();
+              $found=$db::table('admission_intakes')->where('program_offering_id',$o->id)->where('label','Fall 2026 (closed)')->lockForUpdate()->get();
+              if($found->count()>1) throw new RuntimeException('Duplicate UOL Fall 2026 intake');
+              if($found->count()===0) {
+                $db::table('admission_intakes')->insert(['program_offering_id'=>$o->id,'label'=>'Fall 2026 (closed)','status'=>'closed','application_open_at'=>null,'application_close_at'=>'2026-10-05','test_date'=>null,'selection_date'=>null,'enrollment_start_at'=>null,'enrollment_end_at'=>null,'seat_capacity'=>null,'application_url'=>'https://uol.edu.pk/','notes'=>'Official UOL homepage stated the last date to apply for Fall 2026 admissions was 5 October 2026. This intake is recorded as historical/closed; no opening date was inferred.','created_at'=>now(),'updated_at'=>now()]);
+                echo "HISTORICAL_INTAKE_ADDED=UOL Fall 2026 closed\n";
+              }
+            });
+            $counts=['active_programs'=>$db::table('programs')->where('status','active')->count(),'active_offerings'=>$db::table('program_offerings')->where('status','active')->count(),'intakes'=>$db::table('admission_intakes')->count(),'institutions_with_active_programs'=>$db::table('institutions as i')->join('programs as p','p.institution_id','=','i.id')->where('i.status','active')->where('p.status','active')->distinct()->count('i.id'),'broken_offerings'=>$db::table('program_offerings as o')->leftJoin('programs as p','p.id','=','o.program_id')->leftJoin('campuses as c','c.id','=','o.campus_id')->where('o.status','active')->where(function($q){$q->whereNull('p.id')->orWhereNull('c.id');})->count(),'orphan_intakes'=>$db::table('admission_intakes as a')->leftJoin('program_offerings as o','o.id','=','a.program_offering_id')->whereNull('o.id')->count()];
+            echo "ROUND_THREE_COUNTS=".json_encode($counts)."\n";
+            if($counts['active_programs']<74 || $counts['active_offerings']<38 || $counts['intakes']<4 || $counts['institutions_with_active_programs']<18 || $counts['broken_offerings']!==0 || $counts['orphan_intakes']!==0) throw new RuntimeException('Round three integrity verification failed.');
+            PHP
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "ROUND_THREE_REPORT_STATUS=".($d["status"]??"unknown")."\n"; echo "ROUND_THREE_POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\n"; echo "ROUND_THREE_GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if(($d["mutation_performed"]??null)!==false || ($d["status"]??null)!=="healthy") exit(5);'
