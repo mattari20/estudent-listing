@@ -93,6 +93,31 @@ jobs:
                 'alias_record_count' => $aliases->flatten(1)->count(),
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP
+            echo "=== Latest Laravel exception fingerprint (read-only; message and request data omitted) ==="
+            php <<'PHP'
+            <?php
+            $path = __DIR__.'/storage/logs/laravel.log';
+            if (!is_file($path) || !is_readable($path)) {
+                echo json_encode(['check' => 'latest_laravel_exception_fingerprint', 'available' => false, 'reason' => 'log_unavailable'], JSON_PRETTY_PRINT), PHP_EOL;
+                exit(0);
+            }
+            $lines = file($path, FILE_IGNORE_NEW_LINES);
+            $result = ['check' => 'latest_laravel_exception_fingerprint', 'available' => false, 'message_emitted' => false];
+            foreach (array_reverse($lines) as $line) {
+                if (!preg_match('/(production|local)\\.ERROR:/', $line)) continue;
+                $result['available'] = true;
+                if (preg_match('/\\(([A-Za-z_\\\\][A-Za-z0-9_\\\\]*)\\([^\\n]*? at (\\/[^:\\s]+:\\d+)\\)/', $line, $matches)) {
+                    $result['exception_class'] = $matches[1];
+                    $result['source_location'] = basename(dirname($matches[2])).'/'.basename($matches[2]);
+                } else {
+                    $result['exception_class'] = 'unparsed';
+                    $result['source_location'] = null;
+                }
+                if (preg_match('/^\\[([^]]+)\\]/', $line, $time)) $result['logged_at'] = $time[1];
+                break;
+            }
+            echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
             echo "=== Profile-to-canonical-record trace (read-only) ==="
             php <<'PHP'
             <?php
