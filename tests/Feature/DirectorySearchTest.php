@@ -182,4 +182,17 @@ class DirectorySearchTest extends TestCase
     {
         $this->get('/institutes/search')->assertOk()->assertSee('Find an institute');
     }
+    public function test_public_search_never_returns_candidate_or_inactive_institutions(): void
+    {
+        Institution::create(['name' => 'Public Active University', 'slug' => 'public-active-university', 'status' => 'active']);
+        Institution::create(['name' => 'Private Candidate University', 'slug' => 'private-candidate-university', 'status' => 'candidate']);
+        Institution::create(['name' => 'Archived Inactive University', 'slug' => 'archived-inactive-university', 'status' => 'inactive']);
+
+        $this->get('/institutes/search?q=University')
+            ->assertOk()
+            ->assertSee('Public Active University')
+            ->assertDontSee('Private Candidate University')
+            ->assertDontSee('Archived Inactive University');
+    }
+
 }
