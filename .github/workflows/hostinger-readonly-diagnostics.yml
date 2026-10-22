@@ -287,6 +287,39 @@ jobs:
                     }
                 }
 
+                // Keep the SSH trace aligned with the application's read-only audit.
+                // Recommendations are advisory only and never authorize mutations.
+                $item['review_reasons'] = [];
+                $rowStatus = (string) ($item['status'] ?? '');
+                $eventType = (string) ($item['latest_promotion_event_type'] ?? '');
+                $validationErrorCount = (int) ($item['validation_error_count'] ?? 0);
+                $promotionDecisions = $item['promotion_decisions'] ?? [];
+                $hasApprovedPromotionDecision = in_array('approved', $promotionDecisions, true);
+                $item['has_approved_promotion_decision'] = $hasApprovedPromotionDecision;
+
+                if ($rowStatus === 'promoted') {
+                    $item['review_disposition'] = 'retain_promoted_history';
+                    $item['review_reasons'][] = 'Row is already promoted; retain its audit history.';
+                } elseif ($rowStatus === 'duplicate' || ($item['match_state'] ?? null) === 'duplicate') {
+                    $item['review_disposition'] = 'verify_duplicate_link';
+                    $item['review_reasons'][] = 'Verify the canonical match and dependency links before any archival decision.';
+                } elseif ($validationErrorCount > 0) {
+                    $item['review_disposition'] = 'correct_validation_errors';
+                    $item['review_reasons'][] = 'Validation errors are recorded; inspect private validation details before retrying.';
+                } elseif ($rowStatus === 'rejected' || $eventType === 'promotion_rejected') {
+                    $item['review_disposition'] = 'review_rejection';
+                    $item['review_reasons'][] = 'Preserve the rejection audit trail and inspect the decision/event reason before reprocessing.';
+                } elseif (! $hasApprovedPromotionDecision) {
+                    $item['review_disposition'] = 'review_promotion_decision';
+                    $item['review_reasons'][] = 'No approved promotion decision is recorded; do not promote or publish automatically.';
+                } elseif (in_array($eventType, ['promotion_failed', 'promotion_error'], true)) {
+                    $item['review_disposition'] = 'investigate_promotion_failure';
+                    $item['review_reasons'][] = 'A promotion failure event exists; inspect its private details before retrying.';
+                } else {
+                    $item['review_disposition'] = 'manual_review';
+                    $item['review_reasons'][] = 'Available audit fields do not establish a safe automated disposition.';
+                }
+
                 $report['rows'][] = $item;
             }
             echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
