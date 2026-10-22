@@ -1,0 +1,85 @@
+name: One-time Activate Seven Candidate Institutions
+
+on:
+  push:
+    branches:
+      - ops/activate-seven-institutions-once
+
+permissions:
+  contents: read
+
+concurrency:
+  group: activate-seven-institutions-once
+  cancel-in-progress: false
+
+jobs:
+  activate:
+    name: Validate and activate exactly seven institutions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Apply allowlisted status update over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -eu
+            PROJECT_PATH="/home/u537436044/domains/estudent.pk/public_html/institutes"
+            if [ ! -f "$PROJECT_PATH/artisan" ]; then
+              echo "ERROR: Laravel artisan file not found; no changes made."
+              exit 3
+            fi
+            cd "$PROJECT_PATH"
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $db = \Illuminate\Support\Facades\DB::class;
+            $expected = [
+                13 => 'National College of Arts',
+                14 => 'Bahria University',
+                15 => 'Air University',
+                16 => 'Virtual University of Pakistan',
+                17 => 'Karakoram International University',
+                18 => 'National Textile University',
+                19 => 'National University of Sciences & Technology',
+            ];
+            $results = $db::transaction(function () use ($db, $expected) {
+                $found = $db::table('institutions')->whereIn('id', array_keys($expected))
+                    ->orderBy('id')->get(['id','name','status']);
+                if ($found->count() !== count($expected)) {
+                    throw new \RuntimeException('Expected exactly seven allowlisted IDs; no changes committed.');
+                }
+                foreach ($found as $row) {
+                    if (($expected[$row->id] ?? null) !== $row->name) {
+                        throw new \RuntimeException('Name/ID mismatch at institution '.$row->id.'; no changes committed.');
+                    }
+                    if (!in_array($row->status, ['candidate','active'], true)) {
+                        throw new \RuntimeException('Unexpected status for institution '.$row->id.': '.$row->status.'; no changes committed.');
+                    }
+                }
+                $before = $found->map(fn($r) => ['id'=>(int)$r->id,'name'=>$r->name,'status'=>$r->status])->values()->all();
+                $db::table('institutions')->whereIn('id', array_keys($expected))
+                    ->where('status', 'candidate')
+                    ->update(['status'=>'active','updated_at'=>now()]);
+                $after = $db::table('institutions')->whereIn('id', array_keys($expected))
+                    ->orderBy('id')->get(['id','name','status']);
+                if ($after->count() !== count($expected) || $after->contains(fn($r) => $r->status !== 'active')) {
+                    throw new \RuntimeException('Post-update verification failed; transaction rolled back.');
+                }
+                return ['before'=>$before,'after'=>$after->map(fn($r) => ['id'=>(int)$r->id,'name'=>$r->name,'status'=>$r->status])->values()->all()];
+            });
+            echo json_encode([
+                'check'=>'seven_institution_status_activation',
+                'mutation_performed'=>true,
+                'verified_count'=>count($results['after']),
+                'before'=>$results['before'],
+                'after'=>$results['after'],
+                'note'=>'Only status was changed; institution_type, verified_at, campuses, programs, and evidence were not altered.'
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
