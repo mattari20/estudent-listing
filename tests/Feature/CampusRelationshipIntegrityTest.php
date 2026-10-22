@@ -166,4 +166,11 @@ class CampusRelationshipIntegrityTest extends TestCase
             $campuses->map(fn (Campus $campus) => [$campus->name, $campus->slug])->all()
         );
     }
+
+    public function test_active_campus_without_geography_is_flagged(): void
+    {
+        $institution = Institution::create(['name' => 'Campus Audit University', 'slug' => 'campus-audit-university', 'status' => 'active']);
+        $campus = Campus::create(['institution_id' => $institution->id, 'geography_id' => null, 'name' => 'Main Campus', 'slug' => 'main-campus', 'status' => 'active']);
+        $this->assertContains('missing_geography', app(CampusRelationshipIntegrityService::class)->inspect($campus));
+    }
 }
