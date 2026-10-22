@@ -65,4 +65,14 @@ class ImportVerificationGateTest extends TestCase
         $this->assertSame(1,$summary['blocking_findings']['candidate_rows_with_open_conflicts']);
         $this->assertFalse($summary['mutation_performed']);
     }
+
+    public function test_missing_active_evidence_blocks_candidate_verification(): void
+    {
+        [$batch, $row] = $this->batch('batch-missing-evidence-gate');
+        IdentityResolutionDecision::create(['import_row_id' => $row->id, 'institution_id' => null, 'decision' => 'approved_new', 'actor_type' => 'user', 'actor_id' => 1, 'reason' => 'Explicit review', 'decided_at' => now()]);
+        $summary = (new InstituteImportVerificationService)->summarize($batch->fresh());
+        $this->assertFalse($summary['verification_ready']);
+        $this->assertSame(1, $summary['blocking_findings']['candidate_rows_without_active_evidence']);
+        $this->assertFalse($summary['mutation_performed']);
+    }
 }
