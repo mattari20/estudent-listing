@@ -40,7 +40,8 @@ jobs:
             $orphanIntakes=$db::table('admission_intakes as a')->leftJoin('program_offerings as o','o.id','=','a.program_offering_id')->whereNull('o.id')->count();
             $nullGeo=$db::table('campuses')->where('status','active')->whereNull('geography_id')->count();
             $lums=$db::table('admission_intakes as a')->join('program_offerings as o','o.id','=','a.program_offering_id')->join('programs as p','p.id','=','o.program_id')->where('p.slug','lums-bs-computer-science')->where('a.label','Fall 2027')->first(['a.status','a.application_open_at','a.application_close_at','a.test_date','a.enrollment_start_at','a.application_url','a.notes']);
-            if(!$lums || $lums->status!=='open' || $lums->application_open_at!==null || $lums->application_close_at!=='2027-01-20' || $lums->test_date!=='2027-03-21' || $lums->enrollment_start_at!==null || $lums->application_url!=='https://lums.edu.pk/node/826') exit(7);
+            echo 'LUMS_INTAKE_ROW='.json_encode($lums,JSON_UNESCAPED_SLASHES)."\\n";
+            if(!$lums || $lums->status!=='open' || $lums->application_open_at!==null || substr((string)$lums->application_close_at,0,10)!=='2027-01-20' || substr((string)$lums->test_date,0,10)!=='2027-03-21' || $lums->enrollment_start_at!==null || $lums->application_url!=='https://lums.edu.pk/node/826') exit(7);
             echo "LUMS_FALL_2027_INTAKE=verified;OPEN_DATE=unknown;DEADLINE=2027-01-20;LCAT=tentative-2027-03-21\\n";
             echo "ACTIVE_PROGRAMS={$programs}\nACTIVE_OFFERINGS={$offerings}\nADMISSION_INTAKES={$intakes}\nINSTITUTIONS_WITH_PROGRAMS={$institutionsCovered}\nBROKEN_ACTIVE_OFFERINGS={$broken}\nORPHAN_INTAKES={$orphanIntakes}\nACTIVE_CAMPUSES_WITHOUT_GEOGRAPHY={$nullGeo}\n";
             if($programs!==74 || $offerings!==43 || $intakes!==5 || $institutionsCovered!==19 || $broken!==0 || $orphanIntakes!==0 || $nullGeo!==0) exit(6);
