@@ -45,7 +45,9 @@ jobs:
               status="$(curl --location --silent --show-error --max-time 15 \
                 --output "$body" --write-out '%{http_code}' "$url" 2>"$RUNNER_TEMP/curl-error.txt" || true)"
               if [[ "$status" == "200" && -s "$body" ]]; then
-                if [[ -n "$expected_pattern" ]] && ! grep -Eiq "$expected_pattern" "$body"; then
+                # HTML templates may wrap visible text across source lines. Normalize line
+        # breaks before checking content so formatting does not create false failures.
+        if [[ -n "$expected_pattern" ]] && ! tr '\\n\\r' '  ' < "$body" | grep -Eiq "$expected_pattern"; then
                   status="content-mismatch"
                 elif [[ -n "$extra_pattern" ]] && ! grep -Eiq "$extra_pattern" "$body"; then
                   status="page-size-mismatch"
