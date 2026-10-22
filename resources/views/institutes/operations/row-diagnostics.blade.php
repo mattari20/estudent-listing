@@ -41,7 +41,7 @@
             <thead>
                 <tr>
                     <th>Row</th><th>Institution</th><th>Row status</th><th>Identity decision</th>
-                    <th>Active evidence</th><th>Open conflicts</th><th>Canonical status</th><th>Blockers</th><th>Validation errors</th>
+                    <th>Active evidence</th><th>Open conflicts</th><th>Canonical status</th><th>Possible duplicate</th><th>Blockers</th><th>Validation errors</th>
                 </tr>
             </thead>
             <tbody>
@@ -54,6 +54,13 @@
                     <td>{{ $row['evidence_active'] ? 'Yes' : 'No' }}</td>
                     <td>{{ $row['open_conflicts'] }}</td>
                     <td>{{ $row['canonical_status'] ?? 'No canonical institution' }}</td>
+                    <td>
+                        @if(!empty($row['possible_duplicate_institution_id']))
+                            {{ $row['possible_duplicate_institution_name'] }} (ID {{ $row['possible_duplicate_institution_id'] }}, {{ $row['possible_duplicate_institution_status'] }})
+                        @else
+                            None detected
+                        @endif
+                    </td>
                     <td>
                         @if(count($row['blockers']))
                             <ul>@foreach($row['blockers'] as $blocker)<li><code>{{ $blocker }}</code></li>@endforeach</ul>
@@ -70,7 +77,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="9">This batch contains no import rows.</td></tr>
+                <tr><td colspan="10">This batch contains no import rows.</td></tr>
             @endforelse
             </tbody>
         </table>
