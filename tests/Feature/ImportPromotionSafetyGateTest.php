@@ -102,4 +102,17 @@ class ImportPromotionSafetyGateTest extends TestCase
         $this->assertSame('candidate', $row->fresh()->status);
         $this->assertDatabaseCount('institutions', 0);
     }
+
+    public function test_promotion_fails_closed_without_active_evidence(): void
+ {
+  [$batch, $row, $decision] = $this->candidate();
+  try {
+   app(InstituteImportPromoter::class)->promote($row, $decision);
+   $this->fail('Promotion must be blocked without active source evidence.');
+  } catch (RuntimeException $exception) {
+   $this->assertSame('Active source evidence is required before promotion.', $exception->getMessage());
+  }
+  $this->assertSame('candidate', $row->fresh()->status);
+  $this->assertDatabaseCount('institutions', 0);
+ }
 }
