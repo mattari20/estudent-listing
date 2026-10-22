@@ -22,7 +22,7 @@ jobs:
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
           command_timeout: 3m
           script: |
-            set -eu
+            set -euo pipefail
             cd /home/u537436044/domains/estudent.pk/public_html/institutes
             php <<'PHP'
             <?php
@@ -54,7 +54,7 @@ jobs:
               '12'=>'https://numl.edu.pk/contact'
             ];
 
-            $db::transaction(function() use ($db,$targets,$cityIds,$cityParents) {
+            $db::transaction(function() use ($db,$targets,$cityIds,$cityParents,$sources) {
               foreach($targets as $id=>$t) {
                 $i=$db::table('institutions')->where('id',$id)->lockForUpdate()->first();
                 if(!$i || $i->name!==$t['name'] || $i->status!=='active') throw new RuntimeException("Institution guard failed for ID {$id}; transaction aborted.");
