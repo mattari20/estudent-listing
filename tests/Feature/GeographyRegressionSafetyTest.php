@@ -36,10 +36,17 @@ class GeographyRegressionSafetyTest extends TestCase
             'status' => 'active',
         ]);
 
-        $this->assertCount(
-            0,
-            app(InstituteGeographyCrossDomainIntegrityService::class)->inspect($institution)
-        );
+        $findings = app(InstituteGeographyCrossDomainIntegrityService::class)->inspect($institution);
+
+        $this->assertTrue($findings->contains(fn ($finding) => $finding['type'] === 'valid_geography'));
+        $this->assertFalse($findings->contains(fn ($finding) => in_array($finding['type'], [
+            'missing_geography',
+            'missing_active_geography',
+            'missing_active_campus',
+            'geography_cycle',
+            'inactive_geography_ancestor',
+            'missing_geography_parent',
+        ], true)));
     }
 
     public function test_invalid_active_campus_remains_detectable_without_mutation(): void
