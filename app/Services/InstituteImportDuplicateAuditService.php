@@ -173,6 +173,7 @@ class InstituteImportDuplicateAuditService
     private function normalize(mixed $value): string
     {
         $ascii = Str::ascii(mb_strtolower(trim((string) $value)));
-\n        return preg_replace('/[^a-z0-9]+/', '', $ascii) ?? '';
+
+        return preg_replace('/[^a-z0-9]+/', '', $ascii) ?? '';
     }
 }
