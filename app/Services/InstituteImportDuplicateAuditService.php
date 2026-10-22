@@ -25,18 +25,40 @@ class InstituteImportDuplicateAuditService
 
         $canonicalByIdentity = [];
         $canonicalBySlug = [];
-        foreach (Institution::query()->orderBy('id')->get(['id', 'name', 'official_name', 'short_name', 'slug', 'status']) as $institution) {
+        $canonicalIdentityGroups = [];
+        $canonicalSlugGroups = [];
+        $institutions = Institution::query()->orderBy('id')->get(['id', 'name', 'official_name', 'short_name', 'slug', 'status']);
+        foreach ($institutions as $institution) {
             foreach ([$institution->name, $institution->official_name, $institution->short_name] as $name) {
                 $key = $this->normalize($name);
                 if ($key !== '') {
                     $canonicalByIdentity[$key] ??= $institution;
+                    $canonicalIdentityGroups[$key][$institution->id] = [
+                        'id' => $institution->id, 'name' => $institution->name,
+                        'official_name' => $institution->official_name, 'short_name' => $institution->short_name,
+                        'slug' => $institution->slug, 'status' => $institution->status,
+                    ];
                 }
             }
             $slug = $this->normalize($institution->slug);
             if ($slug !== '') {
                 $canonicalBySlug[$slug] ??= $institution;
+                $canonicalSlugGroups[$slug][$institution->id] = [
+                    'id' => $institution->id, 'name' => $institution->name,
+                    'official_name' => $institution->official_name, 'short_name' => $institution->short_name,
+                    'slug' => $institution->slug, 'status' => $institution->status,
+                ];
             }
         }
+
+        $identityCollisions = collect($canonicalIdentityGroups)
+            ->filter(fn ($group) => count($group) > 1)
+            ->map(fn ($group, $key) => ['normalized_identity' => $key, 'institutions' => array_values($group)])
+            ->values()->all();
+        $slugCollisions = collect($canonicalSlugGroups)
+            ->filter(fn ($group) => count($group) > 1)
+            ->map(fn ($group, $key) => ['normalized_slug' => $key, 'institutions' => array_values($group)])
+            ->values()->all();
 
         foreach (InstitutionName::query()->orderBy('id')->get(['institution_id', 'name']) as $alias) {
             $key = $this->normalize($alias->name);
@@ -53,6 +75,8 @@ class InstituteImportDuplicateAuditService
             'matches_existing_canonical' => 0,
             'incomplete_rows' => 0,
             'review_required' => 0,
+            'canonical_identity_collision_groups' => count($identityCollisions),
+            'canonical_slug_collision_groups' => count($slugCollisions),
         ];
 
         foreach ($rows as $row) {
@@ -165,6 +189,9 @@ class InstituteImportDuplicateAuditService
             'scope' => 'read_only_cross_batch_institution_duplicate_audit',
             'summary' => $summary,
             'rows' => $items,
+            'canonical_identity_collisions' => $identityCollisions,
+            'canonical_slug_collisions' => $slugCollisions,
+            'cleanup_preview_only' => true,
             'mutation_performed' => false,
             'warning' => 'This audit is a review aid. Do not delete or reject records automatically; verify the canonical match and preserve audit history.',
         ];
