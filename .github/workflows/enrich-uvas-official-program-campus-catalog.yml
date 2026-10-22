@@ -1,0 +1,64 @@
+name: Enrich UVAS Official Program Campus Catalog
+on:
+  push:
+    branches:
+      - ops/enrich-uvas-official-program-campus-catalog
+permissions:
+  contents: read
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add source-backed UVAS program records with guarded verification
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db=Illuminate\Support\Facades\DB::class;
+            $source='https://www.uvas.edu.pk/Admissions/undergraduate/index.htm';
+            $programs=[
+              ['BS Biochemistry','uvas-bs-biochemistry','BS','Biochemistry'],
+              ['BS Environmental Science','uvas-bs-environmental-science','BS','Environmental Science'],
+              ['BS Human Nutrition and Dietetics','uvas-bs-human-nutrition-and-dietetics','BS','Human Nutrition and Dietetics'],
+              ['BS Medical Laboratory Technology','uvas-bs-medical-laboratory-technology','BS','Medical Laboratory Technology'],
+              ['BS Poultry Science','uvas-bs-poultry-science','BS','Poultry Science'],
+              ['BS Dairy Technology','uvas-bs-dairy-technology','BS','Dairy Technology'],
+              ['BS Zoology','uvas-bs-zoology','BS','Zoology'],
+              ['BS Biology','uvas-bs-biology','BS','Biology'],
+              ['Bachelor of Business Administration','uvas-bba','BBA','Business Administration'],
+            ];
+            $db::transaction(function() use($db,$source,$programs) {
+              $i=$db::table('institutions')->where('id',5)->lockForUpdate()->first();
+              if(!$i || $i->name!=='University of Veterinary and Animal Sciences Lahore' || $i->status!=='active') throw new RuntimeException('UVAS identity guard failed');
+              foreach($programs as $s) {
+                [$name,$slug,$award,$discipline]=$s;
+                $rows=$db::table('programs')->where('institution_id',5)->where('slug',$slug)->lockForUpdate()->get();
+                if($rows->count()>1) throw new RuntimeException('Duplicate UVAS program slug '.$slug);
+                if($rows->count()===0) {
+                  $id=$db::table('programs')->insertGetId(['institution_id'=>5,'name'=>$name,'slug'=>$slug,'program_level'=>'undergraduate','award'=>$award,'discipline'=>$discipline,'status'=>'active','description'=>'Official UVAS undergraduate admissions listing (2026): '.$source,'created_at'=>now(),'updated_at'=>now()]);
+                  echo "PROGRAM_ADDED=".$slug.";ID=".$id."\n";
+                } else {
+                  $p=$rows->first();
+                  if($p->name!==$name || $p->status!=='active') throw new RuntimeException('Existing UVAS program identity mismatch '.$slug);
+                  if(strpos((string)$p->description,$source)===false) $db::table('programs')->where('id',$p->id)->update(['description'=>trim((string)$p->description.' | Official UVAS undergraduate admissions listing: '.$source),'updated_at'=>now()]);
+                  echo "PROGRAM_REUSED=".$slug.";ID=".$p->id."\n";
+                }
+              }
+            });
+            $counts=['uvas_programs'=>$db::table('programs')->where('institution_id',5)->where('status','active')->count(),'all_active_programs'=>$db::table('programs')->where('status','active')->count(),'active_offerings'=>$db::table('program_offerings')->where('status','active')->count(),'missing_source_url'=>$db::table('programs')->where('institution_id',5)->where('status','active')->where(function($q){$q->whereNull('description')->orWhere(function($q){$q->where('description','not like','%http://%')->where('description','not like','%https://%');});})->count()];
+            echo "UVAS_PROGRAM_ENRICHMENT_COUNTS=".json_encode($counts)."\n";
+            if($counts['uvas_programs']!==15 || $counts['missing_source_url']!==0) throw new RuntimeException('UVAS program count/source verification failed');
+            PHP
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "DATA_GAP_STATUS=".($d["status"]??"unknown")."\n"; echo "POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\n"; echo "GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if(($d["mutation_performed"]??null)!==false || ($d["status"]??null)!=="healthy") exit(5);'
