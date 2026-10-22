@@ -61,13 +61,6 @@ class InstitutionController
                                 ->whereNotIn('status', ['rejected', 'withdrawn'])
                                 ->orderBy('name'),
                         ])
-                        ->with([
-                            'externalRankings' => fn ($query) => $query
-                                ->whereNotIn('status', ['rejected', 'withdrawn'])
-                                ->orderByDesc('year'),
-                            'recommendations' => fn ($query) => $query
-                                ->where('status', 'published'),
-                        ])
                         ->orderBy('name'),
                 ])
                 ->with([
