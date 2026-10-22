@@ -155,4 +155,10 @@ class GeographyIntegrityHardeningTest extends TestCase
         $this->assertTrue($result['valid']);
         $this->assertSame([], $result['errors']);
     }
+
+    public function test_active_non_country_without_parent_is_flagged(): void
+    {
+        $geography = Geography::create(['parent_id' => null, 'name' => 'Orphan District', 'slug' => 'orphan-district', 'type' => 'district', 'status' => 'active']);
+        $this->assertContains('non_country_without_parent', app(GeographyIntegrityService::class)->inspect($geography));
+    }
 }
