@@ -52,6 +52,47 @@ class InstituteImportRowDiagnosticTest extends TestCase
         $this->assertContains('active_source_evidence_required', $report['rows'][0]['blockers']);
     }
 
+
+    public function test_row_diagnostics_flag_candidate_that_duplicates_existing_canonical_institution(): void
+    {
+        $source = Source::query()->create([
+            'source_type' => 'test',
+            'name' => 'Duplicate detection source',
+            'url' => 'https://example.test/institutions',
+            'status' => 'active',
+        ]);
+        $batch = ImportBatch::query()->create([
+            'batch_key' => 'diagnostic-duplicate-batch',
+            'entity_type' => 'institution',
+            'source_type' => 'test',
+            'source_id' => $source->id,
+            'status' => 'validated',
+            'total_rows' => 1,
+            'valid_rows' => 1,
+            'invalid_rows' => 0,
+            'candidate_rows' => 1,
+        ]);
+        $institution = \\App\\Models\\Institution::query()->create([
+            'name' => 'Existing Canonical University',
+            'slug' => 'existing-canonical-university',
+            'status' => 'active',
+        ]);
+        ImportRow::query()->create([
+            'import_batch_id' => $batch->id,
+            'row_number' => 2,
+            'status' => 'candidate',
+            'match_state' => 'new_candidate',
+            'payload' => ['name' => 'Existing Canonical University'],
+            'normalized_payload' => ['name' => 'Existing Canonical University'],
+        ]);
+
+        $report = app(InstituteImportRowDiagnosticService::class)->build($batch->fresh());
+
+        $this->assertContains('canonical_duplicate_requires_match', $report['rows'][0]['blockers']);
+        $this->assertSame($institution->id, $report['rows'][0]['possible_duplicate_institution_id']);
+        $this->assertSame('active', $report['rows'][0]['possible_duplicate_institution_status']);
+    }
+
     public function test_row_diagnostics_report_promoted_but_unpublished_institution(): void
     {
         $source = Source::query()->create([
