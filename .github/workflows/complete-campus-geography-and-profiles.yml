@@ -1,0 +1,100 @@
+name: Complete Campus Geography and Profile Data
+
+on:
+  push:
+    branches:
+      - ops/complete-campus-geography-and-profiles
+
+permissions:
+  contents: read
+
+jobs:
+  complete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Guarded geography repair and verified main-campus enrichment
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -eu
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app = require_once 'bootstrap/app.php';
+            $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db = Illuminate\Support\Facades\DB::class;
+
+            $targets = [
+              1=>['name'=>'Government College University Lahore','type'=>'Public University','city'=>'Lahore','slug'=>'main-campus-lahore','campus'=>'Main Campus','address'=>'Katchery Road, Lahore, Pakistan','description'=>'Government College University Lahore is a public university in Lahore, Pakistan. Official website: https://gcu.edu.pk/'],
+              2=>['name'=>'University of Engineering and Technology Lahore','type'=>'Public University','city'=>'Lahore','slug'=>'main-campus-lahore','campus'=>'Main Campus','address'=>'G.T. Road, Lahore, Pakistan','description'=>'The University of Engineering and Technology Lahore is a public engineering university located on G.T. Road in Lahore. Official website: https://uet.edu.pk/'],
+              3=>['name'=>'University of the Punjab','type'=>'Public University','city'=>'Lahore','slug'=>'main-campus-lahore','campus'=>'Quaid-e-Azam Campus','address'=>'Quaid-e-Azam Campus, Lahore, Pakistan','description'=>'The University of the Punjab is a public university with its Quaid-e-Azam Campus in Lahore. Official website: https://pu.edu.pk/'],
+              4=>['name'=>'University of Central Punjab','type'=>'Private University','city'=>'Lahore','slug'=>'main-campus-lahore','campus'=>'Main Campus','address'=>'1-Khayaban-e-Jinnah Road, Johar Town, Lahore, Pakistan','description'=>'The University of Central Punjab is a private university located on Khayaban-e-Jinnah Road, Johar Town, Lahore. Official website: https://ucp.edu.pk/'],
+              5=>['name'=>'University of Veterinary and Animal Sciences Lahore','type'=>'Public University','city'=>'Lahore','slug'=>'main-campus-lahore','campus'=>'Main Campus','address'=>'Outfall Road, Lahore, Pakistan','description'=>'The University of Veterinary and Animal Sciences Lahore is a public university specializing in veterinary and animal sciences. Official website: https://uvas.edu.pk/'],
+              6=>['name'=>'University of Education Lahore','type'=>'Public University','city'=>'Lahore','slug'=>'main-campus-lahore','campus'=>'Township Main Campus','address'=>'College Road, Township, Lahore, Pakistan','description'=>'The University of Education is a public university with its main administrative and academic presence in Lahore and campuses across Punjab. Official website: https://ue.edu.pk/'],
+              7=>['name'=>'Lahore College for Women University','type'=>'Public University','city'=>'Lahore','slug'=>'main-campus-lahore','campus'=>'Main Campus','address'=>'Jail Road, Lahore, Pakistan','description'=>'Lahore College for Women University is a public university located on Jail Road, Lahore. Official website: https://www.lcwu.edu.pk/'],
+              10=>['name'=>'University of Lahore','type'=>'Private University','city'=>'Lahore','slug'=>'main-campus-lahore','campus'=>'Main Campus','address'=>'1-Km Defence Road, Near Bhuptian Chowk, Lahore, Pakistan 54792','description'=>'The University of Lahore is a private university with its Lahore campus on Defence Road. Official website: https://uol.edu.pk/'],
+              11=>['name'=>'Federal Urdu University of Arts, Sciences & Technology','type'=>'Public University','city'=>'Islamabad','slug'=>'main-campus-islamabad','campus'=>'Islamabad Main Campus','address'=>'Sector G-7/1, near Zero Point, Islamabad, Pakistan','description'=>'Federal Urdu University of Arts, Sciences & Technology is a public-sector university with campuses in Islamabad and Karachi. Official website: https://fuuastisb.edu.pk/'],
+              12=>['name'=>'National University of Modern Languages','type'=>'Public University','city'=>'Islamabad','slug'=>'main-campus-islamabad','campus'=>'Islamabad Main Campus','address'=>'H-9/4, Islamabad, Pakistan','description'=>'The National University of Modern Languages is a public university headquartered in Islamabad, with regional campuses across Pakistan. Official website: https://numl.edu.pk/'],
+            ];
+            $cityIds=['Lahore'=>9,'Islamabad'=>10];
+            $cityParents=['Lahore'=>2,'Islamabad'=>6];
+            $sources=[
+              '1'=>'https://gcu.edu.pk/','2'=>'https://uet.edu.pk/','3'=>'https://pu.edu.pk/page/show/contact-us.html',
+              '4'=>'https://ucp.edu.pk/contact-us/','5'=>'https://uvas.edu.pk/','6'=>'https://ue.edu.pk/',
+              '7'=>'https://www.hec.gov.pk/english/universities/Pages/Punjab/Lahore-College-for-Women-University.aspx',
+              '10'=>'https://uol.edu.pk/contact-us/','11'=>'https://www.hec.gov.pk/english/universities/Pages/Islamabad/Federal-Urdu-University.aspx',
+              '12'=>'https://numl.edu.pk/contact'
+            ];
+
+            $db::transaction(function() use ($db,$targets,$cityIds,$cityParents) {
+              foreach($targets as $id=>$t) {
+                $i=$db::table('institutions')->where('id',$id)->lockForUpdate()->first();
+                if(!$i || $i->name!==$t['name'] || $i->status!=='active') throw new RuntimeException("Institution guard failed for ID {$id}; transaction aborted.");
+              }
+              foreach(['Lahore','Islamabad'] as $city) {
+                $g=$db::table('geographies')->where('id',$cityIds[$city])->first();
+                if(!$g || $g->name!==$city || $g->type!=='city' || $g->status!=='active' || (int)$g->parent_id!==$cityParents[$city]) throw new RuntimeException("City geography guard failed for {$city}; transaction aborted.");
+              }
+              // Repair only the two known, pre-existing active campuses with missing geography.
+              $expectedExisting=[1=>['institution_id'=>9,'name'=>'COMSATS University Islamabad, Lahore Campus','city'=>'Lahore'],2=>['institution_id'=>8,'name'=>'LUMS Main Campus','city'=>'Lahore']];
+              foreach($expectedExisting as $cid=>$e) {
+                $c=$db::table('campuses')->where('id',$cid)->lockForUpdate()->first();
+                if(!$c || (int)$c->institution_id!==$e['institution_id'] || $c->name!==$e['name'] || $c->status!=='active' || $c->geography_id!==null) throw new RuntimeException("Existing campus geography guard failed for campus {$cid}; transaction aborted.");
+                $db::table('campuses')->where('id',$cid)->update(['geography_id'=>$cityIds[$e['city']],'updated_at'=>now()]);
+                echo "REPAIRED_GEOGRAPHY_CAMPUS={$cid};CITY={$e['city']}\n";
+              }
+              foreach($targets as $id=>$t) {
+                $existing=$db::table('campuses')->where('institution_id',$id)->where('slug',$t['slug'])->lockForUpdate()->get();
+                if($existing->count()>1) throw new RuntimeException("Duplicate campus slug for institution {$id}; transaction aborted.");
+                if($existing->count()===1) {
+                  $c=$existing->first();
+                  if($c->name!==$t['campus'] || $c->status!=='active' || (int)$c->geography_id!==$cityIds[$t['city']]) throw new RuntimeException("Existing campus mismatch for institution {$id}; transaction aborted.");
+                } else {
+                  $db::table('campuses')->insert(['institution_id'=>$id,'geography_id'=>$cityIds[$t['city']],'name'=>$t['campus'],'slug'=>$t['slug'],'campus_type'=>'main','status'=>'active','address'=>$t['address'],'postal_code'=>null,'latitude'=>null,'longitude'=>null,'created_at'=>now(),'updated_at'=>now()]);
+                  echo "CREATED_CAMPUS={$id};CITY={$t['city']}\n";
+                }
+                $updates=['institution_type'=>$t['type'],'description'=>$t['description'],'updated_at'=>now()];
+                $db::table('institutions')->where('id',$id)->update($updates);
+                echo "PROFILE_ENRICHED={$id};SOURCE=".$sources[(string)$id]."\n";
+              }
+            });
+
+            echo "=== VERIFICATION ===\n";
+            $campuses=$db::table('institutions as i')->join('campuses as c','c.institution_id','=','i.id')->join('geographies as g','g.id','=','c.geography_id')
+              ->whereIn('i.id',array_keys($targets))->where('c.status','active')->where('g.status','active')->where('g.type','city')->orderBy('i.id')
+              ->get(['i.id','i.name','i.institution_type','i.description','c.id as campus_id','c.name as campus_name','c.address','g.name as city']);
+            foreach($campuses as $r) echo json_encode($r,JSON_UNESCAPED_SLASHES)."\n";
+            if($campuses->count()!==10) throw new RuntimeException("Expected 10 enriched institution campuses, found ".$campuses->count());
+            $bad=$db::table('campuses')->where('status','active')->whereNull('geography_id')->count();
+            echo "ACTIVE_CAMPUSES_WITH_NULL_GEOGRAPHY={$bad}\n";
+            if($bad!==0) throw new RuntimeException("Active campuses still have missing geography.");
+            PHP
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "POST_WRITE_REPORT_STATUS=".($d["status"]??"unknown")."\n"; echo "POST_WRITE_POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\n"; echo "POST_WRITE_GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if (($d["mutation_performed"]??null)!==false) exit(4);'
