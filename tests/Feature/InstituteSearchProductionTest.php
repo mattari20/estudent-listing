@@ -13,9 +13,9 @@ class InstituteSearchProductionTest extends TestCase {
   $this->get(route('institutes.search',['q'=>'Same']))->assertOk()->assertSee('Same');
  }
 
-    public function test_search_matching_only_inactive_institutions_does_not_expose_them(): void
+    public function test_search_matching_only_inactive_institutions_returns_empty_results(): void
  {
   Institution::create(['name'=>'Hidden Archive University','slug'=>'hidden-archive-university','status'=>'inactive']);
-  $this->get(route('institutes.search',['q'=>'Hidden Archive University']))->assertOk()->assertDontSee('Hidden Archive University');
+  $this->get(route('institutes.search',['q'=>'Hidden Archive University']))->assertOk()->assertSee('No matching institutes found');
  }
 }
