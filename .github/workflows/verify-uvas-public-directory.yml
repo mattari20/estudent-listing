@@ -1,0 +1,61 @@
+name: Verify UVAS Public Directory
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/audit-next-institution-catalog.yml"
+      - ".github/workflows/verify-uvas-public-directory.yml"
+  push:
+    branches:
+      - ops/audit-next-institution-catalog
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify UVAS and all public institution routes
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP' > /tmp/uvas-profile-slugs.txt
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db=Illuminate\Support\Facades\DB::class;
+            foreach($db::table('institutions')->where('status','active')->orderBy('id')->get(['slug']) as $i) echo $i->slug."\n";
+            PHP
+            status=$(curl -sS -L --max-time 15 -o /tmp/uvas-directory.html -w '%{http_code}' https://estudent.pk/institutes/)
+            echo "DIRECTORY_HTTP=$status"
+            [ "$status" = "200" ] && [ "$(wc -c < /tmp/uvas-directory.html)" -gt 100 ]
+            count=0; failures=0
+            while IFS= read -r slug; do
+              [ -n "$slug" ] || continue
+              count=$((count+1))
+              status=$(curl -sS -L --max-time 15 -o "/tmp/uvas-route-$count.html" -w '%{http_code}' "https://estudent.pk/institutes/$slug")
+              if [ "$status" = "200" ] && [ "$(wc -c < "/tmp/uvas-route-$count.html")" -gt 100 ]; then echo "PASS=$slug"; else echo "FAIL=$slug;HTTP=$status"; failures=$((failures+1)); fi
+            done < /tmp/uvas-profile-slugs.txt
+            echo "PROFILE_ROUTES_CHECKED=$count"
+            echo "PROFILE_ROUTE_FAILURES=$failures"
+            [ "$count" -gt 0 ] && [ "$failures" -eq 0 ]
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db=Illuminate\Support\Facades\DB::class;
+            $activeInstitutions=$db::table('institutions')->where('status','active')->count();
+            $bad=$db::table('program_offerings as o')->leftJoin('programs as p','p.id','=','o.program_id')->leftJoin('campuses as c','c.id','=','o.campus_id')->where('o.status','active')->where(function($q){$q->whereNull('p.id')->orWhereNull('c.id')->orWhereNull('c.geography_id')->orWhere('p.status','<>','active')->orWhere('c.status','<>','active');})->count();
+            echo "CATALOG_FINAL_COUNTS=".json_encode(['active_institutions'=>$activeInstitutions,'broken_active_offerings'=>$bad])."\\n";
+            if($activeInstitutions<1 || $bad!==0) exit(7);
+            PHP
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "DATA_GAP_STATUS=".($d["status"]??"unknown")."\n"; echo "POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\n"; echo "GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if(($d["mutation_performed"]??null)!==false || ($d["status"]??null)!=="healthy") exit(5);'
