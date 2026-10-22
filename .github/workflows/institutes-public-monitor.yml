@@ -32,6 +32,8 @@ jobs:
 
           check_url() {
             local url="$1"
+            local expected_pattern="${2:-}"
+            local extra_pattern="${3:-}"
             local body="$RUNNER_TEMP/response-$RANDOM.html"
             local status="request-error"
             local attempt
@@ -42,16 +44,22 @@ jobs:
               status="$(curl --location --silent --show-error --max-time 20 \
                 --output "$body" --write-out '%{http_code}' "$url" 2>"$RUNNER_TEMP/curl-error.txt" || true)"
               if [[ "$status" == "200" && -s "$body" ]]; then
-                printf 'PASS | HTTP %s | non-empty response | %s | attempt %s/10\n' "$status" "$url" "$attempt" | tee -a "$report"
-                rm -f "$body" "$RUNNER_TEMP/curl-error.txt"
-                return
+                if [[ -n "$expected_pattern" ]] && ! grep -Eiq "$expected_pattern" "$body"; then
+                  status="content-mismatch"
+                elif [[ -n "$extra_pattern" ]] && ! grep -Eiq "$extra_pattern" "$body"; then
+                  status="page-size-mismatch"
+                else
+                  printf 'PASS | HTTP %s | expected content present | %s | attempt %s/10\n' "$status" "$url" "$attempt" | tee -a "$report"
+                  rm -f "$body" "$RUNNER_TEMP/curl-error.txt"
+                  return
+                fi
               fi
               if (( attempt < 10 )); then
                 sleep 30
               fi
             done
 
-            printf 'FAIL | HTTP %s | %s | retries exhausted\n' "${status:-request-error}" "$url" | tee -a "$report"
+            printf 'FAIL | %s | expected content missing or request failed | %s | retries exhausted\n' "${status:-request-error}" "$url" | tee -a "$report"
             if [[ -s "$RUNNER_TEMP/curl-error.txt" ]]; then
               sed -n '1,2p' "$RUNNER_TEMP/curl-error.txt" | tee -a "$report"
             fi
@@ -59,14 +67,16 @@ jobs:
             rm -f "$body" "$RUNNER_TEMP/curl-error.txt"
           }
 
-          check_url "https://estudent.pk/institutes/"
-          check_url "https://estudent.pk/institutes/university-of-the-punjab"
+          # Check the result summary and confirm 24 per page is the selected default.
+          check_url "https://estudent.pk/institutes/" 'Showing[[:space:]].*of[[:space:]].*institutions' 'value="24"[^>]*selected|selected[^>]*value="24"'
+          # Confirm the detail page contains the expected institution identity.
+          check_url "https://estudent.pk/institutes/university-of-the-punjab" 'University of the Punjab'
 
           {
             echo "## Institutes public-site health check"
             echo
             echo "- Checked at (UTC): $(date -u '+%Y-%m-%d %H:%M:%S')"
-            echo "- Scope: post-push public HTTP smoke check with retries (not Hostinger deployment-commit confirmation)"
+            echo "- Scope: post-push public HTTP and expected-content check with retries (not Hostinger deployment-commit confirmation)"
             echo "- Production database queried: no"
             echo "- Production data changed: no"
             echo
