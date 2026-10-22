@@ -193,4 +193,11 @@ class DirectoryIntegrationTest extends TestCase
 
         $this->get('/institutes/closed-institute')->assertNotFound();
     }
+
+    public function test_candidate_institution_profile_is_not_public(): void
+    {
+        Institution::create(['name' => 'Candidate Institute', 'slug' => 'candidate-institute', 'status' => 'candidate']);
+
+        $this->get('/institutes/candidate-institute')->assertNotFound();
+    }
 }
