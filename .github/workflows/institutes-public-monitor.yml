@@ -14,7 +14,8 @@ permissions:
 
 concurrency:
   group: institutes-public-site-monitor
-  cancel-in-progress: false
+  # A stale monitor should not block verification of the latest deployment.
+  cancel-in-progress: true
 
 jobs:
   public-smoke-check:
