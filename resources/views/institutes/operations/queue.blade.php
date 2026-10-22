@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title','Institute Operations Queue')
 @section('content')
-<div class="page-header"><div><h1>Import Operations</h1><p><a href="{{ route('institutes.operations.enrichment-import.create') }}">Import Campus / Program Enrichment</a></p>@if(auth()->user()?->isAdmin())<a href="{{ route('institutes.operations.users.index') }}">User Management</a>@endif</div><form method="post" action="{{ route('institutes.logout') }}">@csrf<button type="submit">Sign out</button></form></div>
+<div class="page-header"><div><h1>Import Operations</h1><p><a href="{{ route('institutes.operations.enrichment-import.create') }}">Import Campus / Program Enrichment</a></p><p><a href="{{ route('institutes.operations.duplicate-audit.view') }}">Run read-only duplicate and incomplete-row audit</a></p>@if(auth()->user()?->isAdmin())<a href="{{ route('institutes.operations.users.index') }}">User Management</a>@endif</div><form method="post" action="{{ route('institutes.logout') }}">@csrf<button type="submit">Sign out</button></form></div>
 @if(session('status'))<p role="status">{{ session('status') }}</p>@endif
 @if($errors->any())<div role="alert">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
 

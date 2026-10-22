@@ -11,6 +11,7 @@ use App\Http\Controllers\InstituteImportController;
 use App\Http\Controllers\InstituteEnrichmentImportController;
 use App\Http\Controllers\InstituteImportVerificationController;
 use App\Http\Controllers\InstituteImportRowDiagnosticController;
+use App\Http\Controllers\InstituteImportDuplicateAuditController;
 use App\Http\Controllers\InstituteProductionPromotionReadinessController;
 use App\Http\Controllers\InstituteFinalReadinessController;
 use App\Http\Controllers\InstituteDeploymentReadinessController;
@@ -55,6 +56,8 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
 
     Route::middleware(['auth', 'institute.operator'])->prefix('operations')->name('operations.')->group(function (): void {
         Route::get('/', [InstituteOperationsController::class, 'queue'])->name('queue');
+        Route::get('/duplicate-audit', [InstituteImportDuplicateAuditController::class, 'view'])->name('duplicate-audit.view');
+        Route::get('/duplicate-audit/data', InstituteImportDuplicateAuditController::class)->name('duplicate-audit');
         Route::get('/account/password', [InstituteUserController::class, 'editPassword'])->name('account.password.edit');
         Route::put('/account/password', [InstituteUserController::class, 'updatePassword'])->name('account.password.update');
         Route::post('/agent/discover', [InstituteOperationsController::class, 'discover'])->name('agent.discover');
