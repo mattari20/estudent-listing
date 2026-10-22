@@ -23,4 +23,14 @@ class SourceMonitoringTest extends TestCase {
   $this->assertIsArray($summary);
   $this->assertArrayHasKey('policies',$summary);
  }
+
+    public function test_fresh_evidence_is_not_queued_for_reverification(): void
+ {
+  $source=Source::create(['source_type'=>'institution','name'=>'Fresh Monitoring Source','status'=>'active']);
+  Evidence::create(['source_id'=>$source->id,'reference'=>'fresh-monitor','observed_at'=>now(),'status'=>'active']);
+  $policy=SourceMonitoringPolicy::create(['name'=>'Fresh evidence policy','subject_type'=>null,'attribute'=>null,'fresh_after_days'=>14,'stale_after_days'=>30,'priority'=>'normal','status'=>'active','source_id'=>$source->id]);
+  $summary=app(SourceMonitoringService::class)->run($policy->id);
+  $this->assertSame(0,$summary['stale']);
+  $this->assertSame(0,$summary['queued']);
+ }
 }
