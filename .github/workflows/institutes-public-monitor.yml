@@ -50,7 +50,7 @@ jobs:
                 elif [[ -n "$extra_pattern" ]] && ! grep -Eiq "$extra_pattern" "$body"; then
                   status="page-size-mismatch"
                 else
-                  printf 'PASS | HTTP %s | expected content present | %s | attempt %s/10\n' "$status" "$url" "$attempt" | tee -a "$report"
+                  printf 'PASS | HTTP %s | expected content present | %s | attempt %s/6\n' "$status" "$url" "$attempt" | tee -a "$report"
                   rm -f "$body" "$RUNNER_TEMP/curl-error.txt"
                   return
                 fi
