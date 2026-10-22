@@ -111,6 +111,16 @@ jobs:
                 if (preg_match('/(?:production|local)\.ERROR:\s*([A-Za-z_\\\\][A-Za-z0-9_\\\\]*)/', $line, $matches)) {
                     $result['exception_class'] = $matches[1];
                 }
+                // Emit only narrow SQL error fingerprints; never emit SQL text or the raw exception message.
+                if (preg_match('/SQLSTATE\[([A-Z0-9]+)\]/', $line, $matches)) {
+                    $result['sqlstate_code'] = $matches[1];
+                }
+                if (preg_match('/Column not found:\s*(\d+)/i', $line, $matches)) {
+                    $result['driver_error_code'] = $matches[1];
+                }
+                if (preg_match("/Unknown column '([^']+)'/i", $line, $matches)) {
+                    $result['unknown_column'] = $matches[1];
+                }
                 if (preg_match('/(?: in | at )(\/[^:\s]+:\d+)/', $line, $matches)) {
                     $result['source_location'] = basename(dirname($matches[1])).'/'.basename($matches[1]);
                 }
