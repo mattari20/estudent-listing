@@ -66,7 +66,16 @@ jobs:
                   'created_at'=>now(),'updated_at'=>now()
                 ]);
                 echo "CURRENT_INTAKE_ADDED=LUMS Fall 2027;SOURCE=https://lums.edu.pk/node/826\n";
-              } else echo "CURRENT_INTAKE_REUSED=LUMS Fall 2027\n";
+              } else {
+                $existing=$found->first();
+                if($existing->status!=='open' || $existing->application_url!=='https://lums.edu.pk/node/826') throw new RuntimeException('Existing LUMS Fall 2027 intake identity mismatch');
+                $db::table('admission_intakes')->where('id',$existing->id)->update([
+                  'application_open_at'=>null,'application_close_at'=>'2027-01-20','test_date'=>'2027-03-21',
+                  'enrollment_start_at'=>null,'notes'=>'Official LUMS BS Computer Science admissions page: online application activation October 2026 (exact opening day not stated); application deadline 20 January 2027 at 5:00 pm PKT; supporting documents and application fee deadline 21 January 2027; LCAT listed for 21 March 2027 as tentative; classes commence September 2027 (exact date not stated). No exact opening or class commencement date has been inferred.',
+                  'updated_at'=>now()
+                ]);
+                echo "CURRENT_INTAKE_VERIFIED_AND_UPDATED=LUMS Fall 2027\\n";
+              }
             });
             $counts=['active_programs'=>$db::table('programs')->where('status','active')->count(),'active_offerings'=>$db::table('program_offerings')->where('status','active')->count(),'intakes'=>$db::table('admission_intakes')->count(),'open_intakes'=>$db::table('admission_intakes')->where('status','open')->count(),'broken_offerings'=>$db::table('program_offerings as o')->leftJoin('programs as p','p.id','=','o.program_id')->leftJoin('campuses as c','c.id','=','o.campus_id')->where('o.status','active')->where(function($q){$q->whereNull('p.id')->orWhereNull('c.id')->orWhere('p.status','<>','active')->orWhere('c.status','<>','active');})->count(),'orphan_intakes'=>$db::table('admission_intakes as a')->leftJoin('program_offerings as o','o.id','=','a.program_offering_id')->whereNull('o.id')->count()];
             echo "FINAL_ENRICHMENT_COUNTS=".json_encode($counts)."\n";
