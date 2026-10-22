@@ -22,4 +22,15 @@ class StructuredEnrichmentImportTest extends TestCase {
   $row=EnrichmentImportRow::create(['import_batch_id'=>$this->batch()->id,'entity_type'=>'program','status'=>'candidate','payload'=>['institution_id'=>1,'name'=>'Unsafe']]);
   $this->expectException(\RuntimeException::class); app(StructuredEnrichmentPromoter::class)->promote($row);
  }
+
+    public function test_blocked_candidate_enrichment_keeps_candidate_status(): void
+ {
+  $row = EnrichmentImportRow::create(['import_batch_id' => $this->batch()->id, 'entity_type' => 'program', 'status' => 'candidate', 'payload' => ['institution_id' => 1, 'name' => 'Candidate Program']]);
+  try {
+   app(StructuredEnrichmentPromoter::class)->promote($row);
+   $this->fail('Candidate enrichment must not be promoted without approval.');
+  } catch (\RuntimeException $exception) {
+   $this->assertSame('candidate', $row->fresh()->status);
+  }
+ }
 }
