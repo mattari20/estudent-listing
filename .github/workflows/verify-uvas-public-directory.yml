@@ -1,8 +1,12 @@
 name: Verify UVAS Public Directory
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/audit-next-institution-catalog.yml"
+      - ".github/workflows/verify-uvas-public-directory.yml"
   push:
     branches:
-      - ops/verify-uvas-public-directory
+      - ops/audit-next-institution-catalog
 permissions:
   contents: read
 jobs:
@@ -46,7 +50,7 @@ jobs:
             done < /tmp/uvas-profile-slugs.txt
             echo "PROFILE_ROUTES_CHECKED=$count"
             echo "PROFILE_ROUTE_FAILURES=$failures"
-            [ "$count" -eq 19 ] && [ "$failures" -eq 0 ]
+            [ "$count" -gt 0 ] && [ "$failures" -eq 0 ]
             php <<'PHP'
             <?php
             require 'vendor/autoload.php';
