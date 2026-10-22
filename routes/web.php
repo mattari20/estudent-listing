@@ -1,15 +1,34 @@
 <?php
 
+use App\Http\Controllers\AutomatedDiagnosticsController;
 use App\Http\Controllers\GeographyImportController;
 use App\Http\Controllers\InstituteAuthController;
+use App\Http\Controllers\InstitutePasswordResetController;
 use App\Http\Controllers\InstituteBulkPromotionController;
 use App\Http\Controllers\InstituteDataReadinessController;
 use App\Http\Controllers\InstituteGeographyIntegrityController;
 use App\Http\Controllers\InstituteImportController;
+use App\Http\Controllers\InstituteEnrichmentImportController;
+use App\Http\Controllers\InstituteImportVerificationController;
+use App\Http\Controllers\InstituteImportRowDiagnosticController;
+use App\Http\Controllers\InstituteImportDuplicateAuditController;
+use App\Http\Controllers\InstituteProductionPromotionReadinessController;
+use App\Http\Controllers\InstituteFinalReadinessController;
+use App\Http\Controllers\InstituteDeploymentReadinessController;
+use App\Http\Controllers\InstituteReadinessContractController;
+use App\Http\Controllers\InstituteOperatorReadinessDashboardController;
+use App\Http\Controllers\InstituteProductionSignoffController;
+use App\Http\Controllers\InstituteEndToEndReadinessController;
+use App\Http\Controllers\InstituteProvenanceReadinessController;
+use App\Http\Controllers\InstituteSourceVerificationReadinessController;
+use App\Http\Controllers\InstituteSourceEvidenceCaptureController;
+use App\Http\Controllers\InstituteBatchEvidenceCaptureController;
 use App\Http\Controllers\InstituteImportPromotionController;
 use App\Http\Controllers\InstituteOperationsController;
 use App\Http\Controllers\InstituteRobotsController;
 use App\Http\Controllers\InstituteSearchController;
+use App\Http\Controllers\InstituteSetupController;
+use App\Http\Controllers\InstituteUserController;
 use App\Http\Controllers\InstituteSitemapController;
 use App\Http\Controllers\InstitutionController;
 use App\Http\Controllers\MonitoringExportController;
@@ -21,29 +40,64 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
     Route::get('/', [InstitutionController::class, 'index'])->name('index');
     Route::get('/search', InstituteSearchController::class)->name('search');
     Route::get('/sitemap.xml', InstituteSitemapController::class)->name('sitemap');
+    Route::get('/automation/diagnostics', AutomatedDiagnosticsController::class)
+        ->middleware('throttle:5,1')
+        ->name('automation.diagnostics');
     Route::get('/robots.txt', InstituteRobotsController::class)->name('robots');
     Route::get('/login', [InstituteAuthController::class, 'create'])->name('login');
+    Route::get('/forgot-password', [InstitutePasswordResetController::class, 'requestForm'])->middleware('throttle:5,1')->name('password.request');
+    Route::post('/forgot-password', [InstitutePasswordResetController::class, 'sendLink'])->middleware('throttle:3,1')->name('password.email');
+    Route::get('/reset-password/{token}', [InstitutePasswordResetController::class, 'resetForm'])->name('password.reset');
+    Route::post('/reset-password', [InstitutePasswordResetController::class, 'reset'])->middleware('throttle:5,1')->name('password.update');
+    Route::get('/setup', [InstituteSetupController::class, 'create'])->name('setup');
+    Route::post('/setup', [InstituteSetupController::class, 'store'])->name('setup.store');
     Route::post('/login', [InstituteAuthController::class, 'store'])->name('login.store');
     Route::post('/logout', [InstituteAuthController::class, 'destroy'])->middleware('auth')->name('logout');
 
     Route::middleware(['auth', 'institute.operator'])->prefix('operations')->name('operations.')->group(function (): void {
         Route::get('/', [InstituteOperationsController::class, 'queue'])->name('queue');
+        Route::get('/duplicate-audit', [InstituteImportDuplicateAuditController::class, 'view'])->name('duplicate-audit.view');
+        Route::get('/duplicate-audit/data', InstituteImportDuplicateAuditController::class)->name('duplicate-audit');
+        Route::get('/account/password', [InstituteUserController::class, 'editPassword'])->name('account.password.edit');
+        Route::put('/account/password', [InstituteUserController::class, 'updatePassword'])->name('account.password.update');
+        Route::post('/agent/discover', [InstituteOperationsController::class, 'discover'])->name('agent.discover');
         Route::get('/integrity', InstituteGeographyIntegrityController::class)->name('integrity');
         Route::get('/data-readiness', InstituteDataReadinessController::class)->name('data-readiness');
+        Route::get('/imports/{importBatch}/verification', InstituteImportVerificationController::class)->name('imports.verification');
+        Route::get('/imports/{importBatch}/row-diagnostics/view', [InstituteImportRowDiagnosticController::class, 'view'])->name('imports.row-diagnostics.view');
+        Route::get('/imports/{importBatch}/row-diagnostics', InstituteImportRowDiagnosticController::class)->name('imports.row-diagnostics');
+        Route::get('/imports/{importBatch}/evidence-capture', [InstituteBatchEvidenceCaptureController::class, 'create'])->name('imports.evidence-capture');
+        Route::post('/imports/{importBatch}/evidence-capture', [InstituteBatchEvidenceCaptureController::class, 'store'])->name('imports.evidence-capture.store');
+        Route::get('/imports/{importBatch}/source-readiness', InstituteSourceVerificationReadinessController::class)->name('imports.source-readiness');
+        Route::get('/imports/{importBatch}/promotion-readiness', InstituteProductionPromotionReadinessController::class)->name('imports.promotion-readiness');
+        Route::get('/imports/{importBatch}/final-readiness', InstituteFinalReadinessController::class)->name('imports.final-readiness');
+        Route::get('/imports/{importBatch}/deployment-readiness', InstituteDeploymentReadinessController::class)->name('imports.deployment-readiness');
+        Route::get('/imports/{importBatch}/readiness-contract', InstituteReadinessContractController::class)->name('imports.readiness-contract');
+        Route::get('/readiness-dashboard', InstituteOperatorReadinessDashboardController::class)->name('readiness-dashboard');
+        Route::get('/production-signoff', InstituteProductionSignoffController::class)->name('production-signoff');
+        Route::get('/imports/{importBatch}/end-to-end-readiness', InstituteEndToEndReadinessController::class)->name('imports.end-to-end-readiness');
+        Route::get('/imports/{importBatch}/provenance-readiness', InstituteProvenanceReadinessController::class)->name('imports.provenance-readiness');
+        Route::post('/sources/{source}/evidence', [InstituteSourceEvidenceCaptureController::class, 'store'])->name('sources.evidence.store');
         Route::get('/rows/{importRow}', [InstituteOperationsController::class, 'show'])->name('row');
         Route::post('/rows/{importRow}/resolve', [InstituteImportPromotionController::class, 'resolve'])->name('resolve');
+        Route::post('/rows/{importRow}/reject', [InstituteImportPromotionController::class, 'reject'])->name('reject');
+        Route::post('/rows/{importRow}/quick-approve', [InstituteImportPromotionController::class, 'quickApprove'])->name('quick-approve');
         Route::post('/rows/{importRow}/decision', [InstituteImportPromotionController::class, 'decide'])->name('decide');
+        Route::post('/rows/{importRow}/evidence', [InstituteImportPromotionController::class, 'captureRowEvidence'])->name('row.evidence.store');
         Route::post('/rows/{importRow}/conflict-resolve', [InstituteImportPromotionController::class, 'resolveConflict'])->name('conflict-resolve');
         Route::post('/rows/{importRow}/enrichment-decision', [InstituteImportPromotionController::class, 'enrichmentDecision'])->name('enrichment-decision');
         Route::post('/rows/{importRow}/geography-resolve', [InstituteImportPromotionController::class, 'geographyResolve'])->name('geography-resolve');
         Route::post('/rows/{importRow}/geography-promote', [InstituteImportPromotionController::class, 'geographyPromote'])->name('geography-promote');
         Route::post('/rows/{importRow}/promote', [InstituteImportPromotionController::class, 'promote'])->name('promote');
+        Route::post('/rows/{importRow}/publish', [InstituteImportPromotionController::class, 'publishInstitution'])->name('publish');
         Route::post('/rows/{importRow}/enrichment-promote', [InstituteImportPromotionController::class, 'enrichmentPromote'])->name('enrichment-promote');
         Route::post('/rows/{importRow}/reverse', [InstituteImportPromotionController::class, 'reverse'])->name('reverse');
         Route::post('/reverification/{item}/start', [InstituteImportPromotionController::class, 'startReverification'])->name('reverification.start');
         Route::post('/reverification/{item}/resolve', [InstituteImportPromotionController::class, 'resolveReverification'])->name('reverification.resolve');
         Route::post('/reverification/{item}/refresh', [InstituteImportPromotionController::class, 'refreshCanonical'])->name('reverification.refresh');
         Route::post('/bulk-promote', [InstituteBulkPromotionController::class, 'store'])->name('bulk-promote');
+        Route::post('/bulk-decision', [InstituteBulkPromotionController::class, 'bulkDecision'])->name('bulk-decision');
+        Route::post('/imports/{importBatch}/approve-and-promote-new', [InstituteBulkPromotionController::class, 'approveAndPromoteNew'])->name('imports.approve-and-promote-new');
         Route::get('/monitoring', [MonitoringOperationsController::class, 'dashboard'])->name('monitoring.dashboard');
         Route::get('/monitoring/policies/create', [MonitoringPolicyController::class, 'create'])->name('monitoring.policies.create');
         Route::post('/monitoring/policies', [MonitoringPolicyController::class, 'store'])->name('monitoring.policies.store');
@@ -56,9 +110,19 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         Route::get('/geography-import', [GeographyImportController::class, 'create'])->name('geography-import.create');
         Route::get('/geography-import/template', [GeographyImportController::class, 'template'])->name('geography-import.template');
         Route::post('/geography-import', [GeographyImportController::class, 'store'])->name('geography-import.store');
+        Route::middleware('institute.admin')->prefix('users')->name('users.')->group(function (): void {
+            Route::get('/', [InstituteUserController::class, 'index'])->name('index');
+            Route::post('/{user}/reset-password', [InstituteUserController::class, 'resetPassword'])->name('reset-password');
+            Route::get('/create', [InstituteUserController::class, 'create'])->name('create');
+            Route::post('/', [InstituteUserController::class, 'store'])->name('store');
+        });
+
         Route::get('/import', [InstituteImportController::class, 'create'])->name('import.create');
         Route::get('/import/template', [InstituteImportController::class, 'template'])->name('import.template');
         Route::post('/import', [InstituteImportController::class, 'store'])->name('import.store');
+        Route::get('/enrichment-import', [InstituteEnrichmentImportController::class, 'create'])->name('enrichment-import.create');
+        Route::get('/enrichment-import/template', [InstituteEnrichmentImportController::class, 'template'])->name('enrichment-import.template');
+        Route::post('/enrichment-import', [InstituteEnrichmentImportController::class, 'store'])->name('enrichment-import.store');
     });
 
     Route::get('/{institution:slug}', [InstitutionController::class, 'show'])->name('show');
