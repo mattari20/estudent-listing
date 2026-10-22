@@ -1,0 +1,125 @@
+name: Add Seven Verified Main Campuses
+
+on:
+  push:
+    branches:
+      - ops/add-seven-verified-main-campuses
+
+permissions:
+  contents: read
+
+concurrency:
+  group: add-seven-verified-main-campuses
+  cancel-in-progress: false
+
+jobs:
+  add-main-campuses:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Guarded transaction for verified main campuses and city geography
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -eu
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            test -f artisan
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app = require_once 'bootstrap/app.php';
+            $kernel = $app->make(Illuminate\\Contracts\\Console\\Kernel::class);
+            $kernel->bootstrap();
+
+            use Illuminate\\Support\\Facades\\DB;
+
+            $targets = [
+              13 => ['name'=>'National College of Arts','type'=>'Public Degree-Awarding Institute','city'=>'Lahore','province_id'=>2,'address'=>'4, Shahrah-e-Quaid-e-Azam, Lahore, Pakistan','campus_slug'=>'main-campus-lahore','campus_name'=>'Lahore Main Campus','source'=>'https://www.nca.edu.pk/'],
+              14 => ['name'=>'Bahria University','type'=>'Public University','city'=>'Islamabad','province_id'=>6,'address'=>'Shangrilla Road, Sector E-8, Islamabad, Pakistan','campus_slug'=>'main-campus-islamabad','campus_name'=>'Islamabad Main Campus','source'=>'https://www.hec.gov.pk/english/universities/Pages/Islamabad/Bahria-University.aspx'],
+              15 => ['name'=>'Air University','type'=>'Public University','city'=>'Islamabad','province_id'=>6,'address'=>'Main Campus, Sector E-9, Islamabad, Pakistan','campus_slug'=>'main-campus-islamabad','campus_name'=>'Islamabad Main Campus','source'=>'https://www.hec.gov.pk/english/universities/Pages/Islamabad/Air-University.aspx'],
+              16 => ['name'=>'Virtual University of Pakistan','type'=>'Public University','city'=>'Lahore','province_id'=>2,'address'=>'M.A. Jinnah Campus, Defence Road, off Raiwind Road, Lahore, Pakistan','campus_slug'=>'main-campus-lahore','campus_name'=>'Lahore Main Campus','source'=>'https://www.hec.gov.pk/english/universities/Pages/Punjab/Virtual-University-of-Pakistan.aspx'],
+              17 => ['name'=>'Karakoram International University','type'=>'Public University','city'=>'Gilgit','province_id'=>7,'address'=>'University Road, Gilgit, Gilgit-Baltistan, Pakistan','campus_slug'=>'main-campus-gilgit','campus_name'=>'Gilgit Main Campus','source'=>'https://www.hec.gov.pk/english/universities/Pages/Gilgit%20Baltistan/Karakurum-International-University.aspx'],
+              18 => ['name'=>'National Textile University','type'=>'Public University','city'=>'Faisalabad','province_id'=>2,'address'=>'Sheikhupura Road, Faisalabad 37610, Pakistan','campus_slug'=>'main-campus-faisalabad','campus_name'=>'Faisalabad Main Campus','source'=>'https://admissions.ntu.edu.pk/contact_us/'],
+              19 => ['name'=>'National University of Sciences & Technology','type'=>'Public University','city'=>'Islamabad','province_id'=>6,'address'=>'NUST Campus, Sector H-12, Islamabad, Pakistan','campus_slug'=>'main-campus-islamabad','campus_name'=>'Islamabad Main Campus','source'=>'https://nust.edu.pk/university-main-offices/'],
+            ];
+
+            $expectedCities = [
+              'Lahore'=>['slug'=>'lahore','parent_id'=>2,'type'=>'city','code'=>null],
+              'Islamabad'=>['slug'=>'islamabad','parent_id'=>6,'type'=>'city','code'=>null],
+              'Gilgit'=>['slug'=>'gilgit','parent_id'=>7,'type'=>'city','code'=>null],
+              'Faisalabad'=>['slug'=>'faisalabad','parent_id'=>2,'type'=>'city','code'=>null],
+            ];
+
+            DB::transaction(function () use ($targets, $expectedCities) {
+              foreach ($targets as $id=>$t) {
+                $institution = DB::table('institutions')->where('id',$id)->lockForUpdate()->first();
+                if (!$institution || $institution->name !== $t['name'] || $institution->status !== 'active' || $institution->institution_type !== $t['type']) {
+                  throw new RuntimeException("Guard failed for institution ID {$id}; no changes committed.");
+                }
+              }
+
+              $cityIds = [];
+              foreach ($expectedCities as $city=>$g) {
+                $matches = DB::table('geographies')->where('parent_id',$g['parent_id'])->where('slug',$g['slug'])->lockForUpdate()->get();
+                if ($matches->count() > 1) throw new RuntimeException("Duplicate city geography identity: {$city}; no changes committed.");
+                if ($matches->count() === 1) {
+                  $existing = $matches->first();
+                  if ($existing->name !== $city || $existing->type !== 'city' || $existing->status !== 'active') {
+                    throw new RuntimeException("Existing city geography mismatch: {$city}; no changes committed.");
+                  }
+                  $cityIds[$city] = (int)$existing->id;
+                } else {
+                  $cityIds[$city] = null;
+                }
+              }
+
+              foreach ($expectedCities as $city=>$g) {
+                if ($cityIds[$city] === null) {
+                  $cityIds[$city] = DB::table('geographies')->insertGetId([
+                    'parent_id'=>$g['parent_id'],'name'=>$city,'slug'=>$g['slug'],'type'=>'city',
+                    'code'=>null,'status'=>'active','created_at'=>now(),'updated_at'=>now()
+                  ]);
+                  echo "CREATED_CITY={$city};ID={$cityIds[$city]}\n";
+                } else {
+                  echo "REUSED_CITY={$city};ID={$cityIds[$city]}\n";
+                }
+              }
+
+              foreach ($targets as $id=>$t) {
+                $matches = DB::table('campuses')->where('institution_id',$id)->where('slug',$t['campus_slug'])->lockForUpdate()->get();
+                if ($matches->count() > 1) throw new RuntimeException("Duplicate campus identity for institution ID {$id}; no changes committed.");
+                if ($matches->count() === 1) {
+                  $existing = $matches->first();
+                  if ($existing->name !== $t['campus_name'] || (int)$existing->geography_id !== $cityIds[$t['city']] || $existing->status !== 'active') {
+                    throw new RuntimeException("Existing campus mismatch for institution ID {$id}; no changes committed.");
+                  }
+                  echo "REUSED_CAMPUS={$id};NAME={$t['name']}\n";
+                  continue;
+                }
+                DB::table('campuses')->insert([
+                  'institution_id'=>$id,'geography_id'=>$cityIds[$t['city']],
+                  'name'=>$t['campus_name'],'slug'=>$t['campus_slug'],'campus_type'=>'main',
+                  'status'=>'active','address'=>$t['address'],'postal_code'=>null,
+                  'latitude'=>null,'longitude'=>null,'created_at'=>now(),'updated_at'=>now()
+                ]);
+                echo "CREATED_CAMPUS={$id};NAME={$t['name']};CITY={$t['city']};SOURCE={$t['source']}\n";
+              }
+            });
+
+            echo "=== POST-WRITE VERIFICATION ===\n";
+            $rows = DB::table('institutions as i')->join('campuses as c','c.institution_id','=','i.id')
+              ->join('geographies as g','g.id','=','c.geography_id')
+              ->whereIn('i.id',array_keys($targets))->orderBy('i.id')
+              ->get(['i.id','i.name','i.status as institution_status','c.id as campus_id','c.name as campus_name','c.status as campus_status','c.address','g.name as city','g.type as geography_type','g.status as geography_status']);
+            foreach ($rows as $r) echo json_encode($r, JSON_UNESCAPED_SLASHES)."\n";
+            if ($rows->count() !== 7) throw new RuntimeException("Verification failed: expected 7 campuses, found ".$rows->count());
+            if ($rows->contains(fn($r)=>$r->institution_status!=='active'||$r->campus_status!=='active'||$r->geography_type!=='city'||$r->geography_status!=='active')) throw new RuntimeException("Verification failed: status or geography mismatch.");
+            $gaps = app(App\\Services\\InstituteDataReadinessService::class)->summarize();
+            echo "CANONICAL_POPULATION=".json_encode($gaps['population'],JSON_UNESCAPED_SLASHES)."\n";
+            echo "CANONICAL_RELATIONSHIP_GAPS=".json_encode($gaps['integrity'],JSON_UNESCAPED_SLASHES)."\n";
+            PHP
