@@ -56,4 +56,17 @@ jobs:
             curl -sS -L --max-time 15 -o /tmp/institutes-index.html -w "DIRECTORY_INDEX_HTTP=%{http_code}\n" https://estudent.pk/institutes/
             test -s /tmp/institutes-index.html
             echo "DIRECTORY_INDEX_NONEMPTY=yes"
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\\Contracts\\Console\\Kernel::class);
+            $kernel->bootstrap();
+            $db=Illuminate\\Support\\Facades\\DB::class;
+            $profiles=$db::table('institutions')->where('status','active')->whereNotNull('description')->whereNotNull('verified_at')->count();
+            $campuses=$db::table('campuses')->where('status','active')->whereNotNull('geography_id')->count();
+            $programs=$db::table('programs')->where('status','active')->count();
+            echo "VERIFIED_PROFILES={$profiles};ACTIVE_GEO_LINKED_CAMPUSES={$campuses};ACTIVE_PROGRAMS={$programs}\\n";
+            if($profiles!==19 || $campuses!==19 || $programs!==11) exit(6);
+            PHP
             php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "FINAL_DATA_GAP_STATUS=".($d["status"]??"unknown")."\n"; echo "FINAL_POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\n"; echo "FINAL_RELATIONSHIP_GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if(($d["mutation_performed"]??null)!==false) exit(4); if(($d["status"]??null)!=="healthy") exit(5);'
