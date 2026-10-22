@@ -155,4 +155,11 @@ class GeographyIntegrityHardeningTest extends TestCase
         $this->assertTrue($result['valid']);
         $this->assertSame([], $result['errors']);
     }
+
+    public function test_active_geography_with_inactive_parent_is_flagged(): void
+    {
+        $parent = Geography::create(['name' => 'Inactive Province', 'slug' => 'inactive-province', 'type' => 'province', 'status' => 'inactive']);
+        $child = Geography::create(['parent_id' => $parent->id, 'name' => 'Test District', 'slug' => 'test-district', 'type' => 'district', 'status' => 'active']);
+        $this->assertContains('parent_not_active', app(GeographyIntegrityService::class)->inspect($child));
+    }
 }
