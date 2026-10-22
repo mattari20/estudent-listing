@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Institution;
 use App\Models\ImportBatch;
 use App\Models\ImportPromotionDecision;
+use App\Models\ImportPromotionEvent;
 use App\Models\ImportRow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -88,6 +89,58 @@ class DataGapRecordAuditTest extends TestCase
         $this->assertStringNotContainsString('Private test campus payload', json_encode($record));
         $this->assertStringNotContainsString('Private reviewer note', json_encode($record));
         $this->assertStringNotContainsString('Unknown geography', json_encode($record));
+    }
+
+    public function test_record_audit_prioritizes_a_promotion_failure_over_a_missing_approval_decision(): void
+    {
+        $batch = ImportBatch::query()->create([
+            'batch_key' => 'promotion-failure-audit-test',
+            'entity_type' => 'institution',
+            'source_type' => 'test',
+            'status' => 'validated',
+            'total_rows' => 1,
+            'valid_rows' => 1,
+            'candidate_rows' => 1,
+            'received_at' => now(),
+            'completed_at' => now(),
+        ]);
+
+        $row = ImportRow::query()->create([
+            'import_batch_id' => $batch->id,
+            'row_number' => 1,
+            'status' => 'candidate',
+            'match_state' => 'new_candidate',
+            'payload' => ['name' => 'Promotion Failure Audit Institute'],
+            'normalized_payload' => ['name' => 'Promotion Failure Audit Institute'],
+            'validation_errors' => [],
+        ]);
+
+        ImportPromotionEvent::query()->create([
+            'import_row_id' => $row->id,
+            'import_batch_id' => $batch->id,
+            'entity_type' => 'institution',
+            'event_type' => 'promotion_failed',
+            'previous_status' => 'candidate',
+            'new_status' => 'candidate',
+            'actor_type' => 'system',
+            'reason' => 'Private failure detail must not be exposed by the audit.',
+            'metadata' => ['error_class' => 'RuntimeException'],
+            'occurred_at' => now(),
+        ]);
+
+        Artisan::call('institutes:data-gap-record-audit', ['--json' => true]);
+        $report = json_decode(Artisan::output(), true);
+        $record = collect($report['sections']['import_rows']['records'] ?? [])
+            ->firstWhere('id', $row->id);
+
+        $this->assertIsArray($record);
+        $this->assertSame('investigate_promotion_failure', $record['review_disposition']);
+        $this->assertContains(
+            'A promotion failure event exists; inspect its private details before retrying.',
+            $record['review_reasons']
+        );
+        $this->assertSame('RuntimeException', $record['latest_promotion_error_class']);
+        $this->assertStringNotContainsString('Private failure detail', json_encode($record));
     }
 
 }
