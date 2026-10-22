@@ -146,4 +146,27 @@ class InstituteImportDuplicateAuditTest extends TestCase
         $this->assertContains('duplicate_import_row', $rowReport['issues']);
         $this->assertSame($first->id, $rowReport['duplicate_of']['row_id']);
     }
+
+    public function test_audit_reports_canonical_name_and_slug_collisions_without_mutating_institutions(): void
+    {
+        Institution::query()->create([
+            'name' => 'Collision University', 'slug' => 'collision-university-one', 'status' => 'active',
+        ]);
+        Institution::query()->create([
+            'name' => 'Collision-University', 'slug' => 'collision-university-two', 'status' => 'candidate',
+        ]);
+        Institution::query()->create([
+            'name' => 'Separate University', 'slug' => 'collision-university-one', 'status' => 'active',
+        ]);
+
+        $report = app(InstituteImportDuplicateAuditService::class)->build();
+
+        $this->assertFalse($report['mutation_performed']);
+        $this->assertTrue($report['cleanup_preview_only']);
+        $this->assertSame(1, $report['summary']['canonical_identity_collision_groups']);
+        $this->assertSame(1, $report['summary']['canonical_slug_collision_groups']);
+        $this->assertCount(1, $report['canonical_identity_collisions']);
+        $this->assertCount(1, $report['canonical_slug_collisions']);
+        $this->assertSame(3, Institution::query()->count());
+    }
 }
