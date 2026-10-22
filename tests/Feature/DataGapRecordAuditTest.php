@@ -82,6 +82,8 @@ class DataGapRecordAuditTest extends TestCase
         $this->assertSame(1, $record['validation_error_count']);
         $this->assertSame(['geography_id'], $record['validation_error_fields']);
         $this->assertTrue($record['has_notes']);
+        $this->assertSame('correct_validation_errors', $record['review_disposition']);
+        $this->assertNotEmpty($record['review_reasons']);
         $this->assertNull($record['latest_promotion_event_type']);
         $this->assertStringNotContainsString('Private test campus payload', json_encode($record));
         $this->assertStringNotContainsString('Private reviewer note', json_encode($record));
