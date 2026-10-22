@@ -88,4 +88,10 @@ class InstituteSeoFoundationTest extends TestCase
             ->assertSee('<meta name="robots" content="noindex,follow">', false)
             ->assertDontSee('<link rel="canonical" href="">', false);
     }
+
+    public function test_sitemap_excludes_candidate_institution_urls(): void
+    {
+        Institution::create(['name' => 'Candidate SEO University', 'slug' => 'candidate-seo-university', 'status' => 'candidate']);
+        $this->get('/institutes/sitemap.xml')->assertOk()->assertDontSee('/institutes/candidate-seo-university', false);
+    }
 }
