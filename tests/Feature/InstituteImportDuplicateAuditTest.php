@@ -88,4 +88,33 @@ class InstituteImportDuplicateAuditTest extends TestCase
         $this->assertSame($institution->id, $rowReport['canonical_match']['id']);
         $this->assertContains('matches_existing_canonical_institution', $rowReport['issues']);
     }
+
+    public function test_audit_flags_invalid_rows_even_when_the_institution_name_is_present(): void
+    {
+        $source = Source::query()->create([
+            'source_type' => 'test', 'name' => 'Validation audit source',
+            'url' => 'https://example.test/validation', 'status' => 'active',
+        ]);
+        $batch = ImportBatch::query()->create([
+            'batch_key' => 'audit-validation-batch', 'entity_type' => 'institution', 'source_type' => 'test',
+            'source_id' => $source->id, 'status' => 'validated', 'total_rows' => 1,
+            'valid_rows' => 0, 'invalid_rows' => 1, 'candidate_rows' => 0,
+        ]);
+        $row = ImportRow::query()->create([
+            'import_batch_id' => $batch->id, 'row_number' => 2, 'status' => 'invalid',
+            'match_state' => 'unresolved',
+            'payload' => ['name' => 'Incomplete Example University'],
+            'normalized_payload' => ['name' => 'Incomplete Example University'],
+            'validation_errors' => ['slug' => ['The slug field is required.']],
+        ]);
+
+        $report = app(InstituteImportDuplicateAuditService::class)->build();
+        $rowReport = collect($report['rows'])->firstWhere('row_id', $row->id);
+
+        $this->assertContains('import_row_invalid', $rowReport['issues']);
+        $this->assertContains('validation_errors_present', $rowReport['issues']);
+        $this->assertSame(['slug' => ['The slug field is required.']], $rowReport['validation_errors']);
+        $this->assertSame(1, $report['summary']['incomplete_rows']);
+        $this->assertSame('invalid', $row->fresh()->status);
+    }
 }
