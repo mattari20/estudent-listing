@@ -143,4 +143,14 @@ class InstituteImportRowDiagnosticTest extends TestCase
         $report = app(InstituteImportRowDiagnosticService::class)->build($batch);
         $this->assertFalse($report['mutation_performed']);
     }
+
+    public function test_row_diagnostics_do_not_change_import_row_status(): void
+ {
+  $source = Source::create(['source_type' => 'test', 'name' => 'Diagnostic Source', 'url' => 'https://example.test/diagnostic-status', 'status' => 'active']);
+  $batch = ImportBatch::create(['batch_key' => 'diagnostic-status-'.uniqid(), 'entity_type' => 'institution', 'source_type' => 'test', 'source_id' => $source->id, 'status' => 'validated', 'total_rows' => 1, 'valid_rows' => 1, 'invalid_rows' => 0, 'candidate_rows' => 1, 'received_at' => now()]);
+  $row = ImportRow::create(['import_batch_id' => $batch->id, 'row_number' => 1, 'status' => 'candidate', 'match_state' => 'new_candidate', 'payload' => ['name' => 'Diagnostic Candidate'], 'normalized_payload' => ['name' => 'Diagnostic Candidate', 'slug' => 'diagnostic-candidate']]);
+  app(InstituteImportRowDiagnosticService::class)->build($batch);
+  $this->assertSame('candidate', $row->fresh()->status);
+  $this->assertSame('validated', $batch->fresh()->status);
+ }
 }
