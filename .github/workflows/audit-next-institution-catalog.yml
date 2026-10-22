@@ -3,9 +3,6 @@ on:
   push:
     branches:
       - ops/audit-next-institution-catalog
-  pull_request:
-    branches:
-      - main
 permissions:
   contents: read
 jobs:
