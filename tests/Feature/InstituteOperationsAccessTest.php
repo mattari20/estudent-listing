@@ -19,4 +19,10 @@ class InstituteOperationsAccessTest extends TestCase {
  public function test_import_requires_operator(): void { $this->get('/institutes/operations/import')->assertRedirect('/institutes/login'); }
 
     public function test_row_review_route_requires_authentication(): void { $this->get('/institutes/operations/rows/1')->assertRedirect('/institutes/login'); }
+
+    public function test_viewer_cannot_open_import_review_route(): void
+ {
+  $user = User::create(['name' => 'Read Only Viewer', 'email' => 'viewer-import-'.uniqid().'@example.test', 'password' => 'secret', 'role' => 'viewer']);
+  $this->actingAs($user)->get('/institutes/operations/import')->assertRedirect('/institutes/login');
+ }
 }
