@@ -202,4 +202,10 @@ class InstituteNearbySearchTest extends TestCase
         Campus::create(['institution_id' => $inactive->id, 'geography_id' => $city->id, 'name' => 'Inactive Campus', 'slug' => 'inactive-campus', 'campus_type' => 'main', 'status' => 'active', 'latitude' => 31.5204, 'longitude' => 74.3587]);
         $this->getJson('/api/v1/institutions/nearby?lat=31.5204&lng=74.3587&radius_km=10')->assertOk()->assertJsonCount(0, 'data');
     }
+
+    public function test_nearby_api_rejects_coordinates_outside_valid_ranges(): void
+    {
+        $this->getJson('/api/v1/institutions/nearby?lat=91&lng=74.3587&radius_km=10')->assertStatus(422);
+        $this->getJson('/api/v1/institutions/nearby?lat=31.5204&lng=181&radius_km=10')->assertStatus(422);
+    }
 }
