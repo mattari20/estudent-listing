@@ -1,0 +1,64 @@
+name: Fix LUMS Offering and 2027 Intake
+on:
+  push:
+    branches:
+      - ops/fix-lums-offering-and-2027-intake
+permissions:
+  contents: read
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Guarded LUMS offering and intake creation
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db=Illuminate\Support\Facades\DB::class;
+            $db::transaction(function() use ($db) {
+              $i=$db::table('institutions')->where('id',8)->lockForUpdate()->first();
+              $p=$db::table('programs')->where('institution_id',8)->where('slug','lums-bs-computer-science')->lockForUpdate()->first();
+              $c=$db::table('campuses')->where('id',2)->lockForUpdate()->first();
+              if(!$i || $i->name!=='Lahore University of Management Sciences' || $i->status!=='active') throw new RuntimeException('LUMS institution identity guard failed');
+              if(!$p || $p->name!=='BS Computer Science' || $p->status!=='active') throw new RuntimeException('LUMS BS Computer Science identity guard failed');
+              if(!$c || (int)$c->institution_id!==8 || $c->name!=='LUMS Main Campus' || $c->status!=='active' || (int)$c->geography_id!==9) throw new RuntimeException('LUMS campus identity/geography guard failed');
+              $offers=$db::table('program_offerings')->where('program_id',$p->id)->where('campus_id',$c->id)->where('delivery_mode','on_campus')->lockForUpdate()->get();
+              if($offers->count()>1) throw new RuntimeException('Duplicate LUMS offering');
+              if($offers->count()===0) {
+                $offeringId=$db::table('program_offerings')->insertGetId(['program_id'=>$p->id,'campus_id'=>$c->id,'delivery_mode'=>'on_campus','status'=>'active','intake_label'=>null,'duration'=>null,'availability'=>'unknown','effective_from'=>null,'effective_until'=>null,'created_at'=>now(),'updated_at'=>now()]);
+                echo "LUMS_OFFERING_CREATED={$offeringId}\n";
+              } else {
+                $offeringId=(int)$offers->first()->id;
+                if($offers->first()->status!=='active') throw new RuntimeException('LUMS offering is not active');
+                echo "LUMS_OFFERING_REUSED={$offeringId}\n";
+              }
+              $intakes=$db::table('admission_intakes')->where('program_offering_id',$offeringId)->where('label','Fall 2027')->lockForUpdate()->get();
+              if($intakes->count()>1) throw new RuntimeException('Duplicate LUMS Fall 2027 intake');
+              $fields=['status'=>'open','application_open_at'=>null,'application_close_at'=>'2027-01-20','test_date'=>'2027-03-21','selection_date'=>null,'enrollment_start_at'=>null,'enrollment_end_at'=>null,'seat_capacity'=>null,'application_url'=>'https://lums.edu.pk/node/826','notes'=>'Official LUMS BS Computer Science admissions page: online application activation October 2026 (exact opening day not stated); application deadline 20 January 2027 at 5:00 pm PKT; supporting documents and application fee deadline 21 January 2027; LCAT listed for 21 March 2027 as tentative; classes commence September 2027 (exact date not stated). No exact opening or class commencement date has been inferred.','updated_at'=>now()];
+              if($intakes->count()===0) {
+                $db::table('admission_intakes')->insert($fields+['program_offering_id'=>$offeringId,'label'=>'Fall 2027','created_at'=>now()]);
+                echo "LUMS_FALL_2027_INTAKE_CREATED\n";
+              } else {
+                $db::table('admission_intakes')->where('id',$intakes->first()->id)->update($fields);
+                echo "LUMS_FALL_2027_INTAKE_UPDATED\n";
+              }
+            });
+            $p=$db::table('programs')->where('institution_id',8)->where('slug','lums-bs-computer-science')->first();
+            $o=$db::table('program_offerings as o')->join('campuses as c','c.id','=','o.campus_id')->where('o.program_id',$p->id)->where('c.institution_id',8)->where('c.name','LUMS Main Campus')->where('o.status','active')->first(['o.id']);
+            $a=$o?$db::table('admission_intakes')->where('program_offering_id',$o->id)->where('label','Fall 2027')->first():null;
+            echo "LUMS_FINAL=".json_encode(['program_id'=>$p->id??null,'offering_id'=>$o->id??null,'intake'=>$a],JSON_UNESCAPED_SLASHES)."\n";
+            if(!$o || !$a || $a->status!=='open' || $a->application_open_at!==null || substr((string)$a->application_close_at,0,10)!=='2027-01-20' || substr((string)$a->test_date,0,10)!=='2027-03-21') throw new RuntimeException('LUMS final verification failed');
+            PHP
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "LUMS_REPORT_STATUS=".($d["status"]??"unknown")."\n"; echo "LUMS_POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\n"; echo "LUMS_GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if(($d["mutation_performed"]??null)!==false || ($d["status"]??null)!=="healthy") exit(5);'
