@@ -33,4 +33,11 @@ class InstituteProductionSignoffTest extends TestCase
         $this->assertContains('auth', $route->gatherMiddleware());
         $this->assertContains('institute.operator', $route->gatherMiddleware());
     }
+
+    public function test_production_signoff_route_is_registered(): void
+    {
+        $route = collect(app('router')->getRoutes()->getRoutes())->first(fn ($route) => $route->getName() === 'institutes.operations.production-signoff');
+        $this->assertNotNull($route);
+        $this->assertContains('GET', $route->methods());
+    }
 }
