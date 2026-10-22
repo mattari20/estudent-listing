@@ -51,15 +51,6 @@ class InstituteImportDuplicateAuditService
             }
         }
 
-        $identityCollisions = collect($canonicalIdentityGroups)
-            ->filter(fn ($group) => count($group) > 1)
-            ->map(fn ($group, $key) => ['normalized_identity' => $key, 'institutions' => array_values($group)])
-            ->values()->all();
-        $slugCollisions = collect($canonicalSlugGroups)
-            ->filter(fn ($group) => count($group) > 1)
-            ->map(fn ($group, $key) => ['normalized_slug' => $key, 'institutions' => array_values($group)])
-            ->values()->all();
-
         foreach (InstitutionName::query()->orderBy('id')->get(['institution_id', 'name']) as $alias) {
             $key = $this->normalize($alias->name);
             if ($key === '') {
@@ -78,6 +69,16 @@ class InstituteImportDuplicateAuditService
                 'slug' => $institution->slug, 'status' => $institution->status,
             ];
         }
+
+        // Build collision groups only after aliases have been included.
+        $identityCollisions = collect($canonicalIdentityGroups)
+            ->filter(fn ($group) => count($group) > 1)
+            ->map(fn ($group, $key) => ['normalized_identity' => $key, 'institutions' => array_values($group)])
+            ->values()->all();
+        $slugCollisions = collect($canonicalSlugGroups)
+            ->filter(fn ($group) => count($group) > 1)
+            ->map(fn ($group, $key) => ['normalized_slug' => $key, 'institutions' => array_values($group)])
+            ->values()->all();
 
         $firstRowByIdentity = [];
         $items = [];
