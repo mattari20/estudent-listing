@@ -150,7 +150,7 @@
                         <div class="batch-table__actions">
                             <a class="batch-action-link" href="{{ route('institutes.operations.queue',['batch_id'=>$batch->id]) }}">Review batch <span aria-hidden="true">→</span></a>
                             @if($batch->entity_type === 'institution')
-                                <a class="batch-action-link" href="{{ route('institutes.operations.imports.row-diagnostics',$batch) }}">View row diagnostics <span aria-hidden="true">↗</span></a>
+                                <a class="batch-action-link" href="{{ route('institutes.operations.imports.row-diagnostics.view',$batch) }}">View row diagnostics <span aria-hidden="true">↗</span></a>
                             @endif
                             @if($batch->entity_type === 'institution' && $pendingCount > 0)
                                 <form method="post" action="{{ route('institutes.operations.imports.approve-and-promote-new',$batch) }}" onsubmit="return confirm('Approve and promote all unmatched new institutions in this batch? Rows with identity matches or conflicts will remain for individual review.');">
