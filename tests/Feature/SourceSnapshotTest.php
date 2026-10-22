@@ -24,4 +24,15 @@ class SourceSnapshotTest extends TestCase {
   app(SourceMaterialityClassifier::class)->classify($observation,'high','Official status content requires operator review.');
   $this->assertSame('high',$observation->refresh()->materiality);
  }
+
+    public function test_changed_source_content_creates_a_new_snapshot_without_overwriting_old_content(): void
+ {
+  $source=Source::create(['source_type'=>'web','name'=>'History Source','status'=>'active']);
+  $service=app(SourceSnapshotService::class);
+  $first=$service->capture($source,'first official content','https://example.test/history');
+  $second=$service->capture($source,'updated official content','https://example.test/history');
+  $this->assertNotSame($first->id,$second->id);
+  $this->assertSame('first official content',$first->refresh()->content);
+  $this->assertSame('updated official content',$second->content);
+ }
 }
