@@ -35,6 +35,21 @@ class GeographyReviewAccessTest extends TestCase
             ->assertRedirect(route('institutes.login'));
     }
 
+    public function test_operator_can_submit_geography_review_action(): void
+    {
+        $row = $this->geographyCandidateRow();
+        $operator = User::create([
+            'name' => 'Geography Operator',
+            'email' => 'geography-operator@example.test',
+            'password' => 'test-password',
+            'role' => 'operator',
+        ]);
+
+        $this->actingAs($operator)
+            ->post(route('institutes.operations.geography-resolve', $row))
+            ->assertSessionHas('status', 'Geography candidates refreshed.');
+    }
+
     private function geographyCandidateRow(): ImportRow
     {
         $batch = ImportBatch::create([
