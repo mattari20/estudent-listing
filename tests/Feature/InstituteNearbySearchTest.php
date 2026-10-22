@@ -194,4 +194,12 @@ class InstituteNearbySearchTest extends TestCase
             ->assertStatus(422);
     }
 
+
+    public function test_nearby_api_excludes_inactive_institutions(): void
+    {
+        $city = Geography::create(['name' => 'Lahore', 'slug' => 'nearby-lahore', 'type' => 'city', 'status' => 'active']);
+        $inactive = Institution::create(['name' => 'Inactive Nearby University', 'slug' => 'inactive-nearby-university', 'status' => 'inactive']);
+        Campus::create(['institution_id' => $inactive->id, 'geography_id' => $city->id, 'name' => 'Inactive Campus', 'slug' => 'inactive-campus', 'campus_type' => 'main', 'status' => 'active', 'latitude' => 31.5204, 'longitude' => 74.3587]);
+        $this->getJson('/api/v1/institutions/nearby?lat=31.5204&lng=74.3587&radius_km=10')->assertOk()->assertJsonCount(0, 'data');
+    }
 }
