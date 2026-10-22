@@ -62,9 +62,21 @@ class InstituteImportDuplicateAuditService
 
         foreach (InstitutionName::query()->orderBy('id')->get(['institution_id', 'name']) as $alias) {
             $key = $this->normalize($alias->name);
-            if ($key !== '' && ! isset($canonicalByIdentity[$key])) {
-                $canonicalByIdentity[$key] = Institution::query()->find($alias->institution_id);
+            if ($key === '') {
+                continue;
             }
+
+            $institution = $institutions->firstWhere('id', $alias->institution_id);
+            if (! $institution) {
+                continue;
+            }
+
+            $canonicalByIdentity[$key] ??= $institution;
+            $canonicalIdentityGroups[$key][$institution->id] = [
+                'id' => $institution->id, 'name' => $institution->name,
+                'official_name' => $institution->official_name, 'short_name' => $institution->short_name,
+                'slug' => $institution->slug, 'status' => $institution->status,
+            ];
         }
 
         $firstRowByIdentity = [];
