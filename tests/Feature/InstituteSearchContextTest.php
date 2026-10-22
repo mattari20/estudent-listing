@@ -7,4 +7,10 @@ class InstituteSearchContextTest extends TestCase { public function test_context
   $context=(new InstituteSearchContextService)->detect('   ');
   $this->assertFalse($context['has_query']);
  }
+
+    public function test_mixed_case_location_query_is_detected(): void
+ {
+  $context = (new InstituteSearchContextService)->detect('LaHoRe');
+  $this->assertTrue($context['has_query']);
+ }
 }
