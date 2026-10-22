@@ -35,4 +35,15 @@ class SourceSnapshotTest extends TestCase {
   $this->assertSame('first official content',$first->refresh()->content);
   $this->assertSame('updated official content',$second->content);
  }
+
+    public function test_capture_of_changed_content_preserves_previous_snapshot(): void
+ {
+  $source = Source::create(['source_type' => 'web', 'name' => 'Snapshot History', 'status' => 'active']);
+  $service = app(SourceSnapshotService::class);
+  $first = $service->capture($source, 'version one', 'https://example.test/history');
+  $second = $service->capture($source, 'version two', 'https://example.test/history');
+  $this->assertNotSame($first->id, $second->id);
+  $this->assertSame('version one', $first->fresh()->content);
+  $this->assertSame('version two', $second->content);
+ }
 }
