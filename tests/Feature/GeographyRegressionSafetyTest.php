@@ -38,7 +38,7 @@ class GeographyRegressionSafetyTest extends TestCase
 
         $this->assertCount(
             0,
-            (new InstituteGeographyCrossDomainIntegrityService)->inspect($institution)
+            app(InstituteGeographyCrossDomainIntegrityService::class)->inspect($institution)
         );
     }
 
@@ -57,7 +57,7 @@ class GeographyRegressionSafetyTest extends TestCase
             'status' => 'active',
         ]);
 
-        $findings = (new InstituteGeographyCrossDomainIntegrityService)->inspect($institution);
+        $findings = app(InstituteGeographyCrossDomainIntegrityService::class)->inspect($institution);
 
         $this->assertTrue($findings->contains(fn ($finding) => $finding['type'] === 'missing_geography'));
         $this->assertNull($campus->fresh()->geography_id);
