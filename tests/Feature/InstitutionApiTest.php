@@ -248,4 +248,10 @@ class InstitutionApiTest extends TestCase
             ->assertJsonPath('programs.0.name', 'Computer Science')
             ->assertJsonPath('programs.0.offerings.0.intake_label', 'Fall');
     }
+
+    public function test_api_does_not_return_inactive_institution_profile(): void
+    {
+        Institution::create(['name' => 'Inactive API University', 'slug' => 'inactive-api-university', 'status' => 'inactive']);
+        $this->getJson('/api/v1/institutions/inactive-api-university')->assertNotFound();
+    }
 }
