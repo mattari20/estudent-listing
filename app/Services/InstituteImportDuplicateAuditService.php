@@ -2,11 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\ImportBatch;
 use App\Models\ImportRow;
 use App\Models\Institution;
 use App\Models\InstitutionName;
-use Illuminate\Support\Facades\DB;
 
 class InstituteImportDuplicateAuditService
 {
@@ -78,8 +76,22 @@ class InstituteImportDuplicateAuditService
                 $matchedCanonical = $canonicalBySlug[$this->normalize($slug)] ?? null;
             }
 
+            $validationErrors = (array) ($row->validation_errors ?? []);
+            $incomplete = false;
+
             if ($name === '') {
                 $issues[] = 'missing_institution_name';
+                $incomplete = true;
+            }
+            if ($row->status === 'invalid') {
+                $issues[] = 'import_row_invalid';
+                $incomplete = true;
+            }
+            if ($validationErrors !== []) {
+                $issues[] = 'validation_errors_present';
+                $incomplete = true;
+            }
+            if ($incomplete) {
                 $summary['incomplete_rows']++;
             }
 
@@ -135,6 +147,7 @@ class InstituteImportDuplicateAuditService
                 'row_status' => $row->status,
                 'institution_name' => $name !== '' ? $name : null,
                 'issues' => array_values(array_unique($issues)),
+                'validation_errors' => $validationErrors,
                 'canonical_match' => $matchedCanonical ? [
                     'id' => $matchedCanonical->id,
                     'name' => $matchedCanonical->name,
