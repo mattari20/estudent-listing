@@ -55,3 +55,13 @@ Record requirement ID, relevant code paths, test name and result, PR/commit, liv
 - The read-only import audit now prioritizes a recorded `promotion_failed` / `promotion_error` event over the fallback missing-approval disposition.
 - A regression test confirms the recommendation is specific without exposing private failure text.
 - Remaining action: refresh Hostinger diagnostics and use the current report to investigate each failed row. This change did not promote, publish, or delete any row.
+
+### 2026-10-22 — Latest diagnostics and regression batch
+- Workflow: Hostinger Read-only Diagnostics, run [39768870759](https://github.com/mattari20/estudent-listing/actions/runs/39768870759), completed successfully against the post-PR-282 audit code. The report states `mutation_performed: false`.
+- Canonical population at this diagnostic run: 19 active institutions, 22 active campuses, 85 active programs, 55 active program offerings, and 5 admission intakes.
+- Relationship checks: zero active institutions without an active campus; zero active campuses without active geography; zero active programs without an active institution; zero active offerings without an active program/campus; zero intakes without an active offering. Geography integrity reported valid, with zero active campuses missing active geography.
+- These checks establish internal relationship consistency for the current dataset, not completeness of Pakistan-wide institution coverage or external truth of each record.
+- Regression batch: 20 PRs were merged across nearby search, source retrieval/snapshots, evidence/readiness gates, geography/campus integrity, public lifecycle visibility, and program/fee/admissions schema contracts. The main-branch Laravel CI and test workflows for commit `b64b26ce48c33b2cc33817bcc1183f4b91d07a97` completed successfully.
+- Public content-aware monitor [39768870749](https://github.com/mattari20/estudent-listing/actions/runs/39768870749) was still running at this report's preparation time. Do not mark the latest live content verification complete until its final conclusion is successful.
+- Remaining Phase 1 work: produce a row-by-row disposition and dependency-aware dry-run plan; investigate promotion failures; verify evidence and publication status without fabricating evidence or auto-publishing. No production records were changed by this batch.
+
