@@ -26,6 +26,7 @@ jobs:
             $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
             $kernel->bootstrap();
             $db=Illuminate\Support\Facades\DB::class;
-            $r=$db::table('admission_intakes as a')->join('program_offerings as o','o.id','=','a.program_offering_id')->join('programs as p','p.id','=','o.program_id')->where('p.slug','lums-bs-computer-science')->where('a.label','Fall 2027')->first(['a.id','a.status','a.application_open_at','a.application_close_at','a.test_date','a.enrollment_start_at','a.application_url','a.notes','o.id as offering_id','o.campus_id','p.slug']);
-            echo json_encode($r,JSON_UNESCAPED_SLASHES)."\n";
+            echo "PROGRAMS=".json_encode($db::table('programs')->where('institution_id',8)->get(['id','name','slug','status']),JSON_UNESCAPED_SLASHES)."\\n";
+            echo "OFFERINGS=".json_encode($db::table('program_offerings as o')->join('programs as p','p.id','=','o.program_id')->where('p.institution_id',8)->get(['o.id','o.program_id','o.campus_id','o.status','p.slug']),JSON_UNESCAPED_SLASHES)."\\n";
+            echo "INTAKES=".json_encode($db::table('admission_intakes')->get(['id','program_offering_id','label','status','application_close_at','test_date','application_url']),JSON_UNESCAPED_SLASHES)."\\n";
             PHP
