@@ -117,4 +117,33 @@ class InstituteImportDuplicateAuditTest extends TestCase
         $this->assertSame(1, $report['summary']['incomplete_rows']);
         $this->assertSame('invalid', $row->fresh()->status);
     }
+
+    public function test_audit_matches_duplicate_names_after_normalizing_punctuation_and_spacing(): void
+    {
+        $source = Source::query()->create([
+            'source_type' => 'test', 'name' => 'Normalized duplicate source',
+            'url' => 'https://example.test/normalized-duplicate', 'status' => 'active',
+        ]);
+        $batch = ImportBatch::query()->create([
+            'batch_key' => 'audit-normalized-duplicate-batch', 'entity_type' => 'institution', 'source_type' => 'test',
+            'source_id' => $source->id, 'status' => 'validated', 'total_rows' => 2,
+            'valid_rows' => 2, 'invalid_rows' => 0, 'candidate_rows' => 2,
+        ]);
+        $first = ImportRow::query()->create([
+            'import_batch_id' => $batch->id, 'row_number' => 2, 'status' => 'candidate',
+            'match_state' => 'unresolved', 'payload' => ['name' => 'Example University'],
+            'normalized_payload' => ['name' => 'Example University'],
+        ]);
+        $second = ImportRow::query()->create([
+            'import_batch_id' => $batch->id, 'row_number' => 3, 'status' => 'candidate',
+            'match_state' => 'unresolved', 'payload' => ['name' => 'Example-University!'],
+            'normalized_payload' => ['name' => 'Example-University!'],
+        ]);
+
+        $report = app(InstituteImportDuplicateAuditService::class)->build();
+        $rowReport = collect($report['rows'])->firstWhere('row_id', $second->id);
+
+        $this->assertContains('duplicate_import_row', $rowReport['issues']);
+        $this->assertSame($first->id, $rowReport['duplicate_of']['row_id']);
+    }
 }

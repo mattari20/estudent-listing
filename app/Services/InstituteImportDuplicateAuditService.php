@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ImportRow;
 use App\Models\Institution;
 use App\Models\InstitutionName;
+use Illuminate\Support\Str;
 
 class InstituteImportDuplicateAuditService
 {
@@ -171,6 +172,8 @@ class InstituteImportDuplicateAuditService
 
     private function normalize(mixed $value): string
     {
-        return mb_strtolower(trim((string) $value));
+        $ascii = Str::ascii(mb_strtolower(trim((string) $value)));
+
+        return preg_replace('/[^a-z0-9]+/', '', $ascii) ?? '';
     }
 }
