@@ -81,8 +81,8 @@ class InstituteImportRowDiagnosticService
                     ->first();
 
                 if (! $possibleDuplicate) {
-                    $aliasInstitutionId = \\App\\Models\\InstitutionName::query()
-                        ->whereIn(\\Illuminate\\Support\\Facades\\DB::raw('LOWER(TRIM(name))'), $identityNames->all())
+                    $aliasInstitutionId = \App\Models\InstitutionName::query()
+                        ->whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(TRIM(name))'), $identityNames->all())
                         ->value('institution_id');
                     if ($aliasInstitutionId) {
                         $possibleDuplicate = Institution::query()->find($aliasInstitutionId);
