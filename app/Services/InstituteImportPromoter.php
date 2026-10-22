@@ -122,7 +122,7 @@ class InstituteImportPromoter
         }
 
         $aliasMatch = InstitutionName::query()
-            ->whereIn(\\Illuminate\\Support\\Facades\\DB::raw('LOWER(TRIM(name))'), $identityNames->all())
+            ->whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(TRIM(name))'), $identityNames->all())
             ->exists();
 
         if ($aliasMatch) {
