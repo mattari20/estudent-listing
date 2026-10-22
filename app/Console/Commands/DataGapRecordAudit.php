@@ -9,7 +9,7 @@ use Throwable;
 
 class DataGapRecordAudit extends Command
 {
-    protected $signature = 'institutes:data-gap-record-audit {--json : Print the private record-level audit as JSON}';
+    protected $signature = 'institutes:data-gap-record-audit {--json : Print the audit as JSON} {--summary : Print aggregate counts only and omit row-level records}';
 
     protected $description = 'Produce a read-only record-level audit for targeted data-gap remediation.';
 
@@ -229,6 +229,32 @@ class DataGapRecordAudit extends Command
     private function finish(array $report, float $startedAt, int $exitCode): int
     {
         $report['duration_ms'] = (int) round((microtime(true) - $startedAt) * 1000);
+
+        if ($this->option('summary') && isset($report['sections']['import_rows'])) {
+            $sections = $report['sections'];
+            $dispositions = [];
+            foreach (($sections['import_rows']['records'] ?? []) as $record) {
+                $disposition = (string) ($record['review_disposition'] ?? 'unclassified');
+                $dispositions[$disposition] = ($dispositions[$disposition] ?? 0) + 1;
+            }
+            ksort($dispositions);
+
+            $report['summary_only'] = true;
+            $report['sections'] = [
+                'institutions' => ['total' => $sections['institutions']['total'] ?? null],
+                'programs' => ['total' => $sections['programs']['total'] ?? null],
+                'import_batches' => ['total' => $sections['import_batches']['total'] ?? null],
+                'import_rows' => [
+                    'total' => $sections['import_rows']['total'] ?? null,
+                    'by_status' => $sections['import_rows']['by_status'] ?? [],
+                    'by_review_disposition' => $dispositions,
+                ],
+                'campuses' => [
+                    'total' => $sections['campuses']['total'] ?? null,
+                    'by_status' => $sections['campuses']['by_status'] ?? [],
+                ],
+            ];
+        }
 
         if ($this->option('json')) {
             $this->line(json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
