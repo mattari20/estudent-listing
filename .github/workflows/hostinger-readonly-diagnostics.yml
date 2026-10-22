@@ -271,9 +271,9 @@ jobs:
                     }
                 }
 
-                if ($schema::hasTable('institution_identity_decisions')) {
-                    $decisionQuery = $db::table('institution_identity_decisions');
-                    if ($schema::hasColumn('institution_identity_decisions', 'import_row_id')) {
+                if ($schema::hasTable('identity_resolution_decisions')) {
+                    $decisionQuery = $db::table('identity_resolution_decisions');
+                    if ($schema::hasColumn('identity_resolution_decisions', 'import_row_id')) {
                         $item['identity_decisions'] = $decisionQuery->where('import_row_id', $row->id)
                             ->orderBy('id')->get()->map(function ($decision) {
                                 $result = [];
