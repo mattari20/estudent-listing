@@ -1,0 +1,150 @@
+name: Expand Program Catalog Offerings and Historical Intakes
+
+on:
+  push:
+    branches:
+      - ops/expand-program-catalog-offerings-intakes
+
+permissions:
+  contents: read
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Guarded source-backed program and offering enrichment
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db=Illuminate\Support\Facades\DB::class;
+
+            // Each record is tied to a canonical institution and official program page.
+            $programs=[
+              ['institution_id'=>2,'institution'=>'University of Engineering and Technology Lahore','name'=>'BS Software Engineering','slug'=>'uet-lahore-bs-software-engineering','level'=>'undergraduate','award'=>'BS','discipline'=>'Software Engineering','source'=>'https://uet.edu.pk/academics/academics/undergraduate-academic-programs/'],
+              ['institution_id'=>2,'institution'=>'University of Engineering and Technology Lahore','name'=>'BSc. Artificial Intelligence','slug'=>'uet-lahore-bsc-artificial-intelligence','level'=>'undergraduate','award'=>'BSc','discipline'=>'Artificial Intelligence','source'=>'https://uet.edu.pk/academics/academics/undergraduate-academic-programs/'],
+              ['institution_id'=>2,'institution'=>'University of Engineering and Technology Lahore','name'=>'BS Data Science','slug'=>'uet-lahore-bs-data-science','level'=>'undergraduate','award'=>'BS','discipline'=>'Data Science','source'=>'https://uet.edu.pk/academics/academics/undergraduate-academic-programs/'],
+              ['institution_id'=>2,'institution'=>'University of Engineering and Technology Lahore','name'=>'BSc. Cyber Security','slug'=>'uet-lahore-bsc-cyber-security','level'=>'undergraduate','award'=>'BSc','discipline'=>'Cyber Security','source'=>'https://uet.edu.pk/academics/academics/undergraduate-academic-programs/'],
+              ['institution_id'=>2,'institution'=>'University of Engineering and Technology Lahore','name'=>'BSc. Applied Computing','slug'=>'uet-lahore-bsc-applied-computing','level'=>'undergraduate','award'=>'BSc','discipline'=>'Applied Computing','source'=>'https://uet.edu.pk/academics/academics/undergraduate-academic-programs/'],
+              ['institution_id'=>4,'institution'=>'University of Central Punjab','name'=>'BS Software Engineering','slug'=>'ucp-bs-software-engineering','level'=>'undergraduate','award'=>'BS','discipline'=>'Software Engineering','source'=>'https://ucp.edu.pk/admissions/offered-programs-fall-2026/'],
+              ['institution_id'=>4,'institution'=>'University of Central Punjab','name'=>'BS Artificial Intelligence','slug'=>'ucp-bs-artificial-intelligence','level'=>'undergraduate','award'=>'BS','discipline'=>'Artificial Intelligence','source'=>'https://ucp.edu.pk/admissions/offered-programs-fall-2026/'],
+              ['institution_id'=>4,'institution'=>'University of Central Punjab','name'=>'BS Cyber Security','slug'=>'ucp-bs-cyber-security','level'=>'undergraduate','award'=>'BS','discipline'=>'Cyber Security','source'=>'https://ucp.edu.pk/admissions/offered-programs-fall-2026/'],
+              ['institution_id'=>4,'institution'=>'University of Central Punjab','name'=>'BS Data Science','slug'=>'ucp-bs-data-science','level'=>'undergraduate','award'=>'BS','discipline'=>'Data Science','source'=>'https://ucp.edu.pk/admissions/offered-programs-fall-2026/'],
+              ['institution_id'=>4,'institution'=>'University of Central Punjab','name'=>'BS English Language & Literature','slug'=>'ucp-bs-english-language-literature','level'=>'undergraduate','award'=>'BS','discipline'=>'English Language and Literature','source'=>'https://ucp.edu.pk/admissions/offered-programs-fall-2026/'],
+              ['institution_id'=>5,'institution'=>'University of Veterinary and Animal Sciences Lahore','name'=>'BS Computer Science','slug'=>'uvas-bs-computer-science','level'=>'undergraduate','award'=>'BS','discipline'=>'Computer Science','source'=>'https://www.uvas.edu.pk/Admissions/undergraduate/index.htm'],
+              ['institution_id'=>5,'institution'=>'University of Veterinary and Animal Sciences Lahore','name'=>'Doctor of Pharmacy','slug'=>'uvas-doctor-of-pharmacy','level'=>'undergraduate','award'=>'Pharm-D','discipline'=>'Pharmacy','source'=>'https://www.uvas.edu.pk/Admissions/undergraduate/index.htm'],
+              ['institution_id'=>5,'institution'=>'University of Veterinary and Animal Sciences Lahore','name'=>'BS Applied Microbiology','slug'=>'uvas-bs-applied-microbiology','level'=>'undergraduate','award'=>'BS','discipline'=>'Applied Microbiology','source'=>'https://www.uvas.edu.pk/Admissions/undergraduate/index.htm'],
+              ['institution_id'=>5,'institution'=>'University of Veterinary and Animal Sciences Lahore','name'=>'BS Biotechnology','slug'=>'uvas-bs-biotechnology','level'=>'undergraduate','award'=>'BS','discipline'=>'Biotechnology','source'=>'https://www.uvas.edu.pk/Admissions/undergraduate/index.htm'],
+              ['institution_id'=>5,'institution'=>'University of Veterinary and Animal Sciences Lahore','name'=>'BS Food Science and Technology','slug'=>'uvas-bs-food-science-technology','level'=>'undergraduate','award'=>'BS','discipline'=>'Food Science and Technology','source'=>'https://www.uvas.edu.pk/Admissions/undergraduate/index.htm'],
+              ['institution_id'=>18,'institution'=>'National Textile University','name'=>'BS Computer Science','slug'=>'ntu-bs-computer-science','level'=>'undergraduate','award'=>'BS','discipline'=>'Computer Science','source'=>'https://ntu.edu.pk/ug-programs.php'],
+              ['institution_id'=>18,'institution'=>'National Textile University','name'=>'BS Software Engineering','slug'=>'ntu-bs-software-engineering','level'=>'undergraduate','award'=>'BS','discipline'=>'Software Engineering','source'=>'https://ntu.edu.pk/ug-programs.php'],
+              ['institution_id'=>18,'institution'=>'National Textile University','name'=>'BS Information Technology','slug'=>'ntu-bs-information-technology','level'=>'undergraduate','award'=>'BS','discipline'=>'Information Technology','source'=>'https://ntu.edu.pk/ug-programs.php'],
+              ['institution_id'=>18,'institution'=>'National Textile University','name'=>'BS Polymer Engineering','slug'=>'ntu-bs-polymer-engineering','level'=>'undergraduate','award'=>'BS','discipline'=>'Polymer Engineering','source'=>'https://ntu.edu.pk/ug-programs.php'],
+              ['institution_id'=>18,'institution'=>'National Textile University','name'=>'Bachelor of Fashion Design','slug'=>'ntu-bachelor-fashion-design','level'=>'undergraduate','award'=>'Bachelor','discipline'=>'Fashion Design','source'=>'https://ntu.edu.pk/ug-programs.php'],
+            ];
+            // Offering campus associations explicitly supported by the linked official pages.
+            $offeringSpecs=[
+              ['slug'=>'uet-lahore-bsc-computer-science','institution_id'=>2,'campus_id'=>12,'duration'=>'4 years','source'=>'https://uet.edu.pk/academics/academics/undergraduate-academic-programs/'],
+              ['slug'=>'uet-lahore-bs-software-engineering','institution_id'=>2,'campus_id'=>12,'duration'=>'4 years','source'=>'https://uet.edu.pk/academics/academics/undergraduate-academic-programs/'],
+              ['slug'=>'uet-lahore-bsc-artificial-intelligence','institution_id'=>2,'campus_id'=>12,'duration'=>'4 years','source'=>'https://uet.edu.pk/academics/academics/undergraduate-academic-programs/'],
+              ['slug'=>'uet-lahore-bs-data-science','institution_id'=>2,'campus_id'=>12,'duration'=>'4 years','source'=>'https://uet.edu.pk/academics/academics/undergraduate-academic-programs/'],
+              ['slug'=>'uet-lahore-bsc-cyber-security','institution_id'=>2,'campus_id'=>12,'duration'=>'4 years','source'=>'https://uet.edu.pk/academics/academics/undergraduate-academic-programs/'],
+              ['slug'=>'ucp-bs-computer-science','institution_id'=>4,'campus_id'=>14,'duration'=>null,'source'=>'https://ucp.edu.pk/admissions/offered-programs-fall-2026/'],
+              ['slug'=>'ucp-bs-software-engineering','institution_id'=>4,'campus_id'=>14,'duration'=>'4 years','source'=>'https://ucp.edu.pk/faculty-of-information-technology-and-computer-science/programmes/undergraduate/bs-software-engineering/'],
+              ['slug'=>'ucp-bs-artificial-intelligence','institution_id'=>4,'campus_id'=>14,'duration'=>null,'source'=>'https://ucp.edu.pk/admissions/offered-programs-fall-2026/'],
+              ['slug'=>'ucp-bs-cyber-security','institution_id'=>4,'campus_id'=>14,'duration'=>null,'source'=>'https://ucp.edu.pk/admissions/offered-programs-fall-2026/'],
+              ['slug'=>'ucp-bs-data-science','institution_id'=>4,'campus_id'=>14,'duration'=>null,'source'=>'https://ucp.edu.pk/admissions/offered-programs-fall-2026/'],
+              ['slug'=>'uvas-doctor-of-veterinary-medicine','institution_id'=>5,'campus_id'=>15,'duration'=>'5 years','source'=>'https://www.uvas.edu.pk/Admissions/undergraduate/Admission_guidelines/index.htm'],
+              ['slug'=>'uvas-doctor-of-pharmacy','institution_id'=>5,'campus_id'=>15,'duration'=>'5 years','source'=>'https://www.uvas.edu.pk/Admissions/undergraduate/Admission_guidelines/index.htm'],
+              ['slug'=>'uvas-bs-computer-science','institution_id'=>5,'campus_id'=>15,'duration'=>'4 years','source'=>'https://www.uvas.edu.pk/Admissions/undergraduate/index.htm'],
+              ['slug'=>'ntu-bs-textile-engineering','institution_id'=>18,'campus_id'=>8,'duration'=>null,'source'=>'https://ntu.edu.pk/ug-programs.php'],
+              ['slug'=>'ntu-bs-computer-science','institution_id'=>18,'campus_id'=>8,'duration'=>null,'source'=>'https://ntu.edu.pk/ug-programs.php'],
+              ['slug'=>'ntu-bs-software-engineering','institution_id'=>18,'campus_id'=>8,'duration'=>null,'source'=>'https://ntu.edu.pk/ug-programs.php'],
+              ['slug'=>'ntu-bs-information-technology','institution_id'=>18,'campus_id'=>8,'duration'=>null,'source'=>'https://ntu.edu.pk/ug-programs.php'],
+            ];
+
+            $db::transaction(function() use ($db,$programs,$offeringSpecs) {
+              foreach($programs as $p) {
+                $i=$db::table('institutions')->where('id',$p['institution_id'])->lockForUpdate()->first();
+                if(!$i || $i->name!==$p['institution'] || $i->status!=='active') throw new RuntimeException("Institution identity guard failed for ".$p['slug']);
+                $found=$db::table('programs')->where('institution_id',$p['institution_id'])->where('slug',$p['slug'])->lockForUpdate()->get();
+                if($found->count()>1) throw new RuntimeException("Duplicate program identity ".$p['slug']);
+                if($found->count()===1) {
+                  $existing=$found->first();
+                  if($existing->name!==$p['name'] || $existing->status!=='active') throw new RuntimeException("Existing program mismatch ".$p['slug']);
+                } else {
+                  $db::table('programs')->insert([
+                    'institution_id'=>$p['institution_id'],'name'=>$p['name'],'slug'=>$p['slug'],
+                    'program_level'=>$p['level'],'award'=>$p['award'],'discipline'=>$p['discipline'],
+                    'status'=>'active','description'=>'Official program listing: '.$p['source'],
+                    'created_at'=>now(),'updated_at'=>now()
+                  ]);
+                  echo "PROGRAM_ADDED=".$p['slug']."\n";
+                }
+              }
+              foreach($offeringSpecs as $o) {
+                $p=$db::table('programs')->where('slug',$o['slug'])->where('institution_id',$o['institution_id'])->where('status','active')->first();
+                $c=$db::table('campuses')->where('id',$o['campus_id'])->where('institution_id',$o['institution_id'])->where('status','active')->first();
+                if(!$p || !$c || !$c->geography_id) throw new RuntimeException("Offering relationship guard failed for ".$o['slug']);
+                $existing=$db::table('program_offerings')->where('program_id',$p->id)->where('campus_id',$c->id)->where('delivery_mode','on_campus')->lockForUpdate()->get();
+                if($existing->count()>1) throw new RuntimeException("Duplicate offering for ".$o['slug']);
+                if($existing->count()===1) {
+                  if($existing->first()->status!=='active') throw new RuntimeException("Existing offering is not active for ".$o['slug']);
+                  echo "OFFERING_REUSED=".$o['slug']."\n";
+                  continue;
+                }
+                $db::table('program_offerings')->insert([
+                  'program_id'=>$p->id,'campus_id'=>$c->id,'delivery_mode'=>'on_campus','status'=>'active',
+                  'intake_label'=>null,'duration'=>$o['duration'],'availability'=>'unknown',
+                  'effective_from'=>null,'effective_until'=>null,'created_at'=>now(),'updated_at'=>now()
+                ]);
+                echo "OFFERING_ADDED=".$o['slug'].";CAMPUS_ID=".$c->id.";SOURCE=".$o['source']."\n";
+              }
+              $intakes=[
+                ['program_slug'=>'uet-lahore-bsc-computer-science','institution_id'=>2,'label'=>'Fall 2026 (closed)','status'=>'closed','url'=>'https://apply.uet.edu.pk/UG-2026-1','notes'=>'Official UET admissions portal explicitly states Fall 2026 admissions are closed. Application opening/closing dates were not populated because the source reviewed did not provide a verified application deadline.'],
+                ['program_slug'=>'uvas-doctor-of-veterinary-medicine','institution_id'=>5,'label'=>'Undergraduate Admissions 2026 (closed)','status'=>'closed','url'=>'https://www.uvas.edu.pk/Admissions/undergraduate/index.htm','notes'=>'Official UVAS undergraduate admissions page lists 2026 admissions and merit/fee submission activity through October 2026. No application opening or closing date is asserted here because the reviewed page did not establish a reliable application deadline.']
+              ];
+              foreach($intakes as $in) {
+                $p=$db::table('programs')->where('slug',$in['program_slug'])->where('institution_id',$in['institution_id'])->first();
+                if(!$p) throw new RuntimeException("Intake program guard failed ".$in['program_slug']);
+                $off=$db::table('program_offerings')->where('program_id',$p->id)->where('status','active')->first();
+                if(!$off) throw new RuntimeException("No active offering for intake ".$in['program_slug']);
+                $existing=$db::table('admission_intakes')->where('program_offering_id',$off->id)->where('label',$in['label'])->lockForUpdate()->get();
+                if($existing->count()>1) throw new RuntimeException("Duplicate intake ".$in['label']);
+                if($existing->count()===0) {
+                  $db::table('admission_intakes')->insert([
+                    'program_offering_id'=>$off->id,'label'=>$in['label'],'status'=>$in['status'],
+                    'application_open_at'=>null,'application_close_at'=>null,'test_date'=>null,'selection_date'=>null,
+                    'enrollment_start_at'=>null,'enrollment_end_at'=>null,'seat_capacity'=>null,'application_url'=>$in['url'],
+                    'notes'=>$in['notes'],'created_at'=>now(),'updated_at'=>now()
+                  ]);
+                  echo "HISTORICAL_INTAKE_ADDED=".$in['label']."\n";
+                } else echo "HISTORICAL_INTAKE_REUSED=".$in['label']."\n";
+              }
+            });
+
+            $counts=[
+              'active_programs'=>$db::table('programs')->where('status','active')->count(),
+              'active_offerings'=>$db::table('program_offerings')->where('status','active')->count(),
+              'active_offerings_without_program'=>$db::table('program_offerings as o')->leftJoin('programs as p','p.id','=','o.program_id')->where('o.status','active')->whereNull('p.id')->count(),
+              'active_offerings_without_campus'=>$db::table('program_offerings')->where('status','active')->whereNull('campus_id')->count(),
+              'admission_intakes'=>$db::table('admission_intakes')->count(),
+              'intakes_without_offering'=>$db::table('admission_intakes as a')->leftJoin('program_offerings as o','o.id','=','a.program_offering_id')->whereNull('o.id')->count()
+            ];
+            echo "ENRICHMENT_COUNTS=".json_encode($counts)."\n";
+            if($counts['active_programs']<25 || $counts['active_offerings']<17 || $counts['admission_intakes']<2 || $counts['active_offerings_without_program']!==0 || $counts['active_offerings_without_campus']!==0 || $counts['intakes_without_offering']!==0) throw new RuntimeException("Post-write integrity verification failed.");
+            PHP
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "POST_ENRICHMENT_REPORT_STATUS=".($d["status"]??"unknown")."\n"; echo "POST_ENRICHMENT_POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\n"; echo "POST_ENRICHMENT_GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if(($d["mutation_performed"]??null)!==false || ($d["status"]??null)!=="healthy") exit(5);'
