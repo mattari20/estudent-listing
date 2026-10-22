@@ -53,9 +53,9 @@ jobs:
               'Faisalabad'=>['slug'=>'faisalabad','parent_id'=>2,'type'=>'city','code'=>null],
             ];
 
-            DB::transaction(function () use ($targets, $expectedCities) {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($targets, $expectedCities) {
               foreach ($targets as $id=>$t) {
-                $institution = DB::table('institutions')->where('id',$id)->lockForUpdate()->first();
+                $institution = \Illuminate\Support\Facades\DB::table('institutions')->where('id',$id)->lockForUpdate()->first();
                 if (!$institution || $institution->name !== $t['name'] || $institution->status !== 'active' || $institution->institution_type !== $t['type']) {
                   throw new RuntimeException("Guard failed for institution ID {$id}; no changes committed.");
                 }
@@ -63,7 +63,7 @@ jobs:
 
               $cityIds = [];
               foreach ($expectedCities as $city=>$g) {
-                $matches = DB::table('geographies')->where('parent_id',$g['parent_id'])->where('slug',$g['slug'])->lockForUpdate()->get();
+                $matches = \Illuminate\Support\Facades\DB::table('geographies')->where('parent_id',$g['parent_id'])->where('slug',$g['slug'])->lockForUpdate()->get();
                 if ($matches->count() > 1) throw new RuntimeException("Duplicate city geography identity: {$city}; no changes committed.");
                 if ($matches->count() === 1) {
                   $existing = $matches->first();
@@ -78,7 +78,7 @@ jobs:
 
               foreach ($expectedCities as $city=>$g) {
                 if ($cityIds[$city] === null) {
-                  $cityIds[$city] = DB::table('geographies')->insertGetId([
+                  $cityIds[$city] = \Illuminate\Support\Facades\DB::table('geographies')->insertGetId([
                     'parent_id'=>$g['parent_id'],'name'=>$city,'slug'=>$g['slug'],'type'=>'city',
                     'code'=>null,'status'=>'active','created_at'=>now(),'updated_at'=>now()
                   ]);
@@ -89,7 +89,7 @@ jobs:
               }
 
               foreach ($targets as $id=>$t) {
-                $matches = DB::table('campuses')->where('institution_id',$id)->where('slug',$t['campus_slug'])->lockForUpdate()->get();
+                $matches = \Illuminate\Support\Facades\DB::table('campuses')->where('institution_id',$id)->where('slug',$t['campus_slug'])->lockForUpdate()->get();
                 if ($matches->count() > 1) throw new RuntimeException("Duplicate campus identity for institution ID {$id}; no changes committed.");
                 if ($matches->count() === 1) {
                   $existing = $matches->first();
@@ -99,7 +99,7 @@ jobs:
                   echo "REUSED_CAMPUS={$id};NAME={$t['name']}\n";
                   continue;
                 }
-                DB::table('campuses')->insert([
+                \Illuminate\Support\Facades\DB::table('campuses')->insert([
                   'institution_id'=>$id,'geography_id'=>$cityIds[$t['city']],
                   'name'=>$t['campus_name'],'slug'=>$t['campus_slug'],'campus_type'=>'main',
                   'status'=>'active','address'=>$t['address'],'postal_code'=>null,
@@ -110,7 +110,7 @@ jobs:
             });
 
             echo "=== POST-WRITE VERIFICATION ===\n";
-            $rows = DB::table('institutions as i')->join('campuses as c','c.institution_id','=','i.id')
+            $rows = \Illuminate\Support\Facades\DB::table('institutions as i')->join('campuses as c','c.institution_id','=','i.id')
               ->join('geographies as g','g.id','=','c.geography_id')
               ->whereIn('i.id',array_keys($targets))->orderBy('i.id')
               ->get(['i.id','i.name','i.status as institution_status','c.id as campus_id','c.name as campus_name','c.status as campus_status','c.address','g.name as city','g.type as geography_type','g.status as geography_status']);
