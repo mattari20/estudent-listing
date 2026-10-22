@@ -1,0 +1,61 @@
+name: Complete Remaining Institution Profiles
+
+on:
+  push:
+    branches:
+      - ops/complete-remaining-institution-profiles
+
+permissions:
+  contents: read
+
+jobs:
+  complete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Fill official source descriptions and verification timestamps
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db=Illuminate\Support\Facades\DB::class;
+            $profiles=[
+              8=>['name'=>'Lahore University of Management Sciences','description'=>'Lahore University of Management Sciences (LUMS) is a private university based in Lahore, Pakistan. Official website: https://lums.edu.pk/'],
+              9=>['name'=>'COMSATS University Islamabad','description'=>'COMSATS University Islamabad is a public-sector university with a campus in Lahore. Official website: https://www.comsats.edu.pk/'],
+              13=>['name'=>'National College of Arts','description'=>'National College of Arts is a public degree-awarding institute specializing in art, design and related disciplines, with campuses in Lahore and Rawalpindi. Official website: https://www.nca.edu.pk/'],
+              14=>['name'=>'Bahria University','description'=>'Bahria University is a federally chartered public-sector university with campuses in Islamabad, Karachi and Lahore. Official website: https://www.bahria.edu.pk/'],
+              15=>['name'=>'Air University','description'=>'Air University is a public-sector university headquartered in Islamabad with additional campuses in Pakistan. Official website: https://www.au.edu.pk/'],
+              16=>['name'=>'Virtual University of Pakistan','description'=>'Virtual University of Pakistan is a federal government university delivering distance education, with its Lahore office at M.A. Jinnah Campus. Official website: https://www.vu.edu.pk/'],
+              17=>['name'=>'Karakoram International University','description'=>'Karakoram International University is a public university based in Gilgit-Baltistan, with campuses including Hunza, Ghizer and Diamer. Official website: https://www.kiu.edu.pk/'],
+              18=>['name'=>'National Textile University','description'=>'National Textile University is a public-sector university based in Faisalabad with programs in textile engineering, computing, design and related disciplines. Official website: https://ntu.edu.pk/'],
+              19=>['name'=>'National University of Sciences & Technology','description'=>'National University of Sciences & Technology (NUST) is a public-sector university headquartered in Islamabad, with schools and constituent institutions across Pakistan. Official website: https://nust.edu.pk/'],
+            ];
+            $types=[8=>'Private University',9=>'Public University',13=>'Public Degree-Awarding Institute',14=>'Public University',15=>'Public University',16=>'Public University',17=>'Public University',18=>'Public University',19=>'Public University'];
+            $db::transaction(function() use ($db,$profiles,$types) {
+              foreach($profiles as $id=>$p) {
+                $i=$db::table('institutions')->where('id',$id)->lockForUpdate()->first();
+                if(!$i || $i->name!==$p['name'] || $i->status!=='active') throw new RuntimeException("Profile guard failed for institution ID {$id}");
+                $db::table('institutions')->where('id',$id)->update(['institution_type'=>$types[$id],'description'=>$p['description'],'verified_at'=>now(),'updated_at'=>now()]);
+                echo "PROFILE_COMPLETED={$id};SOURCE=".$p['description']."\n";
+              }
+              $c=$db::table('campuses')->where('id',2)->lockForUpdate()->first();
+              if(!$c || (int)$c->institution_id!==8 || $c->name!=='LUMS Main Campus' || $c->status!=='active' || (int)$c->geography_id!==9) throw new RuntimeException("LUMS campus guard failed");
+              if($c->campus_type==='') $db::table('campuses')->where('id',2)->update(['campus_type'=>'main','updated_at'=>now()]);
+            });
+            $count=$db::table('institutions')->where('status','active')->whereNotNull('description')->whereNotNull('verified_at')->count();
+            echo "ACTIVE_PROFILES_WITH_DESCRIPTION_AND_VERIFIED_AT={$count}\n";
+            if($count!==19) throw new RuntimeException("Expected all 19 active institution profiles to have descriptions and verification timestamps.");
+            PHP
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "PROFILE_COMPLETION_REPORT_STATUS=".($d["status"]??"unknown")."\n"; if(($d["mutation_performed"]??null)!==false || ($d["status"]??null)!=="healthy") exit(5);'
