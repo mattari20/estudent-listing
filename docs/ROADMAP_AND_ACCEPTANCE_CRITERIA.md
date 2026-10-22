@@ -17,6 +17,13 @@
 - [ ] Re-run diagnostics after approved cleanup.
 **Exit:** no indiscriminate deletion; every changed row has a reason and audit trail.
 
+### Phase 1 cleanup gate (mandatory before any write)
+- [ ] Label each row with batch ID, row ID, latest promotion event, canonical link, evidence state and dependency count.
+- [ ] Treat `investigate_promotion_failure` as a debugging task, not as a deletion or re-promotion instruction.
+- [ ] Keep promoted history and rejected-row audit history unless a reviewed retention policy explicitly permits archival/removal.
+- [ ] Require a reviewed dry-run manifest with expected before/after counts and a rollback/recovery plan before executing any state-changing cleanup.
+- [ ] Record post-change diagnostics and public-directory checks against the pre-change baseline.
+
 ## Phase 2 — Reliable import and publication
 - [ ] Test source → snapshot/evidence → batch/row → validation → identity decision → promotion → publication.
 - [ ] Improve actionable error messages and safe retries.
