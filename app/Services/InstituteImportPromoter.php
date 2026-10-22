@@ -90,8 +90,45 @@ class InstituteImportPromoter
         $slug = trim((string) ($payload['slug'] ?? '')) ?: Str::slug((string) $payload['name']);
         $institutionType = trim((string) ($payload['institution_type'] ?? ''));
 
-        if (Institution::where('slug', $slug)->exists()) {
-            throw new RuntimeException('Institution slug already exists; explicit identity resolution is required.');
+        // Never create a second canonical institution when an exact normalized identity
+        // already exists. An explicit approved_match decision must be used instead.
+        $identityNames = collect([
+            $payload['name'] ?? '',
+            $payload['official_name'] ?? '',
+            $payload['short_name'] ?? '',
+        ])->map(fn ($value) => Str::lower(trim((string) $value)))
+            ->filter()
+            ->unique()
+            ->values();
+
+        $existingInstitution = Institution::query()
+            ->where(function ($query) use ($slug, $identityNames): void {
+                if ($slug !== '') {
+                    $query->where('slug', $slug);
+                }
+
+                foreach ($identityNames as $name) {
+                    foreach (['name', 'official_name', 'short_name'] as $field) {
+                        $query->orWhereRaw('LOWER(TRIM('.$field.')) = ?', [$name]);
+                    }
+                }
+            })
+            ->first();
+
+        if ($existingInstitution) {
+            throw new RuntimeException(
+                'A matching canonical institution already exists; explicit approved_match identity resolution is required.'
+            );
+        }
+
+        $aliasMatch = InstitutionName::query()
+            ->whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(TRIM(name))'), $identityNames->all())
+            ->exists();
+
+        if ($aliasMatch) {
+            throw new RuntimeException(
+                'A matching canonical institution alias already exists; explicit approved_match identity resolution is required.'
+            );
         }
 
         $institution = Institution::create([

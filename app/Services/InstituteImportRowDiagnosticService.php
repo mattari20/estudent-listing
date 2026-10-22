@@ -51,7 +51,49 @@ class InstituteImportRowDiagnosticService
                 $canonical = Institution::query()->find($row->canonical_subject_id);
             }
 
+            // Re-check against the current canonical directory, not just the state
+            // that existed when this batch was originally imported. This catches stale
+            // candidate rows duplicated by a later batch.
+            $payload = $row->normalized_payload ?? $row->payload ?? [];
+            $identityNames = collect([
+                data_get($payload, 'name', ''),
+                data_get($payload, 'official_name', ''),
+                data_get($payload, 'short_name', ''),
+            ])->map(fn ($value) => mb_strtolower(trim((string) $value)))
+                ->filter()
+                ->unique()
+                ->values();
+
+            $possibleDuplicate = null;
+            if ($row->status === 'candidate' && $identityNames->isNotEmpty()) {
+                $possibleDuplicate = Institution::query()
+                    ->where(function ($query) use ($identityNames, $payload): void {
+                        $slug = trim((string) data_get($payload, 'slug', ''));
+                        if ($slug !== '') {
+                            $query->where('slug', $slug);
+                        }
+                        foreach ($identityNames as $name) {
+                            foreach (['name', 'official_name', 'short_name'] as $field) {
+                                $query->orWhereRaw('LOWER(TRIM('.$field.')) = ?', [$name]);
+                            }
+                        }
+                    })
+                    ->first();
+
+                if (! $possibleDuplicate) {
+                    $aliasInstitutionId = \App\Models\InstitutionName::query()
+                        ->whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(TRIM(name))'), $identityNames->all())
+                        ->value('institution_id');
+                    if ($aliasInstitutionId) {
+                        $possibleDuplicate = Institution::query()->find($aliasInstitutionId);
+                    }
+                }
+            }
+
             $blockers = [];
+            if ($possibleDuplicate) {
+                $blockers[] = 'canonical_duplicate_requires_match';
+            }
             if ($batch->status !== 'validated') {
                 $blockers[] = 'batch_not_validated';
             }
@@ -97,6 +139,9 @@ class InstituteImportRowDiagnosticService
                 'open_conflicts' => $openConflicts,
                 'canonical_institution_id' => $canonical?->id,
                 'canonical_status' => $canonical?->status,
+                'possible_duplicate_institution_id' => $possibleDuplicate?->id,
+                'possible_duplicate_institution_name' => $possibleDuplicate?->name,
+                'possible_duplicate_institution_status' => $possibleDuplicate?->status,
                 'validation_errors' => $row->validation_errors ?? [],
                 'blockers' => array_values(array_unique($blockers)),
             ];
