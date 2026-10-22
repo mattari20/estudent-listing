@@ -24,4 +24,12 @@ class ImportReconciliationTest extends TestCase {
   [$b,$rows]=$this->batch([['name'=>'New','match_state'=>'new_candidate']]); app(ImportReconciliationService::class)->reconcile($b);
   $this->assertSame('new_candidate',$rows[0]->fresh()->match_state); $this->assertSame('reconciled',$b->fresh()->status);
  }
+
+    public function test_reconciliation_does_not_promote_candidate_rows(): void
+ {
+  [$batch, $rows] = $this->batch([['name' => 'Review Needed', 'match_state' => 'new_candidate']]);
+  app(ImportReconciliationService::class)->reconcile($batch);
+  $this->assertSame('candidate', $rows[0]->fresh()->status);
+  $this->assertDatabaseMissing('institutions', ['slug' => 'review-needed']);
+ }
 }
