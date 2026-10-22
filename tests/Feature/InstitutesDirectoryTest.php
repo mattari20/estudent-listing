@@ -31,7 +31,7 @@ class InstitutesDirectoryTest extends TestCase
             'status' => 'candidate',
         ]);
 
-        $this->get('/institutes')
+        $this->get('/institutes?per_page=9')
             ->assertOk()
             ->assertSee('Showing')
             ->assertSee('directory-pagination', false)
@@ -40,7 +40,7 @@ class InstitutesDirectoryTest extends TestCase
             ->assertDontSee('AAA Pagination Test Institution 30')
             ->assertDontSee('AAA Inactive Pagination Test Institution');
 
-        $this->get('/institutes?page=2')
+        $this->get('/institutes?per_page=9&page=2')
             ->assertOk()
             ->assertSee('AAA Pagination Test Institution 10')
             ->assertDontSee('AAA Pagination Test Institution 01');
@@ -64,7 +64,7 @@ class InstitutesDirectoryTest extends TestCase
 
         $this->get('/institutes?per_page=999')
             ->assertOk()
-            ->assertSee('9 per page')
+            ->assertSee('24 per page')
             ->assertSee('AAA Page Size Test Institution 01')
             ->assertDontSee('AAA Page Size Test Institution 30');
 
