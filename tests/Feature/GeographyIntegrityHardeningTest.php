@@ -162,4 +162,10 @@ class GeographyIntegrityHardeningTest extends TestCase
         $child = Geography::create(['parent_id' => $parent->id, 'name' => 'Test District', 'slug' => 'test-district', 'type' => 'district', 'status' => 'active']);
         $this->assertContains('parent_not_active', app(GeographyIntegrityService::class)->inspect($child));
     }
+
+    public function test_active_non_country_without_parent_is_flagged(): void
+    {
+        $geography = Geography::create(['parent_id' => null, 'name' => 'Orphan District', 'slug' => 'orphan-district', 'type' => 'district', 'status' => 'active']);
+        $this->assertContains('non_country_without_parent', app(GeographyIntegrityService::class)->inspect($geography));
+    }
 }
