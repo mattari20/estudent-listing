@@ -183,4 +183,14 @@ class CampusRelationshipIntegrityTest extends TestCase
         $this->assertContains('duplicate_institution_slug', $results[0]['findings']);
         $this->assertContains('duplicate_institution_slug', $results[1]['findings']);
     }
+
+    public function test_same_campus_slug_under_different_institutions_is_not_duplicate_identity(): void
+    {
+        $first = new Campus(['institution_id' => 42, 'name' => 'Main Campus', 'slug' => 'main-campus', 'status' => 'active']);
+        $second = new Campus(['institution_id' => 77, 'name' => 'Main Campus', 'slug' => 'main-campus', 'status' => 'active']);
+        $results = app(CampusRelationshipIntegrityService::class)->inspectMany(new Collection([$first, $second]));
+        $this->assertCount(2, $results);
+        $this->assertNotContains('duplicate_institution_slug', $results[0]['findings']);
+        $this->assertNotContains('duplicate_institution_slug', $results[1]['findings']);
+    }
 }
