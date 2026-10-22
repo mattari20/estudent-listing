@@ -1,0 +1,119 @@
+name: Expand Official Program Catalog Round Two
+
+on:
+  push:
+    branches:
+      - ops/expand-official-program-catalog-round-two
+
+permissions:
+  contents: read
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Add official programs across more institutions and campus offerings
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db=Illuminate\Support\Facades\DB::class;
+            $programs=[
+              ['institution_id'=>1,'institution'=>'Government College University Lahore','name'=>'BS Computer Science','slug'=>'gcu-lahore-bs-computer-science','level'=>'undergraduate','award'=>'BS','discipline'=>'Computer Science','source'=>'https://gcu.edu.pk/computer-science.php?pg=acdProg'],
+              ['institution_id'=>1,'institution'=>'Government College University Lahore','name'=>'BS Biotechnology','slug'=>'gcu-lahore-bs-biotechnology','level'=>'undergraduate','award'=>'BS','discipline'=>'Biotechnology','source'=>'https://gcu.edu.pk/admissions.php?pg=bs-program'],
+              ['institution_id'=>1,'institution'=>'Government College University Lahore','name'=>'BS English','slug'=>'gcu-lahore-bs-english','level'=>'undergraduate','award'=>'BS','discipline'=>'English Language and Literature','source'=>'https://gcu.edu.pk/admissions.php?pg=bs-program'],
+              ['institution_id'=>3,'institution'=>'University of the Punjab','name'=>'BS Data Science','slug'=>'pu-bs-data-science','level'=>'undergraduate','award'=>'BS','discipline'=>'Data Science','source'=>'https://pu.edu.pk/puac/Examination.html'],
+              ['institution_id'=>3,'institution'=>'University of the Punjab','name'=>'BS Software Engineering','slug'=>'pu-bs-software-engineering','level'=>'undergraduate','award'=>'BS','discipline'=>'Software Engineering','source'=>'https://pu.edu.pk/puac/Examination.html'],
+              ['institution_id'=>3,'institution'=>'University of the Punjab','name'=>'BS Information Technology','slug'=>'pu-bs-information-technology','level'=>'undergraduate','award'=>'BS','discipline'=>'Information Technology','source'=>'https://pu.edu.pk/puac/Examination.html'],
+              ['institution_id'=>8,'institution'=>'Lahore University of Management Sciences','name'=>'BS Computer Science','slug'=>'lums-bs-computer-science','level'=>'undergraduate','award'=>'BS','discipline'=>'Computer Science','source'=>'https://lums.edu.pk/'],
+              ['institution_id'=>8,'institution'=>'Lahore University of Management Sciences','name'=>'BSc Management Science','slug'=>'lums-bsc-management-science','level'=>'undergraduate','award'=>'BSc','discipline'=>'Management Science','source'=>'https://lums.edu.pk/'],
+              ['institution_id'=>8,'institution'=>'Lahore University of Management Sciences','name'=>'BSc Economics','slug'=>'lums-bsc-economics','level'=>'undergraduate','award'=>'BSc','discipline'=>'Economics','source'=>'https://lums.edu.pk/'],
+              ['institution_id'=>9,'institution'=>'COMSATS University Islamabad Lahore Campus','name'=>'BS Artificial Intelligence','slug'=>'comsats-lahore-bs-artificial-intelligence','level'=>'undergraduate','award'=>'BS','discipline'=>'Artificial Intelligence','source'=>'https://lahore.comsats.edu.pk/cs/Programs.aspx'],
+              ['institution_id'=>9,'institution'=>'COMSATS University Islamabad Lahore Campus','name'=>'BS Software Engineering','slug'=>'comsats-lahore-bs-software-engineering','level'=>'undergraduate','award'=>'BS','discipline'=>'Software Engineering','source'=>'https://lahore.comsats.edu.pk/cs/Programs.aspx'],
+              ['institution_id'=>12,'institution'=>'National University of Modern Languages','name'=>'BS Computer Science','slug'=>'numl-islamabad-bs-computer-science','level'=>'undergraduate','award'=>'BS','discipline'=>'Computer Science','source'=>'https://www.numl.edu.pk/university/Admission%20Spring%202026_advert.pdf'],
+              ['institution_id'=>12,'institution'=>'National University of Modern Languages','name'=>'BS Artificial Intelligence','slug'=>'numl-islamabad-bs-artificial-intelligence','level'=>'undergraduate','award'=>'BS','discipline'=>'Artificial Intelligence','source'=>'https://www.numl.edu.pk/university/Admission%20Spring%202026_advert.pdf'],
+              ['institution_id'=>12,'institution'=>'National University of Modern Languages','name'=>'BS Software Engineering','slug'=>'numl-islamabad-bs-software-engineering','level'=>'undergraduate','award'=>'BS','discipline'=>'Software Engineering','source'=>'https://www.numl.edu.pk/university/Admission%20Spring%202026_advert.pdf'],
+              ['institution_id'=>14,'institution'=>'Bahria University','name'=>'BS Artificial Intelligence','slug'=>'bahria-islamabad-bs-artificial-intelligence','level'=>'undergraduate','award'=>'BS','discipline'=>'Artificial Intelligence','source'=>'https://www.bahria.edu.pk/Home/AdmissionRoadmap?programType=UnderGraduate'],
+              ['institution_id'=>14,'institution'=>'Bahria University','name'=>'BS Information Technology','slug'=>'bahria-islamabad-bs-information-technology','level'=>'undergraduate','award'=>'BS','discipline'=>'Information Technology','source'=>'https://www.bahria.edu.pk/Home/AdmissionRoadmap?programType=UnderGraduate'],
+              ['institution_id'=>14,'institution'=>'Bahria University','name'=>'Bachelor of Studies in English','slug'=>'bahria-islamabad-bachelor-studies-english','level'=>'undergraduate','award'=>'Bachelor','discipline'=>'English Language and Literature','source'=>'https://www.bahria.edu.pk/Home/AdmissionRoadmap?programType=UnderGraduate'],
+              ['institution_id'=>15,'institution'=>'Air University','name'=>'BS Artificial Intelligence','slug'=>'air-university-bs-artificial-intelligence','level'=>'undergraduate','award'=>'BS','discipline'=>'Artificial Intelligence','source'=>'https://webdata.au.edu.pk/Pages/Admission/FAQS.aspx'],
+              ['institution_id'=>15,'institution'=>'Air University','name'=>'BS Cyber Security','slug'=>'air-university-bs-cyber-security','level'=>'undergraduate','award'=>'BS','discipline'=>'Cyber Security','source'=>'https://webdata.au.edu.pk/Pages/Admission/FAQS.aspx'],
+              ['institution_id'=>15,'institution'=>'Air University','name'=>'BS Information Technology','slug'=>'air-university-bs-information-technology','level'=>'undergraduate','award'=>'BS','discipline'=>'Information Technology','source'=>'https://webdata.au.edu.pk/Pages/Admission/FAQS.aspx'],
+              ['institution_id'=>16,'institution'=>'Virtual University of Pakistan','name'=>'BS Data Science','slug'=>'vu-bs-data-science','level'=>'undergraduate','award'=>'BS','discipline'=>'Data Science','source'=>'https://www.vu.edu.pk/AboutUs/ProgramsOffered?Degree=BS'],
+              ['institution_id'=>16,'institution'=>'Virtual University of Pakistan','name'=>'BS Software Engineering','slug'=>'vu-bs-software-engineering','level'=>'undergraduate','award'=>'BS','discipline'=>'Software Engineering','source'=>'https://www.vu.edu.pk/AboutUs/ProgramsOffered?Degree=BS'],
+              ['institution_id'=>16,'institution'=>'Virtual University of Pakistan','name'=>'BS Information Technology','slug'=>'vu-bs-information-technology','level'=>'undergraduate','award'=>'BS','discipline'=>'Information Technology','source'=>'https://www.vu.edu.pk/AboutUs/ProgramsOffered?Degree=BS'],
+              ['institution_id'=>16,'institution'=>'Virtual University of Pakistan','name'=>'BS Biotechnology','slug'=>'vu-bs-biotechnology','level'=>'undergraduate','award'=>'BS','discipline'=>'Biotechnology','source'=>'https://www.vu.edu.pk/AboutUs/ProgramsOffered?Degree=BS'],
+              ['institution_id'=>19,'institution'=>'National University of Sciences & Technology','name'=>'BS Artificial Intelligence','slug'=>'nust-bs-artificial-intelligence','level'=>'undergraduate','award'=>'BS','discipline'=>'Artificial Intelligence','source'=>'https://nust.edu.pk/admissions/undergraduates/list-of-ug-programmes-and-institutions'],
+              ['institution_id'=>19,'institution'=>'National University of Sciences & Technology','name'=>'BS Data Science','slug'=>'nust-bs-data-science','level'=>'undergraduate','award'=>'BS','discipline'=>'Data Science','source'=>'https://nust.edu.pk/admissions/undergraduates/list-of-ug-programmes-and-institutions'],
+              ['institution_id'=>19,'institution'=>'National University of Sciences & Technology','name'=>'BS Bioinformatics','slug'=>'nust-bs-bioinformatics','level'=>'undergraduate','award'=>'BS','discipline'=>'Bioinformatics','source'=>'https://nust.edu.pk/admissions/undergraduates/list-of-ug-programmes-and-institutions'],
+              ['institution_id'=>19,'institution'=>'National University of Sciences & Technology','name'=>'BS Software Engineering','slug'=>'nust-bs-software-engineering','level'=>'undergraduate','award'=>'BS','discipline'=>'Software Engineering','source'=>'https://nust.edu.pk/admissions/undergraduates/list-of-ug-programmes-and-institutions'],
+            ];
+            $offerings=[
+              ['slug'=>'gcu-lahore-bs-computer-science','institution_id'=>1,'campus_id'=>11,'duration'=>'4 years'],
+              ['slug'=>'comsats-lahore-bs-artificial-intelligence','institution_id'=>9,'campus_id'=>2,'duration'=>null],
+              ['slug'=>'comsats-lahore-bs-software-engineering','institution_id'=>9,'campus_id'=>2,'duration'=>null],
+              ['slug'=>'bahria-islamabad-bs-artificial-intelligence','institution_id'=>14,'campus_id'=>4,'duration'=>'4 years'],
+              ['slug'=>'bahria-islamabad-bs-information-technology','institution_id'=>14,'campus_id'=>4,'duration'=>'4 years'],
+              ['slug'=>'bahria-islamabad-bachelor-studies-english','institution_id'=>14,'campus_id'=>4,'duration'=>'4 years'],
+              ['slug'=>'vu-bs-data-science','institution_id'=>16,'campus_id'=>6,'duration'=>'4 years'],
+              ['slug'=>'vu-bs-software-engineering','institution_id'=>16,'campus_id'=>6,'duration'=>'4 years'],
+              ['slug'=>'vu-bs-information-technology','institution_id'=>16,'campus_id'=>6,'duration'=>'4 years'],
+              ['slug'=>'nust-bs-artificial-intelligence','institution_id'=>19,'campus_id'=>9,'duration'=>'4 years'],
+              ['slug'=>'nust-bs-data-science','institution_id'=>19,'campus_id'=>9,'duration'=>'4 years'],
+              ['slug'=>'nust-bs-bioinformatics','institution_id'=>19,'campus_id'=>9,'duration'=>'4 years'],
+              ['slug'=>'nust-bs-software-engineering','institution_id'=>19,'campus_id'=>9,'duration'=>'4 years'],
+            ];
+            $db::transaction(function() use ($db,$programs,$offerings) {
+              foreach($programs as $p) {
+                $i=$db::table('institutions')->where('id',$p['institution_id'])->lockForUpdate()->first();
+                if(!$i || $i->name!==$p['institution'] || $i->status!=='active') throw new RuntimeException("Institution identity guard failed ".$p['slug']);
+                $found=$db::table('programs')->where('institution_id',$p['institution_id'])->where('slug',$p['slug'])->lockForUpdate()->get();
+                if($found->count()>1) throw new RuntimeException("Duplicate program ".$p['slug']);
+                if($found->count()===1) {
+                  if($found->first()->name!==$p['name'] || $found->first()->status!=='active') throw new RuntimeException("Existing program mismatch ".$p['slug']);
+                } else {
+                  $db::table('programs')->insert(['institution_id'=>$p['institution_id'],'name'=>$p['name'],'slug'=>$p['slug'],'program_level'=>$p['level'],'award'=>$p['award'],'discipline'=>$p['discipline'],'status'=>'active','description'=>'Official program listing: '.$p['source'],'created_at'=>now(),'updated_at'=>now()]);
+                  echo "PROGRAM_ADDED=".$p['slug']."\n";
+                }
+              }
+              foreach($offerings as $o) {
+                $p=$db::table('programs')->where('institution_id',$o['institution_id'])->where('slug',$o['slug'])->where('status','active')->first();
+                $c=$db::table('campuses')->where('id',$o['campus_id'])->where('institution_id',$o['institution_id'])->where('status','active')->whereNotNull('geography_id')->first();
+                // COMSATS is institution record 9 (Lahore campus) and has a dedicated campus record; locate by its canonical campus name instead of assuming an ID.
+                if($o['institution_id']===9) $c=$db::table('campuses')->where('institution_id',9)->where('status','active')->whereNotNull('geography_id')->first();
+                if(!$p || !$c) throw new RuntimeException("Offering relationship guard failed ".$o['slug']);
+                $existing=$db::table('program_offerings')->where('program_id',$p->id)->where('campus_id',$c->id)->where('delivery_mode','on_campus')->lockForUpdate()->get();
+                if($existing->count()>1) throw new RuntimeException("Duplicate offering ".$o['slug']);
+                if($existing->count()===0) {
+                  $db::table('program_offerings')->insert(['program_id'=>$p->id,'campus_id'=>$c->id,'delivery_mode'=>'on_campus','status'=>'active','intake_label'=>null,'duration'=>$o['duration'],'availability'=>'unknown','effective_from'=>null,'effective_until'=>null,'created_at'=>now(),'updated_at'=>now()]);
+                  echo "OFFERING_ADDED=".$o['slug'].";CAMPUS=".$c->name."\n";
+                }
+              }
+              // GCU's official Fall 2026 BS admissions page gives the deadline as 3 July 2026.
+              $p=$db::table('programs')->where('institution_id',1)->where('slug','gcu-lahore-bs-computer-science')->first();
+              $o=$db::table('program_offerings')->where('program_id',$p->id)->where('status','active')->first();
+              $existing=$db::table('admission_intakes')->where('program_offering_id',$o->id)->where('label','Fall 2026 (closed)')->lockForUpdate()->get();
+              if($existing->count()>1) throw new RuntimeException('Duplicate GCU Fall 2026 intake');
+              if($existing->count()===0) {
+                $db::table('admission_intakes')->insert(['program_offering_id'=>$o->id,'label'=>'Fall 2026 (closed)','status'=>'closed','application_open_at'=>null,'application_close_at'=>'2026-07-03','test_date'=>null,'selection_date'=>null,'enrollment_start_at'=>null,'enrollment_end_at'=>null,'seat_capacity'=>null,'application_url'=>'https://gcu.edu.pk/admissions.php?pg=bs-program','notes'=>'Official GCU admissions page states the Fall 2026 application deadline was 3 July 2026. Opening date was not entered because not verified from the source reviewed.','created_at'=>now(),'updated_at'=>now()]);
+                echo "HISTORICAL_INTAKE_ADDED=GCU Fall 2026 closed\n";
+              }
+            });
+            $counts=['active_programs'=>$db::table('programs')->where('status','active')->count(),'active_offerings'=>$db::table('program_offerings')->where('status','active')->count(),'intakes'=>$db::table('admission_intakes')->count(),'bad_offerings'=>$db::table('program_offerings as o')->leftJoin('programs as p','p.id','=','o.program_id')->where('o.status','active')->whereNull('p.id')->count(),'intakes_without_offering'=>$db::table('admission_intakes as a')->leftJoin('program_offerings as o','o.id','=','a.program_offering_id')->whereNull('o.id')->count()];
+            echo "ROUND_TWO_COUNTS=".json_encode($counts)."\n";
+            if($counts['active_programs']<55 || $counts['active_offerings']<29 || $counts['intakes']<3 || $counts['bad_offerings']!==0 || $counts['intakes_without_offering']!==0) throw new RuntimeException('Round two integrity verification failed.');
+            PHP
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "ROUND_TWO_REPORT_STATUS=".($d["status"]??"unknown")."\n"; echo "ROUND_TWO_POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\n"; echo "ROUND_TWO_GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if(($d["mutation_performed"]??null)!==false || ($d["status"]??null)!=="healthy") exit(5);'
