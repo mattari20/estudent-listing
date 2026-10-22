@@ -10,6 +10,7 @@ use App\Http\Controllers\InstituteGeographyIntegrityController;
 use App\Http\Controllers\InstituteImportController;
 use App\Http\Controllers\InstituteEnrichmentImportController;
 use App\Http\Controllers\InstituteImportVerificationController;
+use App\Http\Controllers\InstituteImportRowDiagnosticController;
 use App\Http\Controllers\InstituteProductionPromotionReadinessController;
 use App\Http\Controllers\InstituteFinalReadinessController;
 use App\Http\Controllers\InstituteDeploymentReadinessController;
