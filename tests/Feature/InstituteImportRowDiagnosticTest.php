@@ -135,4 +135,12 @@ class InstituteImportRowDiagnosticTest extends TestCase
         $this->assertSame('candidate', $report['rows'][0]['canonical_status']);
         $this->assertSame('promoted', $row->fresh()->status);
     }
+
+    public function test_import_row_diagnostic_report_is_read_only(): void
+    {
+        $source = Source::query()->create(['source_type'=>'test','name'=>'Diagnostic source','url'=>'https://example.test/diagnostic','status'=>'active']);
+        $batch = ImportBatch::query()->create(['batch_key'=>'diagnostic-read-only','entity_type'=>'institution','source_type'=>'test','source_id'=>$source->id,'status'=>'validated','total_rows'=>0,'valid_rows'=>0,'invalid_rows'=>0,'candidate_rows'=>0,'received_at'=>now()]);
+        $report = app(InstituteImportRowDiagnosticService::class)->build($batch);
+        $this->assertFalse($report['mutation_performed']);
+    }
 }
