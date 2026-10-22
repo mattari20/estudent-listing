@@ -174,7 +174,11 @@ jobs:
             echo "=== Data-gap report (read-only) ==="
             php artisan institutes:data-gap-report --json
             echo "=== Record-level audit (read-only) ==="
-            php artisan institutes:data-gap-record-audit --json --summary
+            if php artisan help institutes:data-gap-record-audit 2>&1 | grep -q -- '--summary'; then
+              php artisan institutes:data-gap-record-audit --json --summary
+            else
+              echo '{"check":"institutes_data_gap_record_audit","status":"skipped","reason":"summary_mode_not_yet_available_in_deployed_app","mutation_performed":false,"row_level_output_suppressed":true}'
+            fi
             echo "=== Institution import row trace (read-only; no payloads or notes) ==="
             php <<'PHP'
             <?php
