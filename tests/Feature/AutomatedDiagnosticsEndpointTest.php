@@ -64,4 +64,9 @@ class AutomatedDiagnosticsEndpointTest extends TestCase
             ->assertStatus(500)
             ->assertJsonPath('mutation_performed', false);
     }
+
+    public function test_diagnostics_endpoint_rejects_requests_without_secret(): void
+    {
+        $this->getJson('/institutes/automation/diagnostics')->assertUnauthorized();
+    }
 }
