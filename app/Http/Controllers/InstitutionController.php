@@ -11,9 +11,11 @@ class InstitutionController
 {
     public function index(): View
     {
-        $perPage = (int) request()->query('per_page', 9);
+        // Show the current canonical directory population on the first page
+        // while retaining smaller page sizes as an explicit user preference.
+        $perPage = (int) request()->query('per_page', 24);
         if (! in_array($perPage, [9, 12, 24, 48], true)) {
-            $perPage = 9;
+            $perPage = 24;
         }
 
         $institutions = Institution::query()
@@ -59,7 +61,14 @@ class InstitutionController
                                 ->whereNotIn('status', ['rejected', 'withdrawn'])
                                 ->orderBy('name'),
                         ])
-                        ->orderBy('intake_label'),
+                        ->with([
+                            'externalRankings' => fn ($query) => $query
+                                ->whereNotIn('status', ['rejected', 'withdrawn'])
+                                ->orderByDesc('year'),
+                            'recommendations' => fn ($query) => $query
+                                ->where('status', 'published'),
+                        ])
+                        ->orderBy('name'),
                 ])
                 ->with([
                     'externalRankings' => fn ($query) => $query
