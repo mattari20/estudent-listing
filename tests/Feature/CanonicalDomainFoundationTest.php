@@ -12,4 +12,12 @@ class CanonicalDomainFoundationTest extends TestCase
         $this->assertDatabaseCount('campuses', 0);
         $this->assertDatabaseCount('institution_names', 0);
     }
+
+    public function test_canonical_domain_relationship_tables_exist(): void
+    {
+        $this->assertDatabaseCount('institutions', 0);
+        $this->assertDatabaseCount('campuses', 0);
+        $this->assertDatabaseCount('programs', 0);
+        $this->assertDatabaseCount('program_offerings', 0);
+    }
 }
