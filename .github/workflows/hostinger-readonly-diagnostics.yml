@@ -174,7 +174,7 @@ jobs:
             echo "=== Data-gap report (read-only) ==="
             php artisan institutes:data-gap-report --json
             echo "=== Record-level audit (read-only) ==="
-            php artisan institutes:data-gap-record-audit --json
+            php artisan institutes:data-gap-record-audit --json --summary
             echo "=== Institution import row trace (read-only; no payloads or notes) ==="
             php <<'PHP'
             <?php
