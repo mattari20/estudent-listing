@@ -33,10 +33,8 @@ jobs:
             <?php
             require 'vendor/autoload.php';
             $app = require_once 'bootstrap/app.php';
-            $kernel = $app->make(Illuminate\\Contracts\\Console\\Kernel::class);
+            $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
             $kernel->bootstrap();
-
-            use Illuminate\\Support\\Facades\\DB;
 
             $targets = [
               13 => ['name'=>'National College of Arts','type'=>'Public Degree-Awarding Institute','city'=>'Lahore','province_id'=>2,'address'=>'4, Shahrah-e-Quaid-e-Azam, Lahore, Pakistan','campus_slug'=>'main-campus-lahore','campus_name'=>'Lahore Main Campus','source'=>'https://www.nca.edu.pk/'],
@@ -120,4 +118,4 @@ jobs:
             if ($rows->count() !== 7) throw new RuntimeException("Verification failed: expected 7 campuses, found ".$rows->count());
             if ($rows->contains(fn($r)=>$r->institution_status!=='active'||$r->campus_status!=='active'||$r->geography_type!=='city'||$r->geography_status!=='active')) throw new RuntimeException("Verification failed: status or geography mismatch.");
             PHP
-            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); echo "POST_WRITE_REPORT_STATUS=".($d["status"]??"unknown")."\\n"; echo "POST_WRITE_POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\\n"; echo "POST_WRITE_GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\\n"; if (($d["mutation_performed"]??null)!==false) exit(4);'
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); echo "POST_WRITE_REPORT_STATUS=".($d["status"]??"unknown")."\n"; echo "POST_WRITE_POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\n"; echo "POST_WRITE_GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if (($d["mutation_performed"]??null)!==false) exit(4);'
