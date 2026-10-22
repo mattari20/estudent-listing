@@ -19,7 +19,7 @@
 | Search and filters | Routes and UI are present | Full filter correctness and edge cases require systematic tests. |
 | Import batches and validation | Implemented in code | Test the complete import lifecycle and error clarity. |
 | Explicit evidence-backed promotion/publication | Safeguards present in code | End-to-end positive/negative workflow verification remains. |
-| Duplicate and incomplete-row audit | Implemented in code | PRs #244–#246. Review report coverage and use the audit to create a row-by-row disposition. |
+| Duplicate and incomplete-row audit | Implemented in code; promotion-failure priority test merged | PRs #244–#246 and #255. Failed promotion events now take priority over a missing-approval recommendation, while private failure details remain excluded. Refresh the live report and inspect exact rows before remediation. |
 | Canonical identity collisions and aliases | Read-only audit implemented in code | PRs #248–#249. Review real collision groups before any canonical changes. |
 | Cleanup/deletion | Not approved as bulk action | Need dry-run plan, dependency checks, retention policy and explicit scope. |
 | Campus/geography/program/offering relationships | Relationship diagnostics exist | Refresh report; compare results with approved data-coverage requirements. |
@@ -49,3 +49,9 @@ A report captured on 2026-10-16 is historical and must not be treated as the cur
 
 ## Evidence required to close a row
 Record requirement ID, relevant code paths, test name and result, PR/commit, live run/report URL when applicable, limitations and date. A green CI badge alone does not prove production correctness.
+
+### 2026-10-22 — Promotion-failure audit priority
+- PR [#255](https://github.com/mattari20/estudent-listing/pull/255) merged with two checks passed.
+- The read-only import audit now prioritizes a recorded `promotion_failed` / `promotion_error` event over the fallback missing-approval disposition.
+- A regression test confirms the recommendation is specific without exposing private failure text.
+- Remaining action: refresh Hostinger diagnostics and use the current report to investigate each failed row. This change did not promote, publish, or delete any row.
