@@ -36,8 +36,9 @@ jobs:
               ->where('i.status','active')
               ->groupBy('i.id','i.name','i.slug')
               ->orderBy('i.id')
+              ->select(['i.id','i.name','i.slug'])
               ->selectRaw('COUNT(DISTINCT c.id) as active_campuses, COUNT(DISTINCT p.id) as active_programs')
-              ->get(['i.id','i.name','i.slug']);
+              ->get();
             foreach ($rows as $r) {
               $offerings = $db->table('program_offerings as o')->join('programs as p','p.id','=','o.program_id')->join('campuses as c','c.id','=','o.campus_id')->where('p.institution_id',$r->id)->where('p.status','active')->where('c.status','active')->where('o.status','active')->count();
               echo 'INSTITUTION=' . json_encode(['id'=>(int)$r->id,'name'=>$r->name,'slug'=>$r->slug,'active_campuses'=>(int)$r->active_campuses,'active_programs'=>(int)$r->active_programs,'active_offerings'=>$offerings], JSON_UNESCAPED_SLASHES) . PHP_EOL;
