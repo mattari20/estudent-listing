@@ -59,10 +59,10 @@ jobs:
               if($found->count()===0) {
                 $db::table('admission_intakes')->insert([
                   'program_offering_id'=>$o->id,'label'=>'Fall 2027','status'=>'open',
-                  'application_open_at'=>'2026-10-01','application_close_at'=>'2027-01-20',
-                  'test_date'=>'2027-03-21','selection_date'=>null,'enrollment_start_at'=>'2027-09-01','enrollment_end_at'=>null,
+                  'application_open_at'=>null,'application_close_at'=>'2027-01-20',
+                  'test_date'=>'2027-03-21','selection_date'=>null,'enrollment_start_at'=>null,'enrollment_end_at'=>null,
                   'seat_capacity'=>null,'application_url'=>'https://lums.edu.pk/node/826',
-                  'notes'=>'Official LUMS BS Computer Science admissions page: online application activation October 2026; application deadline 20 January 2027 at 5:00 pm PKT; supporting documents and application fee deadline 21 January 2027; LCAT listed for 21 March 2027 as tentative; classes commence September 2027. September commencement is month-level only; stored as 1 September solely as a machine-readable month marker, not an official exact class date.',
+                  'notes'=>'Official LUMS BS Computer Science admissions page: online application activation October 2026; application deadline 20 January 2027 at 5:00 pm PKT; supporting documents and application fee deadline 21 January 2027; LCAT listed for 21 March 2027 as tentative; classes commence September 2027. The source says online applications activate in October 2026 but does not state an exact opening day; no opening date or exact class commencement date has been inferred.',
                   'created_at'=>now(),'updated_at'=>now()
                 ]);
                 echo "CURRENT_INTAKE_ADDED=LUMS Fall 2027;SOURCE=https://lums.edu.pk/node/826\n";
