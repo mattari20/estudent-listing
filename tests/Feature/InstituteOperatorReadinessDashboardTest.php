@@ -23,4 +23,12 @@ class InstituteOperatorReadinessDashboardTest extends TestCase
         $this->assertSame(0, $summary['blocked_batches']);
         $this->assertFalse($summary['mutation_performed']);
     }
+
+    public function test_dashboard_preserves_existing_batch_status(): void
+ {
+  $batch = ImportBatch::create(['batch_key' => 'dashboard-readonly-'.uniqid(), 'entity_type' => 'institution', 'source_type' => 'manual', 'status' => 'validated', 'total_rows' => 0, 'valid_rows' => 0, 'invalid_rows' => 0, 'candidate_rows' => 0, 'received_at' => now()]);
+  $summary = (new InstituteOperatorReadinessDashboardService)->summarize();
+  $this->assertFalse($summary['mutation_performed']);
+  $this->assertSame('validated', $batch->fresh()->status);
+ }
 }
