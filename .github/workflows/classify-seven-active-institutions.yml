@@ -1,0 +1,86 @@
+name: Classify Seven Active Institutions
+
+on:
+  push:
+    branches:
+      - ops/classify-seven-active-institutions
+
+permissions:
+  contents: read
+
+concurrency:
+  group: classify-seven-active-institutions
+  cancel-in-progress: false
+
+jobs:
+  classify:
+    name: Verify names and update institution types
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Apply allowlisted institution type corrections over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -eu
+            PROJECT_PATH="/home/u537436044/domains/estudent.pk/public_html/institutes"
+            if [ ! -f "$PROJECT_PATH/artisan" ]; then
+              echo "ERROR: Laravel artisan file not found; no changes made."
+              exit 3
+            fi
+            cd "$PROJECT_PATH"
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $db = \Illuminate\Support\Facades\DB::class;
+            $expected = [
+                13 => ['name' => 'National College of Arts', 'type' => 'Public Degree-Awarding Institute'],
+                14 => ['name' => 'Bahria University', 'type' => 'Public University'],
+                15 => ['name' => 'Air University', 'type' => 'Public University'],
+                16 => ['name' => 'Virtual University of Pakistan', 'type' => 'Public University'],
+                17 => ['name' => 'Karakoram International University', 'type' => 'Public University'],
+                18 => ['name' => 'National Textile University', 'type' => 'Public University'],
+                19 => ['name' => 'National University of Sciences & Technology', 'type' => 'Public University'],
+            ];
+            $result = $db::transaction(function () use ($db, $expected) {
+                $found = $db::table('institutions')->whereIn('id', array_keys($expected))->orderBy('id')->get(['id','name','status','institution_type']);
+                if ($found->count() !== count($expected)) {
+                    throw new \RuntimeException('Expected exactly seven allowlisted institution IDs; no changes committed.');
+                }
+                foreach ($found as $row) {
+                    if (($expected[$row->id]['name'] ?? null) !== $row->name) {
+                        throw new \RuntimeException('Name/ID mismatch for institution '.$row->id.'; no changes committed.');
+                    }
+                    if ($row->status !== 'active') {
+                        throw new \RuntimeException('Institution '.$row->id.' is not active; no changes committed.');
+                    }
+                }
+                $before = $found->map(fn($r) => ['id'=>(int)$r->id,'name'=>$r->name,'status'=>$r->status,'institution_type'=>$r->institution_type])->values()->all();
+                foreach ($expected as $id => $item) {
+                    $db::table('institutions')->where('id', $id)->where('name', $item['name'])
+                        ->where('status', 'active')->update(['institution_type'=>$item['type'],'updated_at'=>now()]);
+                }
+                $after = $db::table('institutions')->whereIn('id', array_keys($expected))->orderBy('id')->get(['id','name','status','institution_type']);
+                foreach ($after as $row) {
+                    if (($expected[$row->id]['name'] ?? null) !== $row->name || ($expected[$row->id]['type'] ?? null) !== $row->institution_type || $row->status !== 'active') {
+                        throw new \RuntimeException('Post-update verification failed for institution '.$row->id.'; transaction rolled back.');
+                    }
+                }
+                return ['before'=>$before,'after'=>$after->map(fn($r) => ['id'=>(int)$r->id,'name'=>$r->name,'status'=>$r->status,'institution_type'=>$r->institution_type])->values()->all()];
+            });
+            echo json_encode([
+                'check'=>'seven_institution_type_classification',
+                'mutation_performed'=>true,
+                'verified_count'=>count($result['after']),
+                'before'=>$result['before'],
+                'after'=>$result['after'],
+                'note'=>'Only institution_type was changed. Status, verified_at, campuses, programs, and source evidence were not altered.'
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
