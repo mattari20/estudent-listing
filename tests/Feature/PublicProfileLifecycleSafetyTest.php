@@ -41,6 +41,7 @@ class PublicProfileLifecycleSafetyTest extends TestCase
         $activeOffering = ProgramOffering::create([
             'program_id' => $activeProgram->id,
             'delivery_mode' => 'on_campus',
+            'intake_label' => 'Primary offering',
             'status' => 'active',
         ]);
 
@@ -121,6 +122,7 @@ class PublicProfileLifecycleSafetyTest extends TestCase
         $this->get('/institutes/lifecycle-institute')
             ->assertOk()
             ->assertSee('Active Program')
+            ->assertSee('Offering: Primary offering')
             ->assertSee('Current Scholarship')
             ->assertSee('Tuition')
             ->assertSee('Current Recognition')
