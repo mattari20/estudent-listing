@@ -149,6 +149,35 @@ class DataGapRecordAudit extends Command
                 $metadata = isset($latestEvent->metadata) ? json_decode((string) $latestEvent->metadata, true) : [];
                 $record['latest_promotion_error_class'] = is_array($metadata) ? ($metadata['error_class'] ?? null) : null;
 
+                // A non-destructive recommendation helps reviewers prioritize rows.
+                // It never authorizes deletion, promotion, or publication.
+                $record['review_reasons'] = [];
+                $rowStatus = (string) ($record['status'] ?? '');
+                $eventType = (string) ($record['latest_promotion_event_type'] ?? '');
+
+                if ($rowStatus === 'promoted') {
+                    $record['review_disposition'] = 'retain_promoted_history';
+                    $record['review_reasons'][] = 'Row is already promoted; retain its audit history.';
+                } elseif ($rowStatus === 'duplicate' || ($record['match_state'] ?? null) === 'duplicate') {
+                    $record['review_disposition'] = 'verify_duplicate_link';
+                    $record['review_reasons'][] = 'Verify the canonical match and dependency links before any archival decision.';
+                } elseif ($record['validation_error_count'] > 0) {
+                    $record['review_disposition'] = 'correct_validation_errors';
+                    $record['review_reasons'][] = 'Validation errors are recorded; inspect the private validation details before retrying.';
+                } elseif ($rowStatus === 'rejected' || $eventType === 'promotion_rejected') {
+                    $record['review_disposition'] = 'review_rejection';
+                    $record['review_reasons'][] = 'Preserve the rejection audit trail and inspect the decision/event reason before reprocessing.';
+                } elseif (! ($record['has_approved_promotion_decision'] ?? false)) {
+                    $record['review_disposition'] = 'review_promotion_decision';
+                    $record['review_reasons'][] = 'No approved promotion decision is recorded; do not promote or publish automatically.';
+                } elseif (in_array($eventType, ['promotion_failed', 'promotion_error'], true)) {
+                    $record['review_disposition'] = 'investigate_promotion_failure';
+                    $record['review_reasons'][] = 'A promotion failure event exists; inspect its private details before retrying.';
+                } else {
+                    $record['review_disposition'] = 'manual_review';
+                    $record['review_reasons'][] = 'Available audit fields do not establish a safe automated disposition.';
+                }
+
                 return $record;
             })->all();
 
