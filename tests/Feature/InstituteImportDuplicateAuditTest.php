@@ -156,7 +156,7 @@ class InstituteImportDuplicateAuditTest extends TestCase
             'name' => 'Collision-University', 'slug' => 'collision-university-two', 'status' => 'candidate',
         ]);
         Institution::query()->create([
-            'name' => 'Separate University', 'slug' => 'collision-university-one', 'status' => 'active',
+            'name' => 'Separate University', 'slug' => 'collisionuniversityone', 'status' => 'active',
         ]);
 
         $report = app(InstituteImportDuplicateAuditService::class)->build();
