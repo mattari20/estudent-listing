@@ -1,0 +1,41 @@
+name: Audit LUMS and UVAS Program Gaps
+on:
+  push:
+    branches:
+      - ops/audit-lums-uvas-program-gap
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read-only audit of LUMS and UVAS programs, campuses, offerings
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db=Illuminate\Support\Facades\DB::class;
+            foreach([5,8] as $id) {
+              $i=$db::table('institutions')->where('id',$id)->first(['id','name','slug','status','institution_type']);
+              echo "INSTITUTION=".json_encode($i)."\n";
+              echo "CAMPUSES=".json_encode($db::table('campuses')->where('institution_id',$id)->get())."\n";
+              echo "PROGRAMS=".json_encode($db::table('programs')->where('institution_id',$id)->get())."\n";
+              echo "OFFERINGS=".json_encode($db::table('program_offerings as o')->join('programs as p','p.id','=','o.program_id')->join('campuses as c','c.id','=','o.campus_id')->where('p.institution_id',$id)->get(['o.*','p.name as program_name','p.slug as program_slug','c.name as campus_name']),JSON_UNESCAPED_SLASHES)."\n";
+            }
+            echo "CAMPUS_SCHEMA=".json_encode($db::select('SHOW COLUMNS FROM campuses'))."\n";
+            echo "PROGRAM_SCHEMA=".json_encode($db::select('SHOW COLUMNS FROM programs'))."\n";
+            echo "OFFERING_SCHEMA=".json_encode($db::select('SHOW COLUMNS FROM program_offerings'))."\n";
+            PHP
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "DATA_GAP_STATUS=".($d["status"]??"unknown")."\n"; echo "GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if(($d["mutation_performed"]??null)!==false || ($d["status"]??null)!=="healthy") exit(5);'
