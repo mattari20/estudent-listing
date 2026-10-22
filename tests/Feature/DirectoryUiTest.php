@@ -63,4 +63,9 @@ class DirectoryUiTest extends TestCase
             ->assertSee('value="24"', false)
             ->assertSee('value="48"', false);
     }
+
+    public function test_directory_defaults_to_twenty_four_results_per_page(): void
+    {
+        $this->get('/institutes/')->assertOk()->assertSee('value="24" selected', false);
+    }
 }
