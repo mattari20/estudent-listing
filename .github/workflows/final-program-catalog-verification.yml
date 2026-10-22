@@ -1,0 +1,61 @@
+name: Final Program Catalog Verification
+
+on:
+  push:
+    branches:
+      - ops/final-program-catalog-verification
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify public directory, profiles, catalog and relationship integrity
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP' > /tmp/institutes-final-slugs.tsv
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db=Illuminate\Support\Facades\DB::class;
+            foreach($db::table('institutions')->where('status','active')->orderBy('id')->get(['id','slug']) as $i) echo $i->id."\t".$i->slug."\n";
+            $programs=$db::table('programs')->where('status','active')->count();
+            $offerings=$db::table('program_offerings')->where('status','active')->count();
+            $intakes=$db::table('admission_intakes')->count();
+            $institutionsCovered=$db::table('institutions as i')->join('programs as p','p.institution_id','=','i.id')->where('i.status','active')->where('p.status','active')->distinct()->count('i.id');
+            $broken=$db::table('program_offerings as o')->leftJoin('programs as p','p.id','=','o.program_id')->leftJoin('campuses as c','c.id','=','o.campus_id')->where('o.status','active')->where(function($q){$q->whereNull('p.id')->orWhereNull('c.id')->orWhere('p.status','<>','active')->orWhere('c.status','<>','active');})->count();
+            $orphanIntakes=$db::table('admission_intakes as a')->leftJoin('program_offerings as o','o.id','=','a.program_offering_id')->whereNull('o.id')->count();
+            $nullGeo=$db::table('campuses')->where('status','active')->whereNull('geography_id')->count();
+            echo "ACTIVE_PROGRAMS={$programs}\nACTIVE_OFFERINGS={$offerings}\nADMISSION_INTAKES={$intakes}\nINSTITUTIONS_WITH_PROGRAMS={$institutionsCovered}\nBROKEN_ACTIVE_OFFERINGS={$broken}\nORPHAN_INTAKES={$orphanIntakes}\nACTIVE_CAMPUSES_WITHOUT_GEOGRAPHY={$nullGeo}\n";
+            if($programs!==74 || $offerings!==38 || $intakes!==4 || $institutionsCovered!==19 || $broken!==0 || $orphanIntakes!==0 || $nullGeo!==0) exit(6);
+            PHP
+            count=0
+            failures=0
+            while IFS="$(printf '\t')" read -r id slug; do
+              [ -n "$slug" ] || continue
+              count=$((count+1))
+              body="/tmp/final-profile-$id.html"
+              status=$(curl -sS -L --max-time 15 -o "$body" -w '%{http_code}' "https://estudent.pk/institutes/$slug")
+              if [ "$status" = "200" ] && [ -s "$body" ] && [ "$(wc -c < "$body")" -gt 100 ]; then echo "PASS | HTTP=$status | ID=$id | $slug"; else echo "FAIL | HTTP=$status | ID=$id | $slug"; failures=$((failures+1)); fi
+            done < /tmp/institutes-final-slugs.tsv
+            echo "PROFILE_ROUTES_CHECKED=$count"
+            echo "PROFILE_ROUTE_FAILURES=$failures"
+            [ "$count" -eq 19 ]
+            [ "$failures" -eq 0 ]
+            curl -sS -L --max-time 15 -o /tmp/final-directory-index.html -w "DIRECTORY_INDEX_HTTP=%{http_code}\n" https://estudent.pk/institutes/
+            test -s /tmp/final-directory-index.html
+            echo "DIRECTORY_INDEX_NONEMPTY=yes"
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "FINAL_DATA_GAP_STATUS=".($d["status"]??"unknown")."\n"; echo "FINAL_POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\n"; echo "FINAL_RELATIONSHIP_GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if(($d["mutation_performed"]??null)!==false || ($d["status"]??null)!=="healthy") exit(5);'
