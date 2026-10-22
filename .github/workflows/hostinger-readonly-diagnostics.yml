@@ -309,12 +309,12 @@ jobs:
                 } elseif ($rowStatus === 'rejected' || $eventType === 'promotion_rejected') {
                     $item['review_disposition'] = 'review_rejection';
                     $item['review_reasons'][] = 'Preserve the rejection audit trail and inspect the decision/event reason before reprocessing.';
-                } elseif (! $hasApprovedPromotionDecision) {
-                    $item['review_disposition'] = 'review_promotion_decision';
-                    $item['review_reasons'][] = 'No approved promotion decision is recorded; do not promote or publish automatically.';
                 } elseif (in_array($eventType, ['promotion_failed', 'promotion_error'], true)) {
                     $item['review_disposition'] = 'investigate_promotion_failure';
                     $item['review_reasons'][] = 'A promotion failure event exists; inspect its private details before retrying.';
+                } elseif (! $hasApprovedPromotionDecision) {
+                    $item['review_disposition'] = 'review_promotion_decision';
+                    $item['review_reasons'][] = 'No approved promotion decision is recorded; do not promote or publish automatically.';
                 } else {
                     $item['review_disposition'] = 'manual_review';
                     $item['review_reasons'][] = 'Available audit fields do not establish a safe automated disposition.';
