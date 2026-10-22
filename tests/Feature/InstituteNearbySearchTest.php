@@ -182,4 +182,16 @@ class InstituteNearbySearchTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.campus.slug', 'near-campus');
     }
+    public function test_nearby_api_rejects_missing_required_coordinates(): void
+    {
+        $this->getJson('/api/v1/institutions/nearby?radius_km=10')
+            ->assertStatus(422);
+
+        $this->getJson('/api/v1/institutions/nearby?lat=31.5204&radius_km=10')
+            ->assertStatus(422);
+
+        $this->getJson('/api/v1/institutions/nearby?lng=74.3587&radius_km=10')
+            ->assertStatus(422);
+    }
+
 }
