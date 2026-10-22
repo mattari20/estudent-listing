@@ -162,6 +162,8 @@ jobs:
                     'import_rows.parent_subject_type',
                     'import_rows.parent_subject_id',
                     'import_rows.validation_errors',
+                    'import_rows.payload',
+                    'import_rows.normalized_payload',
                     'import_batches.status as batch_status',
                     'import_batches.source_id as batch_source_id',
                 ]);
@@ -172,8 +174,20 @@ jobs:
                 if (is_string($errors)) {
                     $errors = json_decode($errors, true);
                 }
+                $payload = is_array($row->normalized_payload) ? $row->normalized_payload : (is_array($row->payload) ? $row->payload : []);
+                if (is_string($row->normalized_payload)) {
+                    $decoded = json_decode($row->normalized_payload, true);
+                    if (is_array($decoded)) $payload = $decoded;
+                } elseif (is_string($row->payload)) {
+                    $decoded = json_decode($row->payload, true);
+                    if (is_array($decoded)) $payload = $decoded;
+                }
                 $item = [
                     'id' => (int) $row->id,
+                    'institution_name' => $payload['name'] ?? null,
+                    'institution_slug' => $payload['slug'] ?? null,
+                    'institution_type' => $payload['institution_type'] ?? null,
+                    'requested_status' => $payload['status'] ?? null,
                     'batch_id' => (int) $row->import_batch_id,
                     'row_number' => (int) $row->row_number,
                     'status' => $row->status,
@@ -212,9 +226,9 @@ jobs:
                     $item['latest_promotion_error_class'] = is_array($metadata) ? ($metadata['error_class'] ?? null) : null;
                 }
 
-                if ($schema::hasTable('institution_identity_decisions')
-                    && $schema::hasColumn('institution_identity_decisions', 'import_row_id')) {
-                    $identityDecisions = $db::table('institution_identity_decisions')
+                if ($schema::hasTable('identity_resolution_decisions')
+                    && $schema::hasColumn('identity_resolution_decisions', 'import_row_id')) {
+                    $identityDecisions = $db::table('identity_resolution_decisions')
                         ->where('import_row_id', $row->id)
                         ->orderByDesc('id')
                         ->get(['decision']);
@@ -228,15 +242,15 @@ jobs:
                     ? $db::table('import_conflicts')->where('import_row_id', $row->id)->where('status', 'open')->count()
                     : null;
 
-                if ($schema::hasTable('assertions') && $schema::hasTable('evidences')
+                if ($schema::hasTable('assertions') && $schema::hasTable('evidence')
                     && $schema::hasColumn('assertions', 'subject_type')
                     && $schema::hasColumn('assertions', 'subject_id')
                     && $schema::hasColumn('assertions', 'evidence_id')) {
                     $item['has_active_source_evidence'] = $db::table('assertions')
-                        ->join('evidences', 'evidences.id', '=', 'assertions.evidence_id')
+                        ->join('evidence', 'evidence.id', '=', 'assertions.evidence_id')
                         ->where('assertions.subject_type', 'App\\Models\\ImportRow')
                         ->where('assertions.subject_id', $row->id)
-                        ->where('evidences.status', 'active')
+                        ->where('evidence.status', 'active')
                         ->exists();
                 }
 
@@ -257,9 +271,9 @@ jobs:
                     }
                 }
 
-                if ($schema::hasTable('institution_identity_decisions')) {
-                    $decisionQuery = $db::table('institution_identity_decisions');
-                    if ($schema::hasColumn('institution_identity_decisions', 'import_row_id')) {
+                if ($schema::hasTable('identity_resolution_decisions')) {
+                    $decisionQuery = $db::table('identity_resolution_decisions');
+                    if ($schema::hasColumn('identity_resolution_decisions', 'import_row_id')) {
                         $item['identity_decisions'] = $decisionQuery->where('import_row_id', $row->id)
                             ->orderBy('id')->get()->map(function ($decision) {
                                 $result = [];
