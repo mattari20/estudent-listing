@@ -25,4 +25,14 @@ class SourceRetrievalTest extends TestCase {
   $this->assertSame('failed',$run->status);
   $this->assertNull($run->snapshot_id);
  }
+
+    public function test_failed_http_response_does_not_create_snapshot(): void
+ {
+  Http::fake(['https://example.test/*'=>Http::response('temporary failure',503,['Content-Type'=>'text/plain'])]);
+  $source=Source::create(['source_type'=>'web','name'=>'Unavailable Source','url'=>'https://example.test/unavailable','status'=>'active']);
+  $run=app(\App\Services\SourceRetrievalService::class)->retrieve($source);
+  $this->assertSame('failed',$run->status);
+  $this->assertNull($run->snapshot_id);
+  $this->assertDatabaseCount('source_snapshots',0);
+ }
 }
