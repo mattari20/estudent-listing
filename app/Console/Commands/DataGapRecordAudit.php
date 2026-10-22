@@ -148,6 +148,20 @@ class DataGapRecordAudit extends Command
                 $record['latest_promotion_event_type'] = $latestEvent->event_type ?? null;
                 $metadata = isset($latestEvent->metadata) ? json_decode((string) $latestEvent->metadata, true) : [];
                 $record['latest_promotion_error_class'] = is_array($metadata) ? ($metadata['error_class'] ?? null) : null;
+                $record['has_active_source_evidence'] = Schema::hasTable('assertions') && Schema::hasTable('evidence')
+                    && DB::table('assertions')
+                        ->where('subject_type', \App\Models\ImportRow::class)
+                        ->where('subject_id', $record['id'])
+                        ->whereExists(fn ($query) => $query
+                            ->selectRaw('1')
+                            ->from('evidence')
+                            ->whereColumn('evidence.id', 'assertions.evidence_id')
+                            ->where('evidence.status', 'active'))
+                        ->exists();
+                $record['canonical_institution_status'] = ($record['canonical_subject_type'] ?? null) === \App\Models\Institution::class
+                    && ! empty($record['canonical_subject_id'])
+                    ? DB::table('institutions')->where('id', $record['canonical_subject_id'])->value('status')
+                    : null;
 
                 // A non-destructive recommendation helps reviewers prioritize rows.
                 // It never authorizes deletion, promotion, or publication.
@@ -158,6 +172,12 @@ class DataGapRecordAudit extends Command
                 if ($rowStatus === 'promoted') {
                     $record['review_disposition'] = 'retain_promoted_history';
                     $record['review_reasons'][] = 'Row is already promoted; retain its audit history.';
+                    if (! $record['has_active_source_evidence']) {
+                        $record['review_reasons'][] = 'Active source evidence is missing; keep publication blocked until verified evidence is recorded.';
+                    }
+                    if (($record['canonical_institution_status'] ?? null) !== null && $record['canonical_institution_status'] !== 'active') {
+                        $record['review_reasons'][] = 'The canonical institution is not active; complete the explicit publication workflow only after all gates pass.';
+                    }
                 } elseif ($rowStatus === 'duplicate' || ($record['match_state'] ?? null) === 'duplicate') {
                     $record['review_disposition'] = 'verify_duplicate_link';
                     $record['review_reasons'][] = 'Verify the canonical match and dependency links before any archival decision.';
