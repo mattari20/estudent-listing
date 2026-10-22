@@ -195,4 +195,17 @@ class DirectorySearchTest extends TestCase
             ->assertDontSee('Archived Inactive University');
     }
 
+
+    public function test_search_counts_only_active_campuses_and_programs(): void
+    {
+        $institution = Institution::create(['name' => 'Lifecycle Search University', 'slug' => 'lifecycle-search-university', 'status' => 'active']);
+        Campus::create(['institution_id' => $institution->id, 'name' => 'Active Campus', 'slug' => 'active-campus', 'status' => 'active']);
+        Campus::create(['institution_id' => $institution->id, 'name' => 'Inactive Campus', 'slug' => 'inactive-campus', 'status' => 'inactive']);
+        Program::create(['institution_id' => $institution->id, 'name' => 'Active Program', 'slug' => 'active-program', 'status' => 'active']);
+        Program::create(['institution_id' => $institution->id, 'name' => 'Inactive Program', 'slug' => 'inactive-program', 'status' => 'inactive']);
+        $this->get('/institutes/search?q=Lifecycle')
+            ->assertOk()
+            ->assertSee('1 campuses')
+            ->assertSee('1 programs');
+    }
 }
