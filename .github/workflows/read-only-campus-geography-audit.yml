@@ -1,0 +1,78 @@
+name: Read-only Campus and Geography Audit
+
+on:
+  push:
+    branches:
+      - ops/read-only-campus-geography-audit
+
+permissions:
+  contents: read
+
+concurrency:
+  group: read-only-campus-geography-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Inspect production campus and geography records (read-only)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -eu
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            test -f artisan
+            echo "AUDIT_SCOPE=read_only"
+            php artisan institutes:data-gap-report --json | php -r '
+            $s = stream_get_contents(STDIN);
+            $d = json_decode($s, true);
+            if (!is_array($d)) { fwrite(STDERR, "DATA_GAP_REPORT_INVALID_JSON\n"); exit(2); }
+            echo "DATA_GAP_REPORT_STATUS=" . ($d["status"] ?? "unknown") . "\n";
+            echo "DATA_GAP_MUTATION_PERFORMED=" . json_encode($d["mutation_performed"] ?? null) . "\n";
+            echo "CANONICAL_POPULATION=" . json_encode($d["sections"]["canonical_population"] ?? null, JSON_UNESCAPED_SLASHES) . "\n";
+            echo "CANONICAL_RELATIONSHIP_GAPS=" . json_encode($d["sections"]["canonical_relationship_gaps"] ?? null, JSON_UNESCAPED_SLASHES) . "\n";
+            echo "GEOGRAPHY_COUNTS=" . json_encode($d["sections"]["geography"]["by_type_and_status"] ?? null, JSON_UNESCAPED_SLASHES) . "\n";
+            echo "GEOGRAPHY_INTEGRITY=" . json_encode($d["sections"]["geography"]["integrity"] ?? null, JSON_UNESCAPED_SLASHES) . "\n";
+            echo "ACTIVE_CAMPUS_GEOGRAPHY_GAPS=" . json_encode($d["sections"]["geography"]["active_campuses_with_missing_or_inactive_geography"] ?? null) . "\n";
+            if (($d["mutation_performed"] ?? null) !== false) { fwrite(STDERR, "READ_ONLY_GUARD_FAILED\n"); exit(3); }
+            '
+            php -r '
+            require "vendor/autoload.php";
+            $app = require_once "bootstrap/app.php";
+            $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $names = [
+              "National College of Arts",
+              "Bahria University",
+              "Air University",
+              "Virtual University of Pakistan",
+              "Karakoram International University",
+              "National Textile University",
+              "National University of Sciences & Technology"
+            ];
+            $institutions = Illuminate\Support\Facades\DB::table("institutions")
+              ->whereIn("name", $names)->orderBy("id")->get(["id","name","institution_type","status"]);
+            echo "TARGET_INSTITUTIONS_BEGIN\n";
+            foreach ($institutions as $i) {
+              echo json_encode(["id"=>(int)$i->id,"name"=>$i->name,"type"=>$i->institution_type,"status"=>$i->status], JSON_UNESCAPED_SLASHES) . "\n";
+              $campuses = Illuminate\Support\Facades\DB::table("campuses as c")
+                ->leftJoin("geographies as g","g.id","=","c.geography_id")
+                ->where("c.institution_id",$i->id)->orderBy("c.id")
+                ->get(["c.id","c.name","c.slug","c.campus_type","c.status","c.geography_id","g.name as geography_name","g.type as geography_type","g.status as geography_status"]);
+              foreach ($campuses as $c) {
+                echo "CAMPUS " . json_encode(["id"=>(int)$c->id,"name"=>$c->name,"slug"=>$c->slug,"type"=>$c->campus_type,"status"=>$c->status,"geography_id"=>$c->geography_id,"geography_name"=>$c->geography_name,"geography_type"=>$c->geography_type,"geography_status"=>$c->geography_status], JSON_UNESCAPED_SLASHES) . "\n";
+              }
+            }
+            echo "TARGET_INSTITUTIONS_END\n";
+            $geographies = Illuminate\Support\Facades\DB::table("geographies")->orderBy("id")->get(["id","parent_id","name","slug","type","code","status"]);
+            echo "GEOGRAPHIES_BEGIN\n";
+            foreach ($geographies as $g) echo json_encode(["id"=>(int)$g->id,"parent_id"=>$g->parent_id===null?null:(int)$g->parent_id,"name"=>$g->name,"slug"=>$g->slug,"type"=>$g->type,"code"=>$g->code,"status"=>$g->status], JSON_UNESCAPED_SLASHES) . "\n";
+            echo "GEOGRAPHIES_END\n";
+            ';
