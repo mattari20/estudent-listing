@@ -13,4 +13,10 @@ class PublicDirectoryHardeningTest extends TestCase {
   Institution::create(['name'=>'Candidate University','slug'=>'candidate-university','status'=>'candidate']);
   $this->get(route('institutes.index'))->assertOk()->assertDontSee('Candidate University');
  }
+
+    public function test_candidate_institution_is_not_in_public_directory_results(): void
+ {
+  Institution::create(['name' => 'Pending Review University', 'slug' => 'pending-review-university', 'status' => 'candidate']);
+  $this->get(route('institutes.index'))->assertOk()->assertDontSee('Pending Review University');
+ }
 }
