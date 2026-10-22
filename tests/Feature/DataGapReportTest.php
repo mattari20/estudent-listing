@@ -43,4 +43,9 @@ class DataGapReportTest extends TestCase
         $this->assertSame(1, Institution::query()->where('slug', 'audit-test-institute')->count());
         $this->assertSame(1, Geography::query()->where('slug', 'pakistan')->count());
     }
+
+    public function test_json_data_gap_report_explicitly_reports_no_mutation(): void
+ {
+  $this->artisan('institutes:data-gap-report',['--json'=>true])->assertExitCode(0)->expectsOutputToContain('"mutation_performed": false');
+ }
 }
