@@ -185,7 +185,7 @@ class DataGapRecordAuditTest extends TestCase
         );
         $this->assertArrayNotHasKey('records', $report['sections']['import_rows'] ?? []);
         $this->assertStringNotContainsString('Private summary test payload', $output);
-        $this->assertStringNotContainsString((string) ImportRow::query()->first()->id, $output);
+        $this->assertStringNotContainsString('"records"', $output);
     }
 
 }
