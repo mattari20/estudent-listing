@@ -1,0 +1,29 @@
+name: Inspect Two Institution Identities
+on:
+  push:
+    branches:
+      - ops/inspect-two-institution-identities
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read institution identities only
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          script: |
+            set -euo pipefail
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            foreach(Illuminate\Support\Facades\DB::table('institutions')->whereIn('id',[8,9])->orderBy('id')->get(['id','name','slug','institution_type','description','verified_at']) as $r) echo json_encode($r,JSON_UNESCAPED_SLASHES)."\n";
+            PHP
