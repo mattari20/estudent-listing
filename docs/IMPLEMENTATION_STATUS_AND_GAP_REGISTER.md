@@ -34,7 +34,17 @@
 | Security, roles and recovery | Partial implementation indicated | Verify roles, permissions, secrets, reset flows, backups/recovery and destructive-operation controls. |
 | Canonical documentation set | Added by this documentation PR | Review for accuracy and merge after CI checks. |
 
-## Historical data note
+## Dated diagnostic evidence
+
+### 2026-10-22 — Hostinger read-only diagnostics
+- Workflow: Hostinger Read-only Diagnostics, run [39758486228](https://github.com/mattari20/estudent-listing/actions/runs/39758486228), successful.
+- Scope: read-only report; `mutation_performed: false`. This verifies the diagnostic command completed, not the correctness of every source fact or the entire live public experience.
+- Institution import-row trace: 38 rows were reported. The safe review recommendations were 19 `retain_promoted_history`, 6 `review_rejection`, and 13 `review_promotion_decision`.
+- Interpretation: rows can repeat across batches; these counts are import rows, not unique institutions. Recommendations do not authorize deletion, promotion or publication.
+- Follow-up: review row IDs against batch, identity decision, source evidence, canonical dependencies and audit history before proposing any cleanup. Prefer reversible disposition over hard deletion.
+- Public content monitor run [39758483404](https://github.com/mattari20/estudent-listing/actions/runs/39758483404) was still in progress at the time of this reconciliation; do not mark content-aware live verification complete until its final result is recorded.
+
+### Historical data note
 A report captured on 2026-10-16 is historical and must not be treated as the current database state. It reported warning conditions including 10 active institutions without active campuses in that snapshot. Refresh diagnostics before using those counts to decide cleanup or publication.
 
 ## Evidence required to close a row
