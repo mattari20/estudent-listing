@@ -16,4 +16,14 @@ class ImportConflictDetectionTest extends TestCase {
   $this->assertDatabaseHas('import_conflicts',['import_row_id'=>$row1->id,'conflict_type'=>'duplicate_batch_identity','status'=>'open']);
   $this->assertSame('conflict',$row1->refresh()->match_state);
  }
+
+    public function test_duplicate_identity_conflict_is_not_auto_resolved(): void
+ {
+  $user=User::create(['name'=>'Operator','email'=>'conflict-review-'.uniqid().'@example.test','password'=>'password','role'=>'operator']);
+  $batch=ImportBatch::create(['batch_key'=>'conflict-review-'.uniqid(),'entity_type'=>'institution','source_type'=>'manual','status'=>'validated','total_rows'=>2,'valid_rows'=>2,'candidate_rows'=>2,'received_at'=>now()]);
+  $row1=ImportRow::create(['import_batch_id'=>$batch->id,'row_number'=>1,'status'=>'candidate','match_state'=>'new_candidate','payload'=>['name'=>'Reviewed Institute'],'normalized_payload'=>['name'=>'Reviewed Institute','slug'=>'reviewed-institute']]);
+  ImportRow::create(['import_batch_id'=>$batch->id,'row_number'=>2,'status'=>'candidate','match_state'=>'new_candidate','payload'=>['name'=>'Reviewed Institute branch'],'normalized_payload'=>['name'=>'Reviewed Institute branch','slug'=>'reviewed-institute']]);
+  $this->actingAs($user)->post(route('institutes.operations.resolve',$row1))->assertRedirect();
+  $this->assertDatabaseHas('import_conflicts',['import_row_id'=>$row1->id,'conflict_type'=>'duplicate_batch_identity','status'=>'open']);
+ }
 }
