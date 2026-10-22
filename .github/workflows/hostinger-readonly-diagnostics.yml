@@ -104,16 +104,17 @@ jobs:
             $lines = file($path, FILE_IGNORE_NEW_LINES);
             $result = ['check' => 'latest_laravel_exception_fingerprint', 'available' => false, 'message_emitted' => false];
             foreach (array_reverse($lines) as $line) {
-                if (!preg_match('/(production|local)\\.ERROR:/', $line)) continue;
+                if (!preg_match('/(?:production|local)\.ERROR:/', $line)) continue;
                 $result['available'] = true;
-                if (preg_match('/\\(([A-Za-z_\\\\][A-Za-z0-9_\\\\]*)\\([^\\n]*? at (\\/[^:\\s]+:\\d+)\\)/', $line, $matches)) {
+                $result['exception_class'] = 'unparsed';
+                $result['source_location'] = null;
+                if (preg_match('/(?:production|local)\.ERROR:\s*([A-Za-z_\\\\][A-Za-z0-9_\\\\]*)/', $line, $matches)) {
                     $result['exception_class'] = $matches[1];
-                    $result['source_location'] = basename(dirname($matches[2])).'/'.basename($matches[2]);
-                } else {
-                    $result['exception_class'] = 'unparsed';
-                    $result['source_location'] = null;
                 }
-                if (preg_match('/^\\[([^]]+)\\]/', $line, $time)) $result['logged_at'] = $time[1];
+                if (preg_match('/(?: in | at )(\/[^:\s]+:\d+)/', $line, $matches)) {
+                    $result['source_location'] = basename(dirname($matches[1])).'/'.basename($matches[1]);
+                }
+                if (preg_match('/^\[([^]]+)\]/', $line, $time)) $result['logged_at'] = $time[1];
                 break;
             }
             echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
