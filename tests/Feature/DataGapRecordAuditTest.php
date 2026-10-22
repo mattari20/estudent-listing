@@ -143,4 +143,49 @@ class DataGapRecordAuditTest extends TestCase
         $this->assertStringNotContainsString('Private failure detail', json_encode($record));
     }
 
+
+    public function test_summary_mode_reports_disposition_counts_without_row_level_details(): void
+    {
+        $batch = ImportBatch::query()->create([
+            'batch_key' => 'summary-audit-test',
+            'entity_type' => 'institution',
+            'source_type' => 'test',
+            'status' => 'validated',
+            'total_rows' => 1,
+            'valid_rows' => 1,
+            'candidate_rows' => 1,
+            'received_at' => now(),
+            'completed_at' => now(),
+        ]);
+
+        ImportRow::query()->create([
+            'import_batch_id' => $batch->id,
+            'row_number' => 1,
+            'status' => 'candidate',
+            'match_state' => 'new_candidate',
+            'payload' => ['name' => 'Private summary test payload'],
+            'normalized_payload' => ['name' => 'Private summary test payload'],
+            'validation_errors' => [],
+        ]);
+
+        Artisan::call('institutes:data-gap-record-audit', [
+            '--json' => true,
+            '--summary' => true,
+        ]);
+        $output = Artisan::output();
+        $report = json_decode($output, true);
+
+        $this->assertIsArray($report);
+        $this->assertTrue($report['summary_only'] ?? false);
+        $this->assertFalse($report['mutation_performed'] ?? true);
+        $this->assertSame(1, $report['sections']['import_rows']['total'] ?? null);
+        $this->assertSame(
+            1,
+            $report['sections']['import_rows']['by_review_disposition']['review_promotion_decision'] ?? null
+        );
+        $this->assertArrayNotHasKey('records', $report['sections']['import_rows'] ?? []);
+        $this->assertStringNotContainsString('Private summary test payload', $output);
+        $this->assertStringNotContainsString((string) ImportRow::query()->first()->id, $output);
+    }
+
 }
