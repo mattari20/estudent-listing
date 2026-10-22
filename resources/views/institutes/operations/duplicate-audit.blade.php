@@ -24,6 +24,34 @@
     <p><strong>Safety:</strong> {{ $report['warning'] }}</p>
 </section>
 
+<section class="institute-card" aria-labelledby="canonical-collisions">
+    <h2 id="canonical-collisions">Canonical institution collision review</h2>
+    <p>Read-only checks for multiple canonical institution IDs sharing a normalized name or slug. These are review candidates, not automatic deletion instructions.</p>
+    <h3>Name / alias collisions ({{ count($report['canonical_identity_collisions'] ?? []) }})</h3>
+    @forelse(($report['canonical_identity_collisions'] ?? []) as $collision)
+        <div class="institute-card">
+            <strong>Normalized identity: <code>{{ $collision['normalized_identity'] }}</code></strong>
+            <ul>@foreach($collision['institutions'] as $institution)
+                <li>ID {{ $institution['id'] }} — {{ $institution['name'] }}; slug {{ $institution['slug'] }}; status {{ $institution['status'] }}</li>
+            @endforeach</ul>
+        </div>
+    @empty
+        <p>No canonical name collisions detected.</p>
+    @endforelse
+    <h3>Slug collisions ({{ count($report['canonical_slug_collisions'] ?? []) }})</h3>
+    @forelse(($report['canonical_slug_collisions'] ?? []) as $collision)
+        <div class="institute-card">
+            <strong>Normalized slug: <code>{{ $collision['normalized_slug'] }}</code></strong>
+            <ul>@foreach($collision['institutions'] as $institution)
+                <li>ID {{ $institution['id'] }} — {{ $institution['name'] }}; slug {{ $institution['slug'] }}; status {{ $institution['status'] }}</li>
+            @endforeach</ul>
+        </div>
+    @empty
+        <p>No canonical slug collisions detected.</p>
+    @endforelse
+    <p><strong>Cleanup mode:</strong> Preview only. No rows or institutions are changed.</p>
+</section>
+
 <section aria-labelledby="audit-rows">
     <h2 id="audit-rows">Rows requiring review</h2>
     <div style="overflow-x:auto">
