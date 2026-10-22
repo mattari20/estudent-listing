@@ -167,12 +167,12 @@ class DataGapRecordAudit extends Command
                 } elseif ($rowStatus === 'rejected' || $eventType === 'promotion_rejected') {
                     $record['review_disposition'] = 'review_rejection';
                     $record['review_reasons'][] = 'Preserve the rejection audit trail and inspect the decision/event reason before reprocessing.';
-                } elseif (! ($record['has_approved_promotion_decision'] ?? false)) {
-                    $record['review_disposition'] = 'review_promotion_decision';
-                    $record['review_reasons'][] = 'No approved promotion decision is recorded; do not promote or publish automatically.';
                 } elseif (in_array($eventType, ['promotion_failed', 'promotion_error'], true)) {
                     $record['review_disposition'] = 'investigate_promotion_failure';
                     $record['review_reasons'][] = 'A promotion failure event exists; inspect its private details before retrying.';
+                } elseif (! ($record['has_approved_promotion_decision'] ?? false)) {
+                    $record['review_disposition'] = 'review_promotion_decision';
+                    $record['review_reasons'][] = 'No approved promotion decision is recorded; do not promote or publish automatically.';
                 } else {
                     $record['review_disposition'] = 'manual_review';
                     $record['review_reasons'][] = 'Available audit fields do not establish a safe automated disposition.';
