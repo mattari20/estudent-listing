@@ -150,7 +150,7 @@ class DataGapRecordAudit extends Command
                 $record['latest_promotion_error_class'] = is_array($metadata) ? ($metadata['error_class'] ?? null) : null;
                 $record['has_active_source_evidence'] = Schema::hasTable('assertions') && Schema::hasTable('evidence')
                     && DB::table('assertions')
-                        ->where('subject_type', \\App\\Models\\ImportRow::class)
+                        ->where('subject_type', \App\Models\ImportRow::class)
                         ->where('subject_id', $record['id'])
                         ->whereExists(fn ($query) => $query
                             ->selectRaw('1')
@@ -158,7 +158,7 @@ class DataGapRecordAudit extends Command
                             ->whereColumn('evidence.id', 'assertions.evidence_id')
                             ->where('evidence.status', 'active'))
                         ->exists();
-                $record['canonical_institution_status'] = ($record['canonical_subject_type'] ?? null) === \\App\\Models\\Institution::class
+                $record['canonical_institution_status'] = ($record['canonical_subject_type'] ?? null) === \App\Models\Institution::class
                     && ! empty($record['canonical_subject_id'])
                     ? DB::table('institutions')->where('id', $record['canonical_subject_id'])->value('status')
                     : null;
