@@ -30,7 +30,7 @@
         <table>
             <thead><tr>
                 <th>Import row</th><th>Batch</th><th>Institution name</th><th>Status</th>
-                <th>Issues</th><th>Canonical match</th><th>Duplicate of</th><th>Suggested review</th>
+                <th>Issues / validation errors</th><th>Canonical match</th><th>Duplicate of</th><th>Suggested review</th>
             </tr></thead>
             <tbody>
             @forelse($report['rows'] as $row)
@@ -39,7 +39,7 @@
                     <td>{{ $row['batch_id'] }} — {{ $row['batch_key'] }}</td>
                     <td>{{ $row['institution_name'] ?? 'Name missing' }}</td>
                     <td>{{ $row['row_status'] }}</td>
-                    <td><ul>@foreach($row['issues'] as $issue)<li><code>{{ $issue }}</code></li>@endforeach</ul></td>
+                    <td><ul>@foreach($row['issues'] as $issue)<li><code>{{ $issue }}</code></li>@endforeach</ul>@if(!empty($row['validation_errors']))<details><summary>Validation details</summary><pre>{{ json_encode($row['validation_errors'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre></details>@endif</td>
                     <td>
                         @if($row['canonical_match'])
                             {{ $row['canonical_match']['name'] }} (ID {{ $row['canonical_match']['id'] }}, {{ $row['canonical_match']['status'] }})
