@@ -10,4 +10,12 @@ class InstituteSearchFoundationTest extends TestCase { use RefreshDatabase; publ
             ->assertOk()
             ->assertSee('no-such-institute-xyz');
     }
+
+    public function test_search_excludes_candidate_institutions(): void
+ {
+  Institution::create(['name' => 'Candidate Search University', 'slug' => 'candidate-search-university', 'status' => 'candidate']);
+  $this->get(route('institutes.search', ['q' => 'Candidate Search']))
+   ->assertOk()
+   ->assertDontSee('Candidate Search University');
+ }
 }
