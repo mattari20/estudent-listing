@@ -51,6 +51,26 @@ class InstituteImportDuplicateAuditService
             }
         }
 
+        foreach (InstitutionName::query()->orderBy('id')->get(['institution_id', 'name']) as $alias) {
+            $key = $this->normalize($alias->name);
+            if ($key === '') {
+                continue;
+            }
+
+            $institution = $institutions->firstWhere('id', $alias->institution_id);
+            if (! $institution) {
+                continue;
+            }
+
+            $canonicalByIdentity[$key] ??= $institution;
+            $canonicalIdentityGroups[$key][$institution->id] = [
+                'id' => $institution->id, 'name' => $institution->name,
+                'official_name' => $institution->official_name, 'short_name' => $institution->short_name,
+                'slug' => $institution->slug, 'status' => $institution->status,
+            ];
+        }
+
+        // Build collision groups only after aliases have been included.
         $identityCollisions = collect($canonicalIdentityGroups)
             ->filter(fn ($group) => count($group) > 1)
             ->map(fn ($group, $key) => ['normalized_identity' => $key, 'institutions' => array_values($group)])
@@ -59,13 +79,6 @@ class InstituteImportDuplicateAuditService
             ->filter(fn ($group) => count($group) > 1)
             ->map(fn ($group, $key) => ['normalized_slug' => $key, 'institutions' => array_values($group)])
             ->values()->all();
-
-        foreach (InstitutionName::query()->orderBy('id')->get(['institution_id', 'name']) as $alias) {
-            $key = $this->normalize($alias->name);
-            if ($key !== '' && ! isset($canonicalByIdentity[$key])) {
-                $canonicalByIdentity[$key] = Institution::query()->find($alias->institution_id);
-            }
-        }
 
         $firstRowByIdentity = [];
         $items = [];

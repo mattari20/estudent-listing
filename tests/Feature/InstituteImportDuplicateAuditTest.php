@@ -169,4 +169,29 @@ class InstituteImportDuplicateAuditTest extends TestCase
         $this->assertCount(1, $report['canonical_slug_collisions']);
         $this->assertSame(3, Institution::query()->count());
     }
+
+    public function test_audit_detects_alias_collision_between_canonical_institutions(): void
+    {
+        $first = Institution::query()->create([
+            'name' => 'First Example University', 'slug' => 'first-example-university', 'status' => 'active',
+        ]);
+        $second = Institution::query()->create([
+            'name' => 'Second Example University', 'slug' => 'second-example-university', 'status' => 'active',
+        ]);
+        \App\Models\InstitutionName::query()->create([
+            'institution_id' => $first->id, 'name' => 'Shared University Alias', 'name_type' => 'alias',
+        ]);
+        \App\Models\InstitutionName::query()->create([
+            'institution_id' => $second->id, 'name' => 'Shared-University Alias', 'name_type' => 'alias',
+        ]);
+
+        $report = app(InstituteImportDuplicateAuditService::class)->build();
+
+        $this->assertSame(1, $report['summary']['canonical_identity_collision_groups']);
+        $collision = collect($report['canonical_identity_collisions'])
+            ->firstWhere('normalized_identity', 'shareduniversityalias');
+        $this->assertNotNull($collision);
+        $this->assertCount(2, $collision['institutions']);
+        $this->assertSame(2, Institution::query()->count());
+    }
 }
