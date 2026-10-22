@@ -61,6 +61,7 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         Route::get('/integrity', InstituteGeographyIntegrityController::class)->name('integrity');
         Route::get('/data-readiness', InstituteDataReadinessController::class)->name('data-readiness');
         Route::get('/imports/{importBatch}/verification', InstituteImportVerificationController::class)->name('imports.verification');
+        Route::get('/imports/{importBatch}/row-diagnostics/view', [InstituteImportRowDiagnosticController::class, 'view'])->name('imports.row-diagnostics.view');
         Route::get('/imports/{importBatch}/row-diagnostics', InstituteImportRowDiagnosticController::class)->name('imports.row-diagnostics');
         Route::get('/imports/{importBatch}/evidence-capture', [InstituteBatchEvidenceCaptureController::class, 'create'])->name('imports.evidence-capture');
         Route::post('/imports/{importBatch}/evidence-capture', [InstituteBatchEvidenceCaptureController::class, 'store'])->name('imports.evidence-capture.store');
