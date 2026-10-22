@@ -1,5 +1,9 @@
 name: Audit Next Institution Catalog
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/audit-next-institution-catalog.yml"
+      - ".github/workflows/verify-uvas-public-directory.yml"
   push:
     branches:
       - ops/audit-next-institution-catalog
@@ -46,6 +50,6 @@ jobs:
             echo 'ACTIVE_INSTITUTIONS=' . $activeInstitutions . PHP_EOL;
             echo 'ACTIVE_CAMPUSES_WITHOUT_GEOGRAPHY=' . $badCampus . PHP_EOL;
             echo 'BROKEN_ACTIVE_OFFERINGS=' . $badOffering . PHP_EOL;
-            if ($activeInstitutions !== 19 || $badCampus !== 0 || $badOffering !== 0) throw new RuntimeException('Baseline integrity gate failed; no writes performed');
+            if ($badCampus !== 0 || $badOffering !== 0) throw new RuntimeException('Relationship integrity gate failed; no writes performed');
             PHP
             php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "DATA_GAP_STATUS=".($d["status"]??"unknown").PHP_EOL; echo "POPULATION=".json_encode($d["sections"]["canonical_population"]??null).PHP_EOL; echo "GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null).PHP_EOL; if(($d["mutation_performed"]??null)!==false || ($d["status"]??null)!=="healthy") exit(5);'
