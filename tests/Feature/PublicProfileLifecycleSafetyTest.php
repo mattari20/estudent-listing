@@ -129,4 +129,16 @@ class PublicProfileLifecycleSafetyTest extends TestCase
             ->assertDontSee('Old Tuition')
             ->assertDontSee('Withdrawn Recognition');
     }
+    public function test_inactive_institution_profile_returns_not_found(): void
+    {
+        Institution::create([
+            'name' => 'Unpublished Candidate Institute',
+            'slug' => 'unpublished-candidate-institute',
+            'status' => 'candidate',
+        ]);
+
+        $this->get('/institutes/unpublished-candidate-institute')
+            ->assertNotFound();
+    }
+
 }
