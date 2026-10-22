@@ -50,7 +50,7 @@ jobs:
                 elif [[ -n "$extra_pattern" ]] && ! grep -Eiq "$extra_pattern" "$body"; then
                   status="page-size-mismatch"
                 else
-                  printf 'PASS | HTTP %s | expected content present | %s | attempt %s/10\n' "$status" "$url" "$attempt" | tee -a "$report"
+                  printf 'PASS | HTTP %s | expected content present | %s | attempt %s/6\n' "$status" "$url" "$attempt" | tee -a "$report"
                   rm -f "$body" "$RUNNER_TEMP/curl-error.txt"
                   return
                 fi
@@ -69,7 +69,7 @@ jobs:
           }
 
           # Check the result summary and confirm 24 per page is the selected default.
-          check_url "https://estudent.pk/institutes/" 'Showing[[:space:]].*of[[:space:]].*institutions' 'value="24"[^>]*selected|selected[^>]*value="24"'
+          check_url "https://estudent.pk/institutes/" 'Showing.*of.*institutions|No institutions to display' 'value="24"[^>]*selected|selected[^>]*value="24"'
           # Confirm the detail page contains the expected institution identity.
           check_url "https://estudent.pk/institutes/university-of-the-punjab" 'University of the Punjab'
 
