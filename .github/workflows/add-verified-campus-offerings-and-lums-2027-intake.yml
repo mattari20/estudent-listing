@@ -1,0 +1,75 @@
+name: Add Verified Campus Offerings and LUMS 2027 Intake
+
+on:
+  push:
+    branches:
+      - ops/add-verified-campus-offerings-and-lums-2027-intake
+
+permissions:
+  contents: read
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Add offerings with campus evidence and current LUMS intake
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            cd /home/u537436044/domains/estudent.pk/public_html/institutes
+            php <<'PHP'
+            <?php
+            require 'vendor/autoload.php';
+            $app=require_once 'bootstrap/app.php';
+            $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+            $kernel->bootstrap();
+            $db=Illuminate\Support\Facades\DB::class;
+            $specs=[
+              ['slug'=>'punjab-university-bs-computer-science','institution_id'=>3,'campus_id'=>13,'duration'=>null,'source'=>'https://pucit.edu.pk/faq-2/'],
+              ['slug'=>'lums-bs-computer-science','institution_id'=>8,'campus_id'=>2,'duration'=>null,'source'=>'https://lums.edu.pk/node/826'],
+              ['slug'=>'numl-islamabad-bs-computer-science','institution_id'=>12,'campus_id'=>20,'duration'=>'4 years','source'=>'https://www.numl.edu.pk/university/Admission%20Spring%202026_advert.pdf'],
+              ['slug'=>'air-university-bs-computer-science','institution_id'=>15,'campus_id'=>5,'duration'=>null,'source'=>'https://webdata.au.edu.pk/Pages/Admission/FAQS.aspx'],
+              ['slug'=>'kiu-bs-computer-science','institution_id'=>17,'campus_id'=>7,'duration'=>null,'source'=>'https://admissions.kiu.edu.pk/all-degrees'],
+            ];
+            $db::transaction(function() use ($db,$specs) {
+              foreach($specs as $s) {
+                $p=$db::table('programs')->where('institution_id',$s['institution_id'])->where('slug',$s['slug'])->where('status','active')->first();
+                $c=$db::table('campuses')->where('id',$s['campus_id'])->where('institution_id',$s['institution_id'])->where('status','active')->whereNotNull('geography_id')->first();
+                if(!$p || !$c) throw new RuntimeException("Program/campus guard failed ".$s['slug']);
+                $found=$db::table('program_offerings')->where('program_id',$p->id)->where('campus_id',$c->id)->where('delivery_mode','on_campus')->lockForUpdate()->get();
+                if($found->count()>1) throw new RuntimeException("Duplicate offering ".$s['slug']);
+                if($found->count()===0) {
+                  $db::table('program_offerings')->insert(['program_id'=>$p->id,'campus_id'=>$c->id,'delivery_mode'=>'on_campus','status'=>'active','intake_label'=>null,'duration'=>$s['duration'],'availability'=>'unknown','effective_from'=>null,'effective_until'=>null,'created_at'=>now(),'updated_at'=>now()]);
+                  echo "OFFERING_ADDED=".$s['slug'].";CAMPUS=".$c->name.";SOURCE=".$s['source']."\n";
+                }
+              }
+              // LUMS official program page gives current 2027 intake dates; the LCAT date is marked tentative by the institution.
+              $p=$db::table('programs')->where('institution_id',8)->where('slug','lums-bs-computer-science')->first();
+              $o=$db::table('program_offerings')->where('program_id',$p->id)->where('campus_id',2)->where('status','active')->first();
+              if(!$o) throw new RuntimeException('LUMS offering missing for intake');
+              $found=$db::table('admission_intakes')->where('program_offering_id',$o->id)->where('label','Fall 2027')->lockForUpdate()->get();
+              if($found->count()>1) throw new RuntimeException('Duplicate LUMS Fall 2027 intake');
+              if($found->count()===0) {
+                $db::table('admission_intakes')->insert([
+                  'program_offering_id'=>$o->id,'label'=>'Fall 2027','status'=>'open',
+                  'application_open_at'=>'2026-10-01','application_close_at'=>'2027-01-20',
+                  'test_date'=>'2027-03-21','selection_date'=>null,'enrollment_start_at'=>'2027-09-01','enrollment_end_at'=>null,
+                  'seat_capacity'=>null,'application_url'=>'https://lums.edu.pk/node/826',
+                  'notes'=>'Official LUMS BS Computer Science admissions page: online application activation October 2026; application deadline 20 January 2027 at 5:00 pm PKT; supporting documents and application fee deadline 21 January 2027; LCAT listed for 21 March 2027 as tentative; classes commence September 2027. September commencement is month-level only; stored as 1 September solely as a machine-readable month marker, not an official exact class date.',
+                  'created_at'=>now(),'updated_at'=>now()
+                ]);
+                echo "CURRENT_INTAKE_ADDED=LUMS Fall 2027;SOURCE=https://lums.edu.pk/node/826\n";
+              } else echo "CURRENT_INTAKE_REUSED=LUMS Fall 2027\n";
+            });
+            $counts=['active_programs'=>$db::table('programs')->where('status','active')->count(),'active_offerings'=>$db::table('program_offerings')->where('status','active')->count(),'intakes'=>$db::table('admission_intakes')->count(),'open_intakes'=>$db::table('admission_intakes')->where('status','open')->count(),'broken_offerings'=>$db::table('program_offerings as o')->leftJoin('programs as p','p.id','=','o.program_id')->leftJoin('campuses as c','c.id','=','o.campus_id')->where('o.status','active')->where(function($q){$q->whereNull('p.id')->orWhereNull('c.id')->orWhere('p.status','<>','active')->orWhere('c.status','<>','active');})->count(),'orphan_intakes'=>$db::table('admission_intakes as a')->leftJoin('program_offerings as o','o.id','=','a.program_offering_id')->whereNull('o.id')->count()];
+            echo "FINAL_ENRICHMENT_COUNTS=".json_encode($counts)."\n";
+            if($counts['active_programs']!==74 || $counts['active_offerings']<43 || $counts['intakes']<5 || $counts['open_intakes']<1 || $counts['broken_offerings']!==0 || $counts['orphan_intakes']!==0) throw new RuntimeException('Final enrichment integrity checks failed.');
+            PHP
+            php artisan institutes:data-gap-report --json | php -r '$d=json_decode(stream_get_contents(STDIN),true); if(!is_array($d)) exit(2); echo "FINAL_ENRICHMENT_REPORT_STATUS=".($d["status"]??"unknown")."\n"; echo "FINAL_ENRICHMENT_POPULATION=".json_encode($d["sections"]["canonical_population"]??null)."\n"; echo "FINAL_ENRICHMENT_GAPS=".json_encode($d["sections"]["canonical_relationship_gaps"]??null)."\n"; if(($d["mutation_performed"]??null)!==false || ($d["status"]??null)!=="healthy") exit(5);'
