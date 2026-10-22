@@ -61,7 +61,8 @@ class InstitutionController
                                 ->whereNotIn('status', ['rejected', 'withdrawn'])
                                 ->orderBy('name'),
                         ])
-                        ->orderBy('name'),
+                        ->orderBy('intake_label')
+                ->orderBy('delivery_mode'),
                 ])
                 ->with([
                     'externalRankings' => fn ($query) => $query
