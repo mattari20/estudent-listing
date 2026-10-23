@@ -61,6 +61,9 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         Route::get('/account/password', [InstituteUserController::class, 'editPassword'])->name('account.password.edit');
         Route::put('/account/password', [InstituteUserController::class, 'updatePassword'])->name('account.password.update');
         Route::post('/agent/discover', [InstituteOperationsController::class, 'discover'])->name('agent.discover');
+        Route::get('/discovery-packages/{importBatch}/{file}', [InstituteDiscoveryReviewPackageController::class, 'download'])
+            ->whereIn('file', ['csv', 'manifest'])
+            ->name('discovery-packages.download');
         Route::get('/integrity', InstituteGeographyIntegrityController::class)->name('integrity');
         Route::get('/data-readiness', InstituteDataReadinessController::class)->name('data-readiness');
         Route::get('/imports/{importBatch}/verification', InstituteImportVerificationController::class)->name('imports.verification');

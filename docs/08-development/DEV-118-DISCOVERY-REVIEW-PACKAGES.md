@@ -31,3 +31,13 @@ The CSV includes candidate identity, entity and parent, official source URL, sna
 ## Limitations / next steps
 
 This initial implementation packages successful discovery batches. Scheduled empty/no-change outcomes, protected admin retrieval, package retention and full live Hostinger verification remain follow-up acceptance criteria. CI must pass before merge/deployment. Do not run migrations, canonical promotions, or production data repairs as part of this phase.
+
+
+## Protected operator retrieval
+
+Authenticated users who pass the existing `institute.operator` middleware can download a package by discovery batch ID:
+
+- CSV: `GET /institutes/operations/discovery-packages/{batch_id}/csv`
+- JSON manifest: `GET /institutes/operations/discovery-packages/{batch_id}/manifest`
+
+The route resolves the snapshot ID from the batch's first candidate provenance and serves only existing files from Laravel's private local disk. Unknown batches, unsupported file types, missing provenance, and missing files return 404. Responses include private/no-store cache headers and `X-Content-Type-Options: nosniff`. These routes do not create, approve, promote, or mutate candidate records.
