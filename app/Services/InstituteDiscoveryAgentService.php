@@ -190,6 +190,8 @@ class InstituteDiscoveryAgentService
             'completed_at' => now(),
         ]);
 
+        $reviewPackage = app(InstituteDiscoveryReviewPackageService::class)->create($batch->fresh());
+
         return [
             'entity_type' => $entityType,
             'profile' => $profile,
@@ -202,6 +204,7 @@ class InstituteDiscoveryAgentService
             'candidate_rows' => $candidateRows,
             'duplicate_rows' => $duplicateRows,
             'extraction_method' => $useAi ? 'ai_extraction' : 'deterministic',
+            'review_package' => $reviewPackage,
         ];
     }
 
