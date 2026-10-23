@@ -72,8 +72,9 @@ jobs:
               echo "ERROR: tracked working-tree changes found; refusing deployment"
               exit 4
             fi
-            git fetch --quiet --no-tags origin main "$TARGET_REVISION"
+            git fetch --quiet --no-tags origin main
             git cat-file -e "$TARGET_REVISION^{commit}"
+            git merge-base --is-ancestor "$TARGET_REVISION" FETCH_HEAD || { echo "ERROR: target revision is not reachable from origin/main"; exit 4; }
             if [ "$CONFIRM_DEPLOYMENT" != "true" ]; then
               echo "deployment_status=DRY_RUN_PREFLIGHT_PASSED"
               echo "No application files were changed. Rerun manually with confirm_deployment=true to deploy."
