@@ -219,6 +219,12 @@ class DataGapRecordAudit extends Command
                 } elseif (in_array($eventType, ['promotion_failed', 'promotion_error'], true)) {
                     $record['review_disposition'] = 'investigate_promotion_failure';
                     $record['review_reasons'][] = 'A promotion failure event exists; inspect its private details before retrying.';
+                } elseif (($record['open_conflict_count'] ?? 0) > 0) {
+                    $record['review_disposition'] = 'resolve_open_conflicts';
+                    $record['review_reasons'][] = 'Open conflicts must be resolved explicitly before promotion or publication.';
+                } elseif (($record['entity_type'] ?? null) === 'institution' && ! ($record['has_approved_identity_decision'] ?? false)) {
+                    $record['review_disposition'] = 'review_identity_decision';
+                    $record['review_reasons'][] = 'Institution identity requires an explicit approved-new or approved-match decision.';
                 } elseif (! ($record['has_approved_promotion_decision'] ?? false)) {
                     $record['review_disposition'] = 'review_promotion_decision';
                     $record['review_reasons'][] = 'No approved promotion decision is recorded; do not promote or publish automatically.';
