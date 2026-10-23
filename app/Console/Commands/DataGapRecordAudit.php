@@ -86,6 +86,42 @@ class DataGapRecordAudit extends Command
                     ])->all(),
             ];
 
+            // Keep the actionable gap list separate from the aggregate program totals.
+            // This remains read-only and never creates or changes offerings.
+            if (Schema::hasTable('program_offerings') && Schema::hasColumn('program_offerings', 'program_id')
+                && Schema::hasColumn('program_offerings', 'status')) {
+                $programsWithoutActiveOfferings = DB::table('programs')
+                    ->leftJoin('program_offerings as active_offerings', function ($join): void {
+                        $join->on('active_offerings.program_id', '=', 'programs.id')
+                            ->where('active_offerings.status', '=', 'active');
+                    })
+                    ->where('programs.status', 'active')
+                    ->groupBy('programs.id', 'programs.institution_id', 'programs.name', 'programs.slug', 'programs.program_level', 'programs.status')
+                    ->havingRaw('COUNT(active_offerings.id) = 0')
+                    ->orderBy('programs.institution_id')
+                    ->orderBy('programs.id')
+                    ->get(['programs.id', 'programs.institution_id', 'programs.name', 'programs.slug', 'programs.program_level', 'programs.status']);
+
+                $report['sections']['programs_without_active_offerings'] = [
+                    'total' => $programsWithoutActiveOfferings->count(),
+                    'records' => $programsWithoutActiveOfferings->map(fn ($row): array => [
+                        'id' => (int) $row->id,
+                        'institution_id' => (int) $row->institution_id,
+                        'name' => $row->name,
+                        'slug' => $row->slug,
+                        'program_level' => $row->program_level,
+                        'status' => $row->status,
+                    ])->all(),
+                ];
+            } else {
+                $report['sections']['programs_without_active_offerings'] = [
+                    'status' => 'skipped',
+                    'reason' => 'program_offerings_schema_unavailable',
+                    'total' => null,
+                    'records' => [],
+                ];
+            }
+
             $batchColumns = array_values(array_filter(
                 ['id', 'batch_key', 'entity_type', 'source_type', 'source_id', 'status', 'total_rows', 'valid_rows', 'invalid_rows', 'candidate_rows', 'received_at', 'completed_at'],
                 fn (string $column): bool => Schema::hasColumn('import_batches', $column),
@@ -347,6 +383,9 @@ class DataGapRecordAudit extends Command
             $report['sections'] = [
                 'institutions' => ['total' => $sections['institutions']['total'] ?? null],
                 'programs' => ['total' => $sections['programs']['total'] ?? null],
+                'programs_without_active_offerings' => [
+                    'total' => $sections['programs_without_active_offerings']['total'] ?? null,
+                ],
                 'import_batches' => ['total' => $sections['import_batches']['total'] ?? null],
                 'import_rows' => [
                     'total' => $sections['import_rows']['total'] ?? null,
