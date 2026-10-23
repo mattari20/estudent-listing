@@ -10,9 +10,19 @@ return new class extends Migration
     {
         Schema::create('institute_discovery_run_outcomes', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('source_id')->nullable()->constrained('sources')->nullOnDelete();
-            $table->foreignId('source_change_observation_id')->nullable()->constrained('source_change_observations')->nullOnDelete();
-            $table->foreignId('snapshot_id')->nullable()->constrained('source_snapshots')->nullOnDelete();
+
+            $table->foreignId('source_id')->nullable();
+            $table->foreign('source_id', 'idrun_outcomes_source_fk')
+                ->references('id')->on('sources')->nullOnDelete();
+
+            $table->foreignId('source_change_observation_id')->nullable();
+            $table->foreign('source_change_observation_id', 'idrun_outcomes_observation_fk')
+                ->references('id')->on('source_change_observations')->nullOnDelete();
+
+            $table->foreignId('snapshot_id')->nullable();
+            $table->foreign('snapshot_id', 'idrun_outcomes_snapshot_fk')
+                ->references('id')->on('source_snapshots')->nullOnDelete();
+
             $table->string('profile_key')->nullable();
             $table->string('outcome', 40);
             $table->unsignedInteger('candidate_count')->default(0);
@@ -21,8 +31,8 @@ return new class extends Migration
             $table->json('details')->nullable();
             $table->timestamp('occurred_at');
             $table->timestamps();
-            $table->index(['source_id', 'occurred_at']);
-            $table->index(['outcome', 'occurred_at']);
+            $table->index(['source_id', 'occurred_at'], 'idrun_outcomes_source_time_idx');
+            $table->index(['outcome', 'occurred_at'], 'idrun_outcomes_outcome_time_idx');
         });
     }
 
