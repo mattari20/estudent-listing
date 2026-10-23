@@ -194,4 +194,21 @@ class InstituteImportDuplicateAuditTest extends TestCase
         $this->assertCount(2, $collision['institutions']);
         $this->assertSame(2, Institution::query()->count());
     }
+
+
+    public function test_duplicate_audit_build_is_read_only_for_canonical_records(): void
+    {
+        $institution = Institution::query()->create([
+            'name' => 'Audit Preservation University',
+            'slug' => 'audit-preservation-university',
+            'institution_type' => 'university',
+            'status' => 'active',
+        ]);
+        $before = $institution->only(['id', 'name', 'slug', 'status']);
+
+        $report = app(InstituteImportDuplicateAuditService::class)->build();
+
+        $this->assertFalse($report['mutation_performed'] ?? true);
+        $this->assertSame($before, $institution->fresh()->only(['id', 'name', 'slug', 'status']));
+    }
 }
