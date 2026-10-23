@@ -1,0 +1,82 @@
+name: Automated Live Data Integrity Audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "bootstrap/**"
+      - "config/**"
+      - "database/**"
+      - "routes/**"
+      - "composer.json"
+      - "composer.lock"
+      - "public/**"
+      - "artisan"
+      - ".github/workflows/automated-live-integrity-audit.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automated-live-integrity-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Run read-only integrity report on Hostinger
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main and resolve application-code revision
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Resolve expected application-code revision
+        id: revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          test -n "$revision"
+          echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "expected_application_revision=$revision"
+
+      - name: Verify deployed revision and run read-only audit
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
+          TARGET_REVISION: ${{ steps.revision.outputs.target_revision }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,TARGET_REVISION
+          command_timeout: 7m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: invalid project path"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: invalid project path"; exit 2 ;; esac
+            test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
+            cd "$PROJECT_PATH"
+            git rev-parse --is-inside-work-tree >/dev/null
+            DEPLOYED_REVISION="$(git rev-parse HEAD)"
+            echo "expected_application_revision=$TARGET_REVISION"
+            echo "deployed_revision=$DEPLOYED_REVISION"
+            if [ "$DEPLOYED_REVISION" != "$TARGET_REVISION" ]; then
+              echo "audit_status=BLOCKED_CODE_REVISION_MISMATCH"
+              echo "No live database query was run because deployed code does not match the expected application revision."
+              exit 10
+            fi
+            echo "audit_status=RUNNING_READ_ONLY_REPORT"
+            php artisan institutes:data-integrity-report --no-ansi
+            echo "audit_status=READ_ONLY_REPORT_COMPLETED"
+            echo "production_data_mutations=NOT_RUN"
+            echo "database_migrations=NOT_RUN"
