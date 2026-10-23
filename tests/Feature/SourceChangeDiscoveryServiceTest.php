@@ -21,6 +21,7 @@ class SourceChangeDiscoveryServiceTest extends TestCase
         $observation = SourceChangeObservation::create([
             'source_id' => $source->id,
             'current_snapshot_id' => $snapshot->id,
+            'observed_at' => now(),
             'change_state' => 'unchanged',
             'materiality' => 'none',
         ]);
@@ -42,6 +43,7 @@ class SourceChangeDiscoveryServiceTest extends TestCase
         $observation = SourceChangeObservation::create([
             'source_id' => $source->id,
             'current_snapshot_id' => $snapshot->id,
+            'observed_at' => now(),
             'change_state' => 'changed',
             'materiality' => 'high',
         ]);
