@@ -19,6 +19,8 @@ class InstituteDataIntegrityReportTest extends TestCase
         $this->assertSame('institutes_data_integrity_report', $report['check']);
         $this->assertFalse($report['mutation_performed']);
         $this->assertArrayHasKey('canonical_counts', $report);
+        $this->assertArrayHasKey('import_row_groups', $report);
+        $this->assertArrayHasKey('promotion_event_types', $report);
         $this->assertArrayHasKey('promotion_failure_categories', $report);
         $this->assertArrayHasKey('readiness', $report);
         $this->assertArrayHasKey('warnings', $report);
