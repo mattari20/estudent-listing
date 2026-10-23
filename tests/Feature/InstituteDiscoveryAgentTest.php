@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\ImportBatch;
 use App\Models\ImportRow;
+use App\Models\Program;
 use App\Models\Institution;
 use App\Services\InstituteDiscoveryAgentService;
 use App\Services\InstituteDiscoveryReviewPackageService;
@@ -186,5 +187,43 @@ class InstituteDiscoveryAgentTest extends TestCase
     }
 
 
+
+
+    public function test_gcu_pilot_profile_creates_private_candidates_without_canonical_mutations(): void
+    {
+        Storage::fake('local');
+        Institution::create([
+            'name' => 'Government College University Lahore',
+            'slug' => 'government-college-university-lahore',
+            'status' => 'active',
+        ]);
+
+        $html = '<html><body>
+            <a href="/bba">Bachelor of Business Administration</a>
+            <a href="/biology">Bachelor of Science (BS) in Biology</a>
+            <a href="/mphil">Master of Philosophy in Biology</a>
+        </body></html>';
+
+        Http::fake([
+            'https://gcu.edu.pk/admissions.php?pg=bs-program' => Http::response(
+                $html,
+                200,
+                ['Content-Type' => 'text/html']
+            ),
+        ]);
+
+        $canonicalProgramsBefore = Program::count();
+        $summary = app(InstituteDiscoveryAgentService::class)->run('gcu-lahore-programs');
+
+        $this->assertSame(2, $summary['candidate_rows']);
+        $this->assertSame('created', $summary['review_package']['status']);
+        $this->assertDatabaseHas('sources', [
+            'id' => $summary['source_id'],
+            'url' => 'https://gcu.edu.pk/admissions.php?pg=bs-program',
+        ]);
+        $this->assertSame($canonicalProgramsBefore, Program::count());
+        $this->assertSame(2, ImportRow::where('import_batch_id', $summary['batch_id'])->count());
+        $this->assertFalse($summary['review_package']['canonical_mutations_performed']);
+    }
 
 }
