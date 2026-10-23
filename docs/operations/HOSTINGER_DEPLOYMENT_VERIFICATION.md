@@ -38,4 +38,4 @@ Use the **Hostinger Read-only Diagnostics** workflow in GitHub Actions:
 
 ## Recent verified baseline
 
-On 2026-10-23, the diagnostics rerun after PR #353 reported `MATCH` with deployed and expected application revision `5e260e4daafd387ef72b397a7038d321c01a5e47`. This is a historical verification point, not a permanent assertion about the current deployment.
+On 2026-10-23, after the application-code changes from PR #354 had been deployed, the diagnostics rerun reported `MATCH` with deployed and expected application revision `5e260e4daafd387ef72b397a7038d321c01a5e47`. This is a historical verification point, not a permanent assertion about the current deployment.
