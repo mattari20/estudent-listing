@@ -25,4 +25,15 @@ class InstituteOperationsAccessTest extends TestCase {
   $user = User::create(['name' => 'Read Only Viewer', 'email' => 'viewer-import-'.uniqid().'@example.test', 'password' => 'secret', 'role' => 'viewer']);
   $this->actingAs($user)->get('/institutes/operations/import')->assertRedirect('/institutes/login');
  }
+
+
+ public function test_viewer_cannot_submit_promotion_decision(): void {
+  $viewer=User::create(['name'=>'Decision Viewer','email'=>'decision-viewer-'.uniqid().'@example.test','password'=>'secret','role'=>'viewer']);
+  $batch=ImportBatch::create(['batch_key'=>'viewer-decision-'.uniqid(),'entity_type'=>'institution','source_type'=>'manual','status'=>'validated','total_rows'=>1,'valid_rows'=>1,'candidate_rows'=>1,'received_at'=>now()]);
+  $row=ImportRow::create(['import_batch_id'=>$batch->id,'row_number'=>1,'status'=>'candidate','match_state'=>'new_candidate','payload'=>['name'=>'Viewer Protected Institute'],'normalized_payload'=>['name'=>'Viewer Protected Institute']]);
+
+  $this->actingAs($viewer)->post(route('institutes.operations.decide',$row),['decision'=>'approved_new','reason'=>'Should be blocked'])
+   ->assertRedirect('/institutes/login');
+  $this->assertDatabaseMissing('identity_resolution_decisions',['import_row_id'=>$row->id,'decision'=>'approved_new']);
+ }
 }
