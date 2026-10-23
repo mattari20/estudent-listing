@@ -54,6 +54,7 @@ class InstituteSearchFilterService
                 ->where('status', 'active')
                 ->where('delivery_mode', $filters['delivery_mode'])))
             ->when($filters['admission_status'] ?? '', fn ($builder) => $builder->whereHas('programs.offerings.admissionIntakes', fn ($intake) => $intake
-                ->where('status', $filters['admission_status'])));
+                ->whereNotIn('status', ['cancelled', 'suspended'])
+                ->where('status', $filters['admission_status'])) );
     }
 }

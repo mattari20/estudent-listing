@@ -15,7 +15,7 @@ class InstituteSearchCatalogService {
    'cities'=>Geography::where('status','active')->where('type','city')->orderBy('name')->pluck('name'),
    'programLevels'=>Program::where('status','active')->whereNotNull('program_level')->distinct()->orderBy('program_level')->pluck('program_level'),
    'deliveryModes'=>ProgramOffering::where('status','active')->whereNotNull('delivery_mode')->distinct()->orderBy('delivery_mode')->pluck('delivery_mode'),
-   'admissionStatuses'=>AdmissionIntake::whereNotNull('status')->distinct()->orderBy('status')->pluck('status'),
+   'admissionStatuses'=>AdmissionIntake::whereNotNull('status')->whereNotIn('status',['cancelled','suspended'])->distinct()->orderBy('status')->pluck('status'),
   ];});
  }
 }
