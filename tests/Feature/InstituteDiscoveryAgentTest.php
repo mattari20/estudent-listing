@@ -223,7 +223,12 @@ class InstituteDiscoveryAgentTest extends TestCase
         ]);
         $this->assertSame($canonicalProgramsBefore, Program::count());
         $this->assertSame(2, ImportRow::where('import_batch_id', $summary['batch_id'])->count());
-        $this->assertFalse($summary['review_package']['canonical_mutations_performed']);
+
+        $manifest = json_decode(
+            Storage::disk('local')->get($summary['review_package']['manifest_path']),
+            true
+        );
+        $this->assertFalse($manifest['canonical_mutations_performed']);
     }
 
 }
