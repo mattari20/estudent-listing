@@ -39,6 +39,21 @@ The deterministic discovery agent records an explicit zero-row validated batch w
 
 The empty-result path does not create import rows, promote canonical records, publish records, or run migrations. Source retrieval and extraction exceptions remain failures and should be surfaced by the caller/run-history workflow rather than mislabeled as no-change.
 
+## Scheduled deterministic discovery runtime
+
+The live diagnostics showed that Laravel's hourly task definitions are present, but `crontab -l` returned `missing_or_unreadable`; the live database also had zero source snapshots, monitoring policies, and retrieval runs. The new `.github/workflows/scheduled-institute-discovery.yml` provides an hourly GitHub Actions runner as the managed scheduler instead of relying on an unverified Hostinger cron entry.
+
+The runner must:
+- verify that Hostinger's deployed application-code revision matches the approved `main` application revision before any source retrieval or write;
+- abort if any configured discovery profile enables AI, preserving zero paid AI API cost;
+- run `institutes:bootstrap-agent` and `institutes:monitor-changes` only;
+- compare canonical table counts before and after the run, failing if those counts change;
+- never run migrations, approve candidates, promote canonical records, or publish records.
+
+Discovery packages are private local-disk files, not public URLs. An authorized operator can run `php artisan institutes:discovery-review-package` over SSH to create/reuse the newest package and obtain its CSV and manifest paths. Do not symlink these packages into the public web root.
+
+The read-only live audit also found 36 active programs without an active offering. These are now exposed as a separate official-source review queue; do not manufacture offering records or change production data merely to make the warning disappear.
+
 ## Retry and failure policy
 
 - **Safe to retry after correction:** validation failures, missing evidence capture, and transient source retrieval failures, provided no canonical mutation occurred.
