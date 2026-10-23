@@ -215,6 +215,77 @@ jobs:
             PHP
             echo "=== Data-gap report (read-only) ==="
             php artisan institutes:data-gap-report --json
+            echo "=== Active programs without active offerings (read-only review queue) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $db = \Illuminate\Support\Facades\DB::class;
+
+            $programs = $db::table('programs')
+                ->join('institutions', 'institutions.id', '=', 'programs.institution_id')
+                ->leftJoin('program_offerings as active_offerings', function ($join): void {
+                    $join->on('active_offerings.program_id', '=', 'programs.id')
+                        ->where('active_offerings.status', '=', 'active');
+                })
+                ->where('programs.status', 'active')
+                ->groupBy(
+                    'programs.id',
+                    'programs.institution_id',
+                    'programs.name',
+                    'programs.slug',
+                    'programs.program_level',
+                    'programs.status',
+                    'institutions.name',
+                    'institutions.slug'
+                )
+                ->havingRaw('COUNT(active_offerings.id) = 0')
+                ->orderBy('programs.institution_id')
+                ->orderBy('programs.id')
+                ->get([
+                    'programs.id',
+                    'programs.institution_id',
+                    'programs.name',
+                    'programs.slug',
+                    'programs.program_level',
+                    'programs.status',
+                    'institutions.name as institution_name',
+                    'institutions.slug as institution_slug',
+                ]);
+
+            $existingOfferingStatuses = $programs->isEmpty()
+                ? collect()
+                : $db::table('program_offerings')
+                    ->select('program_id', 'status', $db::raw('COUNT(*) as total'))
+                    ->whereIn('program_id', $programs->pluck('id')->all())
+                    ->groupBy('program_id', 'status')
+                    ->get()
+                    ->groupBy('program_id');
+
+            echo json_encode([
+                'check' => 'active_programs_without_active_offerings_review_queue',
+                'checked_at' => now()->toIso8601String(),
+                'status' => $programs->isEmpty() ? 'clear' : 'review_required',
+                'scope' => 'read_only_official_source_review_queue',
+                'mutation_performed' => false,
+                'total' => $programs->count(),
+                'records' => $programs->map(fn ($program): array => [
+                    'program_id' => (int) $program->id,
+                    'program_name' => $program->name,
+                    'program_slug' => $program->slug,
+                    'program_level' => $program->program_level,
+                    'program_status' => $program->status,
+                    'institution_id' => (int) $program->institution_id,
+                    'institution_name' => $program->institution_name,
+                    'institution_slug' => $program->institution_slug,
+                    'existing_offerings_by_status' => ($existingOfferingStatuses->get($program->id, collect()))
+                        ->mapWithKeys(fn ($row): array => [(string) ($row->status ?? 'null') => (int) $row->total])
+                        ->all(),
+                    'next_action' => 'verify_current_official_source_before_creating_or_changing_offerings',
+                ])->values()->all(),
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
             echo "=== Record-level audit (read-only; summary output only) ==="
             # Capture output privately first. Never print a response unless it proves
             # that summary mode is active and no row-level records are present.
