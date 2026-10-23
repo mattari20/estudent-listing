@@ -9,11 +9,17 @@ use App\Models\Assertion;
 use App\Models\Institution;
 use App\Models\InstitutionName;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class InstituteImportPromoter
 {
     public function promote(ImportRow $row, IdentityResolutionDecision $decision): Institution
+    {
+        return DB::transaction(fn (): Institution => $this->promoteWithinTransaction($row, $decision));
+    }
+
+    private function promoteWithinTransaction(ImportRow $row, IdentityResolutionDecision $decision): Institution
     {
         if ($decision->import_row_id !== $row->id) {
             throw new RuntimeException('Resolution decision does not belong to import row.');
