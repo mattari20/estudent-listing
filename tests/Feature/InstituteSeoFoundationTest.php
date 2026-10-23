@@ -100,4 +100,18 @@ class InstituteSeoFoundationTest extends TestCase
   Institution::create(['name' => 'SEO Pending University', 'slug' => 'seo-pending-university', 'status' => 'candidate']);
   $this->get('/institutes/sitemap.xml')->assertOk()->assertDontSee('/institutes/seo-pending-university', false);
  }
+
+
+    public function test_sitemap_excludes_candidate_institution_urls(): void
+    {
+        Institution::create([
+            'name' => 'Candidate University',
+            'slug' => 'candidate-university',
+            'status' => 'candidate',
+        ]);
+
+        $this->get('/institutes/sitemap.xml')
+            ->assertOk()
+            ->assertDontSee('/institutes/candidate-university', false);
+    }
 }
