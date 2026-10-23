@@ -104,7 +104,7 @@ class InstituteDiscoveryAgentService
             );
 
         if ($candidates === []) {
-            throw new \RuntimeException("The discovery agent found no {$entityType} candidates.");
+            return $this->persistEmptyOutcome($profile, $institution, $source, $snapshot, $entityType, $useAi);
         }
 
         $excerptLines = [];
@@ -190,7 +190,7 @@ class InstituteDiscoveryAgentService
             'completed_at' => now(),
         ]);
 
-        $reviewPackage = app(InstituteDiscoveryReviewPackageService::class)->create($batch->fresh());
+        $reviewPackage = app(InstituteDiscoveryReviewPackageService::class)->create($batch->fresh(), $snapshot, (int) $evidence->id);
 
         return [
             'entity_type' => $entityType,
@@ -204,6 +204,60 @@ class InstituteDiscoveryAgentService
             'candidate_rows' => $candidateRows,
             'duplicate_rows' => $duplicateRows,
             'extraction_method' => $useAi ? 'ai_extraction' : 'deterministic',
+            'review_package' => $reviewPackage,
+        ];
+    }
+
+    private function persistEmptyOutcome(
+        string $profile,
+        Institution $institution,
+        Source $source,
+        SourceSnapshot $snapshot,
+        string $entityType,
+        bool $useAi
+    ): array {
+        $evidence = Evidence::create([
+            'source_id' => $source->id,
+            'snapshot_id' => $snapshot->id,
+            'reference' => $source->url,
+            'excerpt' => 'No '.$entityType.' candidates were extracted from this source snapshot.',
+            'content_hash' => $snapshot->content_hash,
+            'observed_at' => now(),
+            'status' => 'active',
+        ]);
+
+        $batch = ImportBatch::create([
+            'batch_key' => ($useAi ? 'ai-' : 'agent-').$profile.'-'.Str::lower(Str::random(16)),
+            'entity_type' => $entityType,
+            'source_type' => $useAi ? 'ai_extraction' : 'automated_discovery',
+            'source_id' => $source->id,
+            'status' => 'validated',
+            'total_rows' => 0,
+            'valid_rows' => 0,
+            'invalid_rows' => 0,
+            'candidate_rows' => 0,
+            'received_at' => now(),
+            'completed_at' => now(),
+            'notes' => 'No candidates extracted from source snapshot #'.$snapshot->id
+                .'. This is a recorded no-change outcome; no canonical data was changed.',
+        ]);
+
+        $reviewPackage = app(InstituteDiscoveryReviewPackageService::class)
+            ->create($batch->fresh(), $snapshot, (int) $evidence->id);
+
+        return [
+            'entity_type' => $entityType,
+            'profile' => $profile,
+            'institution_id' => $institution->id,
+            'source_id' => $source->id,
+            'snapshot_id' => $snapshot->id,
+            'evidence_id' => $evidence->id,
+            'batch_id' => $batch->id,
+            'total_rows' => 0,
+            'candidate_rows' => 0,
+            'duplicate_rows' => 0,
+            'extraction_method' => $useAi ? 'ai_extraction' : 'deterministic',
+            'outcome' => 'no_candidates',
             'review_package' => $reviewPackage,
         ];
     }

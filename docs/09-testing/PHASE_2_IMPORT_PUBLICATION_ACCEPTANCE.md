@@ -28,6 +28,13 @@
 | End-to-end readiness report is read-only and fails closed when readiness is incomplete | `InstituteEndToEndReadinessTest` |
 | Complete evidence-backed promotion → explicit publication → public listing/profile | `ImportLifecyclePublicationEndToEndTest` |
 
+
+## Discovery no-change outcome regression
+
+The deterministic discovery agent records an explicit zero-row validated batch when a source snapshot yields no candidates. It also records active source evidence and emits a private CSV/JSON review package whose manifest status is `no_candidates`. This is an observed no-candidate outcome, not proof that the institution has no programmes; the source may have changed layout or temporarily omitted content.
+
+The empty-result path does not create import rows, promote canonical records, publish records, or run migrations. Source retrieval and extraction exceptions remain failures and should be surfaced by the caller/run-history workflow rather than mislabeled as no-change.
+
 ## Retry and failure policy
 
 - **Safe to retry after correction:** validation failures, missing evidence capture, and transient source retrieval failures, provided no canonical mutation occurred.

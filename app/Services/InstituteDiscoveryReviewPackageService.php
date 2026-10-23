@@ -9,7 +9,7 @@ use RuntimeException;
 
 class InstituteDiscoveryReviewPackageService
 {
-    public function create(ImportBatch $batch): array
+    public function create(ImportBatch $batch, ?SourceSnapshot $snapshotOverride = null, ?int $evidenceIdOverride = null): array
     {
         if (! in_array($batch->source_type, ['automated_discovery', 'ai_extraction'], true)) {
             throw new RuntimeException('Review packages can only be created for discovery batches.');
@@ -18,13 +18,14 @@ class InstituteDiscoveryReviewPackageService
         $batch->loadMissing(['source', 'rows']);
         $firstPayload = $batch->rows->first()?->payload ?? [];
         $provenance = is_array($firstPayload) ? ($firstPayload['_provenance'] ?? []) : [];
-        $snapshotId = (int) ($provenance['snapshot_id'] ?? 0);
+        $snapshotId = (int) ($snapshotOverride?->id ?? ($provenance['snapshot_id'] ?? 0));
+        $evidenceId = $evidenceIdOverride ?? (isset($provenance['evidence_id']) ? (int) $provenance['evidence_id'] : null);
 
         if ($snapshotId < 1) {
             throw new RuntimeException('The discovery batch has no source snapshot provenance.');
         }
 
-        $snapshot = SourceSnapshot::query()->find($snapshotId);
+        $snapshot = $snapshotOverride ?? SourceSnapshot::query()->find($snapshotId);
         if (! $snapshot || (int) $snapshot->source_id !== (int) $batch->source_id) {
             throw new RuntimeException('The discovery batch snapshot does not match its source.');
         }
@@ -103,6 +104,7 @@ class InstituteDiscoveryReviewPackageService
             'source_id' => (int) $batch->source_id,
             'official_source_url' => $batch->source?->url,
             'snapshot_id' => $snapshotId,
+            'evidence_id' => $evidenceId,
             'snapshot_hash' => $snapshot->content_hash,
             'observed_at' => $snapshot->captured_at?->toIso8601String(),
             'candidate_count' => $candidateCount,
