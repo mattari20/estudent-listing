@@ -153,7 +153,7 @@ class InstituteDiscoveryAgentTest extends TestCase
             </section><section><h2>Campus Life</h2><a href="/events">Events</a></section></main>
         </body></html>';
 
-        $candidates = app(\\App\\Services\\InstituteDiscoveryCandidateExtractor::class)->extract('program', $html);
+        $candidates = app(\App\Services\InstituteDiscoveryCandidateExtractor::class)->extract('program', $html);
         $names = array_column($candidates, 'name');
 
         $this->assertContains('Biology', $names);
