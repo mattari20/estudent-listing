@@ -12,6 +12,9 @@ class PublicDirectoryEmptyStateTest extends TestCase
 
     public function test_directory_explains_when_no_active_institutions_are_available(): void
     {
+        // The test database may be seeded; remove active rows from the fixture first.
+        Institution::query()->update(['status' => 'inactive']);
+
         Institution::query()->create([
             'name' => 'Candidate Institution',
             'slug' => 'candidate-institution',
