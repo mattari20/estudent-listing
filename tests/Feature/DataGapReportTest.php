@@ -194,4 +194,29 @@ class DataGapReportTest extends TestCase
     }
 
 
+
+
+    public function test_duplicate_name_report_is_a_candidate_signal_not_a_merge_instruction(): void
+    {
+        Institution::query()->create([
+            'name' => 'Shared Name University',
+            'slug' => 'shared-name-university-one',
+            'institution_type' => 'university',
+            'status' => 'candidate',
+        ]);
+        Institution::query()->create([
+            'name' => ' shared name university ',
+            'slug' => 'shared-name-university-two',
+            'institution_type' => 'university',
+            'status' => 'candidate',
+        ]);
+
+        Artisan::call('institutes:data-gap-report', ['--json' => true]);
+        $report = json_decode(Artisan::output(), true);
+
+        $this->assertSame(1, $report['sections']['duplicate_candidates']['institution_name_groups_after_trim_and_case_fold'] ?? null);
+        $this->assertStringContainsString('Candidate groups only', $report['sections']['duplicate_candidates']['note'] ?? '');
+        $this->assertFalse($report['mutation_performed'] ?? true);
+        $this->assertSame(2, Institution::query()->count());
+    }
 }
