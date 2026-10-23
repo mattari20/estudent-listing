@@ -102,16 +102,17 @@ class InstituteSeoFoundationTest extends TestCase
  }
 
 
-    public function test_sitemap_excludes_candidate_institution_urls(): void
+    public function test_sitemap_excludes_draft_institution_urls(): void
     {
         Institution::create([
-            'name' => 'Candidate University',
-            'slug' => 'candidate-university',
-            'status' => 'candidate',
+            'name' => 'Draft SEO University',
+            'slug' => 'draft-seo-university',
+            'status' => 'draft',
         ]);
 
         $this->get('/institutes/sitemap.xml')
             ->assertOk()
-            ->assertDontSee('/institutes/candidate-university', false);
+            ->assertDontSee('/institutes/draft-seo-university', false);
     }
+
 }
