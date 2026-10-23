@@ -19,10 +19,31 @@ class InstituteDataIntegrityReport extends Command
             'checked_at' => now()->toIso8601String(),
             'mutation_performed' => false,
             'canonical_counts' => [],
+            'import_row_groups' => [],
+            'promotion_event_types' => [],
             'promotion_failure_categories' => [],
             'readiness' => null,
             'warnings' => [],
         ];
+
+        if (Schema::hasTable('import_rows') && Schema::hasTable('import_batches')) {
+            $report['import_row_groups'] = DB::table('import_rows')
+                ->join('import_batches', 'import_batches.id', '=', 'import_rows.import_batch_id')
+                ->select('import_batches.entity_type', 'import_rows.status', 'import_rows.match_state', DB::raw('COUNT(*) as total'))
+                ->groupBy('import_batches.entity_type', 'import_rows.status', 'import_rows.match_state')
+                ->orderBy('import_batches.entity_type')
+                ->orderBy('import_rows.status')
+                ->orderBy('import_rows.match_state')
+                ->get()
+                ->map(fn ($row) => [
+                    'entity_type' => $row->entity_type,
+                    'status' => $row->status,
+                    'match_state' => $row->match_state,
+                    'count' => (int) $row->total,
+                ])->all();
+        } else {
+            $report['warnings'][] = 'import_tables_missing';
+        }
 
         foreach (['institutions', 'campuses', 'programs', 'program_offerings', 'admission_intakes'] as $table) {
             if (Schema::hasTable($table)) {
@@ -34,6 +55,11 @@ class InstituteDataIntegrityReport extends Command
         }
 
         if (Schema::hasTable('import_promotion_events')) {
+            $events = DB::table('import_promotion_events')
+                ->select('event_type', 'reason')
+                ->orderBy('event_type')
+                ->cursor();
+
             $categories = [
                 'duplicate_slug_or_identity_collision' => 0,
                 'unresolved_parent' => 0,
@@ -41,8 +67,17 @@ class InstituteDataIntegrityReport extends Command
                 'conflict_or_ambiguous_identity' => 0,
                 'other_or_unspecified' => 0,
             ];
+            $eventTypes = [];
 
-            foreach (DB::table('import_promotion_events')->select('reason')->cursor() as $event) {
+            foreach ($events as $event) {
+                $eventType = (string) ($event->event_type ?? 'unspecified');
+                $eventTypes[$eventType] = ($eventTypes[$eventType] ?? 0) + 1;
+
+                // Only count failure/error events in the failure-reason categories.
+                if (! str_contains(mb_strtolower($eventType), 'fail') && ! str_contains(mb_strtolower($eventType), 'error')) {
+                    continue;
+                }
+
                 $reason = mb_strtolower((string) ($event->reason ?? ''));
                 if (str_contains($reason, 'slug') || str_contains($reason, 'duplicate') || str_contains($reason, 'already exists')) {
                     $category = 'duplicate_slug_or_identity_collision';
@@ -58,6 +93,8 @@ class InstituteDataIntegrityReport extends Command
                 $categories[$category]++;
             }
 
+            ksort($eventTypes);
+            $report['promotion_event_types'] = $eventTypes;
             $report['promotion_failure_categories'] = $categories;
         } else {
             $report['warnings'][] = 'promotion_events_table_missing';
