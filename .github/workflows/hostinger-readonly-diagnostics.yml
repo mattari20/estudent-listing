@@ -73,6 +73,15 @@ jobs:
             cd "$PROJECT_PATH"
             echo "=== Application environment ==="
             php artisan env
+            echo "=== Laravel scheduled task definitions (read-only) ==="
+            php artisan schedule:list --no-ansi
+            echo "=== Hostinger scheduler cron presence (read-only; command contents suppressed) ==="
+            CRON_OUTPUT="$(crontab -l 2>/dev/null || true)"
+            if printf '%s\n' "$CRON_OUTPUT" | grep -Eq 'artisan[[:space:]]+schedule:run|schedule:run[[:space:]]'; then
+              echo "hostinger_scheduler_cron=present"
+            else
+              echo "hostinger_scheduler_cron=missing_or_unreadable"
+            fi
             echo "=== Deployed code revision (read-only) ==="
             DEPLOYMENT_DRIFT=0
             if git rev-parse --show-toplevel >/dev/null 2>&1; then
