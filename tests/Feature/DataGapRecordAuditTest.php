@@ -381,4 +381,19 @@ class DataGapRecordAuditTest extends TestCase
     }
 
 
+
+
+    public function test_summary_mode_reports_empty_import_pipeline_without_row_level_records(): void
+    {
+        Artisan::call('institutes:data-gap-record-audit', ['--json' => true, '--summary' => true]);
+        $output = Artisan::output();
+        $report = json_decode($output, true);
+
+        $this->assertIsArray($report);
+        $this->assertTrue($report['summary_only'] ?? false);
+        $this->assertFalse($report['mutation_performed'] ?? true);
+        $this->assertSame(0, $report['sections']['import_rows']['total'] ?? null);
+        $this->assertArrayNotHasKey('records', $report['sections']['import_rows'] ?? []);
+        $this->assertStringNotContainsString('"records"', $output);
+    }
 }
