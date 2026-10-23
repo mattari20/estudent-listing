@@ -16,4 +16,27 @@ class ImportQualityReportTest extends TestCase {
   $report=app(ImportQualityReportService::class)->build($batch);
   $this->assertSame(4,$report['total_rows']); $this->assertSame(1,$report['invalid_rows']); $this->assertSame(1,$report['promoted_rows']); $this->assertSame(1,$report['open_conflict_rows']);
  }
+
+
+    public function test_empty_batch_quality_rates_are_zero_and_finite(): void
+    {
+        $batch = ImportBatch::create([
+            'batch_key' => 'empty-quality-' . uniqid(),
+            'entity_type' => 'institution',
+            'source_type' => 'manual',
+            'status' => 'validated',
+            'total_rows' => 0,
+            'valid_rows' => 0,
+            'invalid_rows' => 0,
+            'candidate_rows' => 0,
+            'received_at' => now(),
+        ]);
+
+        $report = app(ImportQualityReportService::class)->build($batch);
+
+        $this->assertSame(0, $report['total_rows']);
+        $this->assertSame(0, $report['open_conflict_rows']);
+        $this->assertSame(0.0, $report['conflict_rate']);
+        $this->assertSame(0.0, $report['candidate_rate']);
+    }
 }
