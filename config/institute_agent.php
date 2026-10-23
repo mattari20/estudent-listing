@@ -21,6 +21,8 @@ return [
                 'priority' => 'normal',
             ],
         ],
+        // Paused until a standalone canonical parent institution is resolved.
+        // The current slug points to a campus-level canonical record, not the parent university.
         'cui-lahore-campus' => [
             'institution_slug' => 'comsats-university-islamabad-lahore-campus',
             'source' => [
@@ -31,8 +33,8 @@ return [
             ],
             'entity_type' => 'campus',
             'monitoring' => [
-                'enabled' => true,
-                'auto_discovery' => true,
+                'enabled' => false,
+                'auto_discovery' => false,
                 'use_ai' => false,
                 'cadence' => 'weekly',
                 'fresh_after_days' => 7,
