@@ -2,48 +2,39 @@
 
 namespace Tests\Feature;
 
-use App\Models\ImportRow;
 use App\Models\Institution;
 use App\Services\InstituteDiscoveryAgentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
+use RuntimeException;
 use Tests\TestCase;
 
 class InstituteCampusDiscoveryTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_campus_profile_creates_non_canonical_candidate_rows_with_provenance(): void
+    public function test_campus_profile_refuses_campus_level_parent_before_creating_candidates(): void
     {
         Institution::create([
             'name' => 'COMSATS University Islamabad Lahore Campus',
             'slug' => 'comsats-university-islamabad-lahore-campus',
+            'institution_type' => 'Public University Campus',
             'status' => 'active',
         ]);
 
-        Http::fake([
-            'https://lahore.comsats.edu.pk/' => Http::response(
-                '<html><body>
-                    <a>Lahore Campus</a>
-                    <a>Islamabad Campus</a>
-                    <a>Campus Life</a>
-                </body></html>',
-                200,
-                ['Content-Type' => 'text/html']
-            ),
+        try {
+            app(InstituteDiscoveryAgentService::class)->run('cui-lahore-campus');
+            $this->fail('Campus discovery must not use a campus-level record as its own parent.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame(
+                'Campus discovery requires a standalone parent institution. The configured parent appears to be campus-level; resolve the canonical parent institution before running campus discovery.',
+                $exception->getMessage()
+            );
+        }
+
+        $this->assertDatabaseMissing('sources', [
+            'url' => 'https://lahore.comsats.edu.pk/',
         ]);
-
-        $summary = app(InstituteDiscoveryAgentService::class)->run('cui-lahore-campus');
-
-        $this->assertSame('campus', $summary['entity_type']);
-        $this->assertSame(2, $summary['total_rows']);
-        $this->assertSame(2, $summary['candidate_rows']);
-
-        $rows = ImportRow::where('import_batch_id', $summary['batch_id'])->get();
-
-        $this->assertCount(2, $rows);
-        $this->assertTrue($rows->every(fn ($row) => $row->status === 'candidate'));
-        $this->assertTrue($rows->every(fn ($row) => data_get($row->payload, '_provenance.evidence_id') === $summary['evidence_id']));
-        $this->assertSame('Lahore Campus', $rows->firstWhere('payload.name', 'Lahore Campus')?->payload['name']);
+        $this->assertDatabaseCount('source_snapshots', 0);
+        $this->assertDatabaseCount('import_batches', 0);
     }
 }
