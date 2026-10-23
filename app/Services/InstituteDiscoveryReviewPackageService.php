@@ -21,6 +21,13 @@ class InstituteDiscoveryReviewPackageService
         $snapshotId = (int) ($snapshotOverride?->id ?? ($provenance['snapshot_id'] ?? 0));
         $evidenceId = $evidenceIdOverride ?? (isset($provenance['evidence_id']) ? (int) $provenance['evidence_id'] : null);
 
+        // Empty discovery batches have no rows from which to read provenance.
+        // Recover the snapshot ID from the batch's recorded no-change note so the
+        // protected CLI command can retrieve/rebuild the already-private package.
+        if ($snapshotId < 1 && preg_match('/source snapshot #(\\d+)/i', (string) $batch->notes, $matches) === 1) {
+            $snapshotId = (int) $matches[1];
+        }
+
         if ($snapshotId < 1) {
             throw new RuntimeException('The discovery batch has no source snapshot provenance.');
         }
@@ -28,6 +35,15 @@ class InstituteDiscoveryReviewPackageService
         $snapshot = $snapshotOverride ?? SourceSnapshot::query()->find($snapshotId);
         if (! $snapshot || (int) $snapshot->source_id !== (int) $batch->source_id) {
             throw new RuntimeException('The discovery batch snapshot does not match its source.');
+        }
+
+        if ($evidenceId === null) {
+            $evidenceId = Evidence::query()
+                ->where('source_id', $batch->source_id)
+                ->where('snapshot_id', $snapshotId)
+                ->orderByDesc('id')
+                ->value('id');
+            $evidenceId = $evidenceId === null ? null : (int) $evidenceId;
         }
 
         $directory = 'institute-discovery-review-packages/snapshot-'.$snapshotId;
