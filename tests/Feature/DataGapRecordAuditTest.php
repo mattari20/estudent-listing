@@ -140,6 +140,7 @@ class DataGapRecordAuditTest extends TestCase
             $record['review_reasons']
         );
         $this->assertSame('RuntimeException', $record['latest_promotion_error_class']);
+        $this->assertSame('other_runtime_exception', $record['latest_promotion_error_category']);
         $this->assertStringNotContainsString('Private failure detail', json_encode($record));
     }
 
