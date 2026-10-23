@@ -67,4 +67,14 @@ class DataReadinessTest extends TestCase
         $this->assertSame(0, $s['blocking_findings']);
         $this->assertTrue($s['structurally_ready']);
     }
+
+
+    public function test_empty_population_is_reported_as_zero_without_mutation(): void
+    {
+        $summary = (new InstituteDataReadinessService)->summarize();
+
+        $this->assertSame(0, $summary['population']['institutions']);
+        $this->assertSame(0, $summary['population']['active_institutions']);
+        $this->assertFalse($summary['mutation_performed']);
+    }
 }
