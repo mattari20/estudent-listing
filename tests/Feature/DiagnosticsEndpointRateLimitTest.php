@@ -1,9 +1,9 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use Illuminate\\Cache\\RateLimiter;
-use Tests\\TestCase;
+use Illuminate\Cache\RateLimiter;
+use Tests\TestCase;
 
 class DiagnosticsEndpointRateLimitTest extends TestCase
 {
