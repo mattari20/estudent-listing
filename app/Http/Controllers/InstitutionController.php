@@ -43,7 +43,7 @@ class InstitutionController
                         ->where('status', 'active')
                         ->with([
                             'admissionIntakes' => fn ($intakeQuery) => $intakeQuery
-                                ->whereNotIn('status', ['cancelled', 'suspended'])
+                                ->whereNotIn('status', ['candidate', 'draft', 'rejected', 'withdrawn', 'cancelled', 'suspended'])
                                 ->with([
                                     'eligibilityRules' => fn ($query) => $query->whereNotIn('status', ['rejected', 'withdrawn']),
                                     'meritRecords' => fn ($query) => $query->whereNotIn('status', ['rejected', 'withdrawn']),
