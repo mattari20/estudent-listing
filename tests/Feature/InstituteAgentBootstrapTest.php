@@ -33,7 +33,7 @@ class InstituteAgentBootstrapTest extends TestCase
         $this->artisan('institutes:bootstrap-agent')
             ->assertExitCode(0);
 
-        $source = Source::query()->where('url', 'https://lahore.comsats.edu.pk/academics.aspx')->first();
+        $source = Source::query()->where('url', 'https://gcu.edu.pk/admissions.php?pg=bs-program')->first();
 
         $this->assertNotNull($source);
         $this->assertDatabaseHas('source_monitoring_policies', [
