@@ -2,8 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Campus;
 use App\Models\EnrichmentImportRow;
 use App\Models\ImportBatch;
+use App\Models\Institution;
+use App\Models\Program;
+use App\Models\ProgramOffering;
 use App\Services\StructuredEnrichmentPromoter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
@@ -31,6 +35,13 @@ class UnsupportedEnrichmentPromotionSafetyTest extends TestCase
             'normalized_payload' => ['name' => 'Unsupported synthetic entity'],
         ]);
 
+        $before = [
+            'institutions' => Institution::count(),
+            'campuses' => Campus::count(),
+            'programs' => Program::count(),
+            'program_offerings' => ProgramOffering::count(),
+        ];
+
         try {
             app(StructuredEnrichmentPromoter::class)->promote($row);
             $this->fail('Unsupported enrichment entity types must not be promoted.');
@@ -39,9 +50,9 @@ class UnsupportedEnrichmentPromotionSafetyTest extends TestCase
         }
 
         $this->assertSame('approved', $row->fresh()->status);
-        $this->assertDatabaseCount('institutions', 0);
-        $this->assertDatabaseCount('campuses', 0);
-        $this->assertDatabaseCount('programs', 0);
-        $this->assertDatabaseCount('program_offerings', 0);
+        $this->assertSame($before['institutions'], Institution::count());
+        $this->assertSame($before['campuses'], Campus::count());
+        $this->assertSame($before['programs'], Program::count());
+        $this->assertSame($before['program_offerings'], ProgramOffering::count());
     }
 }
