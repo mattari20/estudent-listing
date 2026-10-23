@@ -212,11 +212,24 @@ jobs:
             PHP
             echo "=== Data-gap report (read-only) ==="
             php artisan institutes:data-gap-report --json
-            echo "=== Record-level audit (read-only) ==="
-            if php artisan help institutes:data-gap-record-audit 2>&1 | grep -q -- '--summary'; then
-              php artisan institutes:data-gap-record-audit --json --summary
+            echo "=== Record-level audit (read-only; summary output only) ==="
+            # Capture output privately first. Never print a response unless it proves
+            # that summary mode is active and no row-level records are present.
+            if AUDIT_OUTPUT="$(php artisan institutes:data-gap-record-audit --json --summary 2>/dev/null)"; then
+              if printf '%s\n' "$AUDIT_OUTPUT" | php -r '
+                $report = json_decode(stream_get_contents(STDIN), true);
+                $safe = is_array($report)
+                  && ($report["summary_only"] ?? false) === true
+                  && ($report["mutation_performed"] ?? true) === false
+                  && ! isset($report["sections"]["import_rows"]["records"]);
+                exit($safe ? 0 : 1);
+              '; then
+                printf '%s\n' "$AUDIT_OUTPUT"
+              else
+                echo '{"check":"institutes_data_gap_record_audit","status":"skipped","reason":"summary_output_contract_not_confirmed","mutation_performed":false,"row_level_output_suppressed":true}'
+              fi
             else
-              echo '{"check":"institutes_data_gap_record_audit","status":"skipped","reason":"summary_mode_not_yet_available_in_deployed_app","mutation_performed":false,"row_level_output_suppressed":true}'
+              echo '{"check":"institutes_data_gap_record_audit","status":"skipped","reason":"summary_mode_unavailable_or_audit_failed","mutation_performed":false,"row_level_output_suppressed":true}'
             fi
             echo "=== Institution import row trace (read-only; no payloads or notes) ==="
             php <<'PHP'
