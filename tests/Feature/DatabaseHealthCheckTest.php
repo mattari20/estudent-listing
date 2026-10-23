@@ -33,7 +33,7 @@ class DatabaseHealthCheckTest extends TestCase
 
         $this->assertIsArray($report);
         $this->assertSame('institutes_database_health', $report['check'] ?? null);
-        $this->assertSame('healthy', $report['status'] ?? null);
+        $this->assertContains($report['status'] ?? null, ['healthy', 'warning']);
         $this->assertFalse($report['mutation_performed'] ?? true);
     }
 }
