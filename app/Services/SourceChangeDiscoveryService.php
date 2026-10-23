@@ -54,7 +54,7 @@ class SourceChangeDiscoveryService
                     'profile_key' => $profileKey,
                     'outcome' => 'failed',
                     'failure_class' => get_class($exception),
-                    'details' => ['message' => mb_substr($exception->getMessage(), 0, 500)],
+                    'details' => ['message_omitted' => true],
                 ]);
 
                 throw $exception;
@@ -63,8 +63,8 @@ class SourceChangeDiscoveryService
             $package = $summary['review_package'] ?? [];
             return $this->record($base + [
                 'profile_key' => $profileKey,
-                'outcome' => ((int) ($summary['candidate_count'] ?? 0)) > 0 ? 'candidates_created' : 'empty_candidates',
-                'candidate_count' => (int) ($summary['candidate_count'] ?? 0),
+                'outcome' => ((int) ($summary['candidate_rows'] ?? 0)) > 0 ? 'candidates_created' : 'empty_candidates',
+                'candidate_count' => (int) ($summary['candidate_rows'] ?? 0),
                 'review_package_status' => $package['status'] ?? null,
                 'details' => [
                     'batch_id' => $summary['batch_id'] ?? null,
