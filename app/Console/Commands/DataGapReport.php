@@ -185,33 +185,48 @@ class DataGapReport extends Command
                 $visited[] = (int) $current->id;
 
                 if ($current->status === 'active' && in_array($current->type, ['province', 'territory'], true)) {
-                    $key = (string) $current->name;
-                    $provinceCounts[$key] = ($provinceCounts[$key] ?? 0) + 1;
+                    $key = (int) $current->id;
+                    if (! isset($provinceCounts[$key])) {
+                        $provinceCounts[$key] = ['geography_id' => $key, 'name' => (string) $current->name, 'count' => 0];
+                    }
+                    $provinceCounts[$key]['count']++;
                 }
 
                 if ($current->status === 'active' && $current->type === 'district') {
-                    $key = (string) $current->name;
-                    $districtCounts[$key] = ($districtCounts[$key] ?? 0) + 1;
+                    $key = (int) $current->id;
+                    $provinceName = null;
+                    $ancestor = $current->parent_id === null ? null : $geographies->get($current->parent_id);
+                    $ancestorVisited = [];
+                    while ($ancestor !== null && ! in_array((int) $ancestor->id, $ancestorVisited, true)) {
+                        $ancestorVisited[] = (int) $ancestor->id;
+                        if ($ancestor->status === 'active' && in_array($ancestor->type, ['province', 'territory'], true)) {
+                            $provinceName = (string) $ancestor->name;
+                            break;
+                        }
+                        $ancestor = $ancestor->parent_id === null ? null : $geographies->get($ancestor->parent_id);
+                    }
+
+                    if (! isset($districtCounts[$key])) {
+                        $districtCounts[$key] = [
+                            'geography_id' => $key,
+                            'name' => (string) $current->name,
+                            'province_or_territory' => $provinceName,
+                            'count' => 0,
+                        ];
+                    }
+                    $districtCounts[$key]['count']++;
                 }
 
                 $current = $current->parent_id === null ? null : $geographies->get($current->parent_id);
             }
         }
 
-        ksort($provinceCounts);
-        ksort($districtCounts);
+        uasort($provinceCounts, fn (array $left, array $right): int => [$left['name'], $left['geography_id']] <=> [$right['name'], $right['geography_id']]);
+        uasort($districtCounts, fn (array $left, array $right): int => [$left['name'], $left['province_or_territory'], $left['geography_id']] <=> [$right['name'], $right['province_or_territory'], $right['geography_id']]);
 
         return [
-            'active_campuses_by_province_or_territory' => array_map(
-                fn (string $name, int $count): array => ['name' => $name, 'count' => $count],
-                array_keys($provinceCounts),
-                array_values($provinceCounts),
-            ),
-            'active_campuses_by_district' => array_map(
-                fn (string $name, int $count): array => ['name' => $name, 'count' => $count],
-                array_keys($districtCounts),
-                array_values($districtCounts),
-            ),
+            'active_campuses_by_province_or_territory' => array_values($provinceCounts),
+            'active_campuses_by_district' => array_values($districtCounts),
             'geographic_coverage_note' => 'Counts follow active geography ancestors for active campuses with a geography assignment; they are coverage indicators, not proof of national completeness.',
         ];
     }
