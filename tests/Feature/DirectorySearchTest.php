@@ -6,6 +6,7 @@ use App\Models\AdmissionIntake;
 use App\Models\Campus;
 use App\Models\Geography;
 use App\Models\Institution;
+use App\Models\InstitutionName;
 use App\Models\Program;
 use App\Models\ProgramOffering;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -208,4 +209,40 @@ class DirectorySearchTest extends TestCase
             ->assertSee('1 campuses')
             ->assertSee('1 programs');
     }
+    public function test_public_search_matches_current_institution_aliases(): void
+    {
+        $institution = Institution::query()->create([
+            'name' => 'National Institute of Technology',
+            'official_name' => 'National Institute of Technology',
+            'short_name' => 'NIT',
+            'slug' => 'national-institute-of-technology',
+            'status' => 'active',
+        ]);
+
+        InstitutionName::query()->create([
+            'institution_id' => $institution->id,
+            'name' => 'NIT Lahore',
+            'name_type' => 'alias',
+            'language' => 'en',
+            'is_current' => true,
+        ]);
+
+        InstitutionName::query()->create([
+            'institution_id' => $institution->id,
+            'name' => 'Former Institute Name',
+            'name_type' => 'historical',
+            'language' => 'en',
+            'is_current' => false,
+        ]);
+
+        $this->get('/institutes/search?q=NIT%20Lahore')
+            ->assertOk()
+            ->assertSee('National Institute of Technology');
+
+        $this->get('/institutes/search?q=Former%20Institute%20Name')
+            ->assertOk()
+            ->assertDontSee('National Institute of Technology');
+    }
+
+
 }
