@@ -68,4 +68,17 @@ class PublicProfileAdmissionVisibilityTest extends TestCase
             ->assertOk()
             ->assertDontSee('Unapproved Candidate Intake');
     }
+
+
+    public function test_open_intake_on_inactive_offering_is_hidden_from_public_profile(): void
+    {
+        $institution = Institution::query()->create(['name' => 'Inactive Offering University', 'slug' => 'inactive-offering-university', 'status' => 'active']);
+        $program = Program::query()->create(['institution_id' => $institution->id, 'name' => 'Inactive Offering Program', 'slug' => 'inactive-offering-program', 'status' => 'active']);
+        $offering = ProgramOffering::query()->create(['program_id' => $program->id, 'delivery_mode' => 'on_campus', 'status' => 'inactive', 'availability' => 'unknown']);
+        AdmissionIntake::query()->create(['program_offering_id' => $offering->id, 'label' => 'Misleading Open Intake', 'status' => 'applications_open']);
+
+        $this->get('/institutes/inactive-offering-university')
+            ->assertOk()
+            ->assertDontSee('Misleading Open Intake');
+    }
 }
