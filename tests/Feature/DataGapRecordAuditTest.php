@@ -189,4 +189,64 @@ class DataGapRecordAuditTest extends TestCase
         $this->assertStringNotContainsString('"records"', $output);
     }
 
+    public function test_record_audit_classifies_known_institution_promotion_failures_without_exposing_reasons(): void
+    {
+        $batch = ImportBatch::query()->create([
+            'batch_key' => 'classified-promotion-failures',
+            'entity_type' => 'institution',
+            'source_type' => 'test',
+            'status' => 'validated',
+            'total_rows' => 3,
+            'valid_rows' => 3,
+            'candidate_rows' => 3,
+            'received_at' => now(),
+            'completed_at' => now(),
+        ]);
+
+        $cases = [
+            ['id' => 'collision', 'reason' => 'A matching canonical institution already exists; explicit approved_match identity resolution is required.', 'category' => 'canonical_identity_collision'],
+            ['id' => 'evidence', 'reason' => 'Active source evidence is required before promotion.', 'category' => 'missing_active_source_evidence'],
+            ['id' => 'conflict', 'reason' => 'Open import conflicts must be explicitly resolved before promotion.', 'category' => 'unresolved_import_conflict'],
+        ];
+
+        $rowIds = [];
+        foreach ($cases as $index => $case) {
+            $row = ImportRow::query()->create([
+                'import_batch_id' => $batch->id,
+                'row_number' => $index + 1,
+                'status' => 'candidate',
+                'match_state' => 'new_candidate',
+                'payload' => ['name' => 'Failure category '.$case['id']],
+                'normalized_payload' => ['name' => 'Failure category '.$case['id']],
+                'validation_errors' => [],
+            ]);
+            $rowIds[$case['id']] = $row->id;
+
+            ImportPromotionEvent::query()->create([
+                'import_row_id' => $row->id,
+                'import_batch_id' => $batch->id,
+                'entity_type' => 'institution',
+                'event_type' => 'promotion_failed',
+                'previous_status' => 'candidate',
+                'new_status' => 'candidate',
+                'actor_type' => 'system',
+                'reason' => $case['reason'],
+                'metadata' => ['error_class' => 'RuntimeException'],
+                'occurred_at' => now()->addSeconds($index),
+            ]);
+        }
+
+        Artisan::call('institutes:data-gap-record-audit', ['--json' => true]);
+        $report = json_decode(Artisan::output(), true);
+        $records = collect($report['sections']['import_rows']['records'] ?? [])->keyBy('id');
+
+        foreach ($cases as $case) {
+            $record = $records->get($rowIds[$case['id']]);
+            $this->assertIsArray($record);
+            $this->assertSame($case['category'], $record['latest_promotion_error_category']);
+            $this->assertStringNotContainsString($case['reason'], json_encode($record));
+        }
+    }
+
+
 }
