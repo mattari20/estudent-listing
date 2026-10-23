@@ -208,4 +208,25 @@ class InstituteNearbySearchTest extends TestCase
         $this->getJson('/api/v1/institutions/nearby?lat=91&lng=74.3587&radius_km=10')->assertStatus(422);
         $this->getJson('/api/v1/institutions/nearby?lat=31.5204&lng=181&radius_km=10')->assertStatus(422);
     }
+
+
+    public function test_nearby_api_excludes_campuses_outside_requested_radius(): void
+    {
+        $city = Geography::create(['name' => 'Radius Test City', 'slug' => 'radius-test-city', 'type' => 'city', 'status' => 'active']);
+        $institution = Institution::create(['name' => 'Distant University', 'slug' => 'distant-university', 'status' => 'active']);
+        Campus::create([
+            'institution_id' => $institution->id,
+            'geography_id' => $city->id,
+            'name' => 'Distant Campus',
+            'slug' => 'distant-campus',
+            'campus_type' => 'main',
+            'status' => 'active',
+            'latitude' => 35.0000,
+            'longitude' => 74.0000,
+        ]);
+
+        $this->getJson('/api/v1/institutions/nearby?lat=31.5204&lng=74.3587&radius_km=5')
+            ->assertOk()
+            ->assertJsonMissing(['slug' => 'distant-university']);
+    }
 }
