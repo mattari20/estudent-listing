@@ -29,12 +29,13 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
         env:
           PROJECT_PATH: ${{ inputs.project_path || '/home/u537436044/domains/estudent.pk/public_html/institutes' }}
+          EXPECTED_REVISION: ${{ github.sha }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          envs: PROJECT_PATH
+          envs: PROJECT_PATH,EXPECTED_REVISION
           command_timeout: 3m
           script: |
             set -eu
@@ -53,10 +54,22 @@ jobs:
             echo "=== Application environment ==="
             php artisan env
             echo "=== Deployed code revision (read-only) ==="
+            DEPLOYMENT_DRIFT=0
             if git rev-parse --show-toplevel >/dev/null 2>&1; then
-              git rev-parse HEAD
+              DEPLOYED_REVISION="$(git rev-parse HEAD)"
+              echo "deployed_revision=$DEPLOYED_REVISION"
+              echo "expected_revision=$EXPECTED_REVISION"
+              if [ "$DEPLOYED_REVISION" != "$EXPECTED_REVISION" ]; then
+                echo "deployment_revision_status=DRIFT"
+                DEPLOYMENT_DRIFT=1
+              else
+                echo "deployment_revision_status=MATCH"
+              fi
             else
-              echo "git_metadata_unavailable"
+              echo "deployed_revision=git_metadata_unavailable"
+              echo "expected_revision=$EXPECTED_REVISION"
+              echo "deployment_revision_status=UNVERIFIABLE"
+              DEPLOYMENT_DRIFT=1
             fi
             echo "=== Canonical institution identity export (read-only; names and slugs only) ==="
             php <<'PHP'
@@ -422,3 +435,8 @@ jobs:
             }
             echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP
+            if [ "$DEPLOYMENT_DRIFT" -ne 0 ]; then
+              echo "ERROR: Hostinger deployed revision does not match this GitHub Actions revision."
+              echo "Diagnostics were read-only; no production records were changed."
+              exit 10
+            fi
