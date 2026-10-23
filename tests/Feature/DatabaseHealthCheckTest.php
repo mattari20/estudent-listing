@@ -24,4 +24,16 @@ class DatabaseHealthCheckTest extends TestCase
             ->expectsOutputToContain('geography_reference_data')
             ->expectsOutputToContain('Read-only check; mutation performed: no');
     }
+
+
+    public function test_database_health_json_contract_is_healthy_and_read_only(): void
+    {
+        \Illuminate\Support\Facades\Artisan::call('institutes:database-health', ['--json' => true]);
+        $report = json_decode(\Illuminate\Support\Facades\Artisan::output(), true);
+
+        $this->assertIsArray($report);
+        $this->assertSame('institutes_database_health', $report['check'] ?? null);
+        $this->assertContains($report['status'] ?? null, ['healthy', 'warning']);
+        $this->assertFalse($report['mutation_performed'] ?? true);
+    }
 }
