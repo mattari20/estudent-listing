@@ -1,9 +1,9 @@
 <?php
 
-namespace App\\Console\\Commands;
+namespace App\Console\Commands;
 
-use Illuminate\\Console\\Command;
-use Illuminate\\Support\\Facades\\Storage;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Storage;
 
 class PruneInstituteDiscoveryReviewPackages extends Command
 {
@@ -33,7 +33,7 @@ class PruneInstituteDiscoveryReviewPackages extends Command
         $cutoff = now()->subDays($days)->timestamp;
         $eligible = [];
         foreach ($disk->directories($root) as $directory) {
-            if (! preg_match('/^'.preg_quote($root, '/').'\\/snapshot-[1-9][0-9]*$/', $directory)) {
+            if (! preg_match('/^'.preg_quote($root, '/').'\/snapshot-[1-9][0-9]*$/', $directory)) {
                 continue;
             }
 
