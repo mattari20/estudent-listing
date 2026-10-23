@@ -52,9 +52,10 @@ class InstituteDataReadinessService
                 ->whereDoesntHave('institution', fn ($query) => $query->where('status', 'active'))
                 ->count(),
 
+            // An inactive/draft offering does not satisfy active discovery readiness.
             'active_programs_without_offerings' => Program::query()
                 ->where('status', 'active')
-                ->whereDoesntHave('offerings')
+                ->whereDoesntHave('offerings', fn ($query) => $query->where('status', 'active'))
                 ->count(),
 
             'active_offerings_without_active_program' => ProgramOffering::query()
