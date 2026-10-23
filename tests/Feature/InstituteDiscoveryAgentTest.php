@@ -8,6 +8,7 @@ use App\Models\Institution;
 use App\Services\InstituteDiscoveryAgentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class InstituteDiscoveryAgentTest extends TestCase
@@ -16,6 +17,7 @@ class InstituteDiscoveryAgentTest extends TestCase
 
     public function test_discovery_agent_creates_source_evidence_snapshot_and_candidate_rows(): void
     {
+        Storage::fake('local');
         Institution::create([
             'name' => 'COMSATS University Islamabad Lahore Campus',
             'slug' => 'comsats-university-islamabad-lahore-campus',
