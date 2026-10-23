@@ -13,6 +13,8 @@
 7. Reversal is auditable and reversible; existing canonical matches must not be deactivated by reversing an import row.
 8. Public listing and profiles expose only active/published records and eligible related records.
 9. Before an enrichment row can be approved or promoted, its parent type and parent ID must both be valid and the referenced canonical parent must exist. A type-only match is insufficient.
+10. An `approved_new` institution decision cannot bypass unresolved identity-match candidates.
+11. A campus-like candidate must not be created as a standalone institution; it must be routed to parent resolution and campus import.
 
 ## Existing automated coverage
 
@@ -29,6 +31,7 @@
 | End-to-end readiness report is read-only and fails closed when readiness is incomplete | `InstituteEndToEndReadinessTest` |
 | Complete evidence-backed promotion → explicit publication → public listing/profile | `ImportLifecyclePublicationEndToEndTest` |
 | Correct parent type and existence are checked before enrichment approval | `EnrichmentDependencySafetyTest` |
+| Unresolved identity matches and campus-like records cannot be promoted as new institutions | `InstitutionIdentityClassificationSafetyTest` |
 
 ## Discovery no-change outcome regression
 
@@ -47,7 +50,7 @@ The empty-result path does not create import rows, promote canonical records, pu
 ## Required CI and live evidence before Phase 2 exit
 
 - Full Laravel test suite and frontend build pass on the merged commit.
-- Test results include the complete lifecycle acceptance test above and parent-integrity regression coverage.
+- Test results include the complete lifecycle acceptance test above and parent/identity-classification regression coverage.
 - Deployment revision is verified after relevant application code is released.
 - Public smoke checks verify that the synthetic candidate is invisible before publication and visible only after explicit publication.
 - Read-only live diagnostics report current canonical and import status counts.

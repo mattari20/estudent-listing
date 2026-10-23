@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\IdentityMatchCandidate;
 use App\Models\IdentityResolutionDecision;
 use App\Models\ImportConflict;
 use App\Models\ImportRow;
@@ -93,6 +94,16 @@ class InstituteImportPromoter
             return $institution;
         }
 
+        // A new-institution decision must not bypass unresolved canonical identity candidates.
+        if (IdentityMatchCandidate::query()
+            ->where('import_row_id', $row->id)
+            ->where('status', 'candidate')
+            ->exists()) {
+            throw new RuntimeException(
+                'Unresolved identity match candidates exist. Review and resolve identity candidates before approving a new institution.'
+            );
+        }
+
         $slug = trim((string) ($payload['slug'] ?? '')) ?: Str::slug((string) $payload['name']);
         $institutionType = trim((string) ($payload['institution_type'] ?? ''));
 
@@ -128,12 +139,26 @@ class InstituteImportPromoter
         }
 
         $aliasMatch = InstitutionName::query()
-            ->whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(TRIM(name))'), $identityNames->all())
+            ->whereIn(DB::raw('LOWER(TRIM(name))'), $identityNames->all())
             ->exists();
 
         if ($aliasMatch) {
             throw new RuntimeException(
                 'A matching canonical institution alias already exists; explicit approved_match identity resolution is required.'
+            );
+        }
+
+        $campusSignals = collect([
+            $institutionType,
+            $payload['name'] ?? '',
+            $payload['official_name'] ?? '',
+            $payload['short_name'] ?? '',
+            $slug,
+        ])->contains(fn ($value) => preg_match('/(^|[^a-z])campus([^a-z]|$)/i', trim((string) $value)) === 1);
+
+        if ($campusSignals) {
+            throw new RuntimeException(
+                'This candidate appears to describe a campus, not a standalone institution. Resolve its parent institution and import it as a campus instead of creating a new institution.'
             );
         }
 
