@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Institution;
 use App\Models\ImportBatch;
+use App\Models\IdentityResolutionDecision;
+use App\Models\ImportConflict;
 use App\Models\ImportPromotionDecision;
 use App\Models\ImportPromotionEvent;
 use App\Models\ImportRow;
@@ -246,6 +248,72 @@ class DataGapRecordAuditTest extends TestCase
             $this->assertSame($case['category'], $record['latest_promotion_error_category']);
             $this->assertStringNotContainsString($case['reason'], json_encode($record));
         }
+    }
+
+
+    public function test_record_audit_exposes_latest_identity_gate_and_open_conflict_counts_without_private_reasons(): void
+    {
+        $batch = ImportBatch::query()->create([
+            'batch_key' => 'identity-gate-audit-test',
+            'entity_type' => 'institution',
+            'source_type' => 'test',
+            'status' => 'validated',
+            'total_rows' => 1,
+            'valid_rows' => 1,
+            'candidate_rows' => 1,
+            'received_at' => now(),
+            'completed_at' => now(),
+        ]);
+
+        $row = ImportRow::query()->create([
+            'import_batch_id' => $batch->id,
+            'row_number' => 1,
+            'status' => 'candidate',
+            'match_state' => 'conflict',
+            'payload' => ['name' => 'Identity Gate Audit Institute'],
+            'normalized_payload' => ['name' => 'Identity Gate Audit Institute'],
+            'validation_errors' => [],
+        ]);
+
+        IdentityResolutionDecision::query()->create([
+            'import_row_id' => $row->id,
+            'institution_id' => null,
+            'decision' => 'approved_new',
+            'actor_type' => 'user',
+            'actor_id' => 1,
+            'reason' => 'Private identity decision reason.',
+            'decided_at' => now()->subMinute(),
+        ]);
+        IdentityResolutionDecision::query()->create([
+            'import_row_id' => $row->id,
+            'institution_id' => null,
+            'decision' => 'rejected',
+            'actor_type' => 'user',
+            'actor_id' => 1,
+            'reason' => 'Latest private rejection reason.',
+            'decided_at' => now(),
+        ]);
+        ImportConflict::query()->create([
+            'import_row_id' => $row->id,
+            'import_batch_id' => $batch->id,
+            'conflict_type' => 'identity_collision',
+            'severity' => 'high',
+            'status' => 'open',
+            'description' => 'Private conflict description.',
+        ]);
+
+        Artisan::call('institutes:data-gap-record-audit', ['--json' => true]);
+        $report = json_decode(Artisan::output(), true);
+        $record = collect($report['sections']['import_rows']['records'] ?? [])->firstWhere('id', $row->id);
+
+        $this->assertIsArray($record);
+        $this->assertSame(2, $record['identity_decision_count']);
+        $this->assertSame('rejected', $record['latest_identity_decision']['decision']);
+        $this->assertFalse($record['has_approved_identity_decision']);
+        $this->assertSame(1, $record['open_conflict_count']);
+        $this->assertStringNotContainsString('Private identity decision reason', json_encode($record));
+        $this->assertStringNotContainsString('Latest private rejection reason', json_encode($record));
+        $this->assertStringNotContainsString('Private conflict description', json_encode($record));
     }
 
 
