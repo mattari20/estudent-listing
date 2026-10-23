@@ -28,4 +28,15 @@ class MonitoringAlertsTest extends TestCase {
   $this->assertSame('open',$second->fresh()->status);
   $this->assertSame(2,MonitoringAlert::where('alert_type','resolved-recurrence')->count());
  }
+
+
+ public function test_same_alert_type_is_not_deduplicated_across_different_sources(): void {
+  $firstSource=\App\Models\Source::create(['source_type'=>'official','name'=>'First Alert Source','url'=>'https://example.test/first','status'=>'active']);
+  $secondSource=\App\Models\Source::create(['source_type'=>'official','name'=>'Second Alert Source','url'=>'https://example.test/second','status'=>'active']);
+  $service=app(\App\Services\MonitoringAlertService::class);
+  $first=$service->raise('source-specific-failure','warning','First source failed',$firstSource);
+  $second=$service->raise('source-specific-failure','warning','Second source failed',$secondSource);
+  $this->assertNotSame($first->id,$second->id);
+  $this->assertSame(2,MonitoringAlert::where('alert_type','source-specific-failure')->count());
+ }
 }
