@@ -6,6 +6,9 @@ use Illuminate\Support\Str;
 
 class InstituteDiscoveryCandidateExtractor
 {
+    /** Bump when deterministic extraction rules change. */
+    public const VERSION = '2';
+
     public function extract(string $entityType, string $html): array
     {
         return match ($entityType) {

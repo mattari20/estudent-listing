@@ -135,6 +135,7 @@ class InstituteDiscoveryAgentService
             'status' => 'validated',
             'received_at' => now(),
             'notes' => 'Discovery candidates from source snapshot #'.$snapshot->id
+                .'. discovery_extractor_version='.InstituteDiscoveryCandidateExtractor::VERSION
                 .'. Candidates remain non-canonical until governed approval and promotion.',
         ]);
 
@@ -239,6 +240,7 @@ class InstituteDiscoveryAgentService
             'received_at' => now(),
             'completed_at' => now(),
             'notes' => 'No candidates extracted from source snapshot #'.$snapshot->id
+                .'. discovery_extractor_version='.InstituteDiscoveryCandidateExtractor::VERSION
                 .'. This is a recorded no-change outcome; no canonical data was changed.',
         ]);
 
