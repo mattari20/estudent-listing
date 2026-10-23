@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout main and resolve application-code revision
+      - name: Checkout main and resolve expected application-code revision
         uses: actions/checkout@v4
         with:
           ref: main
@@ -48,7 +48,7 @@ jobs:
           echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
           echo "expected_application_revision=$revision"
 
-      - name: Verify deployed revision and run read-only audit
+      - name: Verify deployed application-code revision and run read-only audit
         uses: appleboy/ssh-action@v1.2.0
         env:
           PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
@@ -67,12 +67,14 @@ jobs:
             test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
             cd "$PROJECT_PATH"
             git rev-parse --is-inside-work-tree >/dev/null
-            DEPLOYED_REVISION="$(git rev-parse HEAD)"
+            DEPLOYED_CHECKOUT_REVISION="$(git rev-parse HEAD)"
+            DEPLOYED_APPLICATION_REVISION="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+            echo "deployed_checkout_revision=$DEPLOYED_CHECKOUT_REVISION"
             echo "expected_application_revision=$TARGET_REVISION"
-            echo "deployed_revision=$DEPLOYED_REVISION"
-            if [ "$DEPLOYED_REVISION" != "$TARGET_REVISION" ]; then
-              echo "audit_status=BLOCKED_CODE_REVISION_MISMATCH"
-              echo "No live database query was run because deployed code does not match the expected application revision."
+            echo "deployed_application_revision=$DEPLOYED_APPLICATION_REVISION"
+            if [ "$DEPLOYED_APPLICATION_REVISION" != "$TARGET_REVISION" ]; then
+              echo "audit_status=BLOCKED_APPLICATION_CODE_REVISION_MISMATCH"
+              echo "No live database query was run because deployed application-code paths do not match the expected revision."
               exit 10
             fi
             echo "audit_status=RUNNING_READ_ONLY_REPORT"
