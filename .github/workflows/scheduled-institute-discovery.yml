@@ -1,0 +1,139 @@
+name: Scheduled Governed Institute Discovery
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/scheduled-institute-discovery.yml"
+  schedule:
+    - cron: "15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-governed-institute-discovery
+  cancel-in-progress: false
+
+jobs:
+  resolve-target:
+    name: Resolve approved application-code revision
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      target_revision: ${{ steps.revision.outputs.target_revision }}
+    steps:
+      - name: Checkout main with full history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Resolve latest application-code revision
+        id: revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          test -n "$revision"
+          if grep -Eq "['\"]use_ai['\"][[:space:]]*=>[[:space:]]*true" config/institute_agent.php; then
+            echo "::error::At least one configured discovery profile enables AI; scheduled zero-cost execution is blocked."
+            exit 12
+          fi
+          echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "expected_application_revision=$revision"
+          echo "scheduled_ai_extraction=disabled"
+
+  discover:
+    name: Run governed discovery and source monitoring
+    needs: resolve-target
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Run guarded discovery on Hostinger
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
+          TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,TARGET_REVISION
+          command_timeout: 12m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: invalid project path"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: invalid project path"; exit 2 ;; esac
+            test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
+            test -f "$PROJECT_PATH/config/institute_agent.php" || { echo "ERROR: discovery config not found"; exit 3; }
+            cd "$PROJECT_PATH"
+            git rev-parse --is-inside-work-tree >/dev/null
+            if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+              echo "ERROR: tracked working-tree changes found; refusing scheduled execution"
+              exit 4
+            fi
+
+            DEPLOYED_APPLICATION_REVISION="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+            echo "deployed_application_revision=$DEPLOYED_APPLICATION_REVISION"
+            echo "expected_application_revision=$TARGET_REVISION"
+            if [ "$DEPLOYED_APPLICATION_REVISION" != "$TARGET_REVISION" ]; then
+              echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_MISMATCH"
+              echo "No source retrieval or database writes were run."
+              exit 10
+            fi
+
+            if grep -Eq "['\"]use_ai['\"][[:space:]]*=>[[:space:]]*true" config/institute_agent.php; then
+              echo "ERROR: AI extraction is enabled in a discovery profile; refusing scheduled zero-cost run"
+              exit 11
+            fi
+
+            canonical_counts() {
+              php artisan institutes:data-integrity-report --no-ansi | php -r '
+                $report = json_decode(stream_get_contents(STDIN), true);
+                if (!is_array($report)
+                    || ($report["mutation_performed"] ?? true) !== false
+                    || !is_array($report["canonical_counts"] ?? null)
+                    || in_array(null, $report["canonical_counts"], true)) {
+                    fwrite(STDERR, "ERROR: unable to verify canonical counts safely\n");
+                    exit(2);
+                }
+                echo json_encode($report["canonical_counts"], JSON_UNESCAPED_SLASHES);
+              '
+            }
+
+            BEFORE_COUNTS="$(canonical_counts)" || { echo "ERROR: read-only preflight failed"; exit 12; }
+            echo "canonical_counts_before=$BEFORE_COUNTS"
+            echo "database_migrations=NOT_RUN"
+            echo "canonical_promotion=NOT_RUN"
+            echo "publications=NOT_RUN"
+            echo "paid_ai_calls=DISABLED"
+
+            set +e
+            php artisan institutes:bootstrap-agent --no-ansi
+            BOOTSTRAP_EXIT=$?
+            php artisan institutes:monitor-changes --no-ansi
+            MONITOR_EXIT=$?
+            set -e
+
+            AFTER_COUNTS="$(canonical_counts)" || { echo "ERROR: post-run canonical count check failed"; exit 13; }
+            echo "canonical_counts_after=$AFTER_COUNTS"
+            echo "bootstrap_agent_exit_code=$BOOTSTRAP_EXIT"
+            echo "monitor_changes_exit_code=$MONITOR_EXIT"
+
+            if [ "$BEFORE_COUNTS" != "$AFTER_COUNTS" ]; then
+              echo "ERROR: canonical counts changed during governed discovery; stop and investigate"
+              exit 20
+            fi
+            if [ "$BOOTSTRAP_EXIT" -ne 0 ] || [ "$MONITOR_EXIT" -ne 0 ]; then
+              echo "discovery_status=PARTIAL_OR_FAILED_REVIEW_PIPELINE"
+              exit 21
+            fi
+
+            echo "discovery_status=GOVERNED_RUN_COMPLETED"
+            echo "canonical_mutations=NONE"
+            echo "automatic_approval=NONE"
+            echo "automatic_promotion=NONE"
+            echo "automatic_publication=NONE"
