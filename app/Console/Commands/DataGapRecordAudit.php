@@ -143,11 +143,16 @@ class DataGapRecordAudit extends Command
                         ->where('import_row_id', $record['id'])
                         ->orderByDesc('occurred_at')
                         ->orderByDesc('id')
-                        ->first(['event_type', 'metadata'])
+                        ->first(['event_type', 'metadata', 'reason'])
                     : null;
                 $record['latest_promotion_event_type'] = $latestEvent->event_type ?? null;
                 $metadata = isset($latestEvent->metadata) ? json_decode((string) $latestEvent->metadata, true) : [];
                 $record['latest_promotion_error_class'] = is_array($metadata) ? ($metadata['error_class'] ?? null) : null;
+                $record['latest_promotion_error_category'] = in_array(
+                    $record['latest_promotion_event_type'],
+                    ['promotion_failed', 'promotion_error'],
+                    true,
+                ) ? $this->classifyPromotionFailure((string) ($latestEvent->reason ?? '')) : null;
                 $record['has_active_source_evidence'] = Schema::hasTable('assertions') && Schema::hasTable('evidence')
                     && DB::table('assertions')
                         ->where('subject_type', \App\Models\ImportRow::class)
@@ -226,6 +231,33 @@ class DataGapRecordAudit extends Command
         return $this->finish($report, $startedAt, ($report['status'] ?? '') === 'critical' ? self::FAILURE : self::SUCCESS);
     }
 
+    private function classifyPromotionFailure(string $reason): string
+    {
+        $reason = trim($reason);
+
+        if ($reason === '') {
+            return 'unclassified';
+        }
+
+        if (preg_match('/Unsupported enrichment entity type:/i', $reason) === 1) {
+            return 'unsupported_entity_type';
+        }
+
+        if (preg_match('/(?:require|requires|must have|must reference).{0,80}parent|parent.{0,80}(?:required|missing|invalid)/i', $reason) === 1) {
+            return 'missing_or_invalid_parent';
+        }
+
+        if (preg_match('/SQLSTATE|unknown column|column not found|database error|integrity constraint|SQL error/i', $reason) === 1) {
+            return 'database_or_schema_error';
+        }
+
+        if (preg_match('/not found|does not exist|missing dependency|no query results/i', $reason) === 1) {
+            return 'missing_dependency';
+        }
+
+        return 'other_runtime_exception';
+    }
+
     private function finish(array $report, float $startedAt, int $exitCode): int
     {
         $report['duration_ms'] = (int) round((microtime(true) - $startedAt) * 1000);
@@ -233,11 +265,17 @@ class DataGapRecordAudit extends Command
         if ($this->option('summary') && isset($report['sections']['import_rows'])) {
             $sections = $report['sections'];
             $dispositions = [];
+            $failureCategories = [];
             foreach (($sections['import_rows']['records'] ?? []) as $record) {
                 $disposition = (string) ($record['review_disposition'] ?? 'unclassified');
                 $dispositions[$disposition] = ($dispositions[$disposition] ?? 0) + 1;
+                $failureCategory = $record['latest_promotion_error_category'] ?? null;
+                if (is_string($failureCategory) && $failureCategory !== '') {
+                    $failureCategories[$failureCategory] = ($failureCategories[$failureCategory] ?? 0) + 1;
+                }
             }
             ksort($dispositions);
+            ksort($failureCategories);
 
             $report['summary_only'] = true;
             $report['sections'] = [
@@ -248,6 +286,7 @@ class DataGapRecordAudit extends Command
                     'total' => $sections['import_rows']['total'] ?? null,
                     'by_status' => $sections['import_rows']['by_status'] ?? [],
                     'by_review_disposition' => $dispositions,
+                    'promotion_failure_categories' => $failureCategories,
                 ],
                 'campuses' => [
                     'total' => $sections['campuses']['total'] ?? null,
