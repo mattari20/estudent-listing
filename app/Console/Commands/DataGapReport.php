@@ -172,11 +172,15 @@ class DataGapReport extends Command
                 }
             }
 
-            return DB::table($table)
+            $query = DB::table($table)
                 ->select(array_merge($columns, [DB::raw('COUNT(*) as total')]))
-                ->groupBy(...$columns)
-                ->orderBy(...$columns)
-                ->get()
+                ->groupBy(...$columns);
+
+            foreach ($columns as $column) {
+                $query->orderBy($column);
+            }
+
+            return $query->get()
                 ->map(function ($row) use ($columns): array {
                     $record = [];
                     foreach ($columns as $column) {
