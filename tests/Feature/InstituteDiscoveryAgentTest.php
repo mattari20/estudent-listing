@@ -173,6 +173,8 @@ class InstituteDiscoveryAgentTest extends TestCase
         );
         $this->assertSame('no_candidates', $manifest['status']);
         $this->assertSame(0, $manifest['candidate_count']);
+        $this->assertSame($summary['evidence_id'], $manifest['evidence_id']);
+        $this->assertSame($summary['snapshot_id'], $manifest['snapshot_id']);
         $this->assertFalse($manifest['canonical_mutations_performed']);
         $this->assertFalse($manifest['automatic_approval_performed']);
     }
