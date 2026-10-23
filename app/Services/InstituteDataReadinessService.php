@@ -52,6 +52,11 @@ class InstituteDataReadinessService
                 ->whereDoesntHave('institution', fn ($query) => $query->where('status', 'active'))
                 ->count(),
 
+            'active_programs_without_offerings' => Program::query()
+                ->where('status', 'active')
+                ->whereDoesntHave('offerings')
+                ->count(),
+
             'active_offerings_without_active_program' => ProgramOffering::query()
                 ->where('status', 'active')
                 ->whereDoesntHave('program', fn ($query) => $query->where('status', 'active'))
