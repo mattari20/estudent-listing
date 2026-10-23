@@ -17,4 +17,17 @@ class StructuredEnrichmentUnsupportedTypeTest extends TestCase
             'name' => 'Synthetic unknown entity',
         ]);
     }
+
+    public function test_invalid_entity_does_not_receive_generated_slug(): void
+    {
+        $payload = ['name' => 'Synthetic unknown entity'];
+
+        try {
+            app(StructuredEnrichmentValidator::class)->normalize('unknown-type', $payload);
+            $this->fail('Unsupported entity types must not be normalized.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertArrayNotHasKey('slug', $payload);
+            $this->assertSame('Unsupported enrichment entity type.', $exception->getMessage());
+        }
+    }
 }
