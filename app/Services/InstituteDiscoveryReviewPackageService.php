@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Evidence;
 use App\Models\ImportBatch;
 use App\Models\SourceSnapshot;
 use Illuminate\Support\Facades\Storage;
