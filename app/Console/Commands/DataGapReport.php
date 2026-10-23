@@ -114,6 +114,8 @@ class DataGapReport extends Command
                 'note' => 'Candidate groups only; automated matching does not establish that records are duplicates.',
             ];
 
+            $report['sections']['coverage'] = $this->coverageSummary();
+
             $report['sections']['import_pipeline'] = $this->tableCounts([
                 'import_batches' => ['total' => null, 'by_status' => 'status'],
                 'import_rows' => ['total' => null, 'by_status' => 'status'],
@@ -159,6 +161,66 @@ class DataGapReport extends Command
             $startedAt,
             $report['status'] === 'critical' ? self::FAILURE : self::SUCCESS,
         );
+    }
+
+    private function coverageSummary(): array
+    {
+        $groupCounts = static function (string $table, array $columns): array {
+            foreach ($columns as $column) {
+                if (! Schema::hasColumn($table, $column)) {
+                    return [];
+                }
+            }
+
+            $query = DB::table($table)
+                ->select(array_merge($columns, [DB::raw('COUNT(*) as total')]))
+                ->groupBy(...$columns);
+
+            foreach ($columns as $column) {
+                $query->orderBy($column);
+            }
+
+            return $query->get()
+                ->map(function ($row) use ($columns): array {
+                    $record = [];
+                    foreach ($columns as $column) {
+                        $record[$column] = $row->{$column};
+                    }
+                    $record['count'] = (int) $row->total;
+
+                    return $record;
+                })->all();
+        };
+
+        $campusTotal = DB::table('campuses')->count();
+        $campusWithGeography = Schema::hasColumn('campuses', 'geography_id')
+            ? DB::table('campuses')->whereNotNull('geography_id')->count()
+            : null;
+        $activeCampusWithoutGeography = Schema::hasColumn('campuses', 'geography_id') && Schema::hasColumn('campuses', 'status')
+            ? DB::table('campuses')->where('status', 'active')->whereNull('geography_id')->count()
+            : null;
+
+        return [
+            'institutions_by_type_and_status' => $groupCounts('institutions', ['institution_type', 'status']),
+            'programs_by_level_and_status' => $groupCounts('programs', ['program_level', 'status']),
+            'program_offerings_by_delivery_mode_and_status' => $groupCounts('program_offerings', ['delivery_mode', 'status']),
+            'admission_intakes_by_status' => $groupCounts('admission_intakes', ['status']),
+            'campus_geography_coverage' => [
+                'total_campuses' => $campusTotal,
+                'campuses_with_geography' => $campusWithGeography,
+                'campuses_without_geography' => $campusWithGeography === null ? null : $campusTotal - $campusWithGeography,
+                'active_campuses_without_geography' => $activeCampusWithoutGeography,
+            ],
+            'institutions_without_campuses' => DB::table('institutions')
+                ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('campuses')->whereColumn('campuses.institution_id', 'institutions.id'))
+                ->count(),
+            'institutions_without_programs' => DB::table('institutions')
+                ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('programs')->whereColumn('programs.institution_id', 'institutions.id'))
+                ->count(),
+            'programs_without_offerings' => DB::table('programs')
+                ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('program_offerings')->whereColumn('program_offerings.program_id', 'programs.id'))
+                ->count(),
+        ];
     }
 
     private function tableCounts(array $tables): array
