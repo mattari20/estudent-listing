@@ -3,6 +3,8 @@
 use App\Http\Controllers\AutomatedDiagnosticsController;
 use App\Http\Controllers\GeographyImportController;
 use App\Http\Controllers\InstituteAuthController;
+use App\Http\Controllers\InstituteDiscoveryReviewPackageController;
+use App\Http\Controllers\InstituteDiscoveryRunHistoryController;
 use App\Http\Controllers\InstitutePasswordResetController;
 use App\Http\Controllers\InstituteBulkPromotionController;
 use App\Http\Controllers\InstituteDataReadinessController;
@@ -61,6 +63,7 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
         Route::get('/account/password', [InstituteUserController::class, 'editPassword'])->name('account.password.edit');
         Route::put('/account/password', [InstituteUserController::class, 'updatePassword'])->name('account.password.update');
         Route::post('/agent/discover', [InstituteOperationsController::class, 'discover'])->name('agent.discover');
+        Route::get('/discovery-run-history', InstituteDiscoveryRunHistoryController::class)->name('discovery-run-history');
         Route::get('/discovery-packages/{importBatch}/{file}', [InstituteDiscoveryReviewPackageController::class, 'download'])
             ->whereIn('file', ['csv', 'manifest'])
             ->name('discovery-packages.download');
