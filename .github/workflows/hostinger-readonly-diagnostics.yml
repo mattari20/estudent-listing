@@ -75,16 +75,20 @@ jobs:
             if git rev-parse --show-toplevel >/dev/null 2>&1; then
               DEPLOYED_REVISION="$(git rev-parse HEAD)"
               echo "deployed_revision=$DEPLOYED_REVISION"
-              echo "expected_revision=$EXPECTED_REVISION"
-              if [ "$DEPLOYED_REVISION" != "$EXPECTED_REVISION" ]; then
-                echo "deployment_revision_status=DRIFT"
-                DEPLOYMENT_DRIFT=1
+              echo "expected_application_revision=$EXPECTED_REVISION"
+              # Compare deployed application paths, not full commit IDs. Documentation-only
+              # commits can advance main without requiring an application deployment.
+              if git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null &&
+                git diff --quiet "$EXPECTED_REVISION" "$DEPLOYED_REVISION" -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
+                echo "deployment_revision_status=APPLICATION_CODE_MATCH"
+                DEPLOYMENT_DRIFT=0
               else
-                echo "deployment_revision_status=MATCH"
+                echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
+                DEPLOYMENT_DRIFT=1
               fi
             else
               echo "deployed_revision=git_metadata_unavailable"
-              echo "expected_revision=$EXPECTED_REVISION"
+              echo "expected_application_revision=$EXPECTED_REVISION"
               echo "deployment_revision_status=UNVERIFIABLE"
               DEPLOYMENT_DRIFT=1
             fi
