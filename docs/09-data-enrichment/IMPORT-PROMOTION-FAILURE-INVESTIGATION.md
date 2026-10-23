@@ -58,3 +58,19 @@ The investigation is complete only when every flagged row has a traceable classi
 - Do not auto-approve, auto-resolve identity conflicts, or publish records as part of diagnosis.
 - Use synthetic data in automated tests.
 - Report live deployment verification separately from repository CI status.
+
+
+## Fast remediation queue — current verified run
+
+The latest successful read-only audit identifies four rows whose latest promotion event is `promotion_failed` and whose recorded exception class is `RuntimeException`:
+
+| Import row | Institution | Current safe next action |
+|---:|---|---|
+| 15 | Lahore College for Women University | Correlate private server log entry with attempt timestamp; classify before retry |
+| 16 | University of Education Lahore | Correlate private server log entry with attempt timestamp; classify before retry |
+| 17 | University of Veterinary and Animal Sciences Lahore | Correlate private server log entry with attempt timestamp; classify before retry |
+| 29 | Federal Urdu University of Arts, Sciences & Technology | Correlate private server log entry with attempt timestamp; classify before retry |
+
+Do not retry these rows solely because the identity decision is approved. Promotion also requires a validated batch, active source, active evidence, no open conflicts, a valid candidate state, and no canonical identity collision. Keep exception messages in restricted server logs; public/summary audit output should contain only a safe category.
+
+The same read-only run reports 36 active programs without active offerings. Review those program records against authoritative sources and create offerings only from verified evidence through the approved workflow. No live records were changed by this audit.
