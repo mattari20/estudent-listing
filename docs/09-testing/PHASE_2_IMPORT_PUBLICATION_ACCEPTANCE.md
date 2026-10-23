@@ -12,6 +12,7 @@
 6. Promotion failure is atomic: canonical records and row state must not be partially committed.
 7. Reversal is auditable and reversible; existing canonical matches must not be deactivated by reversing an import row.
 8. Public listing and profiles expose only active/published records and eligible related records.
+9. Before an enrichment row can be approved or promoted, its parent type and parent ID must both be valid and the referenced canonical parent must exist. A type-only match is insufficient.
 
 ## Existing automated coverage
 
@@ -27,7 +28,7 @@
 | Public pages hide non-active institutions | `PublicDirectoryPublicationFilterTest` |
 | End-to-end readiness report is read-only and fails closed when readiness is incomplete | `InstituteEndToEndReadinessTest` |
 | Complete evidence-backed promotion → explicit publication → public listing/profile | `ImportLifecyclePublicationEndToEndTest` |
-
+| Correct parent type and existence are checked before enrichment approval | `EnrichmentDependencySafetyTest` |
 
 ## Discovery no-change outcome regression
 
@@ -38,7 +39,7 @@ The empty-result path does not create import rows, promote canonical records, pu
 ## Retry and failure policy
 
 - **Safe to retry after correction:** validation failures, missing evidence capture, and transient source retrieval failures, provided no canonical mutation occurred.
-- **Must resolve before retry:** duplicate slug/identity collision, alias collision, unresolved parent, open conflict, or ambiguous institution-versus-campus identity.
+- **Must resolve before retry:** duplicate slug/identity collision, alias collision, unresolved/nonexistent parent, open conflict, or ambiguous institution-versus-campus identity.
 - **Never auto-retry as a new canonical entity:** a failed promotion that may have partially succeeded, a row with a prior promotion event, or any candidate whose identity is unresolved. Reconcile the row, event history, and canonical link first.
 - **Do not auto-reject:** rows with incomplete evidence, ambiguous identity, missing parent, or temporary retrieval failures. Keep them reviewable with a reason.
 - **Publication:** do not publish just because promotion succeeded. Re-check active evidence and conflicts and require the separate operator publication action.
@@ -46,7 +47,7 @@ The empty-result path does not create import rows, promote canonical records, pu
 ## Required CI and live evidence before Phase 2 exit
 
 - Full Laravel test suite and frontend build pass on the merged commit.
-- Test results include the complete lifecycle acceptance test above.
+- Test results include the complete lifecycle acceptance test above and parent-integrity regression coverage.
 - Deployment revision is verified after relevant application code is released.
 - Public smoke checks verify that the synthetic candidate is invisible before publication and visible only after explicit publication.
 - Read-only live diagnostics report current canonical and import status counts.
