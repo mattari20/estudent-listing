@@ -23,6 +23,7 @@ class InstituteSitemapController
         return response($xml, 200, [
             'Content-Type' => 'application/xml; charset=UTF-8',
             'Cache-Control' => 'public, max-age=3600',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 }

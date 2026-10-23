@@ -11,7 +11,7 @@ class InstituteRobotsController
         return response(
             view('institutes.robots')->render(),
             200,
-            ['Content-Type' => 'text/plain; charset=UTF-8']
+            ['Content-Type' => 'text/plain; charset=UTF-8', 'X-Content-Type-Options' => 'nosniff']
         );
     }
 }
