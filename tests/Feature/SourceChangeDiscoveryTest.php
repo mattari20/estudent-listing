@@ -18,15 +18,15 @@ class SourceChangeDiscoveryTest extends TestCase
     public function test_changed_monitored_snapshot_creates_a_governed_discovery_batch(): void
     {
         $institution = Institution::create([
-            'name' => 'COMSATS University Islamabad Lahore Campus',
-            'slug' => 'comsats-university-islamabad-lahore-campus',
+            'name' => 'Government College University Lahore',
+            'slug' => 'government-college-university-lahore',
             'status' => 'active',
         ]);
 
         $source = Source::create([
             'source_type' => 'official',
-            'name' => 'CUI Lahore Academics',
-            'url' => 'https://lahore.comsats.edu.pk/academics.aspx',
+            'name' => 'GCU Lahore Official BS Programs',
+            'url' => 'https://gcu.edu.pk/admissions.php?pg=bs-program',
             'authority_scope' => 'official institutional academic programme listing',
             'status' => 'active',
         ]);
@@ -45,7 +45,7 @@ class SourceChangeDiscoveryTest extends TestCase
         ]);
 
         SourceMonitoringPolicy::create([
-            'name' => 'Automated discovery — cui-lahore',
+            'name' => 'Automated discovery — gcu-lahore-programs',
             'subject_type' => 'program',
             'attribute' => 'automated_discovery',
             'fresh_after_days' => 7,
