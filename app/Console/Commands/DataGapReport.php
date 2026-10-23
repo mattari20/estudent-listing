@@ -280,11 +280,19 @@ class DataGapReport extends Command
                 'active_campuses_without_geography' => $activeCampusWithoutGeography,
             ],
             ...$this->campusGeographyDistributions(),
-            'institutions_without_campuses' => DB::table('institutions')
-                ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('campuses')->whereColumn('campuses.institution_id', 'institutions.id'))
+            'active_institutions_without_active_campuses' => DB::table('institutions')
+                ->where('institutions.status', 'active')
+                ->whereNotExists(fn ($query) => $query->selectRaw('1')
+                    ->from('campuses')
+                    ->whereColumn('campuses.institution_id', 'institutions.id')
+                    ->where('campuses.status', 'active'))
                 ->count(),
-            'institutions_without_programs' => DB::table('institutions')
-                ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('programs')->whereColumn('programs.institution_id', 'institutions.id'))
+            'active_institutions_without_active_programs' => DB::table('institutions')
+                ->where('institutions.status', 'active')
+                ->whereNotExists(fn ($query) => $query->selectRaw('1')
+                    ->from('programs')
+                    ->whereColumn('programs.institution_id', 'institutions.id')
+                    ->where('programs.status', 'active'))
                 ->count(),
             'programs_without_offerings' => DB::table('programs')
                 ->where('programs.status', 'active')

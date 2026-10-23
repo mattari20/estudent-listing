@@ -64,8 +64,8 @@ class DataGapReportTest extends TestCase
         $this->assertArrayHasKey('program_offerings_by_delivery_mode_and_status', $coverage);
         $this->assertArrayHasKey('admission_intakes_by_status', $coverage);
         $this->assertArrayHasKey('campus_geography_coverage', $coverage);
-        $this->assertArrayHasKey('institutions_without_campuses', $coverage);
-        $this->assertArrayHasKey('institutions_without_programs', $coverage);
+        $this->assertArrayHasKey('active_institutions_without_active_campuses', $coverage);
+        $this->assertArrayHasKey('active_institutions_without_active_programs', $coverage);
         $this->assertArrayHasKey('programs_without_offerings', $coverage);
         $this->assertFalse($report['mutation_performed']);
     }
@@ -106,8 +106,8 @@ class DataGapReportTest extends TestCase
         $report = json_decode(Artisan::output(), true);
         $coverage = $report['sections']['coverage'];
 
-        $this->assertSame(1, $coverage['institutions_without_campuses']);
-        $this->assertSame(1, $coverage['institutions_without_programs']);
+        $this->assertSame(1, $coverage['active_institutions_without_active_campuses']);
+        $this->assertSame(1, $coverage['active_institutions_without_active_programs']);
         $this->assertSame(1, $coverage['programs_without_offerings']);
         $this->assertSame(1, $coverage['campus_geography_coverage']['active_campuses_without_geography']);
         $this->assertSame(1, $coverage['programs_by_level_and_status'][0]['count']);
