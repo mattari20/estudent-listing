@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Campus;
 use App\Models\Geography;
 use App\Models\Institution;
+use App\Models\Program;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
@@ -65,6 +67,53 @@ class DataGapReportTest extends TestCase
         $this->assertArrayHasKey('institutions_without_campuses', $coverage);
         $this->assertArrayHasKey('institutions_without_programs', $coverage);
         $this->assertArrayHasKey('programs_without_offerings', $coverage);
+        $this->assertFalse($report['mutation_performed']);
+    }
+
+
+    public function test_coverage_summary_counts_unlinked_records_without_mutating_them(): void
+    {
+        $unlinked = Institution::query()->create([
+            'name' => 'Coverage Gap University',
+            'slug' => 'coverage-gap-university',
+            'institution_type' => 'university',
+            'status' => 'active',
+        ]);
+
+        $linked = Institution::query()->create([
+            'name' => 'Coverage Linked University',
+            'slug' => 'coverage-linked-university',
+            'institution_type' => 'university',
+            'status' => 'active',
+        ]);
+
+        Campus::query()->create([
+            'institution_id' => $linked->id,
+            'name' => 'Campus Without Geography',
+            'slug' => 'campus-without-geography',
+            'status' => 'active',
+        ]);
+
+        $program = Program::query()->create([
+            'institution_id' => $linked->id,
+            'name' => 'Program Without Offering',
+            'slug' => 'program-without-offering',
+            'program_level' => 'undergraduate',
+            'status' => 'active',
+        ]);
+
+        $this->assertSame(0, Artisan::call('institutes:data-gap-report', ['--json' => true]));
+        $report = json_decode(Artisan::output(), true);
+        $coverage = $report['sections']['coverage'];
+
+        $this->assertSame(1, $coverage['institutions_without_campuses']);
+        $this->assertSame(1, $coverage['institutions_without_programs']);
+        $this->assertSame(1, $coverage['programs_without_offerings']);
+        $this->assertSame(1, $coverage['campus_geography_coverage']['active_campuses_without_geography']);
+        $this->assertSame(1, $coverage['programs_by_level_and_status'][0]['count']);
+        $this->assertSame('undergraduate', $coverage['programs_by_level_and_status'][0]['program_level']);
+        $this->assertSame(1, Institution::query()->whereKey($unlinked->id)->count());
+        $this->assertSame(1, Program::query()->whereKey($program->id)->count());
         $this->assertFalse($report['mutation_performed']);
     }
 
