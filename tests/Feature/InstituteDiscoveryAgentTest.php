@@ -41,6 +41,8 @@ class InstituteDiscoveryAgentTest extends TestCase
         $this->assertSame(2, $summary['total_rows']);
         $this->assertSame(2, $summary['candidate_rows']);
         $this->assertSame(0, $summary['duplicate_rows']);
+        $this->assertSame('created', $summary['review_package']['status']);
+        $this->assertSame(2, $summary['review_package']['candidate_count']);
 
         $this->assertDatabaseHas('source_snapshots', [
             'id' => $summary['snapshot_id'],
