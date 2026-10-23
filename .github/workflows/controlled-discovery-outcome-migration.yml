@@ -8,6 +8,11 @@ on:
         required: true
         type: boolean
         default: false
+      repair_empty_partial_table:
+        description: "When true, permit dropping only an unrecorded, empty partial outcome table left by a failed attempt before rerunning the corrected migration."
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -44,12 +49,13 @@ jobs:
         env:
           PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
           CONFIRM_MIGRATION: ${{ inputs.confirm_migration }}
+          REPAIR_EMPTY_PARTIAL_TABLE: ${{ inputs.repair_empty_partial_table }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          envs: PROJECT_PATH,CONFIRM_MIGRATION
+          envs: PROJECT_PATH,CONFIRM_MIGRATION,REPAIR_EMPTY_PARTIAL_TABLE
           command_timeout: 3m
           script: |
             set -eu
@@ -58,40 +64,60 @@ jobs:
             test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
             test -f "$PROJECT_PATH/database/migrations/2026_10_23_070000_create_institute_discovery_run_outcomes_table.php" || { echo "ERROR: target migration file missing on Hostinger"; exit 4; }
             cd "$PROJECT_PATH"
-            php <<'PHP'
+            PREFLIGHT_OUTPUT="$(php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
-            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-            $db = \Illuminate\Support\Facades\DB::connection();
-            $schema = \Illuminate\Support\Facades\Schema::connection($db->getName());
+            $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+            $db = \\Illuminate\\Support\\Facades\\DB::connection();
+            $schema = \\Illuminate\\Support\\Facades\\Schema::connection($db->getName());
             $migration = '2026_10_23_070000_create_institute_discovery_run_outcomes_table';
             $tableExists = $schema->hasTable('institute_discovery_run_outcomes');
-            $migrationLedgerExists = $schema->hasTable('migrations');
-            $recorded = $migrationLedgerExists && $db->table('migrations')->where('migration', $migration)->exists();
+            $ledgerExists = $schema->hasTable('migrations');
+            $recorded = $ledgerExists && $db->table('migrations')->where('migration', $migration)->exists();
             $dependencies = ['sources', 'source_change_observations', 'source_snapshots'];
             $missing = array_values(array_filter($dependencies, fn ($table) => !$schema->hasTable($table)));
+            $rowCount = $tableExists ? $db->table('institute_discovery_run_outcomes')->count() : 0;
             echo json_encode([
-                'check' => 'discovery_outcome_migration_preflight',
                 'target_table_exists' => $tableExists,
-                'migration_ledger_exists' => $migrationLedgerExists,
+                'migration_ledger_exists' => $ledgerExists,
                 'migration_recorded' => $recorded,
-                'dependency_tables' => array_map(fn ($table) => ['table' => $table, 'exists' => $schema->hasTable($table)], $dependencies),
+                'partial_table_row_count' => $rowCount,
                 'missing_dependencies' => $missing,
                 'write_requested' => getenv('CONFIRM_MIGRATION') === 'true',
+                'empty_partial_repair_requested' => getenv('REPAIR_EMPTY_PARTIAL_TABLE') === 'true',
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
-            if (!$migrationLedgerExists) { fwrite(STDERR, "ERROR: migrations ledger table is missing; refusing automatic repair.\n"); exit(10); }
-            if ($tableExists && $recorded) { echo "migration_status=ALREADY_APPLIED_AND_TABLE_PRESENT\n"; exit(0); }
-            if ($tableExists && !$recorded) { fwrite(STDERR, "ERROR: table exists but migration is unrecorded; refusing duplicate/ambiguous repair.\n"); exit(11); }
-            if (!$tableExists && $recorded) { fwrite(STDERR, "ERROR: migration is recorded but table is missing; requires schema reconciliation, not rerun.\n"); exit(12); }
-            if ($missing) { fwrite(STDERR, "ERROR: migration dependencies missing; refusing to migrate.\n"); exit(13); }
-            if (getenv('CONFIRM_MIGRATION') !== 'true') { echo "migration_status=DRY_RUN_PREFLIGHT_PASSED_NO_CHANGES\n"; exit(0); }
+            if (!$ledgerExists) { fwrite(STDERR, "ERROR: migrations ledger missing; refusing.\\n"); exit(10); }
+            if ($tableExists && $recorded) { echo "decision=ALREADY_APPLIED_AND_TABLE_PRESENT\\n"; exit(0); }
+            if (!$tableExists && $recorded) { fwrite(STDERR, "ERROR: migration recorded but table missing; refusing blind rerun.\\n"); exit(12); }
+            if ($missing) { fwrite(STDERR, "ERROR: dependencies missing; refusing.\\n"); exit(13); }
+            if ($tableExists && !$recorded) {
+                if ($rowCount > 0) { fwrite(STDERR, "ERROR: unrecorded target table contains rows; refusing to drop it.\\n"); exit(11); }
+                if (getenv('CONFIRM_MIGRATION') !== 'true' || getenv('REPAIR_EMPTY_PARTIAL_TABLE') !== 'true') {
+                    echo "decision=EMPTY_PARTIAL_TABLE_REQUIRES_EXPLICIT_REPAIR_CONFIRMATION\\n";
+                    exit(0);
+                }
+                $schema->dropIfExists('institute_discovery_run_outcomes');
+                if ($schema->hasTable('institute_discovery_run_outcomes')) { fwrite(STDERR, "ERROR: could not remove empty partial target table.\\n"); exit(14); }
+                echo "decision=EMPTY_PARTIAL_TABLE_REMOVED\\n";
+            } else {
+                echo "decision=READY_TO_MIGRATE\\n";
+            }
             PHP
+            )"
+            echo "$PREFLIGHT_OUTPUT"
+            if printf '%s\\n' "$PREFLIGHT_OUTPUT" | grep -q 'decision=ALREADY_APPLIED_AND_TABLE_PRESENT'; then
+              echo "migration_status=ALREADY_APPLIED_NO_CHANGE"
+              exit 0
+            fi
             if [ "$CONFIRM_MIGRATION" != "true" ]; then
               echo "migration_status=DRY_RUN_PREFLIGHT_PASSED_NO_CHANGES"
               exit 0
             fi
-            php artisan migrate --force --path=database/migrations/2026_10_23_070000_create_institute_discovery_run_outcomes_table.php
+            if ! printf '%s\\n' "$PREFLIGHT_OUTPUT" | grep -Eq 'decision=READY_TO_MIGRATE|decision=EMPTY_PARTIAL_TABLE_REMOVED'; then
+              echo "ERROR: preflight did not authorize migration"
+              exit 15
+            fi
             php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
