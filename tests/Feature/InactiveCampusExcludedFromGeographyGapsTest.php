@@ -12,7 +12,7 @@ class InactiveCampusExcludedFromGeographyGapsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_inactive_campus_without_geography_is_not_a_current_gap(): void
+    public function test_inactive_campus_without_geography_is_excluded_from_current_gap_results(): void
     {
         $institution = Institution::create([
             'name' => 'Inactive Campus Gap University',
