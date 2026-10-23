@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  schedule:
+    # Automatically re-check Hostinger revision alignment every six hours.
+    - cron: "17 */6 * * *"
   workflow_dispatch:
     inputs:
       project_path:
