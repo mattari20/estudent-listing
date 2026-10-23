@@ -287,7 +287,11 @@ class DataGapReport extends Command
                 ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('programs')->whereColumn('programs.institution_id', 'institutions.id'))
                 ->count(),
             'programs_without_offerings' => DB::table('programs')
-                ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('program_offerings')->whereColumn('program_offerings.program_id', 'programs.id'))
+                ->where('programs.status', 'active')
+                ->whereNotExists(fn ($query) => $query->selectRaw('1')
+                    ->from('program_offerings')
+                    ->whereColumn('program_offerings.program_id', 'programs.id')
+                    ->where('program_offerings.status', 'active'))
                 ->count(),
         ];
     }
