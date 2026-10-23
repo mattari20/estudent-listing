@@ -18,8 +18,8 @@ class MonitoringAlertsTest extends TestCase {
 
 
  public function test_resolved_alert_is_not_reused_for_a_new_occurrence(): void {
-  $service=app(\\App\\Services\\MonitoringAlertService::class);
-  $state=app(\\App\\Services\\MonitoringAlertStateService::class);
+  $service=app(\App\Services\MonitoringAlertService::class);
+  $state=app(\App\Services\MonitoringAlertStateService::class);
   $first=$service->raise('resolved-recurrence','warning','First occurrence');
   $state->resolve($first);
   $second=$service->raise('resolved-recurrence','warning','Second occurrence');
