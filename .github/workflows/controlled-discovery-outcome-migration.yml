@@ -68,9 +68,9 @@ jobs:
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
-            $app->make(\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
-            $db = \Illuminate\\Support\\Facades\\DB::connection();
-            $schema = \Illuminate\\Support\\Facades\\Schema::connection($db->getName());
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $db = \Illuminate\Support\Facades\DB::connection();
+            $schema = \Illuminate\Support\Facades\Schema::connection($db->getName());
             $migration = '2026_10_23_070000_create_institute_discovery_run_outcomes_table';
             $tableExists = $schema->hasTable('institute_discovery_run_outcomes');
             $ledgerExists = $schema->hasTable('migrations');
