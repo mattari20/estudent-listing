@@ -383,6 +383,35 @@ class DataGapRecordAuditTest extends TestCase
 
 
 
+    public function test_record_audit_lists_active_programs_without_active_offerings_read_only(): void
+    {
+        $institution = Institution::query()->create([
+            'name' => 'Offering Gap Audit Institute',
+            'slug' => 'offering-gap-audit-institute',
+            'institution_type' => 'university',
+            'status' => 'active',
+        ]);
+
+        \\App\\Models\\Program::query()->create([
+            'institution_id' => $institution->id,
+            'name' => 'Program Without Offering',
+            'slug' => 'program-without-offering',
+            'program_level' => 'undergraduate',
+            'status' => 'active',
+        ]);
+
+        Artisan::call('institutes:data-gap-record-audit', ['--json' => true]);
+        $report = json_decode(Artisan::output(), true);
+        $section = $report['sections']['programs_without_active_offerings'] ?? null;
+
+        $this->assertIsArray($section);
+        $this->assertSame(1, $section['total']);
+        $this->assertSame('Program Without Offering', $section['records'][0]['name'] ?? null);
+        $this->assertSame($institution->id, $section['records'][0]['institution_id'] ?? null);
+        $this->assertFalse($report['mutation_performed'] ?? true);
+        $this->assertSame(1, \\App\\Models\\Program::query()->where('slug', 'program-without-offering')->count());
+    }
+
     public function test_summary_mode_reports_empty_import_pipeline_without_row_level_records(): void
     {
         Artisan::call('institutes:data-gap-record-audit', ['--json' => true, '--summary' => true]);
