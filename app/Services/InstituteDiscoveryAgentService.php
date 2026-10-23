@@ -325,6 +325,22 @@ class InstituteDiscoveryAgentService
             );
         }
 
+        if (($definition['entity_type'] ?? null) === 'campus') {
+            $identity = Str::lower(implode(' ', array_filter([
+                $institution->name,
+                $institution->official_name,
+                $institution->short_name,
+                $institution->institution_type,
+                $institution->slug,
+            ])));
+
+            if (preg_match('/(^|[^a-z])campus([^a-z]|$)/', $identity) === 1) {
+                throw new \RuntimeException(
+                    'Campus discovery requires a standalone parent institution. The configured parent appears to be campus-level; resolve the canonical parent institution before running campus discovery.'
+                );
+            }
+        }
+
         return $institution;
     }
 

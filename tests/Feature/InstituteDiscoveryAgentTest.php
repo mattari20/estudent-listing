@@ -6,6 +6,7 @@ use App\Models\ImportBatch;
 use App\Models\ImportRow;
 use App\Models\Institution;
 use App\Services\InstituteDiscoveryAgentService;
+use App\Services\InstituteDiscoveryReviewPackageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -167,6 +168,11 @@ class InstituteDiscoveryAgentTest extends TestCase
         $this->assertSame(0, (int) $batch->total_rows);
         $this->assertSame(0, ImportRow::where('import_batch_id', $batch->id)->count());
 
+        $retrievedPackage = app(InstituteDiscoveryReviewPackageService::class)->create($batch);
+        $this->assertSame('reused', $retrievedPackage['status']);
+        $this->assertSame($summary['snapshot_id'], $retrievedPackage['snapshot_id']);
+        $this->assertSame($summary['review_package']['manifest_path'], $retrievedPackage['manifest_path']);
+
         $manifest = json_decode(
             Storage::disk('local')->get($summary['review_package']['manifest_path']),
             true
@@ -178,5 +184,7 @@ class InstituteDiscoveryAgentTest extends TestCase
         $this->assertFalse($manifest['canonical_mutations_performed']);
         $this->assertFalse($manifest['automatic_approval_performed']);
     }
+
+
 
 }
