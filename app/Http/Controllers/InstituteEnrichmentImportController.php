@@ -85,6 +85,7 @@ class InstituteEnrichmentImportController
         $valid = 0;
         $invalid = 0;
         $candidate = 0;
+        $duplicateCount = 0;
         $seenSlugs = [];
         $pending = [];
 
@@ -143,6 +144,8 @@ class InstituteEnrichmentImportController
 
             if ($status === 'invalid') {
                 $invalid++;
+            } elseif ($status === 'duplicate') {
+                $duplicateCount++;
             } elseif ($status === 'candidate') {
                 $valid++;
                 $candidate++;
@@ -181,6 +184,7 @@ class InstituteEnrichmentImportController
             'valid_rows' => $valid,
             'invalid_rows' => $invalid,
             'candidate_rows' => $candidate,
+            'duplicate_rows' => $duplicateCount,
             'completed_at' => now(),
         ]);
 
