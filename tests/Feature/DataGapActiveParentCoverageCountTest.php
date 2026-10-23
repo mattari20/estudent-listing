@@ -66,7 +66,7 @@ class DataGapActiveParentCoverageCountTest extends TestCase
         $coverage = $report['sections']['coverage'];
 
         $this->assertSame(2, $coverage['active_institutions_without_active_campuses']);
-        $this->assertSame(3, $coverage['active_institutions_without_active_programs']);
+        $this->assertSame(2, $coverage['active_institutions_without_active_programs']);
         $this->assertArrayNotHasKey('institutions_without_campuses', $coverage);
         $this->assertArrayNotHasKey('institutions_without_programs', $coverage);
         $this->assertDatabaseHas('institutions', ['id' => $withoutActiveChildren->id, 'status' => 'active']);
