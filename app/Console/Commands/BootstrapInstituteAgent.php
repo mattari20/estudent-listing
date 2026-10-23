@@ -7,6 +7,7 @@ use App\Models\Source;
 use App\Models\SourceSnapshot;
 use App\Services\DiscoveryMonitoringPolicyService;
 use App\Services\InstituteDiscoveryAgentService;
+use App\Services\InstituteDiscoveryCandidateExtractor;
 use Illuminate\Console\Command;
 
 class BootstrapInstituteAgent extends Command
@@ -63,14 +64,25 @@ class BootstrapInstituteAgent extends Command
                 continue;
             }
 
-            $hasDiscoveryBatch = ImportBatch::query()
+            // Populated batches are terminal for bootstrap. Empty outcomes are
+            // terminal only for the extractor version that produced them, so a
+            // parser improvement can retry an obsolete zero-candidate result once.
+            $latestBatch = ImportBatch::query()
                 ->where('source_id', $source->id)
                 ->whereIn('source_type', ['automated_discovery', 'ai_extraction'])
-                ->exists();
+                ->latest('id')
+                ->first();
 
-            if ($hasDiscoveryBatch) {
-                $skipped++;
-                continue;
+            if ($latestBatch) {
+                $hasRows = (int) $latestBatch->total_rows > 0
+                    || (int) $latestBatch->rows()->count() > 0;
+                $currentVersionMarker = 'discovery_extractor_version='
+                    .InstituteDiscoveryCandidateExtractor::VERSION;
+
+                if ($hasRows || str_contains((string) $latestBatch->notes, $currentVersionMarker)) {
+                    $skipped++;
+                    continue;
+                }
             }
 
             $snapshot = SourceSnapshot::query()
