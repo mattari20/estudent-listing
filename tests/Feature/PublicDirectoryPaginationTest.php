@@ -39,4 +39,16 @@ class PublicDirectoryPaginationTest extends TestCase
 
         $this->assertSame(24, substr_count($response->getContent(), 'class="institute-card"'));
     }
+
+
+    public function test_second_page_contains_only_remaining_active_institutions(): void
+    {
+        $this->createActiveInstitutions(25);
+
+        $response = $this->get('/institutes/?per_page=24&page=2')->assertOk();
+
+        $this->assertGreaterThanOrEqual(1, substr_count($response->getContent(), 'class="institute-card"'));
+        $response->assertSee('Directory Pagination University 25');
+        $response->assertDontSee('Directory Pagination University 01');
+    }
 }
