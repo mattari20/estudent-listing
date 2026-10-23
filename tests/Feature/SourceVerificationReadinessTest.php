@@ -36,7 +36,7 @@ class SourceVerificationReadinessTest extends TestCase
     }
 
 
-    public function test_successful_source_verification_summary_is_read_only(): void
+    public function test_blocked_source_verification_summary_is_read_only(): void
     {
         $source = Source::create(['source_type' => 'official', 'name' => 'Read Only Source', 'url' => 'https://example.test/readonly', 'status' => 'active']);
         $batch = ImportBatch::create(['batch_key' => 'readonly-source-' . uniqid(), 'entity_type' => 'institution', 'source_type' => 'official', 'source_id' => $source->id, 'status' => 'validated', 'total_rows' => 1, 'valid_rows' => 1, 'invalid_rows' => 0, 'candidate_rows' => 1]);
@@ -44,7 +44,7 @@ class SourceVerificationReadinessTest extends TestCase
 
         $summary = (new InstituteSourceVerificationReadinessService)->summarize($batch);
 
-        $this->assertTrue($summary['source_verification_ready']);
+        $this->assertFalse($summary['source_verification_ready']);
         $this->assertFalse($summary['mutation_performed']);
         $this->assertSame($beforeStatus, $batch->fresh()->status);
     }
