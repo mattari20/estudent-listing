@@ -138,4 +138,43 @@ class InstituteDiscoveryAgentTest extends TestCase
         $this->assertSame(0.98, (float) data_get($row->payload, '_provenance.confidence'));
         $this->assertSame('ai_extraction', data_get($row->payload, '_provenance.method'));
     }
+    public function test_empty_discovery_is_recorded_with_private_no_candidates_package(): void
+    {
+        Storage::fake('local');
+        Institution::create([
+            'name' => 'COMSATS University Islamabad Lahore Campus',
+            'slug' => 'comsats-university-islamabad-lahore-campus',
+            'status' => 'active',
+        ]);
+
+        $html = '<html><body><p>No programme listing on this page.</p></body></html>';
+        Http::fake([
+            'https://lahore.comsats.edu.pk/academics.aspx' => Http::response(
+                $html,
+                200,
+                ['Content-Type' => 'text/html']
+            ),
+        ]);
+
+        $summary = app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
+
+        $this->assertSame('no_candidates', $summary['outcome']);
+        $this->assertSame(0, $summary['total_rows']);
+        $this->assertSame(0, $summary['candidate_rows']);
+        $this->assertSame('created', $summary['review_package']['status']);
+
+        $batch = ImportBatch::query()->findOrFail($summary['batch_id']);
+        $this->assertSame(0, (int) $batch->total_rows);
+        $this->assertSame(0, ImportRow::where('import_batch_id', $batch->id)->count());
+
+        $manifest = json_decode(
+            Storage::disk('local')->get($summary['review_package']['manifest_path']),
+            true
+        );
+        $this->assertSame('no_candidates', $manifest['status']);
+        $this->assertSame(0, $manifest['candidate_count']);
+        $this->assertFalse($manifest['canonical_mutations_performed']);
+        $this->assertFalse($manifest['automatic_approval_performed']);
+    }
+
 }
