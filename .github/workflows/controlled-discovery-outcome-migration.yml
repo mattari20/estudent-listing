@@ -68,9 +68,9 @@ jobs:
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
-            $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
-            $db = \\Illuminate\\Support\\Facades\\DB::connection();
-            $schema = \\Illuminate\\Support\\Facades\\Schema::connection($db->getName());
+            $app->make(\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+            $db = \Illuminate\\Support\\Facades\\DB::connection();
+            $schema = \Illuminate\\Support\\Facades\\Schema::connection($db->getName());
             $migration = '2026_10_23_070000_create_institute_discovery_run_outcomes_table';
             $tableExists = $schema->hasTable('institute_discovery_run_outcomes');
             $ledgerExists = $schema->hasTable('migrations');
@@ -87,26 +87,26 @@ jobs:
                 'write_requested' => getenv('CONFIRM_MIGRATION') === 'true',
                 'empty_partial_repair_requested' => getenv('REPAIR_EMPTY_PARTIAL_TABLE') === 'true',
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
-            if (!$ledgerExists) { fwrite(STDERR, "ERROR: migrations ledger missing; refusing.\\n"); exit(10); }
-            if ($tableExists && $recorded) { echo "decision=ALREADY_APPLIED_AND_TABLE_PRESENT\\n"; exit(0); }
-            if (!$tableExists && $recorded) { fwrite(STDERR, "ERROR: migration recorded but table missing; refusing blind rerun.\\n"); exit(12); }
-            if ($missing) { fwrite(STDERR, "ERROR: dependencies missing; refusing.\\n"); exit(13); }
+            if (!$ledgerExists) { fwrite(STDERR, "ERROR: migrations ledger missing; refusing.\n"); exit(10); }
+            if ($tableExists && $recorded) { echo "decision=ALREADY_APPLIED_AND_TABLE_PRESENT\n"; exit(0); }
+            if (!$tableExists && $recorded) { fwrite(STDERR, "ERROR: migration recorded but table missing; refusing blind rerun.\n"); exit(12); }
+            if ($missing) { fwrite(STDERR, "ERROR: dependencies missing; refusing.\n"); exit(13); }
             if ($tableExists && !$recorded) {
-                if ($rowCount > 0) { fwrite(STDERR, "ERROR: unrecorded target table contains rows; refusing to drop it.\\n"); exit(11); }
+                if ($rowCount > 0) { fwrite(STDERR, "ERROR: unrecorded target table contains rows; refusing to drop it.\n"); exit(11); }
                 if (getenv('CONFIRM_MIGRATION') !== 'true' || getenv('REPAIR_EMPTY_PARTIAL_TABLE') !== 'true') {
-                    echo "decision=EMPTY_PARTIAL_TABLE_REQUIRES_EXPLICIT_REPAIR_CONFIRMATION\\n";
+                    echo "decision=EMPTY_PARTIAL_TABLE_REQUIRES_EXPLICIT_REPAIR_CONFIRMATION\n";
                     exit(0);
                 }
                 $schema->dropIfExists('institute_discovery_run_outcomes');
-                if ($schema->hasTable('institute_discovery_run_outcomes')) { fwrite(STDERR, "ERROR: could not remove empty partial target table.\\n"); exit(14); }
-                echo "decision=EMPTY_PARTIAL_TABLE_REMOVED\\n";
+                if ($schema->hasTable('institute_discovery_run_outcomes')) { fwrite(STDERR, "ERROR: could not remove empty partial target table.\n"); exit(14); }
+                echo "decision=EMPTY_PARTIAL_TABLE_REMOVED\n";
             } else {
-                echo "decision=READY_TO_MIGRATE\\n";
+                echo "decision=READY_TO_MIGRATE\n";
             }
             PHP
             )"
             echo "$PREFLIGHT_OUTPUT"
-            if printf '%s\\n' "$PREFLIGHT_OUTPUT" | grep -q 'decision=ALREADY_APPLIED_AND_TABLE_PRESENT'; then
+            if printf '%s\n' "$PREFLIGHT_OUTPUT" | grep -q 'decision=ALREADY_APPLIED_AND_TABLE_PRESENT'; then
               echo "migration_status=ALREADY_APPLIED_NO_CHANGE"
               exit 0
             fi
@@ -114,7 +114,7 @@ jobs:
               echo "migration_status=DRY_RUN_PREFLIGHT_PASSED_NO_CHANGES"
               exit 0
             fi
-            if ! printf '%s\\n' "$PREFLIGHT_OUTPUT" | grep -Eq 'decision=READY_TO_MIGRATE|decision=EMPTY_PARTIAL_TABLE_REMOVED'; then
+            if ! printf '%s\n' "$PREFLIGHT_OUTPUT" | grep -Eq 'decision=READY_TO_MIGRATE|decision=EMPTY_PARTIAL_TABLE_REMOVED'; then
               echo "ERROR: preflight did not authorize migration"
               exit 15
             fi
