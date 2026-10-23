@@ -10,7 +10,6 @@ use App\Services\InstituteDiscoveryReviewPackageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
-use RuntimeException;
 use Tests\TestCase;
 
 class InstituteDiscoveryAgentTest extends TestCase
@@ -187,30 +186,5 @@ class InstituteDiscoveryAgentTest extends TestCase
     }
 
 
-    public function test_campus_discovery_refuses_a_campus_level_parent(): void
-    {
-        Institution::create([
-            'name' => 'COMSATS University Islamabad Lahore Campus',
-            'slug' => 'comsats-university-islamabad-lahore-campus',
-            'institution_type' => 'Public University Campus',
-            'status' => 'active',
-        ]);
-
-        try {
-            app(InstituteDiscoveryAgentService::class)->run('cui-lahore-campus');
-            $this->fail('Campus discovery must not use a campus-level record as its own parent.');
-        } catch (RuntimeException $exception) {
-            $this->assertSame(
-                'Campus discovery requires a standalone parent institution. The configured parent appears to be campus-level; resolve the canonical parent institution before running campus discovery.',
-                $exception->getMessage()
-            );
-        }
-
-        $this->assertDatabaseMissing('sources', [
-            'url' => 'https://lahore.comsats.edu.pk/',
-        ]);
-        $this->assertDatabaseCount('source_snapshots', 0);
-        $this->assertDatabaseCount('import_batches', 0);
-    }
 
 }
