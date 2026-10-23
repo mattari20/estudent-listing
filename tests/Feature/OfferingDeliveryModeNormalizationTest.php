@@ -7,14 +7,15 @@ use Tests\TestCase;
 
 class OfferingDeliveryModeNormalizationTest extends TestCase
 {
-    public function test_delivery_mode_is_trimmed_before_campus_requirement_is_evaluated(): void
+    public function test_delivery_mode_whitespace_is_trimmed_and_valid_campus_is_preserved(): void
     {
         $normalized = app(StructuredEnrichmentValidator::class)->normalize('offering', [
             'program_id' => 10,
-            'delivery_mode' => ' online ',
+            'campus_id' => 20,
+            'delivery_mode' => ' on_campus ',
         ]);
 
-        $this->assertSame('online', $normalized['delivery_mode']);
-        $this->assertNull($normalized['campus_id']);
+        $this->assertSame('on_campus', $normalized['delivery_mode']);
+        $this->assertSame(20, $normalized['campus_id']);
     }
 }
