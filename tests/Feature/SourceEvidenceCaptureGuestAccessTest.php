@@ -6,8 +6,8 @@ use Tests\TestCase;
 
 class SourceEvidenceCaptureGuestAccessTest extends TestCase
 {
-    public function test_guest_is_redirected_before_operator_page_is_accessed(): void
+    public function test_guest_is_redirected_before_source_evidence_is_submitted(): void
     {
-        $this->get('/institutes/operations/sources/1/evidence')->assertRedirect();
+        $this->post('/institutes/operations/sources/1/evidence', [])->assertRedirect();
     }
 }
