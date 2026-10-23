@@ -102,6 +102,16 @@ class DataGapRecordAudit extends Command
                     ->orderBy('programs.id')
                     ->get(['programs.id', 'programs.institution_id', 'programs.name', 'programs.slug', 'programs.program_level', 'programs.status']);
 
+                $offeringStatusCounts = DB::table('program_offerings')
+                    ->select('program_id', 'status', DB::raw('COUNT(*) as total'))
+                    ->whereIn('program_id', $programsWithoutActiveOfferings->pluck('id')->all())
+                    ->groupBy('program_id', 'status')
+                    ->get()
+                    ->groupBy('program_id')
+                    ->map(fn ($rows): array => $rows->mapWithKeys(fn ($row): array => [
+                        (string) ($row->status ?? 'null') => (int) $row->total,
+                    ])->all());
+
                 $report['sections']['programs_without_active_offerings'] = [
                     'total' => $programsWithoutActiveOfferings->count(),
                     'records' => $programsWithoutActiveOfferings->map(fn ($row): array => [
@@ -111,6 +121,8 @@ class DataGapRecordAudit extends Command
                         'slug' => $row->slug,
                         'program_level' => $row->program_level,
                         'status' => $row->status,
+                        'existing_offerings_by_status' => $offeringStatusCounts->get($row->id, []),
+                        'has_any_existing_offering' => $offeringStatusCounts->has($row->id),
                     ])->all(),
                 ];
             } else {
