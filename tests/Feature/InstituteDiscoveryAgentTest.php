@@ -140,6 +140,32 @@ class InstituteDiscoveryAgentTest extends TestCase
         $this->assertSame(0.98, (float) data_get($row->payload, '_provenance.confidence'));
         $this->assertSame('ai_extraction', data_get($row->payload, '_provenance.method'));
     }
+    public function test_academic_program_section_extracts_discipline_links_and_headings(): void
+    {
+        $html = '<html><body>
+            <nav><a href="/admissions">Admissions</a><a href="/contact">Contact Us</a></nav>
+            <main><section>
+                <h2>Academic Programs</h2>
+                <a href="/biology">Biology</a>
+                <a href="/biotechnology">Biotechnology</a>
+                <h3>Computer Science</h3>
+                <a href="/english">English</a>
+            </section><section><h2>Campus Life</h2><a href="/events">Events</a></section></main>
+        </body></html>';
+
+        $candidates = app(\App\Services\InstituteDiscoveryCandidateExtractor::class)->extract('program', $html);
+        $names = array_column($candidates, 'name');
+
+        $this->assertContains('Biology', $names);
+        $this->assertContains('Biotechnology', $names);
+        $this->assertContains('Computer Science', $names);
+        $this->assertContains('English', $names);
+        $this->assertNotContains('Admissions', $names);
+        $this->assertNotContains('Contact Us', $names);
+        $this->assertNotContains('Events', $names);
+        $this->assertCount(4, $names);
+    }
+
     public function test_empty_discovery_is_recorded_with_private_no_candidates_package(): void
     {
         Storage::fake('local');
