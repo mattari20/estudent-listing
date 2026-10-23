@@ -25,11 +25,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Checkout repository for revision comparison
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve latest application-code revision
+        id: app_revision
+        shell: bash
+        run: |
+          # Workflow/docs-only commits do not require application deployment.
+          revision="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          if [[ -z "$revision" ]]; then
+            echo "::error::Could not determine the latest application-code revision."
+            exit 1
+          fi
+          echo "expected_revision=$revision" >> "$GITHUB_OUTPUT"
+
       - name: Run diagnostics on Hostinger
         uses: appleboy/ssh-action@v1.2.0
         env:
           PROJECT_PATH: ${{ inputs.project_path || '/home/u537436044/domains/estudent.pk/public_html/institutes' }}
-          EXPECTED_REVISION: ${{ github.sha }}
+          EXPECTED_REVISION: ${{ steps.app_revision.outputs.expected_revision }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
