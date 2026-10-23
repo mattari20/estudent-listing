@@ -1,0 +1,102 @@
+name: Controlled Hostinger Code Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_deployment:
+        description: "Set true to deploy the latest application-code revision to production. False performs a read-only preflight."
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: controlled-hostinger-code-deployment
+  cancel-in-progress: false
+
+jobs:
+  resolve-target:
+    name: Resolve approved application-code revision
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      target_revision: ${{ steps.revision.outputs.target_revision }}
+    steps:
+      - name: Checkout main with full history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Resolve latest application-code commit
+        id: revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          test -n "$revision"
+          echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "Resolved latest application-code revision: $revision"
+
+  deploy:
+    name: Preflight and optionally deploy application code
+    needs: resolve-target
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify remote checkout and deploy only when explicitly confirmed
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
+          TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
+          CONFIRM_DEPLOYMENT: ${{ inputs.confirm_deployment }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,TARGET_REVISION,CONFIRM_DEPLOYMENT
+          command_timeout: 6m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: invalid project path"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: invalid project path"; exit 2 ;; esac
+            test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
+            cd "$PROJECT_PATH"
+            git rev-parse --is-inside-work-tree >/dev/null
+            PREVIOUS_REVISION="$(git rev-parse HEAD)"
+            echo "current_revision=$PREVIOUS_REVISION"
+            echo "target_revision=$TARGET_REVISION"
+            if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+              echo "ERROR: tracked working-tree changes found; refusing deployment"
+              exit 4
+            fi
+            git fetch --quiet --no-tags origin main "$TARGET_REVISION"
+            git cat-file -e "$TARGET_REVISION^{commit}"
+            if [ "$CONFIRM_DEPLOYMENT" != "true" ]; then
+              echo "deployment_status=DRY_RUN_PREFLIGHT_PASSED"
+              echo "No application files were changed. Rerun manually with confirm_deployment=true to deploy."
+              exit 0
+            fi
+            echo "deployment_status=DEPLOYMENT_CONFIRMED"
+            if ! git checkout --detach "$TARGET_REVISION"; then
+              git checkout --detach "$PREVIOUS_REVISION" >/dev/null 2>&1 || true
+              echo "ERROR: checkout failed; attempted to restore previous revision"
+              exit 5
+            fi
+            if ! php artisan --version; then
+              git checkout --detach "$PREVIOUS_REVISION" >/dev/null 2>&1 || true
+              echo "ERROR: Laravel bootstrap smoke test failed; attempted rollback"
+              exit 6
+            fi
+            DEPLOYED_REVISION="$(git rev-parse HEAD)"
+            if [ "$DEPLOYED_REVISION" != "$TARGET_REVISION" ]; then
+              git checkout --detach "$PREVIOUS_REVISION" >/dev/null 2>&1 || true
+              echo "ERROR: deployed revision did not match target; attempted rollback"
+              exit 7
+            fi
+            echo "deployment_status=CODE_DEPLOYED"
+            echo "deployed_revision=$DEPLOYED_REVISION"
+            echo "database_migrations=NOT_RUN"
+            echo "production_data_mutations=NOT_RUN"
