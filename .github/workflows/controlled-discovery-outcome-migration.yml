@@ -132,7 +132,5 @@ jobs:
             echo 'post_migration_table_exists='.($exists ? 'true' : 'false'), PHP_EOL;
             echo 'post_migration_recorded='.($recorded ? 'true' : 'false'), PHP_EOL;
             if (!$exists || !$recorded) exit(20);
-            echo 'post_migration_table_exists='.($exists ? 'true' : 'false'), PHP_EOL;
-            if (!$exists) exit(20);
             PHP
             echo "migration_status=TARGET_MIGRATION_APPLIED_AND_VERIFIED"
