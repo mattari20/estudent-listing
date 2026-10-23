@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Institution;
+use App\Models\Program;
 use App\Models\ImportBatch;
 use App\Models\IdentityResolutionDecision;
 use App\Models\ImportConflict;
@@ -392,7 +393,7 @@ class DataGapRecordAuditTest extends TestCase
             'status' => 'active',
         ]);
 
-        \\App\\Models\\Program::query()->create([
+        Program::query()->create([
             'institution_id' => $institution->id,
             'name' => 'Program Without Offering',
             'slug' => 'program-without-offering',
@@ -409,7 +410,7 @@ class DataGapRecordAuditTest extends TestCase
         $this->assertSame('Program Without Offering', $section['records'][0]['name'] ?? null);
         $this->assertSame($institution->id, $section['records'][0]['institution_id'] ?? null);
         $this->assertFalse($report['mutation_performed'] ?? true);
-        $this->assertSame(1, \\App\\Models\\Program::query()->where('slug', 'program-without-offering')->count());
+        $this->assertSame(1, Program::query()->where('slug', 'program-without-offering')->count());
     }
 
     public function test_summary_mode_reports_empty_import_pipeline_without_row_level_records(): void
