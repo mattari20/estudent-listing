@@ -243,6 +243,30 @@ class DataGapRecordAudit extends Command
             return 'unsupported_entity_type';
         }
 
+        if (preg_match('/matching canonical institution(?: alias)? already exists|explicit approved_match identity resolution is required/i', $reason) === 1) {
+            return 'canonical_identity_collision';
+        }
+
+        if (preg_match('/active source evidence is required|active source record is required/i', $reason) === 1) {
+            return 'missing_active_source_evidence';
+        }
+
+        if (preg_match('/open import conflicts must be explicitly resolved/i', $reason) === 1) {
+            return 'unresolved_import_conflict';
+        }
+
+        if (preg_match('/explicit approved resolution decision|approved resolution decision can promote/i', $reason) === 1) {
+            return 'missing_approved_identity_decision';
+        }
+
+        if (preg_match('/only candidate import rows|only rows from a validated import batch/i', $reason) === 1) {
+            return 'invalid_row_or_batch_state';
+        }
+
+        if (preg_match('/institution name is required/i', $reason) === 1) {
+            return 'missing_institution_name';
+        }
+
         if (preg_match('/(?:require|requires|must have|must reference).{0,80}parent|parent.{0,80}(?:required|missing|invalid)/i', $reason) === 1) {
             return 'missing_or_invalid_parent';
         }
