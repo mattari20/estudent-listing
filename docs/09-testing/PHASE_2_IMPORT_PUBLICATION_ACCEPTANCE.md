@@ -52,7 +52,7 @@ The runner must:
 
 Discovery packages are private local-disk files, not public URLs. An authorized operator can run `php artisan institutes:discovery-review-package` over SSH to create/reuse the newest package and obtain its CSV and manifest paths. Do not symlink these packages into the public web root.
 
-The read-only live audit also found 36 active programs without an active offering. These are now exposed as a separate official-source review queue; do not manufacture offering records or change production data merely to make the warning disappear. The COMSATS campus discovery profile is intentionally paused because its configured parent slug resolves to a campus-level institution; re-enable it only after the standalone parent institution has been resolved and the profile points to that canonical parent.
+The read-only live audit also found 36 active programs without an active offering. These are now exposed as a separate official-source review queue; do not manufacture offering records or change production data merely to make the warning disappear. Both COMSATS discovery profiles are paused because their configured parent slug (`comsats-university-islamabad-lahore-campus`) is absent from canonical data. The only canonical COMSATS match found was ID 9, slug `comsats-university-lahore-campus`, type `Public University Campus`; do not silently retarget either profile to this campus-level record. Resolve the standalone parent institution first. A deterministic GCU Lahore pilot profile uses the existing canonical parent `government-college-university-lahore` and the official BS admissions source at https://gcu.edu.pk/admissions.php?pg=bs-program.
 
 ## Retry and failure policy
 

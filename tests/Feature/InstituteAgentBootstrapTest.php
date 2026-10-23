@@ -18,12 +18,12 @@ class InstituteAgentBootstrapTest extends TestCase
     public function test_bootstrap_registers_source_policy_and_performs_initial_discovery_once(): void
     {
         Institution::create([
-            'name' => 'COMSATS University Islamabad Lahore Campus',
-            'slug' => 'comsats-university-islamabad-lahore-campus',
+            'name' => 'Government College University Lahore',
+            'slug' => 'government-college-university-lahore',
         ]);
 
         Http::fake([
-            'https://lahore.comsats.edu.pk/academics.aspx' => Http::response(
+            'https://gcu.edu.pk/admissions.php?pg=bs-program' => Http::response(
                 '<html><body><a href="/x">Bachelor of Computer Science</a><a href="/y">Bachelor of Artificial Intelligence</a></body></html>',
                 200,
                 ['Content-Type' => 'text/html']
@@ -33,7 +33,7 @@ class InstituteAgentBootstrapTest extends TestCase
         $this->artisan('institutes:bootstrap-agent')
             ->assertExitCode(0);
 
-        $source = Source::query()->where('url', 'https://lahore.comsats.edu.pk/academics.aspx')->first();
+        $source = Source::query()->where('url', 'https://gcu.edu.pk/admissions.php?pg=bs-program')->first();
 
         $this->assertNotNull($source);
         $this->assertDatabaseHas('source_monitoring_policies', [
