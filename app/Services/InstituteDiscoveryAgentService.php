@@ -190,7 +190,7 @@ class InstituteDiscoveryAgentService
             'completed_at' => now(),
         ]);
 
-        $reviewPackage = app(InstituteDiscoveryReviewPackageService::class)->create($batch->fresh());
+        $reviewPackage = app(InstituteDiscoveryReviewPackageService::class)->create($batch->fresh(), $snapshot, (int) $evidence->id);
 
         return [
             'entity_type' => $entityType,
@@ -243,7 +243,7 @@ class InstituteDiscoveryAgentService
         ]);
 
         $reviewPackage = app(InstituteDiscoveryReviewPackageService::class)
-            ->create($batch->fresh(), $snapshot);
+            ->create($batch->fresh(), $snapshot, (int) $evidence->id);
 
         return [
             'entity_type' => $entityType,
