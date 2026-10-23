@@ -138,6 +138,30 @@ class DataGapRecordAudit extends Command
                         ->where('decision', 'approved')
                         ->exists();
 
+                $latestIdentityDecision = Schema::hasTable('identity_resolution_decisions')
+                    ? DB::table('identity_resolution_decisions')
+                        ->where('import_row_id', $record['id'])
+                        ->orderByDesc('decided_at')
+                        ->orderByDesc('id')
+                        ->first(['decision', 'institution_id', 'decided_at'])
+                    : null;
+                $record['identity_decision_count'] = Schema::hasTable('identity_resolution_decisions')
+                    ? DB::table('identity_resolution_decisions')->where('import_row_id', $record['id'])->count()
+                    : 0;
+                $record['latest_identity_decision'] = $latestIdentityDecision ? [
+                    'decision' => $latestIdentityDecision->decision,
+                    'institution_id' => $latestIdentityDecision->institution_id === null ? null : (int) $latestIdentityDecision->institution_id,
+                    'decided_at' => $latestIdentityDecision->decided_at,
+                ] : null;
+                $record['has_approved_identity_decision'] = in_array(
+                    $latestIdentityDecision->decision ?? null,
+                    ['approved_new', 'approved_match'],
+                    true,
+                );
+                $record['open_conflict_count'] = Schema::hasTable('import_conflicts')
+                    ? DB::table('import_conflicts')->where('import_row_id', $record['id'])->where('status', 'open')->count()
+                    : 0;
+
                 $latestEvent = Schema::hasTable('import_promotion_events')
                     ? DB::table('import_promotion_events')
                         ->where('import_row_id', $record['id'])
