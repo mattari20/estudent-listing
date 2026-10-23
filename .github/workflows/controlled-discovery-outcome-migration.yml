@@ -118,14 +118,19 @@ jobs:
               echo "ERROR: preflight did not authorize migration"
               exit 15
             fi
+            php artisan migrate --force --path=database/migrations/2026_10_23_070000_create_institute_discovery_run_outcomes_table.php
             php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
             $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
             $schema = \Illuminate\Support\Facades\Schema::connection(\Illuminate\Support\Facades\DB::connection()->getName());
+            $db = \Illuminate\Support\Facades\DB::connection();
+            $migration = '2026_10_23_070000_create_institute_discovery_run_outcomes_table';
             $exists = $schema->hasTable('institute_discovery_run_outcomes');
+            $recorded = $schema->hasTable('migrations') && $db->table('migrations')->where('migration', $migration)->exists();
             echo 'post_migration_table_exists='.($exists ? 'true' : 'false'), PHP_EOL;
-            if (!$exists) exit(20);
+            echo 'post_migration_recorded='.($recorded ? 'true' : 'false'), PHP_EOL;
+            if (!$exists || !$recorded) exit(20);
             PHP
             echo "migration_status=TARGET_MIGRATION_APPLIED_AND_VERIFIED"
