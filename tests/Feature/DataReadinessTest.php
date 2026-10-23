@@ -77,4 +77,17 @@ class DataReadinessTest extends TestCase
         $this->assertSame(0, $summary['population']['active_institutions']);
         $this->assertFalse($summary['mutation_performed']);
     }
+
+
+    public function test_missing_relationship_summary_does_not_change_canonical_records(): void
+    {
+        $institution = Institution::create(['name' => 'Read Only Readiness University', 'slug' => 'readonly-readiness-university', 'status' => 'active']);
+        $before = $institution->only(['id', 'name', 'slug', 'status']);
+
+        $summary = (new InstituteDataReadinessService)->summarize();
+
+        $this->assertSame(1, $summary['integrity']['active_institutions_without_active_campus']);
+        $this->assertFalse($summary['mutation_performed']);
+        $this->assertSame($before, $institution->fresh()->only(['id', 'name', 'slug', 'status']));
+    }
 }
