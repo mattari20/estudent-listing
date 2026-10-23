@@ -1,8 +1,8 @@
 <?php
 
-namespace App\\Services;
+namespace App\Services;
 
-use Illuminate\\Support\\Str;
+use Illuminate\Support\Str;
 
 class InstituteDiscoveryCandidateExtractor
 {
@@ -11,16 +11,16 @@ class InstituteDiscoveryCandidateExtractor
         return match ($entityType) {
             'program' => $this->programs($html),
             'campus' => $this->campuses($html),
-            default => throw new \\InvalidArgumentException("Unsupported autonomous discovery entity type: {$entityType}"),
+            default => throw new \InvalidArgumentException("Unsupported autonomous discovery entity type: {$entityType}"),
         };
     }
 
     private function programs(string $html): array
     {
         libxml_use_internal_errors(true);
-        $dom = new \\DOMDocument();
+        $dom = new \DOMDocument();
         $dom->loadHTML($html);
-        $xpath = new \\DOMXPath($dom);
+        $xpath = new \DOMXPath($dom);
         $programs = [];
 
         // Keep support for official pages that link complete degree titles.
@@ -116,9 +116,9 @@ class InstituteDiscoveryCandidateExtractor
     private function campuses(string $html): array
     {
         libxml_use_internal_errors(true);
-        $dom = new \\DOMDocument();
+        $dom = new \DOMDocument();
         $dom->loadHTML($html);
-        $xpath = new \\DOMXPath($dom);
+        $xpath = new \DOMXPath($dom);
         $campuses = [];
 
         foreach ($xpath->query('//a|//h1|//h2|//h3|//h4') as $node) {
