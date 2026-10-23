@@ -184,7 +184,7 @@ class DataGapRecordAuditTest extends TestCase
         $this->assertSame(1, $report['sections']['import_rows']['total'] ?? null);
         $this->assertSame(
             1,
-            $report['sections']['import_rows']['by_review_disposition']['review_promotion_decision'] ?? null
+            $report['sections']['import_rows']['by_review_disposition']['review_identity_decision'] ?? null
         );
         $this->assertArrayNotHasKey('records', $report['sections']['import_rows'] ?? []);
         $this->assertStringNotContainsString('Private summary test payload', $output);
