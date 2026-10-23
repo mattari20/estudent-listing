@@ -61,7 +61,7 @@ class SourceChangeDiscoveryService
             }
 
             $package = $summary['review_package'] ?? [];
-            return $this->record($base + [
+            $runOutcome = $this->record($base + [
                 'profile_key' => $profileKey,
                 'outcome' => ((int) ($summary['candidate_rows'] ?? 0)) > 0 ? 'candidates_created' : 'empty_candidates',
                 'candidate_count' => (int) ($summary['candidate_rows'] ?? 0),
@@ -71,6 +71,9 @@ class SourceChangeDiscoveryService
                     'used_ai' => $useAi,
                 ],
             ]);
+
+            // Preserve the discovery-agent summary contract for existing callers.
+            return $summary + ['run_outcome' => $runOutcome];
         }
 
         return $this->record($base + [
