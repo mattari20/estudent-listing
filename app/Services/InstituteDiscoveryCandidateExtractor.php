@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 class InstituteDiscoveryCandidateExtractor
 {
     /** Bump when deterministic extraction rules change. */
-    public const VERSION = '2';
+    public const VERSION = '3';
 
     public function extract(string $entityType, string $html): array
     {
@@ -25,41 +25,44 @@ class InstituteDiscoveryCandidateExtractor
         $dom->loadHTML($html);
         $xpath = new \DOMXPath($dom);
         $programs = [];
+        $sectionFound = false;
 
-        // Keep support for official pages that link complete degree titles.
-        foreach ($xpath->query('//a') as $link) {
-            $name = $this->normalize($link->textContent ?? '');
-            if (preg_match('/^(Bachelor|BS\\b|BSc\\b|B\\.Sc\\b)/i', $name)
-                && stripos($name, 'Visit Department') === false) {
-                $this->addProgram($programs, $name, 0.95);
-            }
-        }
-
-        // Other official pages list discipline labels under a section heading.
-        // Scope those labels to an explicitly named academic-programme section
-        // so unrelated navigation elsewhere on the page is not treated as data.
+        // Restrict extraction to the named academic-programme section and stop
+        // at the next heading of equal or higher rank.
         foreach ($xpath->query('//h1|//h2|//h3|//h4|//h5|//h6') as $heading) {
             $headingText = mb_strtolower($this->normalize($heading->textContent ?? ''));
             if (! in_array($headingText, ['academic programs', 'academic programmes', 'programs offered', 'programmes offered'], true)) {
                 continue;
             }
 
-            $container = $heading->parentNode;
-            while ($container && $container->parentNode
-                && ! in_array(strtolower($container->nodeName), ['section', 'article', 'main'], true)) {
-                $container = $container->parentNode;
-            }
-            if (! $container) {
-                continue;
-            }
-
-            foreach ($xpath->query('.//a|.//h3|.//h4|.//h5|.//h6', $container) as $node) {
-                if ($node->isSameNode($heading)) {
+            $sectionFound = true;
+            $headingLevel = (int) substr(strtolower($heading->nodeName), 1);
+            foreach ($xpath->query('following::*', $heading) as $node) {
+                $nodeName = strtolower($node->nodeName);
+                if (preg_match('/^h[1-6]$/', $nodeName)) {
+                    $nodeLevel = (int) substr($nodeName, 1);
+                    if ($nodeLevel <= $headingLevel) {
+                        break;
+                    }
+                }
+                if (! in_array($nodeName, ['a', 'h3', 'h4', 'h5', 'h6'], true)) {
                     continue;
                 }
+
                 $name = $this->normalize($node->textContent ?? '');
                 if ($this->looksLikeDiscipline($name)) {
                     $this->addProgram($programs, $name, 0.90);
+                }
+            }
+        }
+
+        // Fallback only for official pages without a named programme section.
+        if (! $sectionFound) {
+            foreach ($xpath->query('//a') as $link) {
+                $name = $this->normalize($link->textContent ?? '');
+                if (preg_match('/^(Bachelor|BS\\b|BSc\\b|B\\.Sc\\b)/i', $name)
+                    && stripos($name, 'Visit Department') === false) {
+                    $this->addProgram($programs, $name, 0.95);
                 }
             }
         }
