@@ -163,6 +163,59 @@ class DataGapReport extends Command
         );
     }
 
+    private function campusGeographyDistributions(): array
+    {
+        $geographies = DB::table('geographies')
+            ->select(['id', 'parent_id', 'name', 'type', 'status'])
+            ->get()
+            ->keyBy('id');
+
+        $provinceCounts = [];
+        $districtCounts = [];
+        $activeCampuses = DB::table('campuses')
+            ->where('status', 'active')
+            ->whereNotNull('geography_id')
+            ->get(['id', 'geography_id']);
+
+        foreach ($activeCampuses as $campus) {
+            $current = $geographies->get($campus->geography_id);
+            $visited = [];
+
+            while ($current !== null && ! in_array((int) $current->id, $visited, true)) {
+                $visited[] = (int) $current->id;
+
+                if ($current->status === 'active' && in_array($current->type, ['province', 'territory'], true)) {
+                    $key = (string) $current->name;
+                    $provinceCounts[$key] = ($provinceCounts[$key] ?? 0) + 1;
+                }
+
+                if ($current->status === 'active' && $current->type === 'district') {
+                    $key = (string) $current->name;
+                    $districtCounts[$key] = ($districtCounts[$key] ?? 0) + 1;
+                }
+
+                $current = $current->parent_id === null ? null : $geographies->get($current->parent_id);
+            }
+        }
+
+        ksort($provinceCounts);
+        ksort($districtCounts);
+
+        return [
+            'active_campuses_by_province_or_territory' => array_map(
+                fn (string $name, int $count): array => ['name' => $name, 'count' => $count],
+                array_keys($provinceCounts),
+                array_values($provinceCounts),
+            ),
+            'active_campuses_by_district' => array_map(
+                fn (string $name, int $count): array => ['name' => $name, 'count' => $count],
+                array_keys($districtCounts),
+                array_values($districtCounts),
+            ),
+            'geographic_coverage_note' => 'Counts follow active geography ancestors for active campuses with a geography assignment; they are coverage indicators, not proof of national completeness.',
+        ];
+    }
+
     private function coverageSummary(): array
     {
         $groupCounts = static function (string $table, array $columns): array {
@@ -211,6 +264,7 @@ class DataGapReport extends Command
                 'campuses_without_geography' => $campusWithGeography === null ? null : $campusTotal - $campusWithGeography,
                 'active_campuses_without_geography' => $activeCampusWithoutGeography,
             ],
+            ...$this->campusGeographyDistributions(),
             'institutions_without_campuses' => DB::table('institutions')
                 ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('campuses')->whereColumn('campuses.institution_id', 'institutions.id'))
                 ->count(),

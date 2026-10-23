@@ -118,4 +118,57 @@ class DataGapReportTest extends TestCase
     }
 
 
+    public function test_coverage_summary_groups_active_campuses_by_province_and_district(): void
+    {
+        $province = Geography::query()->create([
+            'parent_id' => null,
+            'name' => 'Coverage Province',
+            'slug' => 'coverage-province',
+            'type' => 'province',
+            'status' => 'active',
+        ]);
+        $district = Geography::query()->create([
+            'parent_id' => $province->id,
+            'name' => 'Coverage District',
+            'slug' => 'coverage-district',
+            'type' => 'district',
+            'status' => 'active',
+        ]);
+        $city = Geography::query()->create([
+            'parent_id' => $district->id,
+            'name' => 'Coverage City',
+            'slug' => 'coverage-city',
+            'type' => 'city',
+            'status' => 'active',
+        ]);
+        $institution = Institution::query()->create([
+            'name' => 'Geography Coverage University',
+            'slug' => 'geography-coverage-university',
+            'institution_type' => 'university',
+            'status' => 'active',
+        ]);
+        Campus::query()->create([
+            'institution_id' => $institution->id,
+            'geography_id' => $city->id,
+            'name' => 'Geography Coverage Campus',
+            'slug' => 'geography-coverage-campus',
+            'status' => 'active',
+        ]);
+
+        $this->assertSame(0, Artisan::call('institutes:data-gap-report', ['--json' => true]));
+        $report = json_decode(Artisan::output(), true);
+        $coverage = $report['sections']['coverage'];
+
+        $this->assertContains(
+            ['name' => 'Coverage Province', 'count' => 1],
+            $coverage['active_campuses_by_province_or_territory']
+        );
+        $this->assertContains(
+            ['name' => 'Coverage District', 'count' => 1],
+            $coverage['active_campuses_by_district']
+        );
+        $this->assertFalse($report['mutation_performed']);
+    }
+
+
 }
