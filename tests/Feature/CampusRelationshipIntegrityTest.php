@@ -193,4 +193,17 @@ class CampusRelationshipIntegrityTest extends TestCase
         $this->assertNotContains('duplicate_institution_slug', $results[0]['findings']);
         $this->assertNotContains('duplicate_institution_slug', $results[1]['findings']);
     }
+
+
+    public function test_missing_geography_inspection_does_not_mutate_campus(): void
+    {
+        $institution = Institution::create(['name' => 'Read Only Campus University', 'slug' => 'readonly-campus-university', 'status' => 'active']);
+        $campus = Campus::create(['institution_id' => $institution->id, 'geography_id' => null, 'name' => 'Unlinked Campus', 'slug' => 'unlinked-campus', 'status' => 'active']);
+        $before = $campus->only(['id', 'institution_id', 'geography_id', 'status']);
+
+        $findings = (new CampusRelationshipIntegrityService)->inspect($campus);
+
+        $this->assertNotEmpty($findings);
+        $this->assertSame($before, $campus->fresh()->only(['id', 'institution_id', 'geography_id', 'status']));
+    }
 }
