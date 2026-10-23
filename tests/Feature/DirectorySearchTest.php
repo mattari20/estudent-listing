@@ -227,14 +227,6 @@ class DirectorySearchTest extends TestCase
             'is_current' => true,
         ]);
 
-        InstitutionName::query()->create([
-            'institution_id' => $institution->id,
-            'name' => 'Former Institute Name',
-            'name_type' => 'historical',
-            'language' => 'en',
-            'is_current' => false,
-        ]);
-
         $this->get('/institutes/search?q=NIT%20Lahore')
             ->assertOk()
             ->assertSee('National Institute of Technology');
