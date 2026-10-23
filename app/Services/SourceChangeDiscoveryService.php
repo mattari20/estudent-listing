@@ -1,9 +1,9 @@
 <?php
 
-namespace App\\Services;
+namespace App\Services;
 
-use App\\Models\\InstituteDiscoveryRunOutcome;
-use App\\Models\\SourceChangeObservation;
+use App\Models\InstituteDiscoveryRunOutcome;
+use App\Models\SourceChangeObservation;
 use Throwable;
 
 class SourceChangeDiscoveryService
