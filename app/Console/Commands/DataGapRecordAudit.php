@@ -320,6 +320,9 @@ class DataGapRecordAudit extends Command
             $sections = $report['sections'];
             $dispositions = [];
             $failureCategories = [];
+            $identityDecisions = [];
+            $rowsWithOpenConflicts = 0;
+            $institutionRowsWithoutApprovedIdentityDecision = 0;
             foreach (($sections['import_rows']['records'] ?? []) as $record) {
                 $disposition = (string) ($record['review_disposition'] ?? 'unclassified');
                 $dispositions[$disposition] = ($dispositions[$disposition] ?? 0) + 1;
@@ -327,9 +330,18 @@ class DataGapRecordAudit extends Command
                 if (is_string($failureCategory) && $failureCategory !== '') {
                     $failureCategories[$failureCategory] = ($failureCategories[$failureCategory] ?? 0) + 1;
                 }
+                $identityDecision = (string) ($record['latest_identity_decision']['decision'] ?? 'none');
+                $identityDecisions[$identityDecision] = ($identityDecisions[$identityDecision] ?? 0) + 1;
+                if (($record['open_conflict_count'] ?? 0) > 0) {
+                    $rowsWithOpenConflicts++;
+                }
+                if (($record['entity_type'] ?? null) === 'institution' && ! ($record['has_approved_identity_decision'] ?? false)) {
+                    $institutionRowsWithoutApprovedIdentityDecision++;
+                }
             }
             ksort($dispositions);
             ksort($failureCategories);
+            ksort($identityDecisions);
 
             $report['summary_only'] = true;
             $report['sections'] = [
@@ -341,6 +353,9 @@ class DataGapRecordAudit extends Command
                     'by_status' => $sections['import_rows']['by_status'] ?? [],
                     'by_review_disposition' => $dispositions,
                     'promotion_failure_categories' => $failureCategories,
+                    'by_latest_identity_decision' => $identityDecisions,
+                    'rows_with_open_conflicts' => $rowsWithOpenConflicts,
+                    'institution_rows_without_approved_identity_decision' => $institutionRowsWithoutApprovedIdentityDecision,
                 ],
                 'campuses' => [
                     'total' => $sections['campuses']['total'] ?? null,
