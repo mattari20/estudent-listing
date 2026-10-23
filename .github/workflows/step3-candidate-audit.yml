@@ -50,7 +50,7 @@ jobs:
           envs: PROJECT_PATH,TARGET_REVISION
           command_timeout: 7m
           script: |
-            set -eu
+            set -euo pipefail
             case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: invalid project path"; exit 2 ;; esac
             case "$PROJECT_PATH" in *".."*) echo "ERROR: invalid project path"; exit 2 ;; esac
             test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
@@ -59,7 +59,7 @@ jobs:
             echo "deployed_application_revision=$ACTUAL_REVISION"
             echo "expected_application_revision=$TARGET_REVISION"
             test "$ACTUAL_REVISION" = "$TARGET_REVISION" || { echo "ERROR: application revision mismatch"; exit 10; }
-            php <<'PHP'
+            php <<'PHP' || exit $?
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -87,7 +87,7 @@ jobs:
                 ->where('source_id', $source->id)
                 ->whereIn('source_type', ['automated_discovery', 'ai_extraction'])
                 ->orderByDesc('id')
-                ->first(['id', 'batch_key', 'entity_type', 'source_type', 'status', 'total_rows', 'candidate_rows', 'duplicate_rows', 'notes', 'received_at', 'completed_at']);
+                ->first(['id', 'batch_key', 'entity_type', 'source_type', 'status', 'total_rows', 'candidate_rows', 'notes', 'received_at', 'completed_at']);
             if (!$batch) {
                 echo json_encode(['check' => 'step3_candidate_audit', 'status' => 'blocked', 'reason' => 'discovery_batch_missing', 'mutation_performed' => false], JSON_PRETTY_PRINT), PHP_EOL;
                 exit(22);
@@ -169,8 +169,7 @@ jobs:
                     'source_type' => $batch->source_type, 'status' => $batch->status,
                     'declared_total_rows' => (int) $batch->total_rows,
                     'declared_candidate_rows' => (int) $batch->candidate_rows,
-                    'declared_duplicate_rows' => (int) $batch->duplicate_rows,
-                    'received_at' => $batch->received_at, 'completed_at' => $batch->completed_at,
+                                        'received_at' => $batch->received_at, 'completed_at' => $batch->completed_at,
                     'extractor_version_marker_present' => str_contains((string) $batch->notes, 'discovery_extractor_version=2'),
                 ],
                 'canonical_program_count_for_parent' => count($programs),
