@@ -21,4 +21,17 @@ class ImportPreflightTest extends TestCase {
         $this->assertSame(0, $result['invalid']);
         $this->assertSame([], $result['errors']);
     }
+
+
+    public function test_custom_required_fields_are_validated_per_row(): void
+    {
+        $result = (new InstituteImportPreflightService)->validate([
+            ['name' => 'Example Institute', 'official_url' => 'https://example.test'],
+            ['name' => 'Second Institute'],
+        ], ['name', 'official_url']);
+
+        $this->assertSame(1, $result['valid']);
+        $this->assertSame(1, $result['invalid']);
+        $this->assertSame(['official_url'], $result['errors'][1] ?? []);
+    }
 }
