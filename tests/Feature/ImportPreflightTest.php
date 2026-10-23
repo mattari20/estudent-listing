@@ -11,4 +11,14 @@ class ImportPreflightTest extends TestCase {
   $this->assertSame(0, $result['valid']);
   $this->assertSame(1, $result['invalid']);
  }
+
+
+    public function test_empty_import_input_is_a_valid_empty_preflight_result(): void
+    {
+        $result = (new InstituteImportPreflightService)->validate([]);
+
+        $this->assertSame(0, $result['valid']);
+        $this->assertSame(0, $result['invalid']);
+        $this->assertSame([], $result['errors']);
+    }
 }
