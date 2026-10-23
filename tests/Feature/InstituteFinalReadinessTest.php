@@ -58,7 +58,7 @@ class InstituteFinalReadinessTest extends TestCase
 
         $summary = (new InstituteFinalReadinessService)->summarize($batch);
 
-        $this->assertFalse($summary['final_ready'] ?? $summary['readiness_ready'] ?? true);
+        $this->assertFalse($summary['production_ready'] ?? true);
         $this->assertSame($beforeStatus, $batch->fresh()->status);
         $this->assertFalse($summary['mutation_performed'] ?? true);
     }
