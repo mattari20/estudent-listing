@@ -208,4 +208,22 @@ class DirectorySearchTest extends TestCase
             ->assertSee('1 campuses')
             ->assertSee('1 programs');
     }
+    public function test_search_pagination_preserves_active_query_parameters(): void
+    {
+        for ($i = 1; $i <= 25; $i++) {
+            Institution::query()->create([
+                'name' => sprintf('Search Page University %02d', $i),
+                'slug' => sprintf('search-page-university-%02d', $i),
+                'status' => 'active',
+            ]);
+        }
+
+        $this->get('/institutes/search?q=Search%20Page')
+            ->assertOk()
+            ->assertSee('Search Page University 01')
+            ->assertSee('Search Page University 25')
+            ->assertSee('q=Search%20Page&amp;page=2', false);
+    }
+
+
 }
