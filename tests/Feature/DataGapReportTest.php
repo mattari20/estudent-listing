@@ -160,14 +160,37 @@ class DataGapReportTest extends TestCase
         $coverage = $report['sections']['coverage'];
 
         $this->assertContains(
-            ['name' => 'Coverage Province', 'count' => 1],
+            ['geography_id' => $province->id, 'name' => 'Coverage Province', 'count' => 1],
             $coverage['active_campuses_by_province_or_territory']
         );
         $this->assertContains(
-            ['name' => 'Coverage District', 'count' => 1],
+            ['geography_id' => $district->id, 'name' => 'Coverage District', 'province_or_territory' => 'Coverage Province', 'count' => 1],
             $coverage['active_campuses_by_district']
         );
         $this->assertFalse($report['mutation_performed']);
+    }
+
+
+    public function test_geographic_coverage_keeps_same_named_districts_separate_by_identity(): void
+    {
+        $provinceA = Geography::query()->create(['name' => 'North Province', 'slug' => 'north-province', 'type' => 'province', 'status' => 'active']);
+        $provinceB = Geography::query()->create(['name' => 'South Province', 'slug' => 'south-province', 'type' => 'province', 'status' => 'active']);
+        $districtA = Geography::query()->create(['parent_id' => $provinceA->id, 'name' => 'Central District', 'slug' => 'central-district-north', 'type' => 'district', 'status' => 'active']);
+        $districtB = Geography::query()->create(['parent_id' => $provinceB->id, 'name' => 'Central District', 'slug' => 'central-district-south', 'type' => 'district', 'status' => 'active']);
+        $institutionA = Institution::query()->create(['name' => 'North Campus University', 'slug' => 'north-campus-university', 'status' => 'active']);
+        $institutionB = Institution::query()->create(['name' => 'South Campus University', 'slug' => 'south-campus-university', 'status' => 'active']);
+
+        Campus::query()->create(['institution_id' => $institutionA->id, 'geography_id' => $districtA->id, 'name' => 'North Central Campus', 'slug' => 'north-central-campus', 'status' => 'active']);
+        Campus::query()->create(['institution_id' => $institutionB->id, 'geography_id' => $districtB->id, 'name' => 'South Central Campus', 'slug' => 'south-central-campus', 'status' => 'active']);
+
+        $this->assertSame(0, Artisan::call('institutes:data-gap-report', ['--json' => true]));
+        $report = json_decode(Artisan::output(), true);
+        $districts = $report['sections']['coverage']['active_campuses_by_district'];
+
+        $matching = array_values(array_filter($districts, fn (array $item): bool => $item['name'] === 'Central District'));
+        $this->assertCount(2, $matching);
+        $this->assertContains(['geography_id' => $districtA->id, 'name' => 'Central District', 'province_or_territory' => 'North Province', 'count' => 1], $matching);
+        $this->assertContains(['geography_id' => $districtB->id, 'name' => 'Central District', 'province_or_territory' => 'South Province', 'count' => 1], $matching);
     }
 
 
