@@ -317,4 +317,65 @@ class DataGapRecordAuditTest extends TestCase
     }
 
 
+    public function test_record_audit_prioritizes_open_conflicts_and_identity_decisions_for_candidates(): void
+    {
+        $batch = ImportBatch::query()->create([
+            'batch_key' => 'review-disposition-gates',
+            'entity_type' => 'institution',
+            'source_type' => 'test',
+            'status' => 'validated',
+            'total_rows' => 2,
+            'valid_rows' => 2,
+            'candidate_rows' => 2,
+            'received_at' => now(),
+            'completed_at' => now(),
+        ]);
+
+        $conflicted = ImportRow::query()->create([
+            'import_batch_id' => $batch->id,
+            'row_number' => 1,
+            'status' => 'candidate',
+            'match_state' => 'conflict',
+            'payload' => ['name' => 'Conflict Review Institute'],
+            'normalized_payload' => ['name' => 'Conflict Review Institute'],
+            'validation_errors' => [],
+        ]);
+        ImportConflict::query()->create([
+            'import_row_id' => $conflicted->id,
+            'import_batch_id' => $batch->id,
+            'conflict_type' => 'identity_collision',
+            'severity' => 'high',
+            'status' => 'open',
+            'description' => 'Private conflict description.',
+        ]);
+
+        ImportRow::query()->create([
+            'import_batch_id' => $batch->id,
+            'row_number' => 2,
+            'status' => 'candidate',
+            'match_state' => 'new_candidate',
+            'payload' => ['name' => 'Identity Review Institute'],
+            'normalized_payload' => ['name' => 'Identity Review Institute'],
+            'validation_errors' => [],
+        ]);
+
+        Artisan::call('institutes:data-gap-record-audit', ['--json' => true]);
+        $report = json_decode(Artisan::output(), true);
+        $records = collect($report['sections']['import_rows']['records'] ?? [])->keyBy('id');
+
+        $conflictedRecord = $records->get($conflicted->id);
+        $this->assertSame('resolve_open_conflicts', $conflictedRecord['review_disposition']);
+        $this->assertSame(1, $conflictedRecord['open_conflict_count']);
+
+        $identityRecord = $records->first(fn ($record) => ($record['id'] ?? null) !== $conflicted->id
+            && ($record['entity_type'] ?? null) === 'institution'
+            && ($record['status'] ?? null) === 'candidate'
+            && ($record['latest_promotion_event_type'] ?? null) === null
+            && ($record['match_state'] ?? null) === 'new_candidate'
+            && ($record['identity_decision_count'] ?? 0) === 0);
+        $this->assertIsArray($identityRecord);
+        $this->assertSame('review_identity_decision', $identityRecord['review_disposition']);
+    }
+
+
 }
