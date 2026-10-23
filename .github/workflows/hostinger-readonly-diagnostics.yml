@@ -224,6 +224,78 @@ jobs:
             PHP
             echo "=== Data-gap report (read-only) ==="
             php artisan institutes:data-gap-report --json
+            echo "=== Discovery profile parent validation (read-only) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $db = \Illuminate\Support\Facades\DB::class;
+
+            $institutions = $db::table('institutions')
+                ->orderBy('id')
+                ->get(['id', 'name', 'official_name', 'short_name', 'slug', 'institution_type', 'status']);
+
+            $profiles = collect(config('institute_agent.profiles', []))->map(
+                function (array $definition, string $profileKey) use ($institutions): array {
+                    $parentSlug = (string) ($definition['institution_slug'] ?? '');
+                    $parent = $institutions->firstWhere('slug', $parentSlug);
+                    $identity = strtolower(implode(' ', array_filter([
+                        $parent->name ?? null,
+                        $parent->official_name ?? null,
+                        $parent->short_name ?? null,
+                        $parent->institution_type ?? null,
+                        $parent->slug ?? null,
+                    ])));
+                    $campusLike = preg_match('/(^|[^a-z])campus([^a-z]|$)/', $identity) === 1;
+                    $enabled = ($definition['monitoring']['enabled'] ?? true) === true;
+
+                    $action = ! $parent
+                        ? 'resolve_missing_canonical_parent_slug'
+                        : ($campusLike
+                            ? 'resolve_campus_like_parent_before_discovery'
+                            : (! $enabled ? 'disabled_by_profile_configuration' : 'ready_for_discovery'));
+
+                    return [
+                        'profile' => $profileKey,
+                        'entity_type' => $definition['entity_type'] ?? null,
+                        'enabled' => $enabled,
+                        'source_url' => $definition['source']['url'] ?? null,
+                        'configured_parent_slug' => $parentSlug,
+                        'parent_found' => $parent !== null,
+                        'parent_id' => $parent ? (int) $parent->id : null,
+                        'parent_name' => $parent->name ?? null,
+                        'parent_slug' => $parent->slug ?? null,
+                        'parent_institution_type' => $parent->institution_type ?? null,
+                        'campus_like_parent' => $campusLike,
+                        'next_action' => $action,
+                    ];
+                }
+            )->values();
+
+            $comsatsCandidates = $institutions->filter(fn ($institution): bool =>
+                str_contains(strtolower((string) $institution->name), 'comsats')
+                || str_contains(strtolower((string) $institution->official_name), 'comsats')
+                || str_contains(strtolower((string) $institution->short_name), 'comsats')
+                || str_contains(strtolower((string) $institution->slug), 'comsats')
+            )->map(fn ($institution): array => [
+                'institution_id' => (int) $institution->id,
+                'name' => $institution->name,
+                'official_name' => $institution->official_name,
+                'short_name' => $institution->short_name,
+                'slug' => $institution->slug,
+                'institution_type' => $institution->institution_type,
+                'status' => $institution->status,
+            ])->values();
+
+            echo json_encode([
+                'check' => 'discovery_profile_parent_validation',
+                'checked_at' => now()->toIso8601String(),
+                'mutation_performed' => false,
+                'profiles' => $profiles->all(),
+                'canonical_comsats_candidates' => $comsatsCandidates->all(),
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
             echo "=== Active programs without active offerings (read-only review queue) ==="
             php <<'PHP'
             <?php
