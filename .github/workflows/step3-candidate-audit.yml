@@ -1,0 +1,187 @@
+name: Step 3 Discovery Candidate Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/step3-candidate-audit.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: step3-discovery-candidate-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Audit latest GCU discovery candidates (read-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main and resolve application revision
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Resolve expected application-code revision
+        id: revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          test -n "$revision"
+          echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "expected_application_revision=$revision"
+
+      - name: Produce read-only candidate audit on Hostinger
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
+          TARGET_REVISION: ${{ steps.revision.outputs.target_revision }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,TARGET_REVISION
+          command_timeout: 7m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: invalid project path"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: invalid project path"; exit 2 ;; esac
+            test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
+            cd "$PROJECT_PATH"
+            ACTUAL_REVISION="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+            echo "deployed_application_revision=$ACTUAL_REVISION"
+            echo "expected_application_revision=$TARGET_REVISION"
+            test "$ACTUAL_REVISION" = "$TARGET_REVISION" || { echo "ERROR: application revision mismatch"; exit 10; }
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            use Illuminate\Support\Facades\DB;
+            use Illuminate\Support\Facades\Schema;
+
+            $required = ['import_batches', 'import_rows', 'sources', 'evidence', 'source_snapshots', 'institutions', 'programs'];
+            foreach ($required as $table) {
+                if (!Schema::hasTable($table)) {
+                    fwrite(STDERR, "ERROR: required table missing: {$table}\n");
+                    exit(20);
+                }
+            }
+
+            $source = DB::table('sources')
+                ->where('url', 'https://gcu.edu.pk/admissions.php?pg=bs-program')
+                ->first(['id', 'name', 'url', 'status']);
+            if (!$source) {
+                echo json_encode(['check' => 'step3_candidate_audit', 'status' => 'blocked', 'reason' => 'official_source_record_missing', 'mutation_performed' => false], JSON_PRETTY_PRINT), PHP_EOL;
+                exit(21);
+            }
+
+            $batch = DB::table('import_batches')
+                ->where('source_id', $source->id)
+                ->whereIn('source_type', ['automated_discovery', 'ai_extraction'])
+                ->orderByDesc('id')
+                ->first(['id', 'batch_key', 'entity_type', 'source_type', 'status', 'total_rows', 'candidate_rows', 'duplicate_rows', 'notes', 'received_at', 'completed_at']);
+            if (!$batch) {
+                echo json_encode(['check' => 'step3_candidate_audit', 'status' => 'blocked', 'reason' => 'discovery_batch_missing', 'mutation_performed' => false], JSON_PRETTY_PRINT), PHP_EOL;
+                exit(22);
+            }
+
+            $rows = DB::table('import_rows')
+                ->where('import_batch_id', $batch->id)
+                ->orderBy('row_number')
+                ->get(['id', 'row_number', 'status', 'match_state', 'parent_subject_type', 'parent_subject_id', 'canonical_subject_type', 'canonical_subject_id', 'payload', 'normalized_payload', 'validation_errors', 'notes']);
+
+            $institution = DB::table('institutions')
+                ->where('slug', 'government-college-university-lahore')
+                ->first(['id', 'name', 'slug', 'status']);
+
+            $programs = DB::table('programs')
+                ->when($institution && Schema::hasColumn('programs', 'institution_id'), fn ($q) => $q->where('institution_id', $institution->id))
+                ->get(['id', 'name', 'slug', 'status'])
+                ->map(fn ($p) => ['id' => (int) $p->id, 'name' => $p->name, 'slug' => $p->slug, 'status' => $p->status])
+                ->all();
+            $bySlug = [];
+            foreach ($programs as $program) {
+                $bySlug[strtolower((string) $program['slug'])] = $program;
+            }
+
+            $tally = [
+                'candidate' => 0, 'duplicate' => 0, 'rejected' => 0, 'promoted' => 0, 'other' => 0,
+                'canonical_slug_matches' => 0, 'missing_payload_name' => 0,
+                'missing_source_provenance' => 0, 'validation_errors_present' => 0,
+            ];
+            $auditRows = [];
+            foreach ($rows as $row) {
+                $payload = json_decode((string) ($row->normalized_payload ?: $row->payload), true);
+                if (!is_array($payload)) $payload = [];
+                $name = trim((string) ($payload['name'] ?? $payload['program_name'] ?? ''));
+                $slug = strtolower(trim((string) ($payload['slug'] ?? '')));
+                $provenance = is_array($payload['_provenance'] ?? null) ? $payload['_provenance'] : [];
+                $canonicalMatch = $slug !== '' ? ($bySlug[$slug] ?? null) : null;
+                $status = strtolower((string) $row->status);
+                if (array_key_exists($status, $tally)) $tally[$status]++;
+                else $tally['other']++;
+                if ($canonicalMatch) $tally['canonical_slug_matches']++;
+                if ($name === '') $tally['missing_payload_name']++;
+                if (empty($provenance['source_id']) || empty($provenance['snapshot_id']) || empty($provenance['evidence_id'])) $tally['missing_source_provenance']++;
+                $errors = json_decode((string) $row->validation_errors, true);
+                if (is_array($errors) && count($errors) > 0) $tally['validation_errors_present']++;
+
+                $auditRows[] = [
+                    'row_id' => (int) $row->id,
+                    'row_number' => (int) $row->row_number,
+                    'name' => $name,
+                    'slug' => $slug,
+                    'status' => $row->status,
+                    'match_state' => $row->match_state,
+                    'confidence' => $payload['confidence'] ?? null,
+                    'source_id' => $provenance['source_id'] ?? null,
+                    'snapshot_id' => $provenance['snapshot_id'] ?? null,
+                    'evidence_id' => $provenance['evidence_id'] ?? null,
+                    'canonical_slug_match' => $canonicalMatch,
+                    'validation_errors' => is_array($errors) ? $errors : [],
+                    'parent_subject_id' => $row->parent_subject_id === null ? null : (int) $row->parent_subject_id,
+                ];
+            }
+
+            $evidenceCount = Schema::hasTable('evidence')
+                ? DB::table('evidence')->where('source_id', $source->id)->where('status', 'active')->count()
+                : null;
+            $snapshotCount = Schema::hasTable('source_snapshots')
+                ? DB::table('source_snapshots')->where('source_id', $source->id)->count()
+                : null;
+
+            echo json_encode([
+                'check' => 'step3_discovery_candidate_audit',
+                'generated_at' => now()->toIso8601String(),
+                'mutation_performed' => false,
+                'source' => ['id' => (int) $source->id, 'name' => $source->name, 'url' => $source->url, 'status' => $source->status],
+                'canonical_parent' => $institution ? ['id' => (int) $institution->id, 'name' => $institution->name, 'slug' => $institution->slug, 'status' => $institution->status] : null,
+                'batch' => [
+                    'id' => (int) $batch->id, 'key' => $batch->batch_key, 'entity_type' => $batch->entity_type,
+                    'source_type' => $batch->source_type, 'status' => $batch->status,
+                    'declared_total_rows' => (int) $batch->total_rows,
+                    'declared_candidate_rows' => (int) $batch->candidate_rows,
+                    'declared_duplicate_rows' => (int) $batch->duplicate_rows,
+                    'received_at' => $batch->received_at, 'completed_at' => $batch->completed_at,
+                    'extractor_version_marker_present' => str_contains((string) $batch->notes, 'discovery_extractor_version=2'),
+                ],
+                'canonical_program_count_for_parent' => count($programs),
+                'active_source_evidence_count' => $evidenceCount,
+                'source_snapshot_count' => $snapshotCount,
+                'audit_tally' => $tally,
+                'row_count_actual' => count($auditRows),
+                'rows' => $auditRows,
+                'interpretation' => 'Slug matches and extraction provenance are automated review signals only; they do not prove programme equivalence or approve candidates. Official-source verification and governed human review remain required.',
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
+            echo "candidate_audit_status=READ_ONLY_AUDIT_COMPLETED"
+            echo "production_data_mutations=NOT_RUN"
+            echo "database_migrations=NOT_RUN"
