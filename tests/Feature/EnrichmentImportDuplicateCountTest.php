@@ -28,7 +28,7 @@ class EnrichmentImportDuplicateCountTest extends TestCase
         ]);
         $csv = "name,slug\nMain Campus,main-campus\nMain Campus,main-campus\n";
 
-        $response = $this->actingAs($operator)->post(route('institutes.enrichment-import.store'), [
+        $response = $this->actingAs($operator)->post('/institutes/enrichment-import', [
             'source_name' => 'Duplicate count synthetic source',
             'source_type' => 'official',
             'source_url' => 'https://example.test/duplicate-count',
