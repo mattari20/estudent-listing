@@ -208,4 +208,15 @@ class DirectorySearchTest extends TestCase
             ->assertSee('1 campuses')
             ->assertSee('1 programs');
     }
+    public function test_search_empty_state_explains_how_to_recover_from_no_results(): void
+    {
+        $this->get('/institutes/search?q=NoSuchInstitute987')
+            ->assertOk()
+            ->assertSee('No matching institutes found')
+            ->assertSee('Try removing a filter or using a broader search.')
+            ->assertSee('value="NoSuchInstitute987"', false)
+            ->assertSee('Clear all');
+    }
+
+
 }
