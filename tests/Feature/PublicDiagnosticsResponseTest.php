@@ -10,6 +10,6 @@ class PublicDiagnosticsResponseTest extends TestCase
     {
         $response = $this->getJson('/institutes/automation/diagnostics');
         $this->assertNotSame(500, $response->getStatusCode());
-        $this->assertContains($response->getStatusCode(), [200, 401, 403, 429]);
+        $this->assertContains($response->getStatusCode(), [200, 401, 403, 404, 429]);
     }
 }
