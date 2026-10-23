@@ -221,8 +221,12 @@ class DirectorySearchTest extends TestCase
         $this->get('/institutes/search?q=Search%20Page')
             ->assertOk()
             ->assertSee('Search Page University 01')
-            ->assertSee('Search Page University 25')
+            ->assertDontSee('Search Page University 25')
             ->assertSee('q=Search%20Page&amp;page=2', false);
+
+        $this->get('/institutes/search?q=Search%20Page&page=2')
+            ->assertOk()
+            ->assertSee('Search Page University 25');
     }
 
 
