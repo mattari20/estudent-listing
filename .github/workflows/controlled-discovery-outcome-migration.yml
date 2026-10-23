@@ -1,0 +1,105 @@
+name: Controlled Discovery Outcome Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_migration:
+        description: "Set true only to apply the single reviewed discovery-outcome migration to Hostinger production."
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: controlled-discovery-outcome-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Preflight and optionally apply one migration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Verify migration file and report selected operation
+        shell: bash
+        run: |
+          set -euo pipefail
+          migration="database/migrations/2026_10_23_070000_create_institute_discovery_run_outcomes_table.php"
+          test -f "$migration"
+          grep -q "Schema::create('institute_discovery_run_outcomes'" "$migration"
+          echo "migration_file=$migration"
+          echo "scope=single migration only; no full migration batch"
+          echo "production_data_mutations=not intended; creates only the discovery outcome ledger table"
+
+      - name: Preflight and apply only the discovery outcome migration
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
+          CONFIRM_MIGRATION: ${{ inputs.confirm_migration }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,CONFIRM_MIGRATION
+          command_timeout: 3m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: invalid project path"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: invalid project path"; exit 2 ;; esac
+            test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
+            test -f "$PROJECT_PATH/database/migrations/2026_10_23_070000_create_institute_discovery_run_outcomes_table.php" || { echo "ERROR: target migration file missing on Hostinger"; exit 4; }
+            cd "$PROJECT_PATH"
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $db = \Illuminate\Support\Facades\DB::connection();
+            $schema = \Illuminate\Support\Facades\Schema::connection($db->getName());
+            $migration = '2026_10_23_070000_create_institute_discovery_run_outcomes_table';
+            $tableExists = $schema->hasTable('institute_discovery_run_outcomes');
+            $migrationLedgerExists = $schema->hasTable('migrations');
+            $recorded = $migrationLedgerExists && $db->table('migrations')->where('migration', $migration)->exists();
+            $dependencies = ['sources', 'source_change_observations', 'source_snapshots'];
+            $missing = array_values(array_filter($dependencies, fn ($table) => !$schema->hasTable($table)));
+            echo json_encode([
+                'check' => 'discovery_outcome_migration_preflight',
+                'target_table_exists' => $tableExists,
+                'migration_ledger_exists' => $migrationLedgerExists,
+                'migration_recorded' => $recorded,
+                'dependency_tables' => array_map(fn ($table) => ['table' => $table, 'exists' => $schema->hasTable($table)], $dependencies),
+                'missing_dependencies' => $missing,
+                'write_requested' => getenv('CONFIRM_MIGRATION') === 'true',
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            if (!$migrationLedgerExists) { fwrite(STDERR, "ERROR: migrations ledger table is missing; refusing automatic repair.\n"); exit(10); }
+            if ($tableExists && $recorded) { echo "migration_status=ALREADY_APPLIED_AND_TABLE_PRESENT\n"; exit(0); }
+            if ($tableExists && !$recorded) { fwrite(STDERR, "ERROR: table exists but migration is unrecorded; refusing duplicate/ambiguous repair.\n"); exit(11); }
+            if (!$tableExists && $recorded) { fwrite(STDERR, "ERROR: migration is recorded but table is missing; requires schema reconciliation, not rerun.\n"); exit(12); }
+            if ($missing) { fwrite(STDERR, "ERROR: migration dependencies missing; refusing to migrate.\n"); exit(13); }
+            if (getenv('CONFIRM_MIGRATION') !== 'true') { echo "migration_status=DRY_RUN_PREFLIGHT_PASSED_NO_CHANGES\n"; exit(0); }
+            PHP
+            if [ "$CONFIRM_MIGRATION" != "true" ]; then
+              echo "migration_status=DRY_RUN_PREFLIGHT_PASSED_NO_CHANGES"
+              exit 0
+            fi
+            php artisan migrate --force --path=database/migrations/2026_10_23_070000_create_institute_discovery_run_outcomes_table.php
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $schema = \Illuminate\Support\Facades\Schema::connection(\Illuminate\Support\Facades\DB::connection()->getName());
+            $exists = $schema->hasTable('institute_discovery_run_outcomes');
+            echo 'post_migration_table_exists='.($exists ? 'true' : 'false'), PHP_EOL;
+            if (!$exists) exit(20);
+            PHP
+            echo "migration_status=TARGET_MIGRATION_APPLIED_AND_VERIFIED"
