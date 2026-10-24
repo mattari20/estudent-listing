@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 use App\Models\IdentityMatchCandidate;
+use App\Models\InstituteDiscoveryRunOutcome;
 use App\Models\Institution;
 use App\Models\ImportPromotionDecision;
 use App\Models\IdentityResolutionDecision;
@@ -52,17 +53,44 @@ class InstituteOperationsController {
   return view('institutes.operations.queue',compact('rows','batches','summary','qualityReport','batchId','reverification','batchParentInstitutions','rowDecisionMap'));
  }
  public function discover(Request $request, \App\Services\InstituteDiscoveryAgentService $agent): \Illuminate\Http\RedirectResponse {
+  $profile = (string) $request->input('profile', 'cui-lahore');
+  $useAi = $request->boolean('use_ai');
+
   try {
-   $summary=$agent->run(
-    $request->input('profile','cui-lahore'),
-    $request->boolean('use_ai')
-   );
+   $summary = $agent->run($profile, $useAi);
   } catch (\Throwable $e) {
-   return back()->withErrors(['discovery'=>$e->getMessage()]);
+   InstituteDiscoveryRunOutcome::query()->create([
+    'profile_key' => $profile,
+    'outcome' => 'failed',
+    'failure_class' => get_class($e),
+    'details' => ['trigger' => 'operator', 'message_omitted' => true],
+    'occurred_at' => now(),
+   ]);
+
+   return back()->withErrors(['discovery' => $e->getMessage()]);
   }
-  $method=$summary['extraction_method']==='ai_extraction'?'AI':'deterministic';
-  return redirect()->route('institutes.operations.queue',['batch_id'=>$summary['batch_id']])
-   ->with('status','Automated '.$method.' discovery collected '.$summary['total_rows'].' candidate programmes. Candidate rows remain non-canonical until approval and promotion.');
+
+  $candidateCount = (int) ($summary['candidate_rows'] ?? 0);
+  $package = $summary['review_package'] ?? [];
+  $outcome = InstituteDiscoveryRunOutcome::query()->create([
+   'source_id' => $summary['source_id'] ?? null,
+   'snapshot_id' => $summary['snapshot_id'] ?? null,
+   'profile_key' => $profile,
+   'outcome' => $candidateCount > 0 ? 'candidates_created' : 'empty_candidates',
+   'candidate_count' => $candidateCount,
+   'review_package_status' => $package['status'] ?? null,
+   'details' => [
+    'trigger' => 'operator',
+    'batch_id' => $summary['batch_id'] ?? null,
+    'evidence_id' => $summary['evidence_id'] ?? null,
+    'used_ai' => $useAi,
+   ],
+   'occurred_at' => now(),
+  ]);
+
+  $method = $useAi ? 'AI' : 'deterministic';
+  return redirect()->route('institutes.operations.queue', ['batch_id' => $summary['batch_id']])
+   ->with('status', 'Automated '.$method.' discovery collected '.$summary['total_rows'].' candidate programmes. Run history outcome #'.$outcome->id.' recorded. Candidate rows remain non-canonical until approval and promotion.');
  }
  public function show(ImportRow $importRow, ImportDependencyContextService $context): View {
   $importRow->load(['batch.source']);
