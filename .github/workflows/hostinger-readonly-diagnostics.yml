@@ -80,9 +80,9 @@ jobs:
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
-            $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
-            $schema = \\Illuminate\\Support\\Facades\\Schema::class;
-            $db = \\Illuminate\\Support\\Facades\\DB::class;
+            $app->make(\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+            $schema = \Illuminate\\Support\\Facades\\Schema::class;
+            $db = \Illuminate\\Support\\Facades\\DB::class;
             $table = 'institute_discovery_run_outcomes';
             $tableExists = $schema::hasTable($table);
             $migrationTableExists = $schema::hasTable('migrations');
