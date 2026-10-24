@@ -75,6 +75,39 @@ jobs:
             php artisan env
             echo "=== Laravel scheduled task definitions (read-only) ==="
             php artisan schedule:list --no-ansi
+            echo "=== Discovery outcome schema/migration verification (read-only) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+            $schema = \Illuminate\\Support\\Facades\\Schema::class;
+            $db = \Illuminate\\Support\\Facades\\DB::class;
+            $table = 'institute_discovery_run_outcomes';
+            $tableExists = $schema::hasTable($table);
+            $migrationTableExists = $schema::hasTable('migrations');
+            $migrationApplied = false;
+            $migrationRows = [];
+            if ($migrationTableExists) {
+                $migrationRows = $db::table('migrations')
+                    ->where('migration', 'like', '%create_institute_discovery_run_outcomes_table%')
+                    ->orderBy('migration')
+                    ->get(['migration', 'batch'])
+                    ->map(fn ($row) => ['migration' => $row->migration, 'batch' => (int) $row->batch])
+                    ->all();
+                $migrationApplied = count($migrationRows) > 0;
+            }
+            echo json_encode([
+                'check' => 'discovery_outcome_schema_verification',
+                'checked_at' => now()->toIso8601String(),
+                'mutation_performed' => false,
+                'outcome_table' => $table,
+                'outcome_table_exists' => $tableExists,
+                'migrations_table_exists' => $migrationTableExists,
+                'migration_applied' => $migrationApplied,
+                'matching_migrations' => $migrationRows,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
             echo "=== Hostinger scheduler cron presence (read-only; command contents suppressed) ==="
             CRON_OUTPUT="$(crontab -l 2>/dev/null || true)"
             if printf '%s\n' "$CRON_OUTPUT" | grep -Eq 'artisan[[:space:]]+schedule:run|schedule:run[[:space:]]'; then
