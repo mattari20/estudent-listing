@@ -667,3 +667,35 @@ jobs:
               echo "Diagnostics were read-only; no production records were changed."
               exit 10
             fi
+
+      - name: Verify guest denial for operator-only discovery endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://estudent.pk/institutes"
+          check_guest_denied() {
+            local path="$1"
+            local label="$2"
+            local response
+            response="$(curl --silent --show-error --max-time 20 --output /dev/null --write-out '%{http_code} %{redirect_url}' "$BASE_URL$path")" || {
+              echo "ERROR: request failed for $label"
+              return 1
+            }
+            local status="${response%% *}"
+            local redirect="${response#* }"
+            echo "$label http_status=$status redirect_target=${redirect:-none}"
+            case "$status" in
+              302|401|403) ;;
+              *)
+                echo "ERROR: guest request was not denied for $label"
+                return 1
+                ;;
+            esac
+            if [[ "$status" == "302" && "$redirect" != *"/institutes/login"* ]]; then
+              echo "ERROR: guest was redirected somewhere other than the Institutes login for $label"
+              return 1
+            fi
+          }
+          check_guest_denied "/operations/discovery-run-history" "guest_discovery_history"
+          check_guest_denied "/operations/discovery-packages/999999999/csv" "guest_discovery_package_download"
+          echo "live_guest_denial_status=PASS"
