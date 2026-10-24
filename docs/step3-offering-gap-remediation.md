@@ -66,3 +66,11 @@ These source updates improve traceability, but they do not change the read-only 
 - **Remaining unknowns:** no source has been invented for NCA Bachelor of Design, Air University BS Artificial Intelligence, or KIU BS Computer Science; those rows remain blocked. Virtual University rows remain under review because an online delivery mode must not be confused with a physical teaching campus.
 
 This is evidence-register and documentation work only. It does not create or activate any `program_offerings` rows and does not authorize production writes.
+
+
+## Evidence audit update (24 October 2026 — University of Education and University of Lahore)
+
+- **University of Education Township Campus (programme IDs 60, 61, 62, 63):** added the official Township Campus page as campus-context evidence for each row. That page explicitly lists BS English among Township Campus programmes but does not list BS Computer Science, BS Information Technology, or BS Business Analytics. The register therefore retains all four rows at `review` and keeps the campus mapping unconfirmed; the three unlisted programmes must not be assumed to belong to Township Campus from a university-wide degree list.
+- **University of Lahore BS Game Design (programme ID 69):** replaced the general prospectus URL with the official School of Creative Arts programme page, which confirms the current BS Game Design programme and its department. Campus mapping remains `verify-current-program-and-campus` because the programme page alone does not explicitly connect the programme to the database's candidate campus record.
+
+No production data was changed. These sources improve auditability but do not clear the live preflight evidence gate or authorize any offering inserts.
