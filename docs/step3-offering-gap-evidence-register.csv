@@ -11,10 +11,10 @@ program_id,institution_id,program_name,official_source_url,source_status,campus_
 78,5,BS Environmental Science,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,main-campus-confirmed,review,15,Main Campus,on_campus,https://uvas.edu.pk/news-events/2026/orientation.php
 79,5,BS Human Nutrition and Dietetics,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,main-campus-confirmed,review,15,Main Campus,on_campus,https://uvas.edu.pk/news-events/2026/orientation.php
 85,5,Bachelor of Business Administration,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,main-campus-confirmed,review,15,Main Campus,on_campus,https://uvas.edu.pk/news-events/2026/orientation.php
-60,6,BS Computer Science,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,https://www.ue.edu.pk/campus.php?id=40
-61,6,BS Information Technology,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,https://www.ue.edu.pk/campus.php?id=40
-62,6,BS English,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,https://www.ue.edu.pk/campus.php?id=40
-63,6,BS Business Analytics,https://ue.edu.pk/programs.php?id=200,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,https://www.ue.edu.pk/campus.php?id=40
+60,6,BS Computer Science,https://ue.edu.pk/degreeprograms.php,source-found,wrong-campus-in-current-record,blocked,16,Township Main Campus,on_campus,https://ue.edu.pk/meritlist.html
+61,6,BS Information Technology,https://ue.edu.pk/degreeprograms.php,source-found,wrong-campus-in-current-record,blocked,16,Township Main Campus,on_campus,https://ue.edu.pk/meritlist.html
+62,6,BS English,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,https://ue.edu.pk/meritlist.html
+63,6,BS Business Analytics,https://ue.edu.pk/programs.php?id=200,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,https://ue.edu.pk/meritlist.html
 39,8,BSc Management Science,https://admission.lums.edu.pk/undergraduate-programmes,source-found,verify-LUMS-campus,review,2,LUMS Main Campus,on_campus,
 40,8,BSc Economics,https://admission.lums.edu.pk/undergraduate-programmes,source-found,verify-LUMS-campus,review,2,LUMS Main Campus,on_campus,
 1,9,BS (Computer Sciences),https://lahore.comsats.edu.pk/cs/programs.aspx,source-found,main-campus-confirmed,review,1,COMSATS Lahore,on_campus,https://lahore.comsats.edu.pk/cs/bscs.aspx
