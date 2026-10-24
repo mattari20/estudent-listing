@@ -15,8 +15,8 @@ program_id,institution_id,program_name,official_source_url,source_status,campus_
 61,6,BS Information Technology,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review
 62,6,BS English,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review
 63,6,BS Business Analytics,https://ue.edu.pk/programs.php?id=200,source-found,verify-Township-campus,review
-39,8,BSc Management Science,,not-verified,verify-LUMS-campus,blocked
-40,8,BSc Economics,,not-verified,verify-LUMS-campus,blocked
+39,8,BSc Management Science,https://admission.lums.edu.pk/undergraduate-programmes,source-found,verify-LUMS-campus,review
+40,8,BSc Economics,https://admission.lums.edu.pk/undergraduate-programmes,source-found,verify-LUMS-campus,review
 1,9,BS (Computer Sciences),https://lahore.comsats.edu.pk/cs/programs.aspx,source-found,verify-campus-specific-offering,review
 69,10,BS Game Design,https://uol.edu.pk/UOL-Prospectus-2026-27.pdf,source-found,verify-current-program-and-campus,review
 71,11,BS Accounting & Finance,https://www.numl.edu.pk/university/Admission%20Spring%202026_advert.pdf,source-found,verify-Islamabad-campus,review
@@ -29,9 +29,9 @@ program_id,institution_id,program_name,official_source_url,source_status,campus_
 49,15,BS Artificial Intelligence,,not-verified,verify-Air-University-campus,blocked
 50,15,BS Cyber Security,https://webdata.au.edu.pk/Pages/Admission/eligibility_criteria.aspx,source-found,verify-Islamabad-campus,review
 51,15,BS Information Technology,https://webdata.au.edu.pk/Pages/Admission/eligibility_criteria.aspx,source-found,verify-Islamabad-campus,review
-7,16,BS Computer Science,,not-verified,verify-Virtual-University-delivery-and-campus,blocked
-55,16,BS Biotechnology,,not-verified,verify-Virtual-University-delivery-and-campus,blocked
+7,16,BS Computer Science,https://vu.edu.pk/AboutUs/ProgramDetails?StudyProgramID=4,source-found,verify-virtual-delivery-model-and-campus,review
+55,16,BS Biotechnology,https://vu.edu.pk/AboutUs/ProgramsOffered?Degree=BS,source-found,verify-virtual-delivery-model-and-campus,review
 8,17,BS Computer Science,,not-verified,verify-KIU-campus,blocked
 30,18,BS Polymer Engineering,https://www.ntu.edu.pk/admissions,source-found,verify-current-campus,review
 31,18,Bachelor of Fashion Design,https://www.ntu.edu.pk/admissions,source-found,verify-current-campus,review
-10,19,BS Computer Science,,not-verified,verify-NUST-campus,blocked
+10,19,BS Computer Science,https://nust.edu.pk/admissions/undergraduates/list-of-ug-programmes-and-institutions,source-found,verify-current-NUST-campus,review
