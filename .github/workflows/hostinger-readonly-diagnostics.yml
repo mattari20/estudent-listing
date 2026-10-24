@@ -108,6 +108,47 @@ jobs:
                 'matching_migrations' => $migrationRows,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP
+            echo "=== Discovery review package storage boundary (read-only) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+            $disk = \\Illuminate\\Support\\Facades\\Storage::disk('local');
+            $publicRoot = realpath(public_path());
+            $packagePath = $disk->path('institute-discovery-review-packages');
+            $existingPath = realpath($packagePath);
+            $parentPath = realpath(dirname($packagePath));
+            $resolvedPackagePath = $existingPath ?: ($parentPath ? $parentPath.DIRECTORY_SEPARATOR.basename($packagePath) : null);
+            $insidePublicRoot = $publicRoot !== false && $resolvedPackagePath !== null
+                && ($resolvedPackagePath === $publicRoot || strpos($resolvedPackagePath, $publicRoot.DIRECTORY_SEPARATOR) === 0);
+            $files = [];
+            if ($existingPath && is_dir($existingPath)) {
+                $iterator = new \\RecursiveIteratorIterator(
+                    new \\RecursiveDirectoryIterator($existingPath, \\FilesystemIterator::SKIP_DOTS)
+                );
+                foreach ($iterator as $file) {
+                    if ($file->isFile() && in_array($file->getFilename(), ['candidates.csv', 'manifest.json'], true)) {
+                        $files[] = $file->getPathname();
+                    }
+                }
+            }
+            $report = [
+                'check' => 'discovery_review_package_storage_boundary',
+                'mutation_performed' => false,
+                'local_disk_driver' => config('filesystems.disks.local.driver'),
+                'public_root_resolved' => $publicRoot !== false,
+                'package_root_resolved' => $resolvedPackagePath !== null,
+                'package_root_inside_public_root' => $insidePublicRoot,
+                'package_root_exists' => $existingPath !== false,
+                'private_package_files_found' => count($files),
+            ];
+            echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            if ($publicRoot === false || $resolvedPackagePath === null || $insidePublicRoot) {
+                fwrite(STDERR, "ERROR: discovery package storage is not proven outside the public web root\\n");
+                exit(21);
+            }
+            PHP
             echo "=== Hostinger scheduler cron presence (read-only; command contents suppressed) ==="
             CRON_OUTPUT="$(crontab -l 2>/dev/null || true)"
             if printf '%s\n' "$CRON_OUTPUT" | grep -Eq 'artisan[[:space:]]+schedule:run|schedule:run[[:space:]]'; then
