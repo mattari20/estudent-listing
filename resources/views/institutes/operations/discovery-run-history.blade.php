@@ -33,7 +33,20 @@
                         </td>
                         <td>{{ $outcome->snapshot_id ?? '—' }}</td>
                         <td>{{ $outcome->candidate_count }}</td>
-                        <td>{{ $outcome->review_package_status ?? '—' }}</td>
+                        <td>
+                            @php
+                                $batchId = (int) ($outcome->details['batch_id'] ?? 0);
+                                $batch = $batches->get($batchId);
+                                $snapshotId = (int) ($batch?->rows->first()?->payload['_provenance']['snapshot_id'] ?? 0);
+                            @endphp
+                            @if ($batch && $snapshotId > 0)
+                                <a href="{{ route('institutes.operations.discovery-packages.download', ['importBatch' => $batch, 'file' => 'csv']) }}">CSV</a>
+                                <span aria-hidden="true">·</span>
+                                <a href="{{ route('institutes.operations.discovery-packages.download', ['importBatch' => $batch, 'file' => 'manifest']) }}">JSON manifest</a>
+                            @else
+                                {{ $outcome->review_package_status ?? 'No package available' }}
+                            @endif
+                        </td>
                     </tr>
                 @empty
                     <tr><td colspan="7">No discovery run outcomes have been recorded yet.</td></tr>
