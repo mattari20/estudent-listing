@@ -17,6 +17,7 @@ class SourceMonitoringBatchService
             'changed' => 0,
             'queued' => 0,
             'discovery_batches' => 0,
+            'outcomes_recorded' => 0,
             'discovery_candidates' => 0,
             'discovery_duplicates' => 0,
         ];
@@ -56,29 +57,41 @@ class SourceMonitoringBatchService
 
                 $summary['completed']++;
 
-                if (($result['observation']?->change_state) === 'changed') {
+                $observation = $result['observation'] ?? null;
+
+                if ($observation?->change_state === 'changed') {
                     $summary['changed']++;
                     $summary['queued'] += ($result['intelligence']['queued'] ?? 0);
 
-                    $impact = $result['observation']->materiality ?? 'unknown';
+                    $impact = $observation->materiality ?? 'unknown';
                     app(MonitoringAlertService::class)->raise(
                         'source_change',
                         app(MonitoringAlertPolicyService::class)->severityForChange($impact),
                         'Monitored source content changed.',
                         $source,
                         $policy,
-                        ['observation_id' => $result['observation']->id]
+                        ['observation_id' => $observation->id]
                     );
                     app(MonitoringAuditService::class)->record(
                         'source_change',
                         'Monitored source content changed',
                         $source->id,
                         'info',
-                        ['observation_id' => $result['observation']->id]
+                        ['observation_id' => $observation->id]
                     );
+                }
 
-                    $discovery = app(SourceChangeDiscoveryService::class)->process($result['observation']);
-                    if (is_array($discovery)) {
+                // Record every successful retrieval observation, including unchanged
+                // and baseline snapshots. Otherwise healthy no-change runs leave the
+                // outcome ledger empty and live scheduler acceptance cannot be proven.
+                if ($observation !== null) {
+                    $discovery = app(SourceChangeDiscoveryService::class)->process($observation);
+
+                    if (is_array($discovery) && isset($discovery['outcome_id'])) {
+                        $summary['outcomes_recorded']++;
+                    }
+
+                    if ($observation->change_state === 'changed' && is_array($discovery)) {
                         $summary['discovery_batches']++;
                         $summary['discovery_candidates'] += (int) ($discovery['candidate_rows'] ?? 0);
                         $summary['discovery_duplicates'] += (int) ($discovery['duplicate_rows'] ?? 0);

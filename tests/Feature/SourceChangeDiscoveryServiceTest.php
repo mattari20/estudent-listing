@@ -6,7 +6,12 @@ use App\Models\InstituteDiscoveryRunOutcome;
 use App\Models\Source;
 use App\Models\SourceChangeObservation;
 use App\Models\SourceSnapshot;
+use App\Models\SourceMonitoringPolicy;
 use App\Services\SourceChangeDiscoveryService;
+use App\Services\SourceMonitoringBatchService;
+use App\Services\SourceMonitoringPipeline;
+use App\Services\MonitoringPolicyValidationService;
+use App\Services\MonitoringPolicyStateService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -55,6 +60,57 @@ class SourceChangeDiscoveryServiceTest extends TestCase
             'id' => $result['outcome_id'],
             'source_id' => $source->id,
             'outcome' => 'empty_snapshot',
+        ]);
+    }
+
+    public function test_monitoring_batch_records_outcome_for_unchanged_source_observation(): void
+    {
+        $source = $this->createSource();
+        $snapshot = $this->createSnapshot($source, 'unchanged source content');
+        $observation = SourceChangeObservation::create([
+            'source_id' => $source->id,
+            'current_snapshot_id' => $snapshot->id,
+            'observed_at' => now(),
+            'change_state' => 'unchanged',
+            'materiality' => 'none',
+        ]);
+
+        $policy = SourceMonitoringPolicy::create([
+            'name' => 'Phase 2 unchanged outcome policy',
+            'subject_type' => 'program',
+            'attribute' => 'automated_discovery',
+            'fresh_after_days' => 7,
+            'stale_after_days' => 30,
+            'priority' => 'normal',
+            'status' => 'active',
+            'source_id' => $source->id,
+            'cadence' => 'hourly',
+            'next_run_at' => now()->subMinute(),
+        ]);
+
+        $pipeline = \Mockery::mock(SourceMonitoringPipeline::class);
+        $pipeline->shouldReceive('run')->once()->with(\Mockery::type(Source::class))->andReturn([
+            'run' => (object) ['status' => 'completed'],
+            'observation' => $observation,
+            'intelligence' => ['queued' => 0],
+        ]);
+        $this->app->instance(SourceMonitoringPipeline::class, $pipeline);
+
+        $validation = \Mockery::mock(MonitoringPolicyValidationService::class);
+        $validation->shouldReceive('validate')->once()->with(\Mockery::type(SourceMonitoringPolicy::class));
+        $this->app->instance(MonitoringPolicyValidationService::class, $validation);
+
+        $policyState = \Mockery::mock(MonitoringPolicyStateService::class);
+        $policyState->shouldReceive('success')->once()->with(\Mockery::type(SourceMonitoringPolicy::class));
+        $this->app->instance(MonitoringPolicyStateService::class, $policyState);
+
+        $summary = app(SourceMonitoringBatchService::class)->run($policy->id);
+
+        $this->assertSame(1, $summary['outcomes_recorded']);
+        $this->assertDatabaseHas('institute_discovery_run_outcomes', [
+            'source_id' => $source->id,
+            'source_change_observation_id' => $observation->id,
+            'outcome' => 'no_change',
         ]);
     }
 
