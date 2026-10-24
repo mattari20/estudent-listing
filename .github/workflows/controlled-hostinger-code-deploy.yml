@@ -99,5 +99,14 @@ jobs:
             fi
             echo "deployment_status=CODE_DEPLOYED"
             echo "deployed_revision=$DEPLOYED_REVISION"
+            echo "=== Run read-only Step 3 live offering preflight ==="
+            if ! php artisan institutes:offering-gap-preflight --json --no-ansi; then
+              git checkout --detach "$PREVIOUS_REVISION" >/dev/null 2>&1 || true
+              echo "ERROR: live offering preflight command failed; attempted application-code rollback"
+              echo "database_migrations=NOT_RUN"
+              echo "production_data_mutations=NOT_RUN"
+              exit 8
+            fi
+            echo "offering_gap_preflight=COMPLETED_READ_ONLY"
             echo "database_migrations=NOT_RUN"
             echo "production_data_mutations=NOT_RUN"
