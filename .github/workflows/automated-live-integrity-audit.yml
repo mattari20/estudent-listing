@@ -78,13 +78,12 @@ jobs:
             # application-code commit, then reject any local tracked app-code drift.
             # This matches the read-only diagnostics semantics and avoids comparing
             # the target commit against the working tree as if it were a commit.
-            APP_PATHS=(app bootstrap config database resources routes composer.json composer.lock public artisan)
-            if ! git diff --quiet "$TARGET_REVISION" "$DEPLOYED_CHECKOUT_REVISION" -- "${APP_PATHS[@]}"; then
+            if ! git diff --quiet "$TARGET_REVISION" "$DEPLOYED_CHECKOUT_REVISION" -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
               echo "audit_status=BLOCKED_APPLICATION_CODE_MISMATCH"
               echo "No live database query was run because deployed checkout code differs from the expected application revision."
               exit 10
             fi
-            if ! git diff --quiet HEAD -- "${APP_PATHS[@]}" || ! git diff --cached --quiet HEAD -- "${APP_PATHS[@]}"; then
+            if ! git diff --quiet HEAD -- app bootstrap config database resources routes composer.json composer.lock public artisan || ! git diff --cached --quiet HEAD -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
               echo "audit_status=BLOCKED_LOCAL_APPLICATION_CODE_DRIFT"
               echo "No live database query was run because tracked application files differ from the deployed checkout commit."
               exit 11
