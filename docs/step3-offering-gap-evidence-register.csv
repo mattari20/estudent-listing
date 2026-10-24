@@ -1,12 +1,12 @@
 program_id,institution_id,program_name,official_source_url,source_status,campus_status,remediation_decision,candidate_campus_id,candidate_campus_name,candidate_delivery_mode,campus_source_url
-33,1,BS Biotechnology,https://gcu.edu.pk/IIBT.php?pg=acdProg,source-found,verify-current-campus,review,11,Main Campus,on_campus,
-34,1,BS English,https://gcu.edu.pk/admissions.php?pg=bs-program,source-found,verify-current-campus,review,11,Main Campus,on_campus,
+33,1,BS Biotechnology,https://gcu.edu.pk/IIBT.php?pg=acdProg,source-found,verify-current-campus,review,11,Main Campus,on_campus,https://gcu.edu.pk/about.php?pg=ContactUs
+34,1,BS English,https://gcu.edu.pk/admissions.php?pg=bs-program,source-found,verify-current-campus,review,11,Main Campus,on_campus,https://gcu.edu.pk/about.php?pg=ContactUs
 16,2,BSc. Applied Computing,https://www.uet.edu.pk/academics/academics/undergraduate-academic-programs/,source-found,main-campus-confirmed,ready-for-validation,12,Main Campus,on_campus,https://www.uet.edu.pk/academics/academics/undergraduate-academic-programs/
-3,3,BS Computer Science,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,https://pu.edu.pk/home/campus/1
-35,3,BS Data Science,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,https://pu.edu.pk/home/campus/1
-36,3,BS Software Engineering,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,https://pu.edu.pk/home/campus/1
-37,3,BS Information Technology,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,https://pu.edu.pk/home/campus/1
-21,4,BS English Language & Literature,https://ucp.edu.pk/admissions/offered-programs-fall-2026/,source-found,verify-current-campus,review,14,Main Campus,on_campus,https://ucp.edu.pk/faculty-of-languages-literature/
+3,3,BS Computer Science,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,https://pu.edu.pk/home/admission_notice/698
+35,3,BS Data Science,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,https://pu.edu.pk/home/admission_notice/698
+36,3,BS Software Engineering,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,https://pu.edu.pk/home/admission_notice/698
+37,3,BS Information Technology,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,https://pu.edu.pk/home/admission_notice/698
+21,4,BS English Language & Literature,https://ucp.edu.pk/faculty-of-languages-literature/programmes/undergraduate/bs-english-2/,source-found,verify-current-campus,review,14,Main Campus,on_campus,https://ucp.edu.pk/faculty-of-languages-literature/
 77,5,BS Biochemistry,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,main-campus-confirmed,review,15,Main Campus,on_campus,https://uvas.edu.pk/news-events/2026/orientation.php
 78,5,BS Environmental Science,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,main-campus-confirmed,review,15,Main Campus,on_campus,https://uvas.edu.pk/news-events/2026/orientation.php
 79,5,BS Human Nutrition and Dietetics,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,main-campus-confirmed,review,15,Main Campus,on_campus,https://uvas.edu.pk/news-events/2026/orientation.php

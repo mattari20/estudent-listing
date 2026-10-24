@@ -83,3 +83,12 @@ No production data was changed. These sources improve auditability but do not cl
 - **Federal Urdu University (programme ID 71):** no reliable official programme/campus source has yet been added. The prior unrelated NUML source remains removed and this row remains blocked.
 
 These are evidence-register and documentation changes only. No database writes or migrations are included.
+
+
+## Evidence audit update (24 October 2026 — GCU, UCP and Punjab University)
+
+- **GC University Lahore (programme IDs 33 and 34):** the official admissions page lists BS Biotechnology and BS English; the official contact page identifies the university campus at Katchery Road, Lahore. Campus source URLs have been added, but the register remains `review` / `verify-current-campus` until the live candidate campus ID/name is reconciled against the current database.
+- **University of Central Punjab (programme ID 21):** replaced the general Fall 2026 list with the official BS English Language & Literature programme page. The official faculty page gives the Johar Town, Lahore address. The record remains under review until the candidate campus ID/name is checked live.
+- **University of the Punjab FCIT (programme IDs 3, 35, 36 and 37):** the official 2026–27 admission notice explicitly distinguishes FCIT New Campus from FCIT Old Campus and lists programmes differently across them. The campus evidence URL now points to this campus-specific notice, not a generic campus page. The existing candidate campus label `Quaid-e-Azam Campus` has **not** been assumed to equal either FCIT campus; all four rows remain `review` pending resolution of the actual campus ID/name and exact programme mapping.
+
+No database writes or migrations were performed. These evidence improvements do not authorize offering inserts.
