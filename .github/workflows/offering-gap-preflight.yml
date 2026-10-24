@@ -1,0 +1,138 @@
+name: Read-only offering-gap preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full 40-character commit SHA already approved for read-only preflight
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# Configure this environment with required reviewers if available, and only add
+# dedicated read-only database credentials as environment secrets.
+jobs:
+  preflight:
+    name: Read-only live database preflight
+    runs-on: ubuntu-latest
+    environment: offering-gap-readonly-audit
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: mysql
+      DB_HOST: ${{ secrets.OFFERING_GAP_DB_HOST }}
+      DB_PORT: ${{ secrets.OFFERING_GAP_DB_PORT }}
+      DB_DATABASE: ${{ secrets.OFFERING_GAP_DB_DATABASE }}
+      DB_USERNAME: ${{ secrets.OFFERING_GAP_DB_USERNAME }}
+      DB_PASSWORD: ${{ secrets.OFFERING_GAP_DB_PASSWORD }}
+
+    steps:
+      - name: Validate requested revision and read-only credentials
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$REQUESTED_REVISION" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "::error::Supply an exact 40-character commit SHA; branch names are not accepted."
+            exit 1
+          fi
+          for name in DB_HOST DB_PORT DB_DATABASE DB_USERNAME DB_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing required environment secret for $name. Configure dedicated read-only credentials in the offering-gap-readonly-audit environment."
+              exit 1
+            fi
+          done
+          if [[ "$DB_USERNAME" == "root" || "$DB_USERNAME" == "admin" ]]; then
+            echo "::error::Privileged database usernames are not accepted for this read-only audit."
+            exit 1
+          fi
+
+      - name: Checkout exact approved revision
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.revision }}
+          persist-credentials: false
+
+      - name: Verify revision and required preflight files
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          requested="$REQUESTED_REVISION"
+          if [[ "$actual" != "$requested" ]]; then
+            echo "::error::Checked out revision does not match the requested SHA."
+            exit 1
+          fi
+          test -f artisan || { echo "::error::Laravel artisan entry point is missing."; exit 1; }
+          test -f app/Console/Commands/OfferingGapPreflight.php || { echo "::error::Preflight command is missing at this revision."; exit 1; }
+          test -f docs/step3-offering-gap-evidence-register.csv || { echo "::error::Evidence register is missing at this revision."; exit 1; }
+          echo "Approved revision: $actual"
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: dom, mbstring, xml, curl, pdo_mysql, mysql
+          coverage: none
+
+      - name: Install application dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress --no-dev --optimize-autoloader
+
+      - name: Run read-only preflight (no migrations)
+        id: preflight
+        shell: bash
+        run: |
+          set +e
+          php artisan institutes:offering-gap-preflight --json --no-ansi > "$RUNNER_TEMP/offering-gap-preflight.json" 2> "$RUNNER_TEMP/preflight-stderr.txt"
+          command_exit=$?
+          set -e
+          printf '%s\n' "$command_exit" > "$RUNNER_TEMP/preflight-exit-code.txt"
+          if [[ ! -s "$RUNNER_TEMP/offering-gap-preflight.json" ]]; then
+            echo "::error::Preflight produced no JSON report. Stderr is withheld from logs to avoid accidental credential disclosure."
+            exit 1
+          fi
+          if ! jq -e 'type == "object" and has("database_mutations") and has("mutation_performed")' "$RUNNER_TEMP/offering-gap-preflight.json" >/dev/null; then
+            echo "::error::Preflight report is not valid and does not declare the mutation safety fields."
+            exit 1
+          fi
+          if [[ "$(jq -r '.database_mutations' "$RUNNER_TEMP/offering-gap-preflight.json")" != "0" || "$(jq -r '.mutation_performed' "$RUNNER_TEMP/offering-gap-preflight.json")" != "false" ]]; then
+            echo "::error::Preflight did not report the required zero-mutation safety contract."
+            exit 1
+          fi
+          jq --arg revision "$(git rev-parse HEAD)" \
+             --arg run_id "$GITHUB_RUN_ID" \
+             --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+             --arg repository "$GITHUB_REPOSITORY" \
+             --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+             --argjson command_exit_code "$command_exit" \
+             '. + {workflow_metadata: {repository: $repository, approved_revision: $revision, run_id: $run_id, run_attempt: $run_attempt, generated_at_utc: $timestamp, command_exit_code: $command_exit_code, production_write_authorized: false}}' \
+             "$RUNNER_TEMP/offering-gap-preflight.json" > "$RUNNER_TEMP/offering-gap-preflight-with-metadata.json"
+          if [[ "$command_exit" -ne 0 ]]; then
+            echo "::error::Preflight command failed; inspect the restricted report artifact for the fail-closed reason."
+            exit 1
+          fi
+          if [[ "$(jq -r '.preflight_status // "MISSING"' "$RUNNER_TEMP/offering-gap-preflight.json")" == "MISSING" ]]; then
+            echo "::error::Preflight report does not contain preflight_status."
+            exit 1
+          fi
+
+      - name: Upload restricted short-retention report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: offering-gap-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/offering-gap-preflight-with-metadata.json
+            ${{ runner.temp }}/offering-gap-preflight.json
+            ${{ runner.temp }}/preflight-exit-code.txt
+          if-no-files-found: warn
+          retention-days: 3
