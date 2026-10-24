@@ -55,3 +55,13 @@ No live production writes, migrations, promotions, or package deletion are perfo
 ### Exit decision
 
 **Phase 2 remains OPEN.** Repository CI and the latest read-only application-revision check are green, but live operator acceptance and a current successful scheduled run are not yet independently verified. No production writes, migrations, promotions, publications, or package deletion were performed by this audit. Do not mark Phase 2 complete until every remaining live gate above has evidence.
+
+
+## Current deployment drift update (24 October 2026)
+
+- Hostinger Read-only Diagnostics run `40070109931` failed at 06:25 UTC with `APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE`. The deployed Git HEAD was `1e280ccecd82537bcf42ba8da846999b87021466`; expected application-code revision was `b5743b39f69a4588abcfe2ab9dab445b8c748194`.
+- GitHub comparison shows the expected revision is two application commits ahead: `dc37f5219ccfdeaa1a9d11dd04a664736dbb7861` and `b5743b39f69a4588abcfe2ab9dab445b8c748194`.
+- Controlled deployment run `40068100755` previously checked out `dc37f5219ccfdeaa1a9d11dd04a664736dbb7861` and ran the read-only offering preflight. It did not include the later `b5743b39f69a4588abcfe2ab9dab445b8c748194` revision, and the later diagnostic observed an older HEAD again.
+- The controlled deployment workflow requires a manual `workflow_dispatch` with `confirm_deployment=true`. The available GitHub actions in this session do not include workflow dispatch, so no deployment has been triggered by this session. Do not bypass this gate or run migrations/offering inserts to resolve the code mismatch.
+
+**Exit decision: Phase 2 remains OPEN.** The required next operation is a controlled dispatch to deploy the latest application-code revision, then immediately rerun Hostinger Read-only Diagnostics. After alignment is proven, complete live migration, operator/download security, scheduler outcome, and canonical-count acceptance checks.
