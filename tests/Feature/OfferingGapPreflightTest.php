@@ -15,16 +15,18 @@ class OfferingGapPreflightTest extends TestCase
     {
         $before = DB::table('programs')->count();
 
-        $this->artisan('institutes:offering-gap-preflight', [
+        $exitCode = Artisan::call('institutes:offering-gap-preflight', [
             '--register' => 'docs/does-not-exist-offering-gap-register.csv',
             '--json' => true,
-        ])
-            ->assertExitCode(1)
-            ->expectsOutputToContain('"register_file_missing"')
-            ->expectsOutputToContain('"database_mutations": 0')
-            ->expectsOutputToContain('"mutation_performed": false')
-            ->expectsOutputToContain('"production_write_authorization": false');
+        ]);
+        $report = json_decode(Artisan::output(), true);
 
+        $this->assertSame(1, $exitCode);
+        $this->assertIsArray($report);
+        $this->assertContains('register_file_missing', $report['errors'] ?? []);
+        $this->assertSame(0, $report['database_mutations'] ?? null);
+        $this->assertFalse($report['mutation_performed'] ?? true);
+        $this->assertFalse($report['production_write_authorization'] ?? true);
         $this->assertSame($before, DB::table('programs')->count());
     }
 
