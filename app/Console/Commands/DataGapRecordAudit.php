@@ -292,12 +292,38 @@ class DataGapRecordAudit extends Command
                 'excluded_fields' => ['payload', 'normalized_payload', 'notes', 'full validation error text', 'full promotion event reason'],
             ];
 
+            $campusColumns = array_values(array_filter(
+                ['id', 'institution_id', 'geography_id', 'name', 'slug', 'campus_type', 'status'],
+                fn (string $column): bool => Schema::hasColumn('campuses', $column),
+            ));
+            $campusRecords = DB::table('campuses')
+                ->select($campusColumns)
+                ->orderBy('institution_id')
+                ->orderBy('id')
+                ->get()
+                ->map(function ($row): array {
+                    $record = (array) $row;
+                    foreach (['id', 'institution_id', 'geography_id'] as $key) {
+                        if (array_key_exists($key, $record) && $record[$key] !== null) {
+                            $record[$key] = (int) $record[$key];
+                        }
+                    }
+
+                    $record['institution_name'] = DB::table('institutions')
+                        ->where('id', $record['institution_id'] ?? null)
+                        ->value('name');
+
+                    return $record;
+                })->all();
+
             $report['sections']['campuses'] = [
-                'total' => DB::table('campuses')->count(),
+                'total' => count($campusRecords),
                 'by_status' => Schema::hasColumn('campuses', 'status')
                     ? DB::table('campuses')->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->get()
                         ->mapWithKeys(fn ($row): array => [(string) ($row->status ?? 'null') => (int) $row->total])->all()
                     : [],
+                // Publicly useful IDs/names only; address and coordinates are intentionally excluded.
+                'records' => $campusRecords,
             ];
 
             $report['status'] = 'complete';
