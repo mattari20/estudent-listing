@@ -52,13 +52,13 @@ class InstituteOperationsController {
   $reverification=DataReverificationQueue::query()->where('status','open')->orderByRaw("CASE priority WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END")->orderBy('due_at')->limit(20)->get();
   return view('institutes.operations.queue',compact('rows','batches','summary','qualityReport','batchId','reverification','batchParentInstitutions','rowDecisionMap'));
  }
- public function discover(Request $request, \\App\\Services\\InstituteDiscoveryAgentService $agent): \\Illuminate\\Http\\RedirectResponse {
+ public function discover(Request $request, \App\Services\InstituteDiscoveryAgentService $agent): \Illuminate\Http\RedirectResponse {
   $profile = (string) $request->input('profile', 'cui-lahore');
   $useAi = $request->boolean('use_ai');
 
   try {
    $summary = $agent->run($profile, $useAi);
-  } catch (\\Throwable $e) {
+  } catch (\Throwable $e) {
    InstituteDiscoveryRunOutcome::query()->create([
     'profile_key' => $profile,
     'outcome' => 'failed',
