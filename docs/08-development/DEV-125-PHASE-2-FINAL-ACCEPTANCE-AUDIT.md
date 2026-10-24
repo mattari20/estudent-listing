@@ -55,3 +55,16 @@ No live production writes, migrations, promotions, or package deletion are perfo
 ### Exit decision
 
 **Phase 2 remains OPEN.** Repository CI and the latest read-only application-revision check are green, but live operator acceptance and a current successful scheduled run are not yet independently verified. No production writes, migrations, promotions, publications, or package deletion were performed by this audit. Do not mark Phase 2 complete until every remaining live gate above has evidence.
+
+
+## Critical update after PR #603 (24 October 2026, 06:25 UTC)
+
+- The post-merge Hostinger Read-only Diagnostics run `40070109931` failed. Its log reports `deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE`, with deployed Git HEAD `1e280ccecd82537bcf42ba8da846999b87021466` and expected application-code revision `b5743b39f69a4588abcfe2ab9dab445b8c748194`.
+- GitHub compare shows the expected revision is two application-code commits ahead of the deployed HEAD: `dc37f5219ccfdeaa1a9d11dd04a664736dbb7861` (live offering preflight connection) and `b5743b39f69a4588abcfe2ab9dab445b8c748194` (live campus identity in preflight).
+- A prior controlled deployment run `40068100755` successfully checked out `dc37f5219ccfdeaa1a9d11dd04a664736dbb7861`, passed `php artisan --version`, and ran `institutes:offering-gap-preflight` in read-only mode. It did not deploy the later `b5743b39f69a4588abcfe2ab9dab445b8c748194` revision. A later diagnostic nevertheless observed the older deployed HEAD, so the deployment state must be re-established and verified rather than inferred from the earlier successful run.
+- The controlled deployment workflow is intentionally `workflow_dispatch` only and requires `confirm_deployment=true` to change production application files. The available GitHub connector actions in this session can inspect runs and repository content but do not expose workflow dispatch. No attempt was made to bypass that deployment gate or change the workflow into an automatic production deploy.
+- The failed diagnostic remained read-only and explicitly reports that no production records were changed. Do not run migrations or offering inserts as part of resolving this code-revision mismatch.
+
+### Current exit decision
+
+**Phase 2 remains OPEN and deployment drift is an active blocker.** The next required action is a controlled dispatch of `Controlled Hostinger Code Deployment` against the latest main application-code revision with `confirm_deployment=true`, followed immediately by a fresh Hostinger Read-only Diagnostics run. The deployment's own read-only offering preflight may report `BLOCKED_ROWS_REMAIN`; that is an evidence gate and must not be bypassed. After code alignment is proven, continue live migration, operator/download security, scheduler outcome, and canonical-count acceptance checks.
