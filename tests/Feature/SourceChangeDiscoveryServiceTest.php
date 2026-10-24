@@ -114,6 +114,55 @@ class SourceChangeDiscoveryServiceTest extends TestCase
         ]);
     }
 
+
+    public function test_changed_source_with_only_duplicates_records_duplicate_counts_not_empty_candidates(): void
+    {
+        $url = 'https://example.edu/programs';
+        config()->set('institute_agent.profiles.duplicate-test', [
+            'institution_slug' => 'government-college-university-lahore',
+            'source' => ['name' => 'Test source', 'type' => 'official', 'url' => $url, 'authority_scope' => 'official programmes'],
+            'entity_type' => 'program',
+            'monitoring' => ['auto_discovery' => true, 'use_ai' => false],
+        ]);
+        \App\Models\Institution::create([
+            'name' => 'Government College University Lahore',
+            'slug' => 'government-college-university-lahore',
+            'status' => 'active',
+        ]);
+        $source = $this->createSource();
+        $source->update(['url' => $url]);
+        $snapshot = $this->createSnapshot($source, '<html>unchanged programme list</html>');
+        $observation = SourceChangeObservation::create([
+            'source_id' => $source->id,
+            'current_snapshot_id' => $snapshot->id,
+            'observed_at' => now(),
+            'change_state' => 'changed',
+            'materiality' => 'high',
+        ]);
+
+        $agent = \Mockery::mock(\App\Services\InstituteDiscoveryAgentService::class);
+        $agent->shouldReceive('runFromSnapshot')->once()->with('duplicate-test', \Mockery::type(SourceSnapshot::class), false)->andReturn([
+            'total_rows' => 63,
+            'candidate_rows' => 0,
+            'duplicate_rows' => 63,
+            'batch_id' => 17,
+            'review_package' => ['status' => 'created'],
+        ]);
+        $this->app->instance(\App\Services\InstituteDiscoveryAgentService::class, $agent);
+
+        $result = app(SourceChangeDiscoveryService::class)->process($observation);
+
+        $this->assertSame('duplicates_only', $result['run_outcome']['outcome']);
+        $this->assertDatabaseHas('institute_discovery_run_outcomes', [
+            'id' => $result['run_outcome']['outcome_id'],
+            'outcome' => 'duplicates_only',
+            'candidate_count' => 0,
+        ]);
+        $stored = \App\Models\InstituteDiscoveryRunOutcome::query()->findOrFail($result['run_outcome']['outcome_id']);
+        $this->assertSame(63, $stored->details['extracted_rows']);
+        $this->assertSame(63, $stored->details['duplicate_rows']);
+    }
+
     private function createSource(): Source
     {
         return Source::create([
