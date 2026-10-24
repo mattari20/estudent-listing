@@ -3,11 +3,11 @@
 The latest read-only live audit reported 36 active programmes with no offering rows:
 https://github.com/mattari20/estudent-listing/actions/runs/40065220614
 
-## Evidence gate
+## Campus-aware evidence register
 
-For every programme, verify both (1) a current official programme source and (2) the exact campus or delivery model. Programme existence alone is not campus evidence. Do not infer a physical campus for a virtual programme. Do not silently map a Lahore programme to an Islamabad campus or vice versa.
+The register now records a candidate campus ID/name, candidate delivery mode, and a separate campus-source URL for each gap. These are review targets, not verified facts. Candidate mappings were carried forward from the current audit context and must be checked against the live campus table and current official institutional evidence before any offering is proposed.
 
-Keep intake dates, fees, duration, availability, and status unknown unless official evidence supports each field. The register is an evidence tracker, not an authorization to publish or activate records.
+Programme existence alone is not campus evidence. Do not map a Lahore programme to an Islamabad campus, and do not assume a virtual programme's support campus is its teaching location. The Virtual University rows are marked online as a review hypothesis; confirm the delivery model before using it.
 
 ## Automated validation
 
@@ -17,16 +17,16 @@ Run:
 python scripts/validate_step3_offering_gap_register.py
 ```
 
-The script checks the expected row count, required columns, unique programme IDs, valid decision states, HTTPS sources, and safety gates for missing sources, unconfirmed campuses, and wrong-campus records. GitHub Actions runs the same validator on pull requests and pushes that change the register.
+The validator checks the 36-record count, required columns, unique programme IDs, numeric IDs, allowed delivery modes, HTTPS source URLs, and safety gates for missing evidence, unconfirmed campuses, and wrong-campus records. GitHub Actions runs the validator on relevant pull requests and main-branch changes.
 
 ## Apply gate
 
-No production database writes are authorized by this PR. Before any apply workflow is proposed, it must:
-1. Default to dry-run and show the exact proposed rows.
-2. Confirm the programme and campus exist and belong to the same institution.
-3. Require a source URL and explicit campus/delivery evidence for each row.
+No production database writes are authorized by this register or PR. Before any apply workflow is proposed, it must:
+1. Default to dry-run and print exact proposed rows.
+2. Resolve programme and campus IDs against the live database; verify both belong to the same institution.
+3. Require current official programme evidence and explicit campus/delivery evidence for each row.
 4. Reject duplicate programme/campus/delivery-mode offerings and refuse ambiguous rows.
 5. Require an explicit apply switch, log every affected ID, and remain idempotent.
 6. Re-run the read-only live audit and compare before/after counts.
 
-The current register has only one row marked `ready-for-validation`; that is not approval for a production insert. All other rows remain review/blocked pending evidence.
+The `ready-for-validation` label means only that a row can enter a deeper preflight; it is not approval for a production insert. Any row still lacking campus-specific evidence must remain blocked from application.
