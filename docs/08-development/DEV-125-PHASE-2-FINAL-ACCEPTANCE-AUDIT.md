@@ -88,3 +88,21 @@ No live production writes, migrations, promotions, or package deletion are perfo
 **Phase 2 remains OPEN.** Repository tests and the last confirmed deployment passed, but the current main application-code revision must be deployed through the controlled workflow before scheduler acceptance can be rerun. After deployment, require a live due-policy run that records an outcome and preserves canonical counts. Authenticated operator page/download and guest-denial behavior still have CI coverage but lack independent live-session evidence. Hostinger's `crontab -l` returned `missing_or_unreadable`; GitHub's scheduled workflow exists, but Hostinger cron presence must not be claimed as verified.
 
 No production migrations, canonical data writes, promotions, publications, or package deletions were performed by these batches. The 36 missing offerings and Step 3 evidence blockers remain separate data-readiness work, not grounds for bypassing approval gates.
+
+
+## Live acceptance recheck — 24 October 2026 (after PRs #613–#617)
+
+### Newly verified
+- Hostinger application-code match: [read-only diagnostics run #40077517184](https://github.com/mattari20/estudent-listing/actions/runs/40077517184). Deployed checkout `1d203b033e8d2c256b2d593134cbc366ed8bdaaa`; expected application-code revision `00c3ed557d2981befb74dec9aed262531c4065ad`. These differ as full commits, but application paths match.
+- Discovery outcome table exists and its migration is applied.
+- Live guest-denial checks passed: both operator-only run history and package download requests returned HTTP 302 to the Institutes login.
+- Private review-package storage root resolves outside the public web root; four expected private package files were found.
+- Automated live integrity audit passes: [run #40077517197](https://github.com/mattari20/estudent-listing/actions/runs/40077517197). It confirmed the read-only report completed; canonical counts remain 19 institutions, 22 campuses, 85 programs, 55 offerings and 5 admission intakes. There are still 36 active programs without offerings, 31 duplicate slug/identity collision findings, and structural readiness is false.
+
+### Still open
+1. The latest successful governed discovery attempt was `NO_DUE_POLICIES_NOOP`; outcome count was 0 before and after. This does not close the scheduler outcome gate.
+2. Live authenticated operator run-history and valid package downloads have not been independently exercised; private/no-store and nosniff response headers are CI-tested but not yet verified on a live authenticated response.
+3. A due source-monitoring policy must produce a new recorded outcome, and an unchanged-source run must also be evidenced, with canonical counts unchanged.
+4. Hostinger `crontab -l` remains `missing_or_unreadable`; do not claim Hostinger cron is verified.
+
+**Exit decision: Phase 2 remains OPEN.** The deployment/revision, schema, guest-denial, private-storage-boundary, and live read-only audit gates are verified. Scheduler outcome and authenticated operator/download gates remain unresolved. No production migrations, canonical writes, approvals, promotions, publications, or package deletions were performed.
