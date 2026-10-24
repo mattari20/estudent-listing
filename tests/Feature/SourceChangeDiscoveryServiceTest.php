@@ -148,7 +148,7 @@ class SourceChangeDiscoveryServiceTest extends TestCase
             'batch_id' => 17,
             'review_package' => ['status' => 'created'],
         ]);
-        $this->app->instance(InstituteDiscoveryAgentService::class, $agent);
+        $this->app->instance(\\App\\Services\\InstituteDiscoveryAgentService::class, $agent);
 
         $result = app(SourceChangeDiscoveryService::class)->process($observation);
 
