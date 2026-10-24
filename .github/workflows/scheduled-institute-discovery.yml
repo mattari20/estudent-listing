@@ -104,8 +104,25 @@ jobs:
               '
             }
 
+            discovery_outcome_count() {
+              php -r '
+                require "vendor/autoload.php";
+                $app = require "bootstrap/app.php";
+                $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+                $schema = \\Illuminate\\Support\\Facades\\Schema::class;
+                $db = \\Illuminate\\Support\\Facades\\DB::class;
+                if (!$schema::hasTable("institute_discovery_run_outcomes")) {
+                    fwrite(STDERR, "ERROR: discovery outcome table is missing\\n");
+                    exit(2);
+                }
+                echo $db::table("institute_discovery_run_outcomes")->count();
+              '
+            }
+
             BEFORE_COUNTS="$(canonical_counts)" || { echo "ERROR: read-only preflight failed"; exit 12; }
+            BEFORE_OUTCOME_COUNT="$(discovery_outcome_count)" || { echo "ERROR: discovery outcome ledger preflight failed"; exit 14; }
             echo "canonical_counts_before=$BEFORE_COUNTS"
+            echo "discovery_outcome_count_before=$BEFORE_OUTCOME_COUNT"
             echo "database_migrations=NOT_RUN"
             echo "canonical_promotion=NOT_RUN"
             echo "publications=NOT_RUN"
@@ -119,7 +136,9 @@ jobs:
             set -e
 
             AFTER_COUNTS="$(canonical_counts)" || { echo "ERROR: post-run canonical count check failed"; exit 13; }
+            AFTER_OUTCOME_COUNT="$(discovery_outcome_count)" || { echo "ERROR: post-run discovery outcome ledger check failed"; exit 15; }
             echo "canonical_counts_after=$AFTER_COUNTS"
+            echo "discovery_outcome_count_after=$AFTER_OUTCOME_COUNT"
             echo "bootstrap_agent_exit_code=$BOOTSTRAP_EXIT"
             echo "monitor_changes_exit_code=$MONITOR_EXIT"
 
@@ -132,7 +151,13 @@ jobs:
               exit 21
             fi
 
+            if [ "$AFTER_OUTCOME_COUNT" -le "$BEFORE_OUTCOME_COUNT" ]; then
+              echo "ERROR: discovery completed without recording a run outcome"
+              exit 22
+            fi
+
             echo "discovery_status=GOVERNED_RUN_COMPLETED"
+            echo "discovery_outcome_recorded=YES"
             echo "canonical_mutations=NONE"
             echo "automatic_approval=NONE"
             echo "automatic_promotion=NONE"
