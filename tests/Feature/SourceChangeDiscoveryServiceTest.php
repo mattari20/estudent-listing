@@ -141,7 +141,7 @@ class SourceChangeDiscoveryServiceTest extends TestCase
         ]);
 
         $agent = \Mockery::mock(\App\Services\InstituteDiscoveryAgentService::class);
-        $agent->shouldReceive('runFromSnapshot')->once()->with('duplicate-test', $snapshot, false)->andReturn([
+        $agent->shouldReceive('runFromSnapshot')->once()->with('duplicate-test', \\Mockery::type(SourceSnapshot::class), false)->andReturn([
             'total_rows' => 63,
             'candidate_rows' => 0,
             'duplicate_rows' => 63,
