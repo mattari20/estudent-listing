@@ -61,11 +61,13 @@ jobs:
           persist-credentials: false
 
       - name: Verify revision and required preflight files
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision }}
         shell: bash
         run: |
           set -euo pipefail
           actual="$(git rev-parse HEAD)"
-          requested="${{ inputs.revision }}"
+          requested="$REQUESTED_REVISION"
           if [[ "$actual" != "$requested" ]]; then
             echo "::error::Checked out revision does not match the requested SHA."
             exit 1
