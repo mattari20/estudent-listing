@@ -42,3 +42,15 @@ No production database writes are authorized by this register or PR. Before any 
 6. Re-run the read-only live audit and compare before/after counts.
 
 The `ready-for-validation` label means only that a row can enter a deeper preflight; it is not approval for a production insert. Any row still lacking campus-specific evidence must remain blocked from application.
+
+
+## Evidence audit update (24 October 2026)
+
+The evidence register was refreshed with separate official campus-source URLs where reliable institutional pages were found:
+
+- **UVAS (program IDs 77, 78, 79, 85):** the university's 2026 undergraduate orientation page explicitly labels a section “Degree Programs at UVAS Main Campus, Lahore” and lists Biochemistry, Environmental Sciences, Human Nutrition and Dietetics, and BBA. The register now marks the campus as `main-campus-confirmed` for these four candidate rows and records that official page. Programme rows remain `review`; campus evidence alone does not establish that the current database mapping is otherwise ready to write.
+- **COMSATS Lahore (program ID 1):** the official CUI Lahore BSCS page confirms the BS Computer Science programme at the Lahore campus. The register records it as campus-confirmed and retains the row at `review` pending the full live preflight.
+- **Punjab University (program IDs 3, 35, 36, 37):** the official Quaid-e-Azam Campus page is now recorded as campus context. The current admission notice distinguishes FCIT New Campus and FCIT Old Campus, so the generic candidate “Quaid-e-Azam Campus” is not treated as a sufficiently specific mapping; these rows remain unverified and under review.
+- **UCP (program ID 21):** the official Faculty of Languages & Literature page, including the Johar Town address, is recorded as campus context. The register does not infer that this proves the database's “Main Campus” label; the row remains under review.
+  
+These source updates improve traceability, but they do not change the read-only safety gate. No migrations or production data writes are part of this change. The live preflight must be rerun after deployment, and every remaining blocker must be resolved from record-level evidence before any apply workflow is considered.
