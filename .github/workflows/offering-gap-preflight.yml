@@ -108,6 +108,10 @@ jobs:
             echo "::error::Preflight did not report the required zero-mutation safety contract."
             exit 1
           fi
+          if ! jq -e '.summary.register_rows == 36 and (.records | length) == 36 and (([.records[].program_id] | length) == ([.records[].program_id] | unique | length))' "$RUNNER_TEMP/offering-gap-preflight.json" >/dev/null; then
+            echo "::error::Preflight report must contain exactly 36 register rows and 36 records with unique programme IDs."
+            exit 1
+          fi
           jq --arg revision "$(git rev-parse HEAD)" \
              --arg run_id "$GITHUB_RUN_ID" \
              --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
