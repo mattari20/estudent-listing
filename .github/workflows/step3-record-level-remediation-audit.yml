@@ -52,7 +52,6 @@ jobs:
           script: |
             set -eu
             case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: invalid project path"; exit 2 ;; esac
-            case "$PROJECT_PATH" in *".. "*) echo "ERROR: invalid project path"; exit 2 ;; esac
             case "$PROJECT_PATH" in *".."*) echo "ERROR: invalid project path"; exit 2 ;; esac
             test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
             cd "$PROJECT_PATH"
