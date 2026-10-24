@@ -11,14 +11,14 @@ program_id,institution_id,program_name,official_source_url,source_status,campus_
 78,5,BS Environmental Science,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,main-campus-confirmed,review,15,Main Campus,on_campus,https://uvas.edu.pk/news-events/2026/orientation.php
 79,5,BS Human Nutrition and Dietetics,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,main-campus-confirmed,review,15,Main Campus,on_campus,https://uvas.edu.pk/news-events/2026/orientation.php
 85,5,Bachelor of Business Administration,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,main-campus-confirmed,review,15,Main Campus,on_campus,https://uvas.edu.pk/news-events/2026/orientation.php
-60,6,BS Computer Science,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,
-61,6,BS Information Technology,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,
-62,6,BS English,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,
-63,6,BS Business Analytics,https://ue.edu.pk/programs.php?id=200,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,
+60,6,BS Computer Science,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,https://www.ue.edu.pk/campus.php?id=40
+61,6,BS Information Technology,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,https://www.ue.edu.pk/campus.php?id=40
+62,6,BS English,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,https://www.ue.edu.pk/campus.php?id=40
+63,6,BS Business Analytics,https://ue.edu.pk/programs.php?id=200,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,https://www.ue.edu.pk/campus.php?id=40
 39,8,BSc Management Science,https://admission.lums.edu.pk/undergraduate-programmes,source-found,verify-LUMS-campus,review,2,LUMS Main Campus,on_campus,
 40,8,BSc Economics,https://admission.lums.edu.pk/undergraduate-programmes,source-found,verify-LUMS-campus,review,2,LUMS Main Campus,on_campus,
 1,9,BS (Computer Sciences),https://lahore.comsats.edu.pk/cs/programs.aspx,source-found,main-campus-confirmed,review,1,COMSATS Lahore,on_campus,https://lahore.comsats.edu.pk/cs/bscs.aspx
-69,10,BS Game Design,https://uol.edu.pk/UOL-Prospectus-2026-27.pdf,source-found,verify-current-program-and-campus,review,18,Main Campus,on_campus,
+69,10,BS Game Design,https://soca.uol.edu.pk/course/bs-in-game-design/,source-found,verify-current-program-and-campus,review,18,Main Campus,on_campus,
 71,11,BS Accounting & Finance,,not-verified,verify-Islamabad-campus,blocked,19,Islamabad Main Campus,on_campus,
 11,12,BS English,https://www.numl.edu.pk/programs/undergraduate,source-found,main-campus-confirmed,review,20,Islamabad Main Campus,on_campus,https://www.numl.edu.pk/programs/undergraduate
 43,12,BS Computer Science,https://www.numl.edu.pk/programs/undergraduate,source-found,main-campus-confirmed,review,20,Islamabad Main Campus,on_campus,https://www.numl.edu.pk/programs/undergraduate
