@@ -54,3 +54,13 @@ The evidence register was refreshed with separate official campus-source URLs wh
 - **UCP (program ID 21):** the official Faculty of Languages & Literature page, including the Johar Town address, is recorded as campus context. The register does not infer that this proves the database's “Main Campus” label; the row remains under review.
   
 These source updates improve traceability, but they do not change the read-only safety gate. No migrations or production data writes are part of this change. The live preflight must be rerun after deployment, and every remaining blocker must be resolved from record-level evidence before any apply workflow is considered.
+
+
+## Evidence audit update (24 October 2026 — NUML, NTU and Air University)
+
+- **NUML (programme IDs 71, 11, 43, 44, 45):** the official undergraduate programme directory explicitly separates offerings by campus, including Main Campus and regional campuses; the Spring 2026 official admission advertisement also separates Islamabad, Rawalpindi, Lahore, and other campus programmes. The register now records the campus-specific official pages and marks the candidate Main Campus association as confirmed for these five programmes. The rows remain `review`, not production-ready.
+- **National Textile University (programme IDs 30, 31):** the official NTU admissions page lists BS Polymer Engineering and Bachelor of Fashion Design, and identifies the institution as National Textile University Faisalabad. The register now records that page as campus evidence and marks the candidate Faisalabad Main Campus association as confirmed. Both rows remain `review` because the full live preflight still must validate current IDs, names, statuses, duplicates, and evidence.
+- **Air University (programme IDs 50, 51):** an official Air University bachelor-programmes page lists BS Cyber Security and BS Information Technology. That page is recorded as a separate source, but the register deliberately keeps campus status at `verify-Islamabad-campus`: a programme list alone is not treated as proof of a specific campus assignment.
+- **Remaining unknowns:** no source has been invented for NCA Bachelor of Design, Air University BS Artificial Intelligence, or KIU BS Computer Science; those rows remain blocked. Virtual University rows remain under review because an online delivery mode must not be confused with a physical teaching campus.
+
+This is evidence-register and documentation work only. It does not create or activate any `program_offerings` rows and does not authorize production writes.
