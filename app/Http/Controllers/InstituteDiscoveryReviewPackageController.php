@@ -27,9 +27,14 @@ class InstituteDiscoveryReviewPackageController
 
         abort_unless($disk->exists($path), 404);
 
-        return response()->download($disk->path($path), $filename, [
-            'Cache-Control' => 'private, no-store, max-age=0',
+        $response = response()->download($disk->path($path), $filename, [
             'X-Content-Type-Options' => 'nosniff',
         ]);
+
+        // Symfony's file-download response may add a public cache directive by default.
+        // Override it after construction so private review data is never cacheable by shared caches.
+        $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
+
+        return $response;
     }
 }
