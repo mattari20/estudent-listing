@@ -19,19 +19,19 @@ program_id,institution_id,program_name,official_source_url,source_status,campus_
 40,8,BSc Economics,https://admission.lums.edu.pk/undergraduate-programmes,source-found,verify-LUMS-campus,review,2,LUMS Main Campus,on_campus,
 1,9,BS (Computer Sciences),https://lahore.comsats.edu.pk/cs/programs.aspx,source-found,main-campus-confirmed,review,1,COMSATS Lahore,on_campus,https://lahore.comsats.edu.pk/cs/bscs.aspx
 69,10,BS Game Design,https://uol.edu.pk/UOL-Prospectus-2026-27.pdf,source-found,verify-current-program-and-campus,review,18,Main Campus,on_campus,
-71,11,BS Accounting & Finance,https://www.numl.edu.pk/university/Admission%20Spring%202026_advert.pdf,source-found,verify-Islamabad-campus,review,19,Islamabad Main Campus,on_campus,
-11,12,BS English,https://www.numl.edu.pk/programs/undergraduate,source-found,verify-Islamabad-campus,review,20,Islamabad Main Campus,on_campus,
-43,12,BS Computer Science,https://www.numl.edu.pk/programs/undergraduate,source-found,verify-Islamabad-campus,review,20,Islamabad Main Campus,on_campus,
-44,12,BS Artificial Intelligence,https://www.numl.edu.pk/programs/undergraduate,source-found,verify-Islamabad-campus,review,20,Islamabad Main Campus,on_campus,
-45,12,BS Software Engineering,https://www.numl.edu.pk/programs/undergraduate,source-found,verify-Islamabad-campus,review,20,Islamabad Main Campus,on_campus,
+71,11,BS Accounting & Finance,https://www.numl.edu.pk/university/Admission%20Spring%202026_advert.pdf,source-found,main-campus-confirmed,review,19,Islamabad Main Campus,on_campus,https://www.numl.edu.pk/university/Admission%20Spring%202026_advert.pdf
+11,12,BS English,https://www.numl.edu.pk/programs/undergraduate,source-found,main-campus-confirmed,review,20,Islamabad Main Campus,on_campus,https://www.numl.edu.pk/programs/undergraduate
+43,12,BS Computer Science,https://www.numl.edu.pk/programs/undergraduate,source-found,main-campus-confirmed,review,20,Islamabad Main Campus,on_campus,https://www.numl.edu.pk/programs/undergraduate
+44,12,BS Artificial Intelligence,https://www.numl.edu.pk/programs/undergraduate,source-found,main-campus-confirmed,review,20,Islamabad Main Campus,on_campus,https://www.numl.edu.pk/programs/undergraduate
+45,12,BS Software Engineering,https://www.numl.edu.pk/programs/undergraduate,source-found,main-campus-confirmed,review,20,Islamabad Main Campus,on_campus,https://www.numl.edu.pk/programs/undergraduate
 74,13,Bachelor of Design,,not-verified,verify-NCA-Lahore-campus,blocked,3,Lahore Main Campus,on_campus,
 6,14,BS Computer Science,https://www.bahria.edu.pk/Home/AdmissionRoadmap?campus=lahore&programType=UnderGraduate,source-found,wrong-campus-in-current-record,blocked,4,Islamabad Main Campus,on_campus,https://www.bahria.edu.pk/Home/AdmissionRoadmap?campus=lahore&programType=UnderGraduate
 49,15,BS Artificial Intelligence,,not-verified,verify-Air-University-campus,blocked,5,Islamabad Main Campus,on_campus,
-50,15,BS Cyber Security,https://webdata.au.edu.pk/Pages/Admission/eligibility_criteria.aspx,source-found,verify-Islamabad-campus,review,5,Islamabad Main Campus,on_campus,
-51,15,BS Information Technology,https://webdata.au.edu.pk/Pages/Admission/eligibility_criteria.aspx,source-found,verify-Islamabad-campus,review,5,Islamabad Main Campus,on_campus,
+50,15,BS Cyber Security,https://webdata.au.edu.pk/Pages/Admission/eligibility_criteria.aspx,source-found,verify-Islamabad-campus,review,5,Islamabad Main Campus,on_campus,https://webdata.au.edu.pk/Pages/Admission/newpages/Bachelor_programs.aspx
+51,15,BS Information Technology,https://webdata.au.edu.pk/Pages/Admission/eligibility_criteria.aspx,source-found,verify-Islamabad-campus,review,5,Islamabad Main Campus,on_campus,https://webdata.au.edu.pk/Pages/Admission/newpages/Bachelor_programs.aspx
 7,16,BS Computer Science,https://vu.edu.pk/AboutUs/ProgramDetails?StudyProgramID=4,source-found,verify-virtual-delivery-model-and-campus,review,6,Lahore Main Campus,online,
 55,16,BS Biotechnology,https://vu.edu.pk/AboutUs/ProgramsOffered?Degree=BS,source-found,verify-virtual-delivery-model-and-campus,review,6,Lahore Main Campus,online,
 8,17,BS Computer Science,,not-verified,verify-KIU-campus,blocked,7,Gilgit Main Campus,on_campus,
-30,18,BS Polymer Engineering,https://www.ntu.edu.pk/admissions,source-found,verify-current-campus,review,8,Faisalabad Main Campus,on_campus,
-31,18,Bachelor of Fashion Design,https://www.ntu.edu.pk/admissions,source-found,verify-current-campus,review,8,Faisalabad Main Campus,on_campus,
+30,18,BS Polymer Engineering,https://www.ntu.edu.pk/admissions,source-found,main-campus-confirmed,review,8,Faisalabad Main Campus,on_campus,https://www.ntu.edu.pk/admissions
+31,18,Bachelor of Fashion Design,https://www.ntu.edu.pk/admissions,source-found,main-campus-confirmed,review,8,Faisalabad Main Campus,on_campus,https://www.ntu.edu.pk/admissions
 10,19,BS Computer Science,https://nust.edu.pk/admissions/undergraduates/list-of-ug-programmes-and-institutions,source-found,verify-current-NUST-campus,review,9,Islamabad Main Campus,on_campus,
