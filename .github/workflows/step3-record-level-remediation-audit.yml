@@ -63,12 +63,15 @@ jobs:
             git cat-file -e "$TARGET_REVISION^{commit}"
             echo "deployed_checkout_revision=$(git rev-parse HEAD)"
             echo "expected_application_revision=$TARGET_REVISION"
-            if git diff --quiet "$TARGET_REVISION" HEAD -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
+            # Compare the deployed working-tree files to the approved revision, not HEAD.
+            # Hostinger's manual deployment may upload files without moving its local Git HEAD.
+            if git diff --quiet "$TARGET_REVISION" -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
               echo "deployed_application_code_status=APPLICATION_CODE_MATCH"
             else
               echo "audit_status=BLOCKED_APPLICATION_CODE_MISMATCH"
               echo "production_data_mutations=NOT_RUN"
               echo "database_migrations=NOT_RUN"
+              echo "The deployed application files differ from the approved revision."
               exit 10
             fi
             echo "audit_status=RUNNING_READ_ONLY_RECORD_LEVEL_AUDIT"
