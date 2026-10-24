@@ -140,7 +140,7 @@ class SourceChangeDiscoveryServiceTest extends TestCase
             'materiality' => 'high',
         ]);
 
-        $agent = \Mockery::mock(InstituteDiscoveryAgentService::class);
+        $agent = \Mockery::mock(\App\Services\InstituteDiscoveryAgentService::class);
         $agent->shouldReceive('runFromSnapshot')->once()->with('duplicate-test', $snapshot, false)->andReturn([
             'total_rows' => 63,
             'candidate_rows' => 0,
