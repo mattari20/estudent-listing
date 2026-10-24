@@ -119,6 +119,26 @@ jobs:
               '
             }
 
+            due_policy_count() {
+              php -r '
+                require "vendor/autoload.php";
+                $app = require "bootstrap/app.php";
+                $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+                $schema = \Illuminate\Support\Facades\Schema::class;
+                $db = \Illuminate\Support\Facades\DB::class;
+                if (!$schema::hasTable("source_monitoring_policies")) {
+                    fwrite(STDERR, "ERROR: source monitoring policy table is missing\n");
+                    exit(2);
+                }
+                echo $db::table("source_monitoring_policies")
+                    ->where("status", "active")
+                    ->where(function ($query) {
+                        $query->whereNull("next_run_at")->orWhere("next_run_at", "<=", now());
+                    })
+                    ->count();
+              '
+            }
+
             BEFORE_COUNTS="$(canonical_counts)" || { echo "ERROR: read-only preflight failed"; exit 12; }
             BEFORE_OUTCOME_COUNT="$(discovery_outcome_count)" || { echo "ERROR: discovery outcome ledger preflight failed"; exit 14; }
             echo "canonical_counts_before=$BEFORE_COUNTS"
@@ -131,6 +151,12 @@ jobs:
             set +e
             php artisan institutes:bootstrap-agent --no-ansi
             BOOTSTRAP_EXIT=$?
+            set -e
+
+            DUE_POLICY_COUNT="$(due_policy_count)" || { echo "ERROR: unable to inspect due monitoring policies"; exit 16; }
+            echo "due_monitoring_policies=$DUE_POLICY_COUNT"
+
+            set +e
             php artisan institutes:monitor-changes --no-ansi
             MONITOR_EXIT=$?
             set -e
@@ -151,13 +177,18 @@ jobs:
               exit 21
             fi
 
-            if [ "$AFTER_OUTCOME_COUNT" -le "$BEFORE_OUTCOME_COUNT" ]; then
-              echo "ERROR: discovery completed without recording a run outcome"
+            if [ "$DUE_POLICY_COUNT" -gt 0 ] && [ "$AFTER_OUTCOME_COUNT" -le "$BEFORE_OUTCOME_COUNT" ]; then
+              echo "ERROR: due source-monitoring policies ran without recording a discovery outcome"
               exit 22
             fi
 
-            echo "discovery_status=GOVERNED_RUN_COMPLETED"
-            echo "discovery_outcome_recorded=YES"
+            if [ "$DUE_POLICY_COUNT" -eq 0 ]; then
+              echo "discovery_status=NO_DUE_POLICIES_NOOP"
+              echo "discovery_outcome_requirement=NOT_APPLICABLE"
+            else
+              echo "discovery_status=GOVERNED_RUN_COMPLETED"
+              echo "discovery_outcome_recorded=YES"
+            fi
             echo "canonical_mutations=NONE"
             echo "automatic_approval=NONE"
             echo "automatic_promotion=NONE"
