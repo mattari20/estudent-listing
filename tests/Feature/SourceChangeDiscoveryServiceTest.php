@@ -57,7 +57,7 @@ class SourceChangeDiscoveryServiceTest extends TestCase
 
         $this->assertSame('empty_snapshot', $result['outcome']);
         $this->assertDatabaseHas('institute_discovery_run_outcomes', [
-            'id' => $result['outcome_id'],
+            'id' => $result['run_outcome']['outcome_id'],
             'source_id' => $source->id,
             'outcome' => 'empty_snapshot',
         ]);
