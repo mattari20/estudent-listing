@@ -61,13 +61,23 @@ class SourceChangeDiscoveryService
             }
 
             $package = $summary['review_package'] ?? [];
+            $extractedCount = (int) ($summary['total_rows'] ?? 0);
+            $candidateCount = (int) ($summary['candidate_rows'] ?? 0);
+            $duplicateCount = (int) ($summary['duplicate_rows'] ?? 0);
+            $outcomeName = $candidateCount > 0
+                ? 'candidates_created'
+                : ($extractedCount > 0 && $duplicateCount === $extractedCount
+                    ? 'duplicates_only'
+                    : 'empty_candidates');
             $runOutcome = $this->record($base + [
                 'profile_key' => $profileKey,
-                'outcome' => ((int) ($summary['candidate_rows'] ?? 0)) > 0 ? 'candidates_created' : 'empty_candidates',
-                'candidate_count' => (int) ($summary['candidate_rows'] ?? 0),
+                'outcome' => $outcomeName,
+                'candidate_count' => $candidateCount,
                 'review_package_status' => $package['status'] ?? null,
                 'details' => [
                     'batch_id' => $summary['batch_id'] ?? null,
+                    'extracted_rows' => $extractedCount,
+                    'duplicate_rows' => $duplicateCount,
                     'used_ai' => $useAi,
                 ],
             ]);
