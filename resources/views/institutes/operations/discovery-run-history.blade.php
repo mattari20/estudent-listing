@@ -14,7 +14,9 @@
                     <th>Profile</th>
                     <th>Source</th>
                     <th>Snapshot</th>
-                    <th>Candidates</th>
+                    <th>Extracted</th>
+                    <th>New candidates</th>
+                    <th>Duplicates</th>
                     <th>Package</th>
                 </tr>
             </thead>
@@ -32,7 +34,9 @@
                             @endif
                         </td>
                         <td>{{ $outcome->snapshot_id ?? '—' }}</td>
+                        <td>{{ (int) ($outcome->details['extracted_rows'] ?? $outcome->candidate_count) }}</td>
                         <td>{{ $outcome->candidate_count }}</td>
+                        <td>{{ (int) ($outcome->details['duplicate_rows'] ?? 0) }}</td>
                         <td>
                             @php
                                 $batchId = (int) ($outcome->details['batch_id'] ?? 0);
@@ -49,7 +53,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7">No discovery run outcomes have been recorded yet.</td></tr>
+                    <tr><td colspan="9">No discovery run outcomes have been recorded yet.</td></tr>
                 @endforelse
             </tbody>
         </table>
