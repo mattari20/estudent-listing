@@ -92,3 +92,12 @@ These are evidence-register and documentation changes only. No database writes o
 - **University of the Punjab FCIT (programme IDs 3, 35, 36 and 37):** the official 2026–27 admission notice explicitly distinguishes FCIT New Campus from FCIT Old Campus and lists programmes differently across them. The campus evidence URL now points to this campus-specific notice, not a generic campus page. The existing candidate campus label `Quaid-e-Azam Campus` has **not** been assumed to equal either FCIT campus; all four rows remain `review` pending resolution of the actual campus ID/name and exact programme mapping.
 
 No database writes or migrations were performed. These evidence improvements do not authorize offering inserts.
+
+## Evidence audit update (24 October 2026 — University of Education Township campus)
+
+- Updated the campus-evidence reference for programme IDs 60–63 to the official Fall 2026 Phase-II merit-list page, which distinguishes the Division of Arts and Social Sciences, Township, Lahore from other UE divisions/campuses.
+- **BS Computer Science (ID 60) and BS Information Technology (ID 61):** neither appears under the Township division in the current Phase-II list. Their candidate campus remains Township Main Campus in the register, so both are now blocked as `wrong-campus-in-current-record` pending live campus/programme reconciliation. This does not prove the programmes are unavailable at UE generally; it only means the current evidence does not support this campus assignment.
+- **BS English (ID 62):** listed under the Township division; retained for review until the live campus record is reconciled.
+- **BS Business Analytics (ID 63):** appears under the Division of Management and Administrative Science, not the Township division, so the Township assignment remains unconfirmed and the row stays in review.
+
+No database writes, migrations, or offering inserts were performed. These are evidence-led register changes only.
