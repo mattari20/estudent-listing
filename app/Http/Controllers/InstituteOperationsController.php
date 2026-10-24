@@ -71,18 +71,23 @@ class InstituteOperationsController {
   }
 
   $candidateCount = (int) ($summary['candidate_rows'] ?? 0);
+  $extractedCount = (int) ($summary['total_rows'] ?? 0);
+  $duplicateCount = (int) ($summary['duplicate_rows'] ?? 0);
   $package = $summary['review_package'] ?? [];
+  $runStatus = $candidateCount > 0 ? 'candidates_created' : ($extractedCount > 0 && $duplicateCount === $extractedCount ? 'duplicates_only' : 'empty_candidates');
   $outcome = InstituteDiscoveryRunOutcome::query()->create([
    'source_id' => $summary['source_id'] ?? null,
    'snapshot_id' => $summary['snapshot_id'] ?? null,
    'profile_key' => $profile,
-   'outcome' => $candidateCount > 0 ? 'candidates_created' : 'empty_candidates',
+   'outcome' => $runStatus,
    'candidate_count' => $candidateCount,
    'review_package_status' => $package['status'] ?? null,
    'details' => [
     'trigger' => 'operator',
     'batch_id' => $summary['batch_id'] ?? null,
     'evidence_id' => $summary['evidence_id'] ?? null,
+    'extracted_rows' => $extractedCount,
+    'duplicate_rows' => $duplicateCount,
     'used_ai' => $useAi,
    ],
    'occurred_at' => now(),
@@ -90,7 +95,7 @@ class InstituteOperationsController {
 
   $method = $useAi ? 'AI' : 'deterministic';
   return redirect()->route('institutes.operations.queue', ['batch_id' => $summary['batch_id']])
-   ->with('status', 'Automated '.$method.' discovery collected '.$summary['total_rows'].' candidate programmes. Run history outcome #'.$outcome->id.' recorded. Candidate rows remain non-canonical until approval and promotion.');
+   ->with('status', 'Automated '.$method.' discovery extracted '.$extractedCount.' rows, created '.$candidateCount.' new candidates, and identified '.$duplicateCount.' duplicates. Run history outcome #'.$outcome->id.' recorded. Candidate rows remain non-canonical until approval and promotion.');
  }
  public function show(ImportRow $importRow, ImportDependencyContextService $context): View {
   $importRow->load(['batch.source']);

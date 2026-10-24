@@ -125,6 +125,8 @@ class InstituteDiscoveryReviewPackageService
             'snapshot_hash' => $snapshot->content_hash,
             'observed_at' => $snapshot->captured_at?->toIso8601String(),
             'candidate_count' => $candidateCount,
+            'extracted_count' => $candidateCount,
+            'new_candidate_count' => $batch->rows->where('status', 'candidate')->count(),
             'duplicate_count' => $batch->rows->where('match_state', 'duplicate')->count(),
             'validation_error_count' => $batch->rows->filter(fn ($row) => ! empty($row->validation_errors))->count(),
             'canonical_mutations_performed' => false,
