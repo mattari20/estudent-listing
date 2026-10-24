@@ -119,8 +119,15 @@ class SourceChangeDiscoveryServiceTest extends TestCase
     {
         $url = 'https://example.edu/programs';
         config()->set('institute_agent.profiles.duplicate-test', [
-            'source' => ['url' => $url],
+            'institution_slug' => 'government-college-university-lahore',
+            'source' => ['name' => 'Test source', 'type' => 'official', 'url' => $url, 'authority_scope' => 'official programmes'],
+            'entity_type' => 'program',
             'monitoring' => ['auto_discovery' => true, 'use_ai' => false],
+        ]);
+        \\App\\Models\\Institution::create([
+            'name' => 'Government College University Lahore',
+            'slug' => 'government-college-university-lahore',
+            'status' => 'active',
         ]);
         $source = $this->createSource();
         $source->update(['url' => $url]);
