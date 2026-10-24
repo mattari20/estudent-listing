@@ -19,6 +19,18 @@ python scripts/validate_step3_offering_gap_register.py
 
 The validator checks the 36-record count, required columns, unique programme IDs, numeric IDs, allowed delivery modes, HTTPS source URLs, and safety gates for missing evidence, unconfirmed campuses, and wrong-campus records. GitHub Actions runs the validator on relevant pull requests and main-branch changes.
 
+## Live database preflight (read-only)
+
+After the new command is deployed with the approved application revision, run:
+
+\`\`\`bash
+php artisan institutes:offering-gap-preflight --json --no-ansi
+\`\`\`
+
+The command compares every register row to live programme and campus IDs, verifies both records belong to the expected institution, checks for existing programme/campus offering rows (including active rows), and applies the official programme/campus evidence gate. It reports blockers per record and always declares zero database mutations. It does not insert, update, activate, deactivate, or publish any offering. A `READY_FOR_MANUAL_REVIEW_ONLY` result is not production-write authorization.
+
+The register file must be present at the path supplied by `--register`; otherwise the command fails closed. Run it only after the command and evidence register are deployed at the same approved revision.
+
 ## Apply gate
 
 No production database writes are authorized by this register or PR. Before any apply workflow is proposed, it must:
