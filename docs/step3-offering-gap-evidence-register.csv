@@ -2,22 +2,22 @@ program_id,institution_id,program_name,official_source_url,source_status,campus_
 33,1,BS Biotechnology,https://gcu.edu.pk/IIBT.php?pg=acdProg,source-found,verify-current-campus,review,11,Main Campus,on_campus,
 34,1,BS English,https://gcu.edu.pk/admissions.php?pg=bs-program,source-found,verify-current-campus,review,11,Main Campus,on_campus,
 16,2,BSc. Applied Computing,https://www.uet.edu.pk/academics/academics/undergraduate-academic-programs/,source-found,main-campus-confirmed,ready-for-validation,12,Main Campus,on_campus,https://www.uet.edu.pk/academics/academics/undergraduate-academic-programs/
-3,3,BS Computer Science,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,
-35,3,BS Data Science,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,
-36,3,BS Software Engineering,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,
-37,3,BS Information Technology,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,
-21,4,BS English Language & Literature,https://ucp.edu.pk/admissions/offered-programs-fall-2026/,source-found,verify-current-campus,review,14,Main Campus,on_campus,
-77,5,BS Biochemistry,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,verify-campus-specific-offering,review,15,Main Campus,on_campus,
-78,5,BS Environmental Science,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,verify-campus-specific-offering,review,15,Main Campus,on_campus,
-79,5,BS Human Nutrition and Dietetics,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,verify-campus-specific-offering,review,15,Main Campus,on_campus,
-85,5,Bachelor of Business Administration,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,verify-campus-specific-offering,review,15,Main Campus,on_campus,
+3,3,BS Computer Science,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,https://pu.edu.pk/home/campus/1
+35,3,BS Data Science,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,https://pu.edu.pk/home/campus/1
+36,3,BS Software Engineering,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,https://pu.edu.pk/home/campus/1
+37,3,BS Information Technology,https://pu.edu.pk/home/admission_notice/698,source-found,verify-campus-and-current-name,review,13,Quaid-e-Azam Campus,on_campus,https://pu.edu.pk/home/campus/1
+21,4,BS English Language & Literature,https://ucp.edu.pk/admissions/offered-programs-fall-2026/,source-found,verify-current-campus,review,14,Main Campus,on_campus,https://ucp.edu.pk/faculty-of-languages-literature/
+77,5,BS Biochemistry,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,main-campus-confirmed,review,15,Main Campus,on_campus,https://uvas.edu.pk/news-events/2026/orientation.php
+78,5,BS Environmental Science,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,main-campus-confirmed,review,15,Main Campus,on_campus,https://uvas.edu.pk/news-events/2026/orientation.php
+79,5,BS Human Nutrition and Dietetics,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,main-campus-confirmed,review,15,Main Campus,on_campus,https://uvas.edu.pk/news-events/2026/orientation.php
+85,5,Bachelor of Business Administration,https://www.uvas.edu.pk/Admissions/undergraduate/index.htm,source-found,main-campus-confirmed,review,15,Main Campus,on_campus,https://uvas.edu.pk/news-events/2026/orientation.php
 60,6,BS Computer Science,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,
 61,6,BS Information Technology,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,
 62,6,BS English,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,
 63,6,BS Business Analytics,https://ue.edu.pk/programs.php?id=200,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,
 39,8,BSc Management Science,https://admission.lums.edu.pk/undergraduate-programmes,source-found,verify-LUMS-campus,review,2,LUMS Main Campus,on_campus,
 40,8,BSc Economics,https://admission.lums.edu.pk/undergraduate-programmes,source-found,verify-LUMS-campus,review,2,LUMS Main Campus,on_campus,
-1,9,BS (Computer Sciences),https://lahore.comsats.edu.pk/cs/programs.aspx,source-found,verify-campus-specific-offering,review,1,COMSATS Lahore,on_campus,
+1,9,BS (Computer Sciences),https://lahore.comsats.edu.pk/cs/programs.aspx,source-found,main-campus-confirmed,review,1,COMSATS Lahore,on_campus,https://lahore.comsats.edu.pk/cs/bscs.aspx
 69,10,BS Game Design,https://uol.edu.pk/UOL-Prospectus-2026-27.pdf,source-found,verify-current-program-and-campus,review,18,Main Campus,on_campus,
 71,11,BS Accounting & Finance,https://www.numl.edu.pk/university/Admission%20Spring%202026_advert.pdf,source-found,verify-Islamabad-campus,review,19,Islamabad Main Campus,on_campus,
 11,12,BS English,https://www.numl.edu.pk/programs/undergraduate,source-found,verify-Islamabad-campus,review,20,Islamabad Main Campus,on_campus,
