@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - ".github/workflows/step3-record-level-remediation-audit.yml"
+      - "app/Console/Commands/DataGapRecordAudit.php"
 
 permissions:
   contents: read
