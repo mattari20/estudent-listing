@@ -69,9 +69,12 @@ jobs:
             git rev-parse --is-inside-work-tree >/dev/null
             DEPLOYED_CHECKOUT_REVISION="$(git rev-parse HEAD)"
             if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
-              git fetch --quiet --no-tags origin main
+              git fetch --quiet --no-tags origin "$TARGET_REVISION" || git fetch --quiet --no-tags origin main
             fi
-            git cat-file -e "$TARGET_REVISION^{commit}"
+            git cat-file -e "$TARGET_REVISION^{commit}" || {
+              echo "ERROR: target application-code revision could not be fetched into Hostinger Git metadata"
+              exit 12
+            }
             echo "deployed_checkout_revision=$DEPLOYED_CHECKOUT_REVISION"
             echo "expected_application_revision=$TARGET_REVISION"
             # Compare the deployed checkout's tracked application tree to the target
