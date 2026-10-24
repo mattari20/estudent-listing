@@ -33,3 +33,16 @@ This matrix distinguishes repository-level checks from live-host verification.
 - AI extraction remains optional; deterministic discovery must work without paid AI credentials.
 
 Phase 2 is not complete until automated gates pass and the live Hostinger gates are independently verified.
+
+
+## Evidence checkpoint — 24 October 2026
+
+- [x] Laravel CI and Test passed for PR #608 operator history/download acceptance tests.
+- [x] Live diagnostics confirmed the discovery outcome table exists and the migration is applied.
+- [x] Controlled deployment of `df79fc97537716aa0b680e17651ba5e5f24aae6a` passed the Laravel bootstrap smoke test and read-only offering preflight.
+- [ ] Deploy the newer main application-code revision containing PR #610's unchanged-outcome fix using the controlled deployment gate.
+- [ ] Observe a live scheduled run with a due policy and a newly recorded outcome while canonical counts remain unchanged.
+- [ ] Independently verify authenticated operator run-history and package downloads, guest denial, private package path, and response headers on the live host.
+- [ ] Verify a live run at due cadence; no-due-policy hourly runs are valid no-ops and do not close this gate.
+
+The current main branch is ahead of Hostinger application code. Phase 2 remains open until the current revision is deployed and the live gates above are evidenced. No live database writes or migrations are authorized by this matrix.
