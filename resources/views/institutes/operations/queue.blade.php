@@ -149,6 +149,16 @@
                     <td data-label="Action">
                         <div class="batch-table__actions">
                             <a class="batch-action-link" href="{{ route('institutes.operations.queue',['batch_id'=>$batch->id]) }}">Review batch <span aria-hidden="true">→</span></a>
+                            @if(in_array($batch->source_type, ['automated_discovery', 'ai_extraction'], true))
+                                @php
+                                    $firstDiscoveryRow = $batch->rows()->first();
+                                    $discoverySnapshotId = (int) data_get($firstDiscoveryRow?->payload, '_provenance.snapshot_id', 0);
+                                @endphp
+                                @if($discoverySnapshotId > 0)
+                                    <a class="batch-action-link" href="{{ route('institutes.operations.discovery-packages.download', [$batch, 'csv']) }}">Download CSV</a>
+                                    <a class="batch-action-link" href="{{ route('institutes.operations.discovery-packages.download', [$batch, 'manifest']) }}">Download JSON manifest</a>
+                                @endif
+                            @endif
                             @if($batch->entity_type === 'institution')
                                 <a class="batch-action-link" href="{{ route('institutes.operations.imports.row-diagnostics.view',$batch) }}">View row diagnostics <span aria-hidden="true">↗</span></a>
                             @endif
