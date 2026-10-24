@@ -21,13 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout main and resolve application revision
+      - name: Checkout main and resolve approved application revision
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
 
-      - name: Resolve expected application-code revision
+      - name: Resolve approved application-code revision
         id: revision
         shell: bash
         run: |
@@ -37,7 +37,7 @@ jobs:
           echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
           echo "expected_application_revision=$revision"
 
-      - name: Verify deployed code and run read-only record-level audit
+      - name: Verify deployed application files and run read-only record-level audit
         uses: appleboy/ssh-action@v1.2.0
         env:
           PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
@@ -55,11 +55,19 @@ jobs:
             case "$PROJECT_PATH" in *".."*) echo "ERROR: invalid project path"; exit 2 ;; esac
             test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
             cd "$PROJECT_PATH"
-            DEPLOYED_APPLICATION_REVISION="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+            test -n "$TARGET_REVISION"
+            if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
+              git fetch --quiet --no-tags origin main
+            fi
+            git cat-file -e "$TARGET_REVISION^{commit}"
+            echo "deployed_checkout_revision=$(git rev-parse HEAD)"
             echo "expected_application_revision=$TARGET_REVISION"
-            echo "deployed_application_revision=$DEPLOYED_APPLICATION_REVISION"
-            if [ "$DEPLOYED_APPLICATION_REVISION" != "$TARGET_REVISION" ]; then
-              echo "audit_status=BLOCKED_APPLICATION_CODE_REVISION_MISMATCH"
+            if git diff --quiet "$TARGET_REVISION" HEAD -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
+              echo "deployed_application_code_status=APPLICATION_CODE_MATCH"
+            else
+              echo "audit_status=BLOCKED_APPLICATION_CODE_MISMATCH"
+              echo "production_data_mutations=NOT_RUN"
+              echo "database_migrations=NOT_RUN"
               exit 10
             fi
             echo "audit_status=RUNNING_READ_ONLY_RECORD_LEVEL_AUDIT"
