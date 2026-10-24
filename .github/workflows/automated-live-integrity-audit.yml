@@ -68,13 +68,19 @@ jobs:
             cd "$PROJECT_PATH"
             git rev-parse --is-inside-work-tree >/dev/null
             DEPLOYED_CHECKOUT_REVISION="$(git rev-parse HEAD)"
-            DEPLOYED_APPLICATION_REVISION="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+            if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
+              git fetch --quiet --no-tags origin main
+            fi
+            git cat-file -e "$TARGET_REVISION^{commit}"
             echo "deployed_checkout_revision=$DEPLOYED_CHECKOUT_REVISION"
             echo "expected_application_revision=$TARGET_REVISION"
-            echo "deployed_application_revision=$DEPLOYED_APPLICATION_REVISION"
-            if [ "$DEPLOYED_APPLICATION_REVISION" != "$TARGET_REVISION" ]; then
-              echo "audit_status=BLOCKED_APPLICATION_CODE_REVISION_MISMATCH"
-              echo "No live database query was run because deployed application-code paths do not match the expected revision."
+            # Compare actual deployed files against the target tree. Do not infer deployment
+            # from the local checkout's commit metadata because Hostinger may upload files.
+            if git diff --quiet "$TARGET_REVISION" -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
+              echo "deployed_application_code_status=APPLICATION_CODE_MATCH"
+            else
+              echo "audit_status=BLOCKED_APPLICATION_CODE_MISMATCH"
+              echo "No live database query was run because deployed application files differ from the expected revision."
               exit 10
             fi
             echo "audit_status=RUNNING_READ_ONLY_REPORT"
