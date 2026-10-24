@@ -92,3 +92,10 @@ These are evidence-register and documentation changes only. No database writes o
 - **University of the Punjab FCIT (programme IDs 3, 35, 36 and 37):** the official 2026–27 admission notice explicitly distinguishes FCIT New Campus from FCIT Old Campus and lists programmes differently across them. The campus evidence URL now points to this campus-specific notice, not a generic campus page. The existing candidate campus label `Quaid-e-Azam Campus` has **not** been assumed to equal either FCIT campus; all four rows remain `review` pending resolution of the actual campus ID/name and exact programme mapping.
 
 No database writes or migrations were performed. These evidence improvements do not authorize offering inserts.
+
+## Evidence audit update (24 October 2026 — Air University and Bahria University)
+
+- **Air University (programme ID 49, BS Artificial Intelligence):** added Air University's official eligibility/programme evidence and its official bachelor-programmes page as a campus/programme follow-up reference. The programme source is now found, but the evidence does not yet prove that this specific offer belongs to the database's `Islamabad Main Campus` candidate. The row is therefore `review` / `verify-Air-University-campus`, not approved.
+- **Bahria University (programme ID 6, BS Computer Science):** replaced the incorrect Lahore-filtered admissions URL with the official Islamabad E-8 campus admissions roadmap, which lists BS Computer Science at Islamabad E-8. The record's generic candidate label `Islamabad Main Campus` is not silently treated as equivalent to E-8, so the row remains `review` / `verify-current-campus-name` pending live campus-ID/name reconciliation.
+
+Evidence register and documentation only. No database writes, migrations, or offering inserts were performed.
