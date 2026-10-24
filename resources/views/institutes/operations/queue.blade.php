@@ -10,20 +10,21 @@
 <h2>Automated Data Discovery</h2>
 <div class="institute-card">
     <strong>Run the governed discovery test</strong>
-    <p>This retrieves the configured official source, stores the exact source snapshot, captures evidence, extracts programme candidates, checks duplicates, and places the results in the existing review queue. It does not write canonical institute or programme data.</p>
-    <form method="post" action="{{ route('institutes.operations.agent.discover') }}" onsubmit="return confirm('Run automated discovery for the CUI Lahore test profile now?');">
+    <p>This retrieves an official source, stores its snapshot and evidence, checks candidates, and creates a private review package. It does not write canonical institution or programme data.</p>
+    <p><a href="{{ route('institutes.operations.discovery-run-history') }}">View discovery run history</a></p>
+    <p class="text-muted">The COMSATS profile is paused until its canonical parent institution is resolved. Use the verified GCU Lahore pilot profile for the safe operator acceptance test.</p>
+    <form method="post" action="{{ route('institutes.operations.agent.discover') }}" onsubmit="return confirm('Run governed discovery for the verified GCU Lahore pilot profile?');">
         @csrf
-        <input type="hidden" name="profile" value="cui-lahore">
+        <input type="hidden" name="profile" value="gcu-lahore-programs">
         @if(config('institute_ai.enabled'))
             <label style="display:block;margin:10px 0;">
                 <input type="checkbox" name="use_ai" value="1">
                 Use configured AI extraction adapter
             </label>
         @endif
-        <button type="submit" class="button--approve">Run CUI Lahore Discovery Agent</button>
+        <button type="submit" class="button--approve">Run GCU Lahore Discovery Agent</button>
     </form>
 </div>
-
 <section class="batch-management" aria-labelledby="batch-management-title">
     <div class="batch-management__heading">
         <div>
