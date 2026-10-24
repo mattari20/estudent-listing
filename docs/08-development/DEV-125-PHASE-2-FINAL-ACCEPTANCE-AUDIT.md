@@ -65,3 +65,26 @@ No live production writes, migrations, promotions, or package deletion are perfo
 - The controlled deployment workflow requires a manual `workflow_dispatch` with `confirm_deployment=true`. The available GitHub actions in this session do not include workflow dispatch, so no deployment has been triggered by this session. Do not bypass this gate or run migrations/offering inserts to resolve the code mismatch.
 
 **Exit decision: Phase 2 remains OPEN.** The required next operation is a controlled dispatch to deploy the latest application-code revision, then immediately rerun Hostinger Read-only Diagnostics. After alignment is proven, complete live migration, operator/download security, scheduler outcome, and canonical-count acceptance checks.
+
+
+## Live acceptance checkpoint — 24 October 2026 (after Phase 2 batches 1–3)
+
+### Confirmed live evidence
+
+- Controlled Hostinger deployment run [40074710209](https://github.com/mattari20/estudent-listing/actions/runs/40074710209) successfully deployed application revision `df79fc97537716aa0b680e17651ba5e5f24aae6a` and passed Laravel bootstrap smoke test.
+- Live read-only offering preflight completed: 36 register rows; all 36 program IDs and all 36 campus IDs exist and belong to the expected institution; 0 existing active offerings; 0 duplicate offerings; 35 evidence-blocked rows and 1 row ready for manual review only. No database mutations occurred.
+- Live schema diagnostics confirmed `institute_discovery_run_outcomes` exists and its migration is applied.
+- PR #608 added protected CSV/manifest download, safe cache-header, missing-package, wrong-batch and run-history pagination acceptance tests. Laravel CI and Test passed; these tests run in CI, not as an authenticated live operator session.
+- Live canonical integrity report is read-only and reports 19 institutions, 22 campuses, 85 programs, 55 offerings and 5 admission intakes. It reports 36 active programs without offerings, so structural readiness remains blocked.
+
+### Scheduler acceptance findings and fixes
+
+- PR #609 added an outcome-ledger acceptance gate. Its first live run found 0 due monitoring policies and 0 sources, while canonical counts remained unchanged. This was a valid no-due-policy interval, not proof that the monitor processed a source.
+- PR #610 fixes the code path so successful unchanged/baseline observations are passed to `SourceChangeDiscoveryService` and recorded. CI passed. This application-code revision is newer than the deployed revision and has **not** been deployed to Hostinger as of this checkpoint.
+- PR #611 makes hourly scheduler checks distinguish `NO_DUE_POLICIES_NOOP` from due work; a due policy must produce a recorded outcome. CI for the PR passed. The workflow's post-merge run is blocked by application-code revision mismatch because the deployed app remains at `df79fc97537716aa0b680e17651ba5e5f24aae6a` while main includes the PR #610 code fix.
+
+### Exit decision
+
+**Phase 2 remains OPEN.** Repository tests and the last confirmed deployment passed, but the current main application-code revision must be deployed through the controlled workflow before scheduler acceptance can be rerun. After deployment, require a live due-policy run that records an outcome and preserves canonical counts. Authenticated operator page/download and guest-denial behavior still have CI coverage but lack independent live-session evidence. Hostinger's `crontab -l` returned `missing_or_unreadable`; GitHub's scheduled workflow exists, but Hostinger cron presence must not be claimed as verified.
+
+No production migrations, canonical data writes, promotions, publications, or package deletions were performed by these batches. The 36 missing offerings and Step 3 evidence blockers remain separate data-readiness work, not grounds for bypassing approval gates.
