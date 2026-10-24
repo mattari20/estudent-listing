@@ -72,8 +72,23 @@ jobs:
               echo "ERROR: tracked working-tree changes found; refusing deployment"
               exit 4
             fi
+            # Hostinger checkouts may have a shallow object database. Fetch full main
+            # history before validating the target; never checkout an unverified SHA.
+            if [ -f .git/shallow ]; then
+              git fetch --quiet --no-tags --unshallow origin main
+            else
+              git fetch --quiet --no-tags origin main
+            fi
+            if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
+              # Explicitly fetch the approved target if it is still absent. This is
+              # read-only; actual checkout remains behind confirm_deployment=true.
+              git fetch --quiet --no-tags origin "$TARGET_REVISION" || {
+                echo "ERROR: target revision could not be fetched from origin"
+                exit 4
+              }
+            fi
+            git cat-file -e "$TARGET_REVISION^{commit}" || { echo "ERROR: target revision object is unavailable after fetch"; exit 4; }
             git fetch --quiet --no-tags origin main
-            git cat-file -e "$TARGET_REVISION^{commit}"
             git merge-base --is-ancestor "$TARGET_REVISION" FETCH_HEAD || { echo "ERROR: target revision is not reachable from origin/main"; exit 4; }
             if [ "$CONFIRM_DEPLOYMENT" != "true" ]; then
               echo "deployment_status=DRY_RUN_PREFLIGHT_PASSED"
