@@ -133,7 +133,7 @@ class SourceChangeDiscoveryServiceTest extends TestCase
             'materiality' => 'high',
         ]);
 
-        $agent = \\Mockery::mock(InstituteDiscoveryAgentService::class);
+        $agent = \Mockery::mock(InstituteDiscoveryAgentService::class);
         $agent->shouldReceive('runFromSnapshot')->once()->with('duplicate-test', $snapshot, false)->andReturn([
             'total_rows' => 63,
             'candidate_rows' => 0,
@@ -151,7 +151,7 @@ class SourceChangeDiscoveryServiceTest extends TestCase
             'outcome' => 'duplicates_only',
             'candidate_count' => 0,
         ]);
-        $stored = \\App\\Models\\InstituteDiscoveryRunOutcome::query()->findOrFail($result['outcome_id']);
+        $stored = \App\Models\InstituteDiscoveryRunOutcome::query()->findOrFail($result['outcome_id']);
         $this->assertSame(63, $stored->details['extracted_rows']);
         $this->assertSame(63, $stored->details['duplicate_rows']);
     }
