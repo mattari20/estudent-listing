@@ -124,7 +124,7 @@ class SourceChangeDiscoveryServiceTest extends TestCase
             'entity_type' => 'program',
             'monitoring' => ['auto_discovery' => true, 'use_ai' => false],
         ]);
-        \\App\\Models\\Institution::create([
+        \App\Models\Institution::create([
             'name' => 'Government College University Lahore',
             'slug' => 'government-college-university-lahore',
             'status' => 'active',
