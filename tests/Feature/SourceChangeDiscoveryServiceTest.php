@@ -35,7 +35,7 @@ class SourceChangeDiscoveryServiceTest extends TestCase
 
         $this->assertSame('no_change', $result['outcome']);
         $this->assertDatabaseHas('institute_discovery_run_outcomes', [
-            'id' => $result['outcome_id'],
+            'id' => $result['run_outcome']['outcome_id'],
             'source_id' => $source->id,
             'outcome' => 'no_change',
         ]);
@@ -152,13 +152,13 @@ class SourceChangeDiscoveryServiceTest extends TestCase
 
         $result = app(SourceChangeDiscoveryService::class)->process($observation);
 
-        $this->assertSame('duplicates_only', $result['outcome']);
+        $this->assertSame('duplicates_only', $result['run_outcome']['outcome']);
         $this->assertDatabaseHas('institute_discovery_run_outcomes', [
             'id' => $result['outcome_id'],
             'outcome' => 'duplicates_only',
             'candidate_count' => 0,
         ]);
-        $stored = \App\Models\InstituteDiscoveryRunOutcome::query()->findOrFail($result['outcome_id']);
+        $stored = \App\Models\InstituteDiscoveryRunOutcome::query()->findOrFail($result['run_outcome']['outcome_id']);
         $this->assertSame(63, $stored->details['extracted_rows']);
         $this->assertSame(63, $stored->details['duplicate_rows']);
     }
