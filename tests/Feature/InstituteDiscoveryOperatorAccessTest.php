@@ -74,17 +74,17 @@ class InstituteDiscoveryOperatorAccessTest extends TestCase
         Storage::disk('local')->put($directory.'/candidates.csv', "candidate_name\nExample Program\n");
         Storage::disk('local')->put($directory.'/manifest.json', json_encode(['snapshot_id' => 991]));
 
-        $this->actingAs($operator)
-            ->get('/institutes/operations/discovery-packages/'.$batch->id.'/csv')
-            ->assertOk()
-            ->assertHeader('Cache-Control', 'private, no-store, max-age=0')
-            ->assertHeader('X-Content-Type-Options', 'nosniff');
+        $csvResponse = $this->actingAs($operator)
+            ->get('/institutes/operations/discovery-packages/'.$batch->id.'/csv');
 
-        $this->actingAs($operator)
-            ->get('/institutes/operations/discovery-packages/'.$batch->id.'/manifest')
-            ->assertOk()
-            ->assertHeader('Cache-Control', 'private, no-store, max-age=0')
-            ->assertHeader('X-Content-Type-Options', 'nosniff');
+        $csvResponse->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
+        $this->assertPrivateNoStoreCachePolicy((string) $csvResponse->headers->get('Cache-Control'));
+
+        $manifestResponse = $this->actingAs($operator)
+            ->get('/institutes/operations/discovery-packages/'.$batch->id.'/manifest');
+
+        $manifestResponse->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
+        $this->assertPrivateNoStoreCachePolicy((string) $manifestResponse->headers->get('Cache-Control'));
     }
 
     public function test_operator_can_view_paginated_discovery_run_history(): void
@@ -164,6 +164,17 @@ class InstituteDiscoveryOperatorAccessTest extends TestCase
         $this->actingAs($operator)
             ->get('/institutes/operations/discovery-packages/'.$discoveryBatch->id.'/csv')
             ->assertNotFound();
+    }
+
+
+    private function assertPrivateNoStoreCachePolicy(string $cacheControl): void
+    {
+        $directives = array_map('trim', explode(',', strtolower($cacheControl)));
+
+        $this->assertContains('private', $directives);
+        $this->assertContains('no-store', $directives);
+        $this->assertContains('max-age=0', $directives);
+        $this->assertNotContains('public', $directives);
     }
 
 }
