@@ -99,3 +99,12 @@ No database writes or migrations were performed. These evidence improvements do 
 - **Bahria University (programme ID 6, BS Computer Science):** replaced the incorrect Lahore-filtered admissions URL with the official Islamabad E-8 campus admissions roadmap, which lists BS Computer Science at Islamabad E-8. The record's generic candidate label `Islamabad Main Campus` is not silently treated as equivalent to E-8, so the row remains `review` / `verify-current-campus-name` pending live campus-ID/name reconciliation.
 
 Evidence register and documentation only. No database writes, migrations, or offering inserts were performed.
+
+## Evidence audit update (24 October 2026 — University of Education Township campus)
+
+- Updated the campus-evidence reference for programme IDs 60–63 to the official Fall 2026 Phase-II merit-list page, which distinguishes the Division of Arts and Social Sciences, Township, Lahore from other UE divisions/campuses.
+- **BS Computer Science (ID 60) and BS Information Technology (ID 61):** neither appears under the Township division in the current Phase-II list. Their candidate campus remains Township Main Campus in the register, so both are now blocked as `wrong-campus-in-current-record` pending live campus/programme reconciliation. This does not prove the programmes are unavailable at UE generally; it only means the current evidence does not support this campus assignment.
+- **BS English (ID 62):** listed under the Township division; retained for review until the live campus record is reconciled.
+- **BS Business Analytics (ID 63):** appears under the Division of Management and Administrative Science, not the Township division, so the Township assignment remains unconfirmed and the row stays in review.
+
+No database writes, migrations, or offering inserts were performed. These are evidence-led register changes only.
