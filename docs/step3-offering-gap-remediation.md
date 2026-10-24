@@ -74,3 +74,12 @@ This is evidence-register and documentation work only. It does not create or act
 - **University of Lahore BS Game Design (programme ID 69):** replaced the general prospectus URL with the official School of Creative Arts programme page, which confirms the current BS Game Design programme and its department. Campus mapping remains `verify-current-program-and-campus` because the programme page alone does not explicitly connect the programme to the database's candidate campus record.
 
 No production data was changed. These sources improve auditability but do not clear the live preflight evidence gate or authorize any offering inserts.
+
+
+## Evidence audit update (24 October 2026 — KIU and National College of Arts)
+
+- **Karakoram International University (programme ID 8):** the official Fall 2025 admissions page lists BS Computer Science and identifies the admissions location as KIU Main Campus, University Road, Gilgit. The register now records this official source for both programme and campus context. The row remains `review` pending live ID/name/status and duplicate-offering checks.
+- **National College of Arts (programme ID 74):** the official prospectus lists specific design qualifications (including Visual Communication Design, Textile Design, Fashion Design, Product Design and Ceramic Design), rather than establishing that the database's generic label `Bachelor of Design` is an exact current programme name. The row therefore remains `blocked / not-verified` until the exact programme identity and campus are reconciled. No generic degree title is inferred from related design programmes.
+- **Federal Urdu University (programme ID 71):** no reliable official programme/campus source has yet been added. The prior unrelated NUML source remains removed and this row remains blocked.
+
+These are evidence-register and documentation changes only. No database writes or migrations are included.
