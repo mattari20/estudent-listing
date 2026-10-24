@@ -98,7 +98,11 @@ class OfferingGapPreflight extends Command
                 $iid = ctype_digit($row['institution_id']) ? (int) $row['institution_id'] : 0;
                 $cid = ctype_digit($row['candidate_campus_id']) ? (int) $row['candidate_campus_id'] : 0;
                 $program = $pid ? DB::table('programs')->where('id', $pid)->first(['id', 'institution_id', 'name', 'status']) : null;
-                $campus = $cid ? DB::table('campuses')->where('id', $cid)->first(['id', 'institution_id', 'name', 'status']) : null;
+                $campusColumns = ['id', 'institution_id', 'name', 'status'];
+                foreach (['slug', 'address', 'geography_id', 'campus_type'] as $optionalColumn) {
+                    if (Schema::hasColumn('campuses', $optionalColumn)) $campusColumns[] = $optionalColumn;
+                }
+                $campus = $cid ? DB::table('campuses')->where('id', $cid)->first($campusColumns) : null;
                 $programOk = $program && (int) $program->institution_id === $iid;
                 $campusOk = $campus && (int) $campus->institution_id === $iid;
                 $activeOffering = false;
@@ -126,6 +130,9 @@ class OfferingGapPreflight extends Command
                 $blockers = [];
                 if (!$programOk) $blockers[] = 'program_missing_or_wrong_institution';
                 if (!$campusOk) $blockers[] = 'campus_missing_or_wrong_institution';
+                $candidateCampusNameMatchesLive = $campus
+                    && mb_strtolower(trim($row['candidate_campus_name'])) === mb_strtolower(trim((string) $campus->name));
+                if (!$candidateCampusNameMatchesLive) $blockers[] = 'candidate_campus_name_does_not_match_live_name';
                 if (str_contains($row['campus_status'], 'wrong-campus')) $blockers[] = 'register_marks_wrong_campus';
                 if (!$evidenceOk) $blockers[] = 'official_programme_and_campus_evidence_not_confirmed';
                 if ($activeOffering) $blockers[] = 'active_offering_already_exists';
@@ -150,7 +157,13 @@ class OfferingGapPreflight extends Command
                     'campus_id_candidate' => $cid ?: null,
                     'campus_found' => (bool) $campus,
                     'campus_institution_matches' => (bool) $campusOk,
+                    'campus_name_candidate' => $row['candidate_campus_name'],
                     'campus_name_live' => $campus->name ?? null,
+                    'candidate_campus_name_matches_live' => (bool) $candidateCampusNameMatchesLive,
+                    'campus_slug_live' => $campus->slug ?? null,
+                    'campus_address_live' => $campus->address ?? null,
+                    'campus_geography_id_live' => isset($campus->geography_id) ? (int) $campus->geography_id : null,
+                    'campus_type_live' => $campus->campus_type ?? null,
                     'campus_status_live' => $campus->status ?? null,
                     'candidate_delivery_mode' => $row['candidate_delivery_mode'],
                     'any_offering_exists_for_program_campus' => (bool) $anyOffering,

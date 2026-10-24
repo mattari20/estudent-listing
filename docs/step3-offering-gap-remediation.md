@@ -27,7 +27,7 @@ After the new command is deployed with the approved application revision, run:
 php artisan institutes:offering-gap-preflight --json --no-ansi
 \`\`\`
 
-The command compares every register row to live programme and campus IDs, verifies both records belong to the expected institution, checks for existing programme/campus offering rows (including active rows), and applies the official programme/campus evidence gate. It reports blockers per record and always declares zero database mutations. It does not insert, update, activate, deactivate, or publish any offering. A `READY_FOR_MANUAL_REVIEW_ONLY` result is not production-write authorization.
+The command compares every register row to live programme and campus IDs, verifies both records belong to the expected institution, compares the candidate campus name with the live campus name, returns available live campus slug/address/geography/type metadata, checks for existing programme/campus offering rows (including active rows), and applies the official programme/campus evidence gate. It reports blockers per record and always declares zero database mutations. A successful workflow run means the preflight executed; inspect `preflight_status` and per-row blockers to determine whether the evidence gap is actually resolved. It does not insert, update, activate, deactivate, or publish any offering. A `READY_FOR_MANUAL_REVIEW_ONLY` result is not production-write authorization.
 
 The register file must be present at the path supplied by `--register`; otherwise the command fails closed. Run it only after the command and evidence register are deployed at the same approved revision.
 
