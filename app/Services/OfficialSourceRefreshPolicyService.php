@@ -87,7 +87,7 @@ class OfficialSourceRefreshPolicyService
             $timestamp = new DateTimeImmutable($value);
             return preg_match('/(?:Z|[+-][0-9]{2}:[0-9]{2})$/i', trim($value)) === 1
                 && $timestamp->getTimestamp() > 0;
-        } catch (\\Throwable) {
+        } catch (\Throwable) {
             return false;
         }
     }
