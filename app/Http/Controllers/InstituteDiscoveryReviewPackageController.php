@@ -18,6 +18,14 @@ class InstituteDiscoveryReviewPackageController
         $firstPayload = $importBatch->rows->first()?->payload ?? [];
         $provenance = is_array($firstPayload) ? ($firstPayload['_provenance'] ?? []) : [];
         $snapshotId = (int) ($provenance['snapshot_id'] ?? 0);
+
+        // Empty/no-change discovery batches have no row payload to carry provenance.
+        // Recover the snapshot from the service's recorded batch note, as the package
+        // service does, so their manifest/CSV remain available to operators.
+        if ($snapshotId < 1 && preg_match('/source snapshot #(\d+)/i', (string) $importBatch->notes, $matches) === 1) {
+            $snapshotId = (int) $matches[1];
+        }
+
         abort_if($snapshotId < 1, 404);
 
         $directory = 'institute-discovery-review-packages/snapshot-'.$snapshotId;
