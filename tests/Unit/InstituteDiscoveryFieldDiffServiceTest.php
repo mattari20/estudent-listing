@@ -103,4 +103,28 @@ class InstituteDiscoveryFieldDiffServiceTest extends TestCase
         $this->assertSame('review_required', $result['state']);
         $this->assertSame('review_required', $result['changes']['name']['state']);
     }
+
+    public function test_field_diff_exposes_refresh_policy_blockers_when_official_flag_alone_is_present(): void
+    {
+        $result = (new InstituteDiscoveryFieldDiffService())->compare(
+            ['name' => 'Old Name'],
+            ['name' => 'New Name'],
+            ['name' => [
+                'url' => 'https://university.example.edu/about',
+                'excerpt' => 'New Name',
+                'official' => true,
+            ]]
+        );
+
+        $this->assertSame('review_required', $result['state']);
+        $this->assertFalse($result['changes']['name']['refresh_policy']['eligible']);
+        $this->assertContains(
+            'source_identity_not_verified',
+            $result['changes']['name']['refresh_policy']['blockers']
+        );
+        $this->assertContains(
+            'source_content_fingerprint_required',
+            $result['changes']['name']['refresh_policy']['blockers']
+        );
+    }
 }
