@@ -132,4 +132,60 @@ class SafeSourceHttpRetrieverTest extends TestCase
         );
     }
 
+    public function test_redirect_to_private_ipv6_loopback_is_blocked_before_second_request(): void
+    {
+        Http::fake([
+            'http://example.test/start' => Http::response('', 302, [
+                'Location' => 'http://[::1]/admin',
+            ]),
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Source host is not publicly routable.');
+
+        app(SafeSourceHttpRetriever::class)->get(
+            'http://example.test/start',
+            10,
+            5,
+            'eStudent-Test/1.0'
+        );
+    }
+
+    public function test_redirect_to_credential_bearing_url_is_rejected_before_request(): void
+    {
+        Http::fake([
+            'https://example.test/start' => Http::response('', 302, [
+                'Location' => 'https://user:secret@example.test/private',
+            ]),
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Source URLs must not contain embedded credentials.');
+
+        app(SafeSourceHttpRetriever::class)->get(
+            'https://example.test/start',
+            10,
+            5,
+            'eStudent-Test/1.0'
+        );
+    }
+
+    public function test_redirect_to_unsupported_scheme_is_rejected_before_second_request(): void
+    {
+        Http::fake([
+            'https://example.test/start' => Http::response('', 302, [
+                'Location' => 'file:///etc/passwd',
+            ]),
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Source redirect Location uses an unsupported URI scheme.');
+
+        app(SafeSourceHttpRetriever::class)->get(
+            'https://example.test/start',
+            10,
+            5,
+            'eStudent-Test/1.0'
+        );
+    }
 }
