@@ -1,6 +1,11 @@
 name: Controlled Official-Source Refresh Migration
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/controlled-official-source-refresh-migration.yml
   workflow_dispatch:
     inputs:
       confirm_migration:
