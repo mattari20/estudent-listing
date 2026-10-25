@@ -52,4 +52,12 @@ class SourceUrlGuardTest extends TestCase
 
         app(SourceUrlGuard::class)->validate('http://[::ffff:7f00:1]/internal');
     }
+
+    public function test_ipv4_loopback_literal_is_rejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Source host is not publicly routable.');
+
+        app(SourceUrlGuard::class)->validate('http://127.0.0.1/internal');
+    }
 }
