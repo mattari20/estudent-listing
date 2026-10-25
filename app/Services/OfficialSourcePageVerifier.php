@@ -263,7 +263,8 @@ class OfficialSourcePageVerifier
             if (preg_match('/<title[^>]*>(.*?)<\/title>/is', $body, $matches) === 1) {
                 $title = trim(html_entity_decode(strip_tags($matches[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
             }
-            $text = html_entity_decode(strip_tags($body), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $visibleBody = preg_replace('/<(script|style|noscript)\b[^>]*>.*?<\/\1\s*>/is', ' ', $body) ?? $body;
+            $text = html_entity_decode(strip_tags($visibleBody), ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $normalizedText = $this->normalizeText($text);
             $base['title'] = mb_substr($title, 0, 300);
             $base['normalized_text'] = $normalizedText;
