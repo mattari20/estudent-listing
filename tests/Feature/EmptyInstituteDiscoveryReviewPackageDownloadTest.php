@@ -52,12 +52,15 @@ class EmptyInstituteDiscoveryReviewPackageDownloadTest extends TestCase
             'notes' => 'No candidates extracted from source snapshot #'.$snapshot->id.'. This is a recorded no-change outcome.',
         ]);
 
-        $path = 'institute-discovery-review-packages/snapshot-'.$snapshot->id.'/manifest.json';
-        Storage::disk('local')->put($path, json_encode([
+        $directory = 'institute-discovery-review-packages/snapshot-'.$snapshot->id;
+        $csv = "batch_id,row_id,row_number\n";
+        Storage::disk('local')->put($directory.'/candidates.csv', $csv);
+        Storage::disk('local')->put($directory.'/manifest.json', json_encode([
             'status' => 'no_candidates',
             'batch_id' => $batch->id,
             'snapshot_id' => $snapshot->id,
             'candidate_count' => 0,
+            'checksums' => ['candidates_csv_sha256' => hash('sha256', $csv)],
         ]));
 
         $response = app(InstituteDiscoveryReviewPackageController::class)

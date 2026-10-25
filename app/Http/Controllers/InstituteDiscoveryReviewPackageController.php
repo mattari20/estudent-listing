@@ -28,12 +28,44 @@ class InstituteDiscoveryReviewPackageController
 
         abort_if($snapshotId < 1, 404);
 
-        $directory = 'institute-discovery-review-packages/snapshot-'.$snapshotId;
-        $filename = $file === 'csv' ? 'candidates.csv' : 'manifest.json';
-        $path = $directory.'/'.$filename;
         $disk = Storage::disk('local');
+        $filename = $file === 'csv' ? 'candidates.csv' : 'manifest.json';
+        $directories = [
+            'institute-discovery-review-packages/batch-'.$importBatch->id.'-snapshot-'.$snapshotId,
+            // Backward compatibility for packages generated before batch-scoped paths.
+            'institute-discovery-review-packages/snapshot-'.$snapshotId,
+        ];
+        $path = null;
 
-        abort_unless($disk->exists($path), 404);
+        foreach ($directories as $directoryIndex => $directory) {
+            $candidateManifestPath = $directory.'/manifest.json';
+            $candidateCsvPath = $directory.'/candidates.csv';
+            if (! $disk->exists($candidateManifestPath) || ! $disk->exists($candidateCsvPath)) {
+                continue;
+            }
+
+            $manifest = json_decode($disk->get($candidateManifestPath), true);
+            if (! is_array($manifest)
+                || (int) ($manifest['batch_id'] ?? 0) !== (int) $importBatch->id
+                || (int) ($manifest['snapshot_id'] ?? 0) !== $snapshotId) {
+                continue;
+            }
+
+            $expectedChecksum = data_get($manifest, 'checksums.candidates_csv_sha256');
+            if (is_string($expectedChecksum)) {
+                if (! hash_equals($expectedChecksum, hash('sha256', $disk->get($candidateCsvPath)))) {
+                    continue;
+                }
+            } elseif ($directoryIndex === 0) {
+                // New batch-scoped packages must always carry a verified checksum.
+                continue;
+            }
+
+            $path = $directory.'/'.$filename;
+            break;
+        }
+
+        abort_unless(is_string($path) && $disk->exists($path), 404);
 
         $response = response()->download($disk->path($path), $filename, [
             'X-Content-Type-Options' => 'nosniff',
