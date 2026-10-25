@@ -46,4 +46,35 @@ class SourceSnapshotTest extends TestCase {
   $this->assertSame('version one', $first->fresh()->content);
   $this->assertSame('version two', $second->content);
  }
+
+    public function test_missing_snapshot_hash_is_uncomparable_not_a_detected_change(): void
+    {
+        $source = Source::create(['source_type' => 'web', 'name' => 'Incomplete Snapshot Source', 'status' => 'active']);
+        $first = \App\Models\SourceSnapshot::create([
+            'source_id' => $source->id,
+            'reference' => 'https://example.test/incomplete',
+            'content_hash' => null,
+            'content_length' => 12,
+            'content_type' => 'text/html',
+            'content' => 'old content',
+            'captured_at' => now()->subMinute(),
+            'status' => 'captured',
+        ]);
+        $second = \App\Models\SourceSnapshot::create([
+            'source_id' => $source->id,
+            'reference' => 'https://example.test/incomplete',
+            'content_hash' => null,
+            'content_length' => 12,
+            'content_type' => 'text/html',
+            'content' => 'new content',
+            'captured_at' => now(),
+            'status' => 'captured',
+        ]);
+
+        $observation = app(SourceChangeObservationService::class)->compare($second);
+
+        $this->assertSame('uncomparable', $observation->change_state);
+        $this->assertSame('unknown', $observation->materiality);
+        $this->assertStringContainsString('inconclusive', $observation->summary);
+    }
 }
