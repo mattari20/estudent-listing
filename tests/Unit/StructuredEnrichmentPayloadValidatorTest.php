@@ -41,6 +41,16 @@ class StructuredEnrichmentPayloadValidatorTest extends TestCase
         );
     }
 
+
+    public function test_online_offering_may_have_a_null_campus_id(): void
+    {
+        $this->assertSame([], $this->validator()->blockers('offering', [
+            'program_id' => 1,
+            'campus_id' => null,
+            'delivery_mode' => 'online',
+        ]));
+    }
+
     public function test_unsupported_entity_type_is_blocked(): void
     {
         $this->assertSame(
