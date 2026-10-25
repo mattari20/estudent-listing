@@ -104,7 +104,7 @@ class SafeSourceHttpRetrieverTest extends TestCase
             ]),
         ]);
 
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Source exceeded the maximum of 5 redirects.');
 
         app(SafeSourceHttpRetriever::class)->get(
@@ -121,7 +121,7 @@ class SafeSourceHttpRetrieverTest extends TestCase
             'https://example.test/start' => Http::response('', 302),
         ]);
 
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Source returned a redirect without a Location header.');
 
         app(SafeSourceHttpRetriever::class)->get(
