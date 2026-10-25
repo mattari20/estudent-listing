@@ -111,6 +111,88 @@ class ReconcileProgrammeOfferingGapsTest extends TestCase
         }
     }
 
+    public function test_duplicate_existing_offering_rows_are_flagged_for_review(): void
+    {
+        $institution = Institution::create([
+            'name' => 'Test University',
+            'slug' => 'test-university',
+            'status' => 'active',
+        ]);
+        $campus = Campus::create([
+            'institution_id' => $institution->id,
+            'name' => 'Main Campus',
+            'slug' => 'test-university-main-campus',
+            'campus_type' => 'main',
+            'status' => 'active',
+        ]);
+        $program = Program::create([
+            'institution_id' => $institution->id,
+            'name' => 'BS Duplicate',
+            'slug' => 'bs-duplicate',
+            'program_level' => 'undergraduate',
+            'status' => 'active',
+        ]);
+        foreach ([1, 2] as $_) {
+            ProgramOffering::create([
+                'program_id' => $program->id,
+                'campus_id' => $campus->id,
+                'delivery_mode' => 'on_campus',
+                'status' => 'active',
+            ]);
+        }
+
+        $path = tempnam(sys_get_temp_dir(), 'offering-gap-reconcile-');
+        $this->assertNotFalse($path);
+        $handle = fopen($path, 'wb');
+        $this->assertNotFalse($handle);
+
+        try {
+            fputcsv($handle, [
+                'program_id', 'institution_id', 'program_name', 'official_source_url',
+                'source_status', 'campus_status', 'remediation_decision',
+                'candidate_campus_id', 'candidate_campus_name',
+                'candidate_delivery_mode', 'campus_source_url',
+            ]);
+            fputcsv($handle, [
+                $program->id,
+                $institution->id,
+                'BS Duplicate',
+                'https://university.example.edu/programmes',
+                'source-found',
+                'main-campus-confirmed',
+                'ready-for-validation',
+                $campus->id,
+                'Main Campus',
+                'on_campus',
+                'https://university.example.edu/campus',
+            ]);
+            fclose($handle);
+
+            $exitCode = Artisan::call('institutes:offering-gap-reconcile', [
+                '--register' => $path,
+                '--expected-rows' => 1,
+                '--json' => true,
+            ]);
+            $report = json_decode(Artisan::output(), true);
+
+            $this->assertSame(0, $exitCode);
+            $this->assertSame(
+                'DUPLICATE_EXISTING_OFFERING_RELATIONSHIP_REQUIRES_REVIEW',
+                $report['records'][0]['classification']
+            );
+            $this->assertSame(1, $report['summary']['duplicate_existing_offering_relationships']);
+            $this->assertSame(1, $report['records'][0]['duplicate_exact_relationship_rows']);
+            $this->assertSame(0, $report['database_mutations']);
+            $this->assertFalse($report['mutation_performed']);
+            $this->assertSame(2, ProgramOffering::count());
+        } finally {
+            if (is_resource($handle)) {
+                fclose($handle);
+            }
+            @unlink($path);
+        }
+    }
+
     public function test_reconciliation_blocks_missing_evidence_urls_and_reports_register_count_mismatch(): void
     {
         $institution = Institution::create([
