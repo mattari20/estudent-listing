@@ -59,6 +59,21 @@ class InstituteDiscoveryFieldDiffService
                 $fieldBlockers[] = 'official_evidence_required_for_sensitive_field';
             }
 
+            $refreshPolicy = app(OfficialSourceRefreshPolicyService::class)->evaluate([
+                'source_official' => $official,
+                'source_identity_verified' => ($evidence['source_identity_verified'] ?? false) === true,
+                'fetch_successful' => ($evidence['fetch_successful'] ?? false) === true,
+                'entity_match_confirmed' => ($evidence['entity_match_confirmed'] ?? false) === true,
+                'evidence_url' => $url,
+                'evidence_excerpt' => $excerpt,
+                'observed_at' => $evidence['observed_at'] ?? null,
+                'content_fingerprint' => $evidence['content_fingerprint'] ?? null,
+                'previous_value' => $currentValue,
+                'proposed_value' => $proposedValue,
+                'entity_identity_ambiguous' => ($evidence['entity_identity_ambiguous'] ?? false) === true,
+                'source_conflict' => ($evidence['source_conflict'] ?? false) === true,
+            ]);
+
             $changes[$field] = [
                 'previous_value' => $currentValue,
                 'proposed_value' => $proposedValue,
@@ -74,6 +89,7 @@ class InstituteDiscoveryFieldDiffService
                     ? 'blocked'
                     : ($verifiedOfficialEvidence ? 'refresh_eligible' : 'review_required'),
                 'blockers' => $fieldBlockers,
+                'refresh_policy' => $refreshPolicy,
             ];
 
             foreach ($fieldBlockers as $blocker) {
