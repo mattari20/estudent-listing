@@ -9,7 +9,7 @@ use App\Models\Program;
 
 class ImportDuplicateDetectorService
 {
-    public function find(string $entityType, int $parentInstitutionId, string $slug, ?int $currentBatchId = null): ?array
+    public function find(string $entityType, int $parentInstitutionId, string $slug, ?int $currentBatchId = null, array $ignoredBatchIds = []): ?array
     {
         if ($slug === '') {
             return null;
@@ -37,6 +37,7 @@ class ImportDuplicateDetectorService
             ->whereIn('status', ['candidate', 'promoted', 'duplicate'])
             ->whereHas('batch', fn ($query) => $query->where('entity_type', $entityType))
             ->when($currentBatchId, fn ($query) => $query->where('import_batch_id', '!=', $currentBatchId))
+            ->when($ignoredBatchIds !== [], fn ($query) => $query->whereNotIn('import_batch_id', $ignoredBatchIds))
             ->latest('id')
             ->first();
 
