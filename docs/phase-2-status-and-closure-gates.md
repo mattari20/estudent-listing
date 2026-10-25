@@ -13,11 +13,27 @@
 | PR-E tests | Passed on latest PR head | [Test workflow](https://github.com/mattari20/estudent-listing/actions/runs/40187826097), [Laravel CI](https://github.com/mattari20/estudent-listing/actions/runs/40187826117) |
 | PR-F tests | Passed on latest PR head after updating legacy fixtures | [Test workflow](https://github.com/mattari20/estudent-listing/actions/runs/40187908056), [Laravel CI](https://github.com/mattari20/estudent-listing/actions/runs/40187908055) |
 | Hostinger deployed-code and governed scheduler smoke check | Application-code revision matched; no-op | [Scheduled run #19](https://github.com/mattari20/estudent-listing/actions/runs/40188541139) |
-| Hostinger read-only diagnostics | Application tree matched; private storage boundary and guest denial passed; native cron status unresolved | [Latest diagnostics](https://github.com/mattari20/estudent-listing/actions/runs/40189301869) |
+| Hostinger read-only diagnostics | Application tree matched; private storage boundary and guest denial passed; native cron status unresolved | [Latest diagnostics](https://github.com/mattari20/estudent-listing/actions/runs/40189423650) |
 | Official-source refresh schema readiness | Application code match; **failed because migration/table is absent** | [Latest readiness run](https://github.com/mattari20/estudent-listing/actions/runs/40189301894) |
 | PR-G — reusable read-only runtime readiness audit | Merged | [PR #743](https://github.com/mattari20/estudent-listing/pull/743), merge commit `43398d4d61bfa845139a7126981cf512b7b0bb4c` |
 | PR-H — initial revision-check correction and evidence report | Merged | [PR #744](https://github.com/mattari20/estudent-listing/pull/744), merge commit `c3f81b56e62437205bf732cb9645d1044e0ce3af` |
 | PR-I — compare deployed application file tree | Merged; CI passed | [PR #745](https://github.com/mattari20/estudent-listing/pull/745), merge commit `b618eb25e25e688af0f7006e2d9fba243337f71b`; [Test](https://github.com/mattari20/estudent-listing/actions/runs/40189226268), [Laravel CI](https://github.com/mattari20/estudent-listing/actions/runs/40189226314) |
+
+## 1A. Original PR-A through PR-H plan — actual completion vs workpack preparation
+
+| Planned work | Current repository artifact | Actual status |
+|---|---|---|
+| PR-A — fix false-positive discovery extraction | [PR #737](https://github.com/mattari20/estudent-listing/pull/737) | **Merged**; extractor version 4 limits page-wide fallback and excludes navigation/header/footer links. It prevents a known false-positive path but does not audit existing rows. |
+| PR-B — classify all 112 GCU candidates | [PR #738](https://github.com/mattari20/estudent-listing/pull/738) | **Workpack PR still open; live audit not done.** Runbook/template exists in the branch, but every current candidate still needs source-backed row disposition. |
+| PR-C — reconcile 76 promotion-failure events | [PR #739](https://github.com/mattari20/estudent-listing/pull/739) | **Workpack PR still open; reconciliation not done.** The 76 are historical events, not necessarily 76 unique unresolved rows; current event-to-row mapping is missing. |
+| PR-D — verify 36 programme/offering gaps | [PR #740](https://github.com/mattari20/estudent-listing/pull/740) | **Workpack PR still open; live/source audit incomplete.** Static evidence register exists, but source/campus verification and current live duplicate checks remain open. |
+| PR-E — idempotent refresh and duplicate prevention | [PR #741](https://github.com/mattari20/estudent-listing/pull/741) | **Merged; CI passed.** |
+| PR-F — private package lifecycle and checksum validation | [PR #742](https://github.com/mattari20/estudent-listing/pull/742) | **Merged; CI passed.** |
+| PR-G — zero-cost runtime readiness audit | [PR #743](https://github.com/mattari20/estudent-listing/pull/743) | **Merged; CI passed.** Runtime acceptance is only partly verified. |
+| PR-H — evidence-based Phase 2 closure report | [PR #744](https://github.com/mattari20/estudent-listing/pull/744) | **Merged; CI passed.** This is a report/closure-gate artifact, not evidence that all gates passed. |
+| Follow-up PR-I — robust deployed application-tree comparison | [PR #745](https://github.com/mattari20/estudent-listing/pull/745) | **Merged; CI passed.** Corrected a revision-check issue found during live verification. |
+
+**Important gap:** PRs #738–#740 prepare repeatable review procedures and templates; they do not themselves complete the live candidate classification, failure-event reconciliation, or offering-gap review. The original plan therefore has code/workpack milestones merged or prepared, but its core Step 3 evidence-based data audits are still outstanding.
 
 ## 2. Hostinger evidence from scheduled run #19
 
@@ -35,7 +51,7 @@ The scheduled workflow reported:
 - Bootstrap and source-monitor commands exited successfully, with zero source-monitor work performed.
 - Paid AI calls, migrations, canonical promotion, and publication were disabled/not run.
 
-**Interpretation:** This verifies the *path-filtered application-code revision* and a safe no-op execution. The latest [Hostinger read-only diagnostics run](https://github.com/mattari20/estudent-listing/actions/runs/40189301869) reported the application tree matched the expected application revision, the `institute_discovery_run_outcomes` table and its migration are present, two monitoring policies are active, the private review-package root is outside the public root, 10 private package files were found, and unauthenticated requests to discovery history/package download redirected to the Institutes login. It also reported `hostinger_scheduler_cron=missing_or_unreadable`. The GitHub Actions scheduled workflow itself is running and invokes the governed commands directly; the Hostinger native cron entry remains unverified and may affect other Laravel scheduled tasks. The diagnostics did not test an authenticated CSV/manifest download or response headers.
+**Interpretation:** This verifies the *path-filtered application-code revision* and a safe no-op execution. The latest [Hostinger read-only diagnostics run](https://github.com/mattari20/estudent-listing/actions/runs/40189423650) reported the application tree matched the expected application revision, the `institute_discovery_run_outcomes` table and its migration are present, two monitoring policies are active, the private review-package root is outside the public root, 10 private package files were found, and unauthenticated requests to discovery history/package download redirected to the Institutes login. It also reported `hostinger_scheduler_cron=missing_or_unreadable`. The GitHub Actions scheduled workflow itself is running and invokes the governed commands directly; the Hostinger native cron entry remains unverified and may affect other Laravel scheduled tasks. The diagnostics did not test an authenticated CSV/manifest download or response headers.
 
 These checks do **not** prove that a changed official source produced a new review package or that a due policy completed a discovery run.
 
@@ -64,7 +80,7 @@ PR-H's first correction still used `git log -1 -- <application paths>`; after a 
 - [ ] Verify batch row counts, manifest counts, CSV checksum, and provenance reconcile.
 
 ### C. Protected package retrieval
-- [x] Read-only Hostinger diagnostics found the private package root outside the public root and confirmed unauthenticated requests redirect to the Institutes login. Evidence: [latest Hostinger diagnostics](https://github.com/mattari20/estudent-listing/actions/runs/40189064829).
+- [x] Read-only Hostinger diagnostics found the private package root outside the public root and confirmed unauthenticated requests redirect to the Institutes login. Evidence: [latest Hostinger diagnostics](https://github.com/mattari20/estudent-listing/actions/runs/40189423650).
 - [ ] In an authenticated operator session, download CSV and manifest for a known discovery batch.
 - [x] Verify unauthenticated access is rejected.
 - [ ] Verify batch ID, snapshot ID, and CSV SHA-256 validation; test that a mismatched or tampered package fails closed.
