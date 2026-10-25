@@ -53,6 +53,29 @@ class OfficialSourceRefreshPolicyServiceTest extends TestCase
         $this->assertContains('no_material_field_change', $result['blockers']);
     }
 
+    public function test_missing_malformed_or_timezone_free_observation_timestamp_is_blocked(): void
+    {
+        foreach ([null, '', 'not-a-date', '2026-10-25 04:00:00'] as $timestamp) {
+            $proposal = $this->validProposal();
+            $proposal['observed_at'] = $timestamp;
+
+            $result = (new OfficialSourceRefreshPolicyService())->evaluate($proposal);
+
+            $this->assertFalse($result['eligible']);
+            $this->assertContains('source_observation_timestamp_required', $result['blockers']);
+        }
+    }
+
+    public function test_timestamp_with_explicit_timezone_remains_eligible(): void
+    {
+        $proposal = $this->validProposal();
+        $proposal['observed_at'] = '2026-10-25T04:00:00+05:00';
+
+        $result = (new OfficialSourceRefreshPolicyService())->evaluate($proposal);
+
+        $this->assertTrue($result['eligible']);
+    }
+
     private function validProposal(): array
     {
         return [
