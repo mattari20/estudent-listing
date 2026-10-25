@@ -150,5 +150,14 @@ class InstituteDiscoveryReviewPackageTest extends TestCase
             hash('sha256', Storage::disk('local')->get($secondPackage['csv_path'])),
             $secondManifest['checksums']['candidates_csv_sha256']
         );
+
+        Storage::disk('local')->put($secondPackage['csv_path'], 'tampered');
+        $rebuiltPackage = $service->create($secondBatch->fresh());
+        $this->assertSame('created', $rebuiltPackage['status']);
+        $rebuiltManifest = json_decode(Storage::disk('local')->get($rebuiltPackage['manifest_path']), true);
+        $this->assertSame(
+            hash('sha256', Storage::disk('local')->get($rebuiltPackage['csv_path'])),
+            $rebuiltManifest['checksums']['candidates_csv_sha256']
+        );
     }
 }
