@@ -8,6 +8,13 @@ on:
         required: true
         type: string
         default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
+  workflow_run:
+    workflows:
+      - Controlled Hostinger Code Deployment
+    types:
+      - completed
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -39,6 +46,7 @@ jobs:
           echo "expected_application_revision=$revision"
 
   diagnose:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     name: Verify deployed code and refresh migration without writes
     needs: resolve-revision
     runs-on: ubuntu-latest
@@ -47,7 +55,7 @@ jobs:
       - name: Run read-only SSH diagnostics
         uses: appleboy/ssh-action@v1.2.0
         env:
-          PROJECT_PATH: ${{ inputs.project_path }}
+          PROJECT_PATH: ${{ inputs.project_path || '/home/u537436044/domains/estudent.pk/public_html/institutes' }}
           EXPECTED_REVISION: ${{ needs.resolve-revision.outputs.expected_revision }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
