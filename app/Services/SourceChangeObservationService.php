@@ -9,6 +9,15 @@ class SourceChangeObservationService
 {
     public function compare(SourceSnapshot $current): SourceChangeObservation
     {
+        $existing = SourceChangeObservation::query()
+            ->where('current_snapshot_id', $current->id)
+            ->latest('id')
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
         $previous = SourceSnapshot::query()
             ->where('source_id', $current->source_id)
             ->where('id', '!=', $current->id)
