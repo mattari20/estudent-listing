@@ -88,13 +88,18 @@ jobs:
 
             echo "=== Application code revision comparison (read-only) ==="
             if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-              DEPLOYED_REVISION="$(git rev-parse HEAD)"
-              echo "deployed_revision=$DEPLOYED_REVISION"
+              DEPLOYED_CHECKOUT_HEAD="$(git rev-parse HEAD)"
+              DEPLOYED_APPLICATION_REVISION="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+              echo "deployed_checkout_head=$DEPLOYED_CHECKOUT_HEAD"
+              echo "deployed_application_revision=${DEPLOYED_APPLICATION_REVISION:-unverifiable}"
               echo "expected_application_revision=$EXPECTED_REVISION"
-              # Never fetch or update repository metadata on the production host.
-              # If the expected commit is unavailable locally, report it as unverifiable.
-              if git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null && \
-                git diff --quiet "$EXPECTED_REVISION" "$DEPLOYED_REVISION" -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
+              # A docs/workflow-only commit may advance HEAD without changing application code.
+              # Compare the latest commit touching the same application paths used by the
+              # deploy/scheduled workflows. Never fetch or update repository metadata here.
+              if [ -n "$DEPLOYED_APPLICATION_REVISION" ] \
+                && [ "$DEPLOYED_APPLICATION_REVISION" = "$EXPECTED_REVISION" ] \
+                && git diff --quiet -- app bootstrap config database resources routes composer.json composer.lock public artisan \
+                && git diff --cached --quiet -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
                 echo "application_code_status=APPLICATION_CODE_MATCH"
               else
                 echo "application_code_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
