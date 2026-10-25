@@ -13,7 +13,7 @@ class SourceUrlGuard
         $this->dnsResolver = $dnsResolver;
     }
 
-    public function validate(string $url): void
+    public function validate(string $url): array
     {
         if (! filter_var($url, FILTER_VALIDATE_URL)) {
             throw new \InvalidArgumentException('Invalid source URL.');
@@ -53,11 +53,12 @@ class SourceUrlGuard
                 throw new \InvalidArgumentException('Source host is not publicly routable.');
             }
 
-            return;
+            return [$normalizedHost];
         }
 
         $records = $this->resolveDnsRecords($normalizedHost);
         $addressCount = 0;
+        $resolvedAddresses = [];
 
         foreach ($records as $record) {
             $ip = $record['ip'] ?? $record['ipv6'] ?? null;
@@ -69,11 +70,14 @@ class SourceUrlGuard
             if (! $this->isPublicIp($ip)) {
                 throw new \InvalidArgumentException('Source host resolves to a non-public address.');
             }
+            $resolvedAddresses[] = $ip;
         }
 
         if ($addressCount === 0) {
             throw new \InvalidArgumentException('Source host did not resolve to a public IP address.');
         }
+
+        return array_values(array_unique($resolvedAddresses));
     }
 
     /**
