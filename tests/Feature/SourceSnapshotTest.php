@@ -90,4 +90,21 @@ class SourceSnapshotTest extends TestCase {
         $this->assertSame($first->id, $second->id);
         $this->assertDatabaseCount('source_change_observations', 1);
     }
+
+    public function test_changed_observation_retains_before_and_after_snapshot_evidence(): void
+    {
+        $source = Source::create(['source_type' => 'official', 'name' => 'Evidence History Source', 'status' => 'active']);
+        $service = app(SourceSnapshotService::class);
+        $first = $service->capture($source, 'official page version one', 'https://university.example.edu/programs', 'text/html');
+        $second = $service->capture($source, 'official page version two', 'https://university.example.edu/programs', 'text/html');
+
+        $observation = app(SourceChangeObservationService::class)->compare($second);
+
+        $this->assertSame('changed', $observation->change_state);
+        $this->assertSame($first->id, $observation->details['previous']['snapshot_id']);
+        $this->assertSame($second->id, $observation->details['current']['snapshot_id']);
+        $this->assertSame($first->content_hash, $observation->details['previous']['content_hash']);
+        $this->assertSame($second->content_hash, $observation->details['current']['content_hash']);
+        $this->assertSame('https://university.example.edu/programs', $observation->details['current']['reference']);
+    }
 }
