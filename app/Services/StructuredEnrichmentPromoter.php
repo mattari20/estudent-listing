@@ -12,7 +12,8 @@ use RuntimeException;
 class StructuredEnrichmentPromoter
 {
     public function __construct(
-        private readonly ?InstituteDiscoveryPromotionGuard $promotionGuard = null
+        private readonly ?InstituteDiscoveryPromotionGuard $promotionGuard = null,
+        private readonly ?StructuredEnrichmentPayloadValidator $payloadValidator = null
     ) {
     }
 
@@ -32,6 +33,12 @@ class StructuredEnrichmentPromoter
             $payload = $lockedRow->normalized_payload ?? $lockedRow->payload ?? [];
             if (! is_array($payload) || $payload === []) {
                 throw new RuntimeException('Enrichment row has no usable payload.');
+            }
+
+            $validator = $this->payloadValidator ?? app(StructuredEnrichmentPayloadValidator::class);
+            $payloadBlockers = $validator->blockers($lockedRow->entity_type, $payload);
+            if ($payloadBlockers !== []) {
+                throw new RuntimeException('Enrichment payload blocked: '.implode(',', $payloadBlockers));
             }
 
             // Discovery-sourced rows must carry the governed review contract.
