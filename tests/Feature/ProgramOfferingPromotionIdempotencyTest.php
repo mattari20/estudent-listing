@@ -7,6 +7,7 @@ use App\Models\ImportBatch;
 use App\Models\Institution;
 use App\Models\Program;
 use App\Models\ProgramOffering;
+use App\Models\StructuredEnrichmentPromotionEvent;
 use App\Services\StructuredEnrichmentPromoter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -70,5 +71,11 @@ class ProgramOfferingPromotionIdempotencyTest extends TestCase
             'id' => $first->id,
             'status' => 'inactive',
         ]);
+        $this->assertDatabaseCount('structured_enrichment_promotion_events', 2);
+        $latestEvent = StructuredEnrichmentPromotionEvent::query()->orderByDesc('id')->firstOrFail();
+        $this->assertSame('offering', $latestEvent->entity_type);
+        $this->assertSame($first->id, $latestEvent->canonical_id);
+        $this->assertSame('active', $latestEvent->before_snapshot['status']);
+        $this->assertSame('inactive', $latestEvent->after_snapshot['status']);
     }
 }
