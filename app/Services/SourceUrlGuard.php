@@ -99,6 +99,8 @@ class SourceUrlGuard
                 $firstOctet >= 224
                 || $this->isInCidr($packed, '100.64.0.0/10')
                 || $this->isInCidr($packed, '198.18.0.0/15')
+                || $this->isInCidr($packed, '192.0.0.0/24')
+                || $this->isInCidr($packed, '192.88.99.0/24')
             ) {
                 return false;
             }
@@ -120,6 +122,9 @@ class SourceUrlGuard
                 || $this->isInCidr($packed, '64:ff9b::/96')
                 || $this->isInCidr($packed, '2002::/16')
                 || $this->isInCidr($packed, 'fec0::/10')
+                || $this->isInCidr($packed, '100::/64')
+                || $this->isInCidr($packed, '2001::/23')
+                || $this->isInCidr($packed, '2001:2::/48')
             )
         ) {
             return false;
