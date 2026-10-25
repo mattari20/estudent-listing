@@ -68,5 +68,7 @@ jobs:
           tests/Feature/InstituteAgentBootstrapTest.php
           app/Console/Commands/DatabaseHealthCheck.php
           app/Console/Commands/GeographySeedPreflight.php
+          app/Services/InstituteDiscoveryCandidateExtractor.php
+          tests/Unit/InstituteDiscoveryCandidateExtractorTest.php
           tests/Feature/DatabaseHealthCheckTest.php
           tests/Feature/GeographySeedPreflightTest.php
