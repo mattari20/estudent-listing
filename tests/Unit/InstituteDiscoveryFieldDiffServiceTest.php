@@ -64,4 +64,43 @@ class InstituteDiscoveryFieldDiffServiceTest extends TestCase
         $this->assertContains('name:field_evidence_url_missing_or_invalid', $result['blockers']);
         $this->assertContains('name:field_evidence_excerpt_missing', $result['blockers']);
     }
+
+    public function test_verified_successful_official_source_change_is_refresh_eligible(): void
+    {
+        $result = (new InstituteDiscoveryFieldDiffService())->compare(
+            ['name' => 'Old Name'],
+            ['name' => 'New Name'],
+            ['name' => [
+                'url' => 'https://university.example.edu/about',
+                'excerpt' => 'New Name',
+                'official' => true,
+                'source_identity_verified' => true,
+                'fetch_successful' => true,
+                'entity_match_confirmed' => true,
+                'observed_at' => '2026-10-25T04:00:00Z',
+                'content_fingerprint' => hash('sha256', 'verified source snapshot'),
+            ]]
+        );
+
+        $this->assertSame('refresh_eligible', $result['state']);
+        $this->assertSame('refresh_eligible', $result['changes']['name']['state']);
+        $this->assertSame('Old Name', $result['changes']['name']['previous_value']);
+        $this->assertSame('New Name', $result['changes']['name']['proposed_value']);
+    }
+
+    public function test_official_flag_alone_does_not_make_change_refresh_eligible(): void
+    {
+        $result = (new InstituteDiscoveryFieldDiffService())->compare(
+            ['name' => 'Old Name'],
+            ['name' => 'New Name'],
+            ['name' => [
+                'url' => 'https://university.example.edu/about',
+                'excerpt' => 'New Name',
+                'official' => true,
+            ]]
+        );
+
+        $this->assertSame('review_required', $result['state']);
+        $this->assertSame('review_required', $result['changes']['name']['state']);
+    }
 }

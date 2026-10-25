@@ -43,6 +43,12 @@ class InstituteDiscoveryFieldDiffService
                 && in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true);
 
             $fieldBlockers = [];
+            $verifiedOfficialEvidence = $official
+                && ($evidence['source_identity_verified'] ?? false) === true
+                && ($evidence['fetch_successful'] ?? false) === true
+                && ($evidence['entity_match_confirmed'] ?? false) === true
+                && trim((string) ($evidence['observed_at'] ?? '')) !== ''
+                && trim((string) ($evidence['content_fingerprint'] ?? '')) !== '';
             if (! $validUrl) {
                 $fieldBlockers[] = 'field_evidence_url_missing_or_invalid';
             }
@@ -59,7 +65,14 @@ class InstituteDiscoveryFieldDiffService
                 'evidence_url' => $validUrl ? $url : null,
                 'evidence_excerpt' => $excerpt !== '' ? $excerpt : null,
                 'source_official' => $official,
-                'state' => $fieldBlockers === [] ? 'review_required' : 'blocked',
+                'source_identity_verified' => ($evidence['source_identity_verified'] ?? false) === true,
+                'fetch_successful' => ($evidence['fetch_successful'] ?? false) === true,
+                'entity_match_confirmed' => ($evidence['entity_match_confirmed'] ?? false) === true,
+                'observed_at' => $evidence['observed_at'] ?? null,
+                'content_fingerprint' => $evidence['content_fingerprint'] ?? null,
+                'state' => $fieldBlockers !== []
+                    ? 'blocked'
+                    : ($verifiedOfficialEvidence ? 'refresh_eligible' : 'review_required'),
                 'blockers' => $fieldBlockers,
             ];
 
@@ -70,7 +83,11 @@ class InstituteDiscoveryFieldDiffService
 
         $state = $blockers !== []
             ? 'blocked'
-            : ($changes !== [] ? 'review_required' : 'no_change');
+            : ($changes === [] ? 'no_change' : (
+                count(array_filter($changes, fn (array $change): bool => $change['state'] !== 'refresh_eligible')) === 0
+                    ? 'refresh_eligible'
+                    : 'review_required'
+            ));
 
         return [
             'state' => $state,
