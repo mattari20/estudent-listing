@@ -69,6 +69,15 @@ class SourceUrlGuard
             return false;
         }
 
+        // IPv6 documentation prefix 2001:db8::/32 is reserved for examples
+        // and must not be treated as a publicly routable source.
+        if (
+            strlen($packed) === 16
+            && substr($packed, 0, 4) === pack('H*', '20010db8')
+        ) {
+            return false;
+        }
+
         // IPv4-mapped IPv6 literals can encode a private IPv4 destination,
         // e.g. ::ffff:127.0.0.1 or its hexadecimal equivalent ::ffff:7f00:1.
         // Classify the embedded IPv4 address with the same public-range policy.
