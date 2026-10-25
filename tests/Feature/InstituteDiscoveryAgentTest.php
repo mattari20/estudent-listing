@@ -270,4 +270,42 @@ class InstituteDiscoveryAgentTest extends TestCase
         $this->assertSame('unknown', $campus['status']);
     }
 
+
+    public function test_repeated_unchanged_source_reuses_the_existing_batch_and_package(): void
+    {
+        Storage::fake('local');
+        Institution::create([
+            'name' => 'COMSATS University Islamabad Lahore Campus',
+            'slug' => 'comsats-university-islamabad-lahore-campus',
+            'status' => 'active',
+        ]);
+
+        $html = '<html><body>
+            <a>Bachelor of Science (BS) in Computer Science</a>
+            <a>Bachelor of Science (BS) in Psychology</a>
+        </body></html>';
+
+        Http::fake([
+            'https://lahore.comsats.edu.pk/academics.aspx' => Http::response(
+                $html,
+                200,
+                ['Content-Type' => 'text/html']
+            ),
+        ]);
+
+        $service = app(InstituteDiscoveryAgentService::class);
+        $first = $service->run('cui-lahore');
+        $second = $service->run('cui-lahore');
+
+        $this->assertSame($first['batch_id'], $second['batch_id']);
+        $this->assertSame($first['snapshot_id'], $second['snapshot_id']);
+        $this->assertSame('reused', $second['review_package']['status']);
+        $this->assertSame(1, ImportBatch::where('source_id', $first['source_id'])
+            ->where('source_type', 'automated_discovery')->count());
+        $this->assertSame(1, \App\Models\SourceSnapshot::where('source_id', $first['source_id'])->count());
+        $this->assertSame(1, \App\Models\Evidence::where('source_id', $first['source_id'])
+            ->where('snapshot_id', $first['snapshot_id'])->count());
+        $this->assertSame(2, ImportRow::where('import_batch_id', $first['batch_id'])->count());
+    }
+
 }
