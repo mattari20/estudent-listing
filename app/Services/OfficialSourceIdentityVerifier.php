@@ -63,10 +63,15 @@ class OfficialSourceIdentityVerifier
 
     private function validHttpUrl(string $url): bool
     {
-        return filter_var($url, FILTER_VALIDATE_URL)
-            && in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true)
-            && is_string(parse_url($url, PHP_URL_HOST))
-            && parse_url($url, PHP_URL_HOST) !== '';
+        try {
+            // Use the same host and credential policy as the HTTP retriever.
+            // Identity verification must not bless a URL that retrieval rejects.
+            (new SourceUrlGuard())->validate($url);
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     private function normalizeUrl(string $url): string
