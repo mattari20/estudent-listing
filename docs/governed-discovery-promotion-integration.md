@@ -33,3 +33,19 @@ The guard compares the proposal's expected canonical fingerprint with the curren
 - Persist immutable before/after audit events for canonical writes.
 - Replace metadata-presence detection with an explicit, persisted source-kind column/contract after migration planning.
 - Keep production writes disabled until the live deployment revision and read-only integrity checks are reconciled.
+
+
+## Transactional promotion audit trail
+
+The structured enrichment promoter writes one `structured_enrichment_promotion_events` row after each successful canonical promotion. The event records the import row and batch, entity type, canonical model class and ID, actor type, reason, before/after canonical snapshots, governed-discovery flag, review-package ID (when applicable), and event timestamp.
+
+The audit insert is part of the same database transaction as the canonical write. If it fails, the canonical promotion must roll back as well. The audit event is a success event only; blocked attempts are not represented by this table in this implementation. Do not describe this table as a complete security-grade immutable log until deletion/retention behavior and failure-event coverage have been reviewed.
+
+### Migration and release order
+
+1. Run the migration in the controlled deployment pipeline before releasing code that writes these events.
+2. Run the focused campus, program, offering, and structured enrichment promotion tests.
+3. Verify event count and before/after snapshots in the test/staging environment.
+4. Deploy only when the deployed revision and migration state are confirmed; run read-only integrity checks before authorizing any production data writes.
+
+The audit table is separate from the legacy import-promotion event table because structured enrichment rows live in `enrichment_import_rows`, not the legacy `import_rows` table.
