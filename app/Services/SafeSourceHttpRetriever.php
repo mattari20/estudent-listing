@@ -66,6 +66,10 @@ class SafeSourceHttpRetriever
             return $location;
         }
 
+        if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $location) === 1) {
+            throw new \\RuntimeException('Source redirect Location uses an unsupported URI scheme.');
+        }
+
         $base = parse_url($baseUrl);
         $scheme = strtolower($base['scheme'] ?? '');
         $authority = $base['host'] ?? '';
