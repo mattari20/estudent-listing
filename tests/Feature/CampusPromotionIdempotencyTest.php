@@ -6,6 +6,7 @@ use App\Models\Campus;
 use App\Models\EnrichmentImportRow;
 use App\Models\ImportBatch;
 use App\Models\Institution;
+use App\Models\StructuredEnrichmentPromotionEvent;
 use App\Services\StructuredEnrichmentPromoter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -63,5 +64,11 @@ class CampusPromotionIdempotencyTest extends TestCase
             'id' => $first->id,
             'name' => 'Main Campus - Updated',
         ]);
+        $this->assertDatabaseCount('structured_enrichment_promotion_events', 2);
+        $latestEvent = StructuredEnrichmentPromotionEvent::query()->orderByDesc('id')->firstOrFail();
+        $this->assertSame('campus', $latestEvent->entity_type);
+        $this->assertSame($first->id, $latestEvent->canonical_id);
+        $this->assertSame('Main Campus', $latestEvent->before_snapshot['name']);
+        $this->assertSame('Main Campus - Updated', $latestEvent->after_snapshot['name']);
     }
 }
