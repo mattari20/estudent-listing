@@ -308,4 +308,49 @@ class InstituteDiscoveryAgentTest extends TestCase
         $this->assertSame(2, ImportRow::where('import_batch_id', $first['batch_id'])->count());
     }
 
+
+    public function test_explicit_refresh_creates_a_new_batch_and_preserves_the_previous_batch(): void
+    {
+        Storage::fake('local');
+        Institution::create([
+            'name' => 'COMSATS University Islamabad Lahore Campus',
+            'slug' => 'comsats-university-islamabad-lahore-campus',
+            'status' => 'active',
+        ]);
+
+        $html = '<html><body>
+            <a>Bachelor of Science (BS) in Computer Science</a>
+            <a>Bachelor of Science (BS) in Psychology</a>
+        </body></html>';
+
+        Http::fake([
+            'https://lahore.comsats.edu.pk/academics.aspx' => Http::response(
+                $html,
+                200,
+                ['Content-Type' => 'text/html']
+            ),
+        ]);
+
+        $service = app(InstituteDiscoveryAgentService::class);
+        $original = $service->run('cui-lahore');
+        $refreshed = $service->run('cui-lahore', false, true, $original['batch_id']);
+
+        $this->assertNotSame($original['batch_id'], $refreshed['batch_id']);
+        $this->assertDatabaseHas('import_batches', [
+            'id' => $original['batch_id'],
+            'status' => 'validated',
+        ]);
+        $this->assertDatabaseHas('import_batches', [
+            'id' => $refreshed['batch_id'],
+            'source_id' => $original['source_id'],
+        ]);
+        $this->assertStringContainsString(
+            'refresh_of_batch_id='.$original['batch_id'],
+            (string) ImportBatch::findOrFail($refreshed['batch_id'])->notes
+        );
+        $this->assertSame(2, ImportRow::where('import_batch_id', $original['batch_id'])->count());
+        $this->assertSame(2, ImportRow::where('import_batch_id', $refreshed['batch_id'])
+            ->where('status', 'candidate')->count());
+    }
+
 }
