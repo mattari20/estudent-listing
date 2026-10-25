@@ -28,6 +28,17 @@ class SourceUrlGuard
             throw new \InvalidArgumentException('Source host is not publicly routable.');
         }
 
+        // Reject alternate numeric host spellings that permissive URL clients
+        // may normalize to an IPv4 address (decimal, hexadecimal, octal-like,
+        // shortened, or leading-zero forms). Only canonical IP literals pass
+        // through to the public-address classifier below.
+        if (
+            ! filter_var($normalizedHost, FILTER_VALIDATE_IP)
+            && preg_match('/^(?:0x[0-9a-f]+|[0-9]+)(?:\.(?:0x[0-9a-f]+|[0-9]+))*$/i', $normalizedHost) === 1
+        ) {
+            throw new \InvalidArgumentException('Source host is not publicly routable.');
+        }
+
         if (filter_var($normalizedHost, FILTER_VALIDATE_IP)) {
             if (! $this->isPublicIp($normalizedHost)) {
                 throw new \InvalidArgumentException('Source host is not publicly routable.');
