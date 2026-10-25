@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 class InstituteDiscoveryCandidateExtractor
 {
     /** Bump when deterministic extraction rules change. */
-    public const VERSION = '3';
+    public const VERSION = '4';
 
     public function extract(string $entityType, string $html): array
     {
@@ -57,10 +57,20 @@ class InstituteDiscoveryCandidateExtractor
         }
 
         // Fallback only for official pages without a named programme section.
+        // If semantic main-content markup exists, never scan the whole page:
+        // navigation/footer degree-looking links are not programme evidence.
         if (! $sectionFound) {
-            foreach ($xpath->query('//a') as $link) {
+            $contentLinks = $xpath->query('//main//a | //article//a | //*[@role="main"]//a');
+            $hasMainContent = $contentLinks !== false && $contentLinks->length > 0;
+            $links = $hasMainContent ? $contentLinks : $xpath->query('//a');
+
+            foreach ($links as $link) {
+                if (! $hasMainContent && $xpath->query('ancestor::nav|ancestor::header|ancestor::footer|ancestor::*[@role="navigation" or @role="contentinfo"]', $link)->length > 0) {
+                    continue;
+                }
+
                 $name = $this->normalize($link->textContent ?? '');
-                if (preg_match('/^(Bachelor|BS\\b|BSc\\b|B\\.Sc\\b)/i', $name)
+                if (preg_match('/^(Bachelor|BS\b|BSc\b|B\.Sc\b)/i', $name)
                     && stripos($name, 'Visit Department') === false) {
                     $this->addProgram($programs, $name, 0.95);
                 }
@@ -73,38 +83,38 @@ class InstituteDiscoveryCandidateExtractor
 
     private function normalize(string $value): string
     {
-        return trim(preg_replace('/\\s+/', ' ', html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+        return trim(preg_replace('/\s+/', ' ', html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8')));
     }
 
     private function looksLikeDiscipline(string $name): bool
     {
         if ($name === '' || mb_strlen($name) > 100
-            || preg_match('/^(Bachelor|Master|MPhil|PhD)\\b/i', $name)) {
+            || preg_match('/^(Bachelor|Master|MPhil|PhD)\b/i', $name)) {
             return false;
         }
         if (preg_match('/^(home|about us|admissions?|apply now|contact us|facult(y|ies)|departments?|visit department|read more|learn more|programs offered|academic programs|academic programmes|download|details|more|campus life|events)$/i', $name)) {
             return false;
         }
-        return preg_match('/^[\\p{L}\\p{N}][\\p{L}\\p{N} &(),.\\/-]{1,98}$/u', $name) === 1;
+        return preg_match('/^[\p{L}\p{N}][\p{L}\p{N} &(),.\/-]{1,98}$/u', $name) === 1;
     }
 
     private function addProgram(array &$programs, string $name, float $confidence): void
     {
-        $name = preg_replace('/^Bachelor of Science\\(BS\\)/i', 'Bachelor of Science (BS)', $name);
+        $name = preg_replace('/^Bachelor of Science\(BS\)/i', 'Bachelor of Science (BS)', $name);
         $key = Str::lower(Str::slug($name));
         if ($key === '') {
             return;
         }
 
-        $award = stripos($name, 'Bachelor of Science') === 0 || preg_match('/^BS\\b/i', $name)
+        $award = stripos($name, 'Bachelor of Science') === 0 || preg_match('/^BS\b/i', $name)
             ? 'BS'
-            : (preg_match('/^BSc\\b|^B\\.Sc\\b/i', $name) ? 'BSc' : 'Bachelor');
+            : (preg_match('/^BSc\b|^B\.Sc\b/i', $name) ? 'BSc' : 'Bachelor');
         $discipline = $name;
-        if (preg_match('/\\bin\\s+(.+)$/i', $name, $match)) {
+        if (preg_match('/\bin\s+(.+)$/i', $name, $match)) {
             $discipline = trim($match[1]);
-        } elseif (preg_match('/^Bachelor of\\s+(.+)$/i', $name, $match)) {
+        } elseif (preg_match('/^Bachelor of\s+(.+)$/i', $name, $match)) {
             $discipline = trim($match[1]);
-        } elseif (preg_match('/^BS\\s*(?:in\\s+)?(.+)$/i', $name, $match)) {
+        } elseif (preg_match('/^BS\s*(?:in\s+)?(.+)$/i', $name, $match)) {
             $discipline = trim($match[1]);
         }
 
@@ -129,8 +139,8 @@ class InstituteDiscoveryCandidateExtractor
 
         foreach ($xpath->query('//a|//h1|//h2|//h3|//h4') as $node) {
             $name = $this->normalize($node->textContent ?? '');
-            if ($name === '' || ! preg_match('/\\bCampus\\b/i', $name)
-                || preg_match('/\\b(Campus Life|Campus Facilities|Campus Map|Campus News)\\b/i', $name)) {
+            if ($name === '' || ! preg_match('/\bCampus\b/i', $name)
+                || preg_match('/\b(Campus Life|Campus Facilities|Campus Map|Campus News)\b/i', $name)) {
                 continue;
             }
             $campuses[Str::lower(Str::slug($name))] = [
