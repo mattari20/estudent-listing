@@ -35,6 +35,10 @@ class StructuredEnrichmentPromoter
                 throw new RuntimeException('Enrichment row has no usable payload.');
             }
 
+            if (! in_array($lockedRow->entity_type, ['campus', 'program', 'offering'], true)) {
+                throw new RuntimeException('Unsupported enrichment entity type.');
+            }
+
             $validator = $this->payloadValidator ?? app(StructuredEnrichmentPayloadValidator::class);
             $payloadBlockers = $validator->blockers($lockedRow->entity_type, $payload);
             if ($payloadBlockers !== []) {
