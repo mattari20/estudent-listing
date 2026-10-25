@@ -95,4 +95,41 @@ class SafeSourceHttpRetrieverTest extends TestCase
             'eStudent-Test/1.0'
         );
     }
+
+    public function test_redirect_chain_is_limited_to_five_hops(): void
+    {
+        Http::fake([
+            'https://example.test/*' => Http::response('', 302, [
+                'Location' => '/loop',
+            ]),
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Source exceeded the maximum of 5 redirects.');
+
+        app(SafeSourceHttpRetriever::class)->get(
+            'https://example.test/start',
+            10,
+            5,
+            'eStudent-Test/1.0'
+        );
+    }
+
+    public function test_redirect_without_location_is_rejected(): void
+    {
+        Http::fake([
+            'https://example.test/start' => Http::response('', 302),
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Source returned a redirect without a Location header.');
+
+        app(SafeSourceHttpRetriever::class)->get(
+            'https://example.test/start',
+            10,
+            5,
+            'eStudent-Test/1.0'
+        );
+    }
+
 }
