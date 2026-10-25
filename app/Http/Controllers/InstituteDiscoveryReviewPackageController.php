@@ -37,7 +37,7 @@ class InstituteDiscoveryReviewPackageController
         ];
         $path = null;
 
-        foreach ($directories as $directory) {
+        foreach ($directories as $directoryIndex => $directory) {
             $candidateManifestPath = $directory.'/manifest.json';
             $candidateCsvPath = $directory.'/candidates.csv';
             if (! $disk->exists($candidateManifestPath) || ! $disk->exists($candidateCsvPath)) {
@@ -52,8 +52,12 @@ class InstituteDiscoveryReviewPackageController
             }
 
             $expectedChecksum = data_get($manifest, 'checksums.candidates_csv_sha256');
-            if (! is_string($expectedChecksum)
-                || ! hash_equals($expectedChecksum, hash('sha256', $disk->get($candidateCsvPath)))) {
+            if (is_string($expectedChecksum)) {
+                if (! hash_equals($expectedChecksum, hash('sha256', $disk->get($candidateCsvPath)))) {
+                    continue;
+                }
+            } elseif ($directoryIndex === 0) {
+                // New batch-scoped packages must always carry a verified checksum.
                 continue;
             }
 
