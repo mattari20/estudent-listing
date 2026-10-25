@@ -7,6 +7,7 @@ use App\Models\Source;
 /**
  * Verifies that a source is active and belongs to an explicitly configured
  * official-source profile before its observations can drive discovery.
+ * Profile URL matching is deliberately exact to avoid lookalike-host acceptance.
  */
 class OfficialSourceIdentityVerifier
 {
