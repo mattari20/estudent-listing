@@ -31,13 +31,13 @@ class SafeSourceHttpRetriever
 
             if (! filter_var($normalizedHost, FILTER_VALIDATE_IP)) {
                 if (! extension_loaded('curl') || ! defined('CURLOPT_RESOLVE')) {
-                    throw new \\RuntimeException('Source DNS pinning is unavailable; request blocked.');
+                    throw new \RuntimeException('Source DNS pinning is unavailable; request blocked.');
                 }
 
                 $port = (int) ($currentParts['port'] ?? (strtolower($currentParts['scheme'] ?? '') === 'https' ? 443 : 80));
                 $validatedAddress = $validatedAddresses[0] ?? null;
                 if (! is_string($validatedAddress) || $validatedAddress === '') {
-                    throw new \\RuntimeException('Source DNS validation returned no address; request blocked.');
+                    throw new \RuntimeException('Source DNS validation returned no address; request blocked.');
                 }
                 $curlAddress = filter_var($validatedAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)
                     ? '['.$validatedAddress.']'
