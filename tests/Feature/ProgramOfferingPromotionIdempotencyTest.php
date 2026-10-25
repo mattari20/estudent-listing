@@ -115,13 +115,13 @@ class ProgramOfferingPromotionIdempotencyTest extends TestCase
         ]);
 
         StructuredEnrichmentPromotionEvent::creating(function (): void {
-            throw new \\RuntimeException('Simulated audit persistence failure.');
+            throw new \RuntimeException('Simulated audit persistence failure.');
         });
 
         try {
             app(StructuredEnrichmentPromoter::class)->promote($row);
             $this->fail('Expected the audit persistence failure to abort promotion.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertSame('Simulated audit persistence failure.', $exception->getMessage());
         } finally {
             StructuredEnrichmentPromotionEvent::flushEventListeners();
