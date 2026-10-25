@@ -88,3 +88,16 @@ The authoritative source-of-truth policy is documented in `docs/official-source-
 
 Important distinction: `refresh_eligible` is a classification outcome, not a database write. These PRs do not by themselves prove end-to-end automatic refresh, scheduler operation, or live Hostinger deployment. Phase 2 remains open until implementation, CI, staging, and live acceptance gates have evidence.
 
+## Official-source refresh safeguards — 25 October 2026
+
+- [x] Discovery refuses to invoke the agent when the matched source fails authoritative identity verification (PR #653).
+- [x] Official refresh policy requires an explicit timezone-aware observation timestamp (PR #654).
+- [x] Promotion audit insert failure has a regression test asserting canonical update rollback (PR #655).
+- [ ] CI must pass for credential-bearing evidence URL rejection (PR #656).
+- [ ] Implement a canonical refresh writer that revalidates current field values/version and policy inside one transaction before updating an allowlisted field.
+- [ ] Add stale-evidence conflict coverage proving a newer canonical value is never overwritten by an older proposal.
+- [ ] Verify failed or malformed retrievals preserve canonical values and create an inconclusive/review outcome.
+- [ ] Run an end-to-end staging test with a controlled official-source change, review decision, transactional update, and audit event.
+- [ ] Independently verify the deployed Hostinger revision, scheduler execution, and authenticated operator acceptance checks.
+
+The identity and timestamp checks above are repository-level safeguards, not evidence that automatic canonical refresh is active. No production database writes are authorized by this matrix. Phase 2 remains open until the canonical refresh writer, CI, staging, and live acceptance gates are verified.
