@@ -56,6 +56,32 @@ class SourceUrlGuard
         }
     }
 
+    private function isInCidr(string $packedAddress, string $cidr): bool
+    {
+        [$network, $prefixLength] = explode('/', $cidr, 2);
+        $packedNetwork = @inet_pton($network);
+
+        if (! is_string($packedNetwork) || strlen($packedNetwork) !== strlen($packedAddress)) {
+            return false;
+        }
+
+        $prefixLength = (int) $prefixLength;
+        $wholeBytes = intdiv($prefixLength, 8);
+        $remainingBits = $prefixLength % 8;
+
+        if ($wholeBytes > 0 && substr($packedAddress, 0, $wholeBytes) !== substr($packedNetwork, 0, $wholeBytes)) {
+            return false;
+        }
+
+        if ($remainingBits === 0) {
+            return true;
+        }
+
+        $mask = (0xff << (8 - $remainingBits)) & 0xff;
+
+        return (ord($packedAddress[$wholeBytes]) & $mask) === (ord($packedNetwork[$wholeBytes]) & $mask);
+    }
+
     private function isPublicIp(string $ip): bool
     {
         $packed = @inet_pton($ip);
@@ -64,12 +90,16 @@ class SourceUrlGuard
             return false;
         }
 
-        // Multicast and class-E IPv4 ranges are not valid unicast destinations
-        // for official-source retrieval. FILTER_FLAG_NO_RES_RANGE alone does
-        // not consistently reject these ranges across PHP versions.
+        // Multicast, class-E, shared, and benchmarking IPv4 ranges are not
+        // valid public unicast destinations. PHP's reserved-range flags vary
+        // by version and do not consistently reject all special-use ranges.
         if (strlen($packed) === 4) {
             $firstOctet = ord($packed[0]);
-            if ($firstOctet >= 224) {
+            if (
+                $firstOctet >= 224
+                || $this->isInCidr($packed, '100.64.0.0/10')
+                || $this->isInCidr($packed, '198.18.0.0/15')
+            ) {
                 return false;
             }
         }
@@ -80,9 +110,18 @@ class SourceUrlGuard
             return false;
         }
 
-        // 2001:db8::/32 is reserved for documentation and is not a
-        // globally routable destination for official-source retrieval.
-        if (strlen($packed) === 16 && substr($packed, 0, 4) === "\x20\x01\x0d\xb8") {
+        // These IPv6 prefixes are not safe direct public destinations for
+        // source retrieval: documentation, NAT64 translation, 6to4 tunneling,
+        // and deprecated site-local unicast.
+        if (
+            strlen($packed) === 16
+            && (
+                $this->isInCidr($packed, '2001:db8::/32')
+                || $this->isInCidr($packed, '64:ff9b::/96')
+                || $this->isInCidr($packed, '2002::/16')
+                || $this->isInCidr($packed, 'fec0::/10')
+            )
+        ) {
             return false;
         }
 
