@@ -1,14 +1,14 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\Campus;
-use App\\Models\\Institution;
-use App\\Models\\Program;
-use App\\Models\\ProgramOffering;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\Artisan;
-use Tests\\TestCase;
+use App\Models\Campus;
+use App\Models\Institution;
+use App\Models\Program;
+use App\Models\ProgramOffering;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
+use Tests\TestCase;
 
 class ReconcileProgrammeOfferingGapsTest extends TestCase
 {
