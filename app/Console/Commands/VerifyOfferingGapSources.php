@@ -1,9 +1,9 @@
 <?php
 
-namespace App\\Console\\Commands;
+namespace App\Console\Commands;
 
-use App\\Services\\OfficialSourcePageVerifier;
-use Illuminate\\Console\\Command;
+use App\Services\OfficialSourcePageVerifier;
+use Illuminate\Console\Command;
 
 class VerifyOfferingGapSources extends Command
 {
