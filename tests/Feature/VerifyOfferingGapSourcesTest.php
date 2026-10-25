@@ -77,7 +77,7 @@ class VerifyOfferingGapSourcesTest extends TestCase
 
         $url = 'https://university.example.edu/programmes';
         $body = '<html><head><title>University</title><style>.x{content:"BS Hidden Program"}</style><script>const program = "BS Hidden Program";</script></head><body>Official programme information</body></html>';
-        $response = new Response(new \\GuzzleHttp\\Psr7\\Response(200, ['Content-Type' => 'text/html; charset=UTF-8'], $body));
+        $response = new Response(new \GuzzleHttp\Psr7\Response(200, ['Content-Type' => 'text/html; charset=UTF-8'], $body));
         $retriever = Mockery::mock(SafeSourceHttpRetriever::class);
         $retriever->shouldReceive('get')
             ->once()
