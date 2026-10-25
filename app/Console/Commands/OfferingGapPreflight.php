@@ -80,6 +80,7 @@ class OfferingGapPreflight extends Command
             fclose($handle);
 
             $seen = [];
+            $seenProgramIds = [];
             $summary = [
                 'register_rows' => count($rows),
                 'program_found' => 0,
@@ -88,6 +89,7 @@ class OfferingGapPreflight extends Command
                 'campus_missing_or_institution_mismatch' => 0,
                 'existing_active_offering' => 0,
                 'duplicate_offering_exists' => 0,
+                'duplicate_program_id_in_register' => 0,
                 'evidence_blocked' => 0,
                 'preflight_ready_for_manual_review' => 0,
                 'blocked' => 0,
@@ -108,6 +110,9 @@ class OfferingGapPreflight extends Command
                 $activeOffering = false;
                 $anyOffering = false;
                 $duplicateKey = $pid . ':' . $cid . ':' . $row['candidate_delivery_mode'];
+                $duplicateProgramId = $pid > 0 && isset($seenProgramIds[$pid]);
+                if ($duplicateProgramId) $summary['duplicate_program_id_in_register']++;
+                if ($pid > 0) $seenProgramIds[$pid] = true;
 
                 if ($programOk) $summary['program_found']++;
                 else $summary['program_missing_or_institution_mismatch']++;
@@ -138,6 +143,7 @@ class OfferingGapPreflight extends Command
                 if ($activeOffering) $blockers[] = 'active_offering_already_exists';
                 if ($anyOffering) $blockers[] = 'offering_row_already_exists';
                 if (isset($seen[$duplicateKey])) $blockers[] = 'duplicate_candidate_in_register';
+                if ($duplicateProgramId) $blockers[] = 'duplicate_program_id_in_register';
                 $seen[$duplicateKey] = true;
 
                 $ready = $blockers === [];
