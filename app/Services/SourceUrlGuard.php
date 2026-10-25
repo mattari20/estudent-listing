@@ -47,21 +47,39 @@ class SourceUrlGuard
 
     private function isPublicIp(string $ip): bool
     {
+        $packed = @inet_pton($ip);
+
+        if (! is_string($packed)) {
+            return false;
+        }
+
+        // Multicast and class-E IPv4 ranges are not valid unicast destinations
+        // for official-source retrieval. FILTER_FLAG_NO_RES_RANGE alone does
+        // not consistently reject these ranges across PHP versions.
+        if (strlen($packed) === 4) {
+            $firstOctet = ord($packed[0]);
+            if ($firstOctet >= 224) {
+                return false;
+            }
+        }
+
+        // IPv6 multicast addresses begin with 0xff and must never be fetched
+        // as an official-source destination.
+        if (strlen($packed) === 16 && ord($packed[0]) === 0xff) {
+            return false;
+        }
+
         // IPv4-mapped IPv6 literals can encode a private IPv4 destination,
         // e.g. ::ffff:127.0.0.1 or its hexadecimal equivalent ::ffff:7f00:1.
         // Classify the embedded IPv4 address with the same public-range policy.
-        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            $packed = @inet_pton($ip);
-            if (
-                is_string($packed)
-                && strlen($packed) === 16
-                && substr($packed, 0, 10) === str_repeat("\0", 10)
-                && substr($packed, 10, 2) === "\xff\xff"
-            ) {
-                $embeddedIpv4 = inet_ntop(substr($packed, 12, 4));
-                if (! is_string($embeddedIpv4) || ! $this->isPublicIp($embeddedIpv4)) {
-                    return false;
-                }
+        if (
+            strlen($packed) === 16
+            && substr($packed, 0, 10) === str_repeat("\0", 10)
+            && substr($packed, 10, 2) === "\xff\xff"
+        ) {
+            $embeddedIpv4 = inet_ntop(substr($packed, 12, 4));
+            if (! is_string($embeddedIpv4) || ! $this->isPublicIp($embeddedIpv4)) {
+                return false;
             }
         }
 
