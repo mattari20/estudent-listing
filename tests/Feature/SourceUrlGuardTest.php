@@ -36,4 +36,20 @@ class SourceUrlGuardTest extends TestCase
 
         app(SourceUrlGuard::class)->validate('https://user:secret@example.com/path');
     }
+
+    public function test_ipv4_mapped_ipv6_loopback_literal_is_rejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Source host is not publicly routable.');
+
+        app(SourceUrlGuard::class)->validate('http://[::ffff:127.0.0.1]/internal');
+    }
+
+    public function test_hexadecimal_ipv4_mapped_ipv6_loopback_literal_is_rejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Source host is not publicly routable.');
+
+        app(SourceUrlGuard::class)->validate('http://[::ffff:7f00:1]/internal');
+    }
 }
