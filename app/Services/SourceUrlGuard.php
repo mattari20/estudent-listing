@@ -22,11 +22,25 @@ class SourceUrlGuard
         }
 
         $host = $parts['host'] ?? '';
-        if ($host === '' || (filter_var($host, FILTER_VALIDATE_IP) && ! $this->isPublicIp($host))) {
+        // PHP may retain square brackets around IPv6 literals in parse_url().
+        // Strip them before IP classification so ::1 and unique-local IPv6
+        // addresses cannot bypass the non-public address check.
+        $normalizedHost = trim($host, '[]');
+
+        if ($normalizedHost === '') {
             throw new \InvalidArgumentException('Source host is not publicly routable.');
         }
 
-        $records = dns_get_record($host, DNS_A | DNS_AAAA);
+        if (filter_var($normalizedHost, FILTER_VALIDATE_IP)) {
+            if (! $this->isPublicIp($normalizedHost)) {
+                throw new \InvalidArgumentException('Source host is not publicly routable.');
+            }
+
+            // Literal IPs need no DNS lookup; validate the address directly.
+            return;
+        }
+
+        $records = dns_get_record($normalizedHost, DNS_A | DNS_AAAA);
         foreach ($records ?: [] as $record) {
             $ip = $record['ip'] ?? $record['ipv6'] ?? null;
             if ($ip && ! $this->isPublicIp($ip)) {
