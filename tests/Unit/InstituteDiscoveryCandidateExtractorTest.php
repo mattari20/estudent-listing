@@ -36,4 +36,26 @@ class InstituteDiscoveryCandidateExtractorTest extends TestCase
 
         $this->assertSame(['Bachelor of Computer Science'], array_column($programs, 'name'));
     }
+
+    public function test_fallback_prefers_main_content_and_ignores_degree_looking_navigation_and_footer_links(): void
+    {
+        $html = <<<'HTML'
+        <html><body>
+          <nav><a href="/bs-portal">BS Admission Portal</a><a href="/bachelor">Bachelor Admissions Guide</a></nav>
+          <main>
+            <h2>Undergraduate Degree Listing</h2>
+            <a href="/programs/bs-computer-science">BS Computer Science</a>
+            <a href="/programs/bs-psychology">Bachelor of Science (BS) in Psychology</a>
+          </main>
+          <footer><a href="/bs-rules">BS Rules and Regulations</a></footer>
+        </body></html>
+        HTML;
+
+        $programs = (new InstituteDiscoveryCandidateExtractor())->extract('program', $html);
+
+        $this->assertSame(
+            ['BS Computer Science', 'Bachelor of Science (BS) in Psychology'],
+            array_column($programs, 'name')
+        );
+    }
 }
