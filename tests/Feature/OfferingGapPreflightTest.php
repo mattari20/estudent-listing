@@ -98,4 +98,50 @@ class OfferingGapPreflightTest extends TestCase
         }
     }
 
+
+    public function test_preflight_rejects_non_http_official_evidence_urls(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'offering-gap-register-');
+        $this->assertNotFalse($path);
+        $handle = fopen($path, 'wb');
+        $this->assertNotFalse($handle);
+
+        try {
+            fputcsv($handle, [
+                'program_id', 'institution_id', 'program_name', 'official_source_url',
+                'source_status', 'campus_status', 'remediation_decision',
+                'candidate_campus_id', 'candidate_campus_name',
+                'candidate_delivery_mode', 'campus_source_url',
+            ]);
+            fputcsv($handle, [
+                '999991', '999992', 'Test programme', 'javascript:alert(1)',
+                'source-found', 'confirmed', 'ready-for-validation',
+                '999993', 'Campus A', 'on-campus', 'https://campus.example.edu/campus-a',
+            ]);
+            fclose($handle);
+
+            $exitCode = Artisan::call('institutes:offering-gap-preflight', [
+                '--register' => $path,
+                '--json' => true,
+            ]);
+            $report = json_decode(Artisan::output(), true);
+
+            $this->assertSame(0, $exitCode);
+            $this->assertFalse($report['records'][0]['official_evidence_url_valid'] ?? true);
+            $this->assertTrue($report['records'][0]['campus_evidence_url_valid'] ?? false);
+            $this->assertFalse($report['records'][0]['evidence_gate_passed'] ?? true);
+            $this->assertContains(
+                'invalid_official_programme_evidence_url',
+                $report['records'][0]['blockers'] ?? []
+            );
+            $this->assertSame(0, $report['database_mutations'] ?? null);
+            $this->assertFalse($report['mutation_performed'] ?? true);
+        } finally {
+            if (is_resource($handle)) {
+                fclose($handle);
+            }
+            @unlink($path);
+        }
+    }
+
 }
