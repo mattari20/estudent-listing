@@ -49,17 +49,26 @@ class InstituteDiscoveryAgentService
             throw new \RuntimeException('Discovery source exceeds the 5 MB retrieval limit.');
         }
 
-        $snapshot = app(SourceSnapshotService::class)->capture(
-            $source,
-            $body,
-            $source->url,
-            $response->header('Content-Type'),
-            [
-                'agent_profile' => $profile,
-                'retrieval_status' => $response->status(),
-                'extraction_method' => $useAi ? 'ai_extraction' : 'deterministic',
-            ]
-        );
+        $contentHash = hash('sha256', $body);
+        $snapshot = SourceSnapshot::query()
+            ->where('source_id', $source->id)
+            ->where('content_hash', $contentHash)
+            ->latest('captured_at')
+            ->first();
+
+        if (! $snapshot) {
+            $snapshot = app(SourceSnapshotService::class)->capture(
+                $source,
+                $body,
+                $source->url,
+                $response->header('Content-Type'),
+                [
+                    'agent_profile' => $profile,
+                    'retrieval_status' => $response->status(),
+                    'extraction_method' => $useAi ? 'ai_extraction' : 'deterministic',
+                ]
+            );
+        }
 
         return $this->persistCandidates($profile, $institution, $source, $snapshot, $useAi);
     }
@@ -95,6 +104,17 @@ class InstituteDiscoveryAgentService
 
         if ($entityType !== 'program' && $useAi) {
             throw new \RuntimeException('AI extraction is currently enabled only for programme discovery profiles.');
+        }
+
+        $existingBatch = $this->existingBatchForSnapshot($profile, $source, $snapshot, $useAi);
+        if ($existingBatch) {
+            return $this->summaryForExistingBatch(
+                $existingBatch,
+                $institution,
+                $source,
+                $snapshot,
+                $useAi
+            );
         }
 
         $candidates = $entityType === 'program' && $useAi
@@ -245,6 +265,87 @@ class InstituteDiscoveryAgentService
             'candidate_rows' => $candidateRows,
             'duplicate_rows' => $duplicateRows,
             'extraction_method' => $useAi ? 'ai_extraction' : 'deterministic',
+            'review_package' => $reviewPackage,
+        ];
+    }
+
+    /**
+     * Return the immutable batch already produced for this profile, source content,
+     * extraction method, and extractor version. Old batches remain untouched.
+     */
+    private function existingBatchForSnapshot(
+        string $profile,
+        Source $source,
+        SourceSnapshot $snapshot,
+        bool $useAi,
+    ): ?ImportBatch {
+        $sourceType = $useAi ? 'ai_extraction' : 'automated_discovery';
+        $batchPrefix = ($useAi ? 'ai-' : 'agent-').$profile.'-';
+        $versionMarker = 'discovery_extractor_version='.InstituteDiscoveryCandidateExtractor::VERSION;
+
+        $batches = ImportBatch::query()
+            ->where('source_id', $source->id)
+            ->where('source_type', $sourceType)
+            ->where('batch_key', 'like', $batchPrefix.'%')
+            ->where('notes', 'like', '%'.$versionMarker.'%')
+            ->latest('id')
+            ->get();
+
+        foreach ($batches as $batch) {
+            if (preg_match('/source snapshot #(\\d+)/i', (string) $batch->notes, $matches) !== 1) {
+                continue;
+            }
+
+            $previousSnapshot = SourceSnapshot::query()->find((int) $matches[1]);
+            if ($previousSnapshot && hash_equals((string) $previousSnapshot->content_hash, (string) $snapshot->content_hash)) {
+                return $batch;
+            }
+        }
+
+        return null;
+    }
+
+    private function summaryForExistingBatch(
+        ImportBatch $batch,
+        Institution $institution,
+        Source $source,
+        SourceSnapshot $snapshot,
+        bool $useAi,
+    ): array {
+        $batch->loadMissing('rows');
+        $evidenceId = Evidence::query()
+            ->where('source_id', $source->id)
+            ->where('snapshot_id', (int) preg_match('/source snapshot #(\\d+)/i', (string) $batch->notes, $matches) ? (int) $matches[1] : $snapshot->id)
+            ->latest('id')
+            ->value('id');
+        $batchSnapshotId = $snapshot->id;
+        if (preg_match('/source snapshot #(\\d+)/i', (string) $batch->notes, $matches) === 1) {
+            $batchSnapshotId = (int) $matches[1];
+        }
+        $batchSnapshot = SourceSnapshot::query()->find($batchSnapshotId) ?? $snapshot;
+        $reviewPackage = app(InstituteDiscoveryReviewPackageService::class)->create(
+            $batch,
+            $batchSnapshot,
+            $evidenceId === null ? null : (int) $evidenceId
+        );
+
+        $totalRows = (int) ($batch->total_rows ?? $batch->rows->count());
+        $candidateRows = $batch->rows->where('status', 'candidate')->count();
+        $duplicateRows = $batch->rows->where('status', 'duplicate')->count();
+
+        return [
+            'entity_type' => $batch->entity_type,
+            'profile' => $institution->slug,
+            'institution_id' => $institution->id,
+            'source_id' => $source->id,
+            'snapshot_id' => $batchSnapshot->id,
+            'evidence_id' => $evidenceId === null ? null : (int) $evidenceId,
+            'batch_id' => $batch->id,
+            'total_rows' => $totalRows,
+            'candidate_rows' => $candidateRows,
+            'duplicate_rows' => $duplicateRows,
+            'extraction_method' => $useAi ? 'ai_extraction' : 'deterministic',
+            'outcome' => $totalRows === 0 ? 'no_candidates' : 'reused_existing_batch',
             'review_package' => $reviewPackage,
         ];
     }
