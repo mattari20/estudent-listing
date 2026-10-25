@@ -1,0 +1,1 @@
+source_batch_id,import_row_id,row_number,candidate_name,normalized_slug,entity_type,source_url,snapshot_id,evidence_id,extractor_version,source_excerpt,validation_errors,duplicate_kind,duplicate_target_import_row_id,current_row_status,disposition,reviewer_rationale,reviewed_at
