@@ -84,7 +84,7 @@ class InstituteDiscoveryFieldDiffService
         $state = $blockers !== []
             ? 'blocked'
             : ($changes === [] ? 'no_change' : (
-                collect($changes)->every(fn (array $change): bool => $change['state'] === 'refresh_eligible')
+                count(array_filter($changes, fn (array $change): bool => $change['state'] !== 'refresh_eligible')) === 0
                     ? 'refresh_eligible'
                     : 'review_required'
             ));
