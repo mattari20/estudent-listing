@@ -160,7 +160,13 @@ class OfferingGapPreflight extends Command
                 $report['records'][] = [
                     'program_id' => $pid ?: null,
                     'institution_id' => $iid ?: null,
+                    'register_line' => $row['_line'],
                     'programme_name_register' => $row['program_name'],
+                    'official_source_url' => $row['official_source_url'],
+                    'source_status_register' => $row['source_status'],
+                    'campus_status_register' => $row['campus_status'],
+                    'remediation_decision_register' => $row['remediation_decision'],
+                    'campus_source_url' => $row['campus_source_url'],
                     'programme_found' => (bool) $program,
                     'programme_institution_matches' => (bool) $programOk,
                     'programme_status_live' => $program->status ?? null,
