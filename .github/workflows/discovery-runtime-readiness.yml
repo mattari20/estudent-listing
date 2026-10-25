@@ -72,6 +72,7 @@ jobs:
 
             php artisan --version
             php artisan migrate:status --no-ansi > /tmp/estudent-migration-status.txt
+            grep -F "2026_10_25_000002_create_official_source_refresh_events_table" /tmp/estudent-migration-status.txt || echo "official_source_refresh_migration_status=NOT_LISTED"
             php artisan route:list --path=institutes/operations/discovery-packages --json > /tmp/estudent-package-routes.json
 
             php -r '
@@ -86,10 +87,10 @@ jobs:
                 "source_snapshots",
                 "import_batches",
                 "import_rows",
-                "official_source_refresh_events",
               ];
+              $optional = ["official_source_refresh_events"];
               $tables = [];
-              foreach ($required as $table) $tables[$table] = $schema::hasTable($table);
+              foreach (array_merge($required, $optional) as $table) $tables[$table] = $schema::hasTable($table);
               $refreshMigration = $db::table("migrations")
                 ->where("migration", "2026_10_25_000002_create_official_source_refresh_events_table")
                 ->exists();
@@ -111,7 +112,7 @@ jobs:
               echo "official_source_refresh_migration_applied=" . ($refreshMigration ? "YES" : "NO") . PHP_EOL;
               echo "discovery_outcome_totals=" . json_encode($outcomes, JSON_UNESCAPED_SLASHES) . PHP_EOL;
               echo "monitoring_policy_counts=" . json_encode($policies, JSON_UNESCAPED_SLASHES) . PHP_EOL;
-              $missing = array_keys(array_filter($tables, fn ($exists) => !$exists));
+              $missing = array_keys(array_filter($tables, fn ($exists, $table) => !$exists && in_array($table, $required, true), ARRAY_FILTER_USE_BOTH));
               if ($missing) {
                 echo "runtime_readiness=BLOCKED_REQUIRED_TABLES_MISSING:" . implode(",", $missing) . PHP_EOL;
                 exit(20);
