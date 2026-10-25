@@ -34,9 +34,13 @@ class InstituteDiscoveryCandidateQualityService
             $blockers[] = 'candidate_slug_empty';
         }
 
+        $sourceParts = parse_url($sourceUrl);
         if (! filter_var($sourceUrl, FILTER_VALIDATE_URL)
-            || ! in_array(strtolower((string) parse_url($sourceUrl, PHP_URL_SCHEME)), ['http', 'https'], true)
-            || ! parse_url($sourceUrl, PHP_URL_HOST)) {
+            || ! is_array($sourceParts)
+            || ! in_array(strtolower((string) ($sourceParts['scheme'] ?? '')), ['http', 'https'], true)
+            || empty($sourceParts['host'])
+            || isset($sourceParts['user'])
+            || isset($sourceParts['pass'])) {
             $blockers[] = 'source_url_invalid';
         }
 
