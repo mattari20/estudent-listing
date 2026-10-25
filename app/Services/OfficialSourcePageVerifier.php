@@ -1,9 +1,7 @@
 <?php
 
-namespace App\\Services;
+namespace App\Services;
 
-use Illuminate\\Http\\Client\\Response;
-use Illuminate\\Support\\Facades\\File;
 use Throwable;
 
 class OfficialSourcePageVerifier
@@ -250,7 +248,7 @@ class OfficialSourcePageVerifier
             }
 
             $title = '';
-            if (preg_match('/<title[^>]*>(.*?)<\\/title>/is', $body, $matches) === 1) {
+            if (preg_match('/<title[^>]*>(.*?)<\/title>/is', $body, $matches) === 1) {
                 $title = trim(html_entity_decode(strip_tags($matches[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
             }
             $text = html_entity_decode(strip_tags($body), ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -275,7 +273,7 @@ class OfficialSourcePageVerifier
     private function normalizeText(string $text): string
     {
         $text = mb_strtolower($text);
-        $text = preg_replace('/[^\\p{L}\\p{N}]+/u', ' ', $text) ?? $text;
-        return trim(preg_replace('/\\s+/u', ' ', $text) ?? $text);
+        $text = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $text) ?? $text;
+        return trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
     }
 }
