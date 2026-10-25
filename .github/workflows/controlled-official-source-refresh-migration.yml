@@ -1,0 +1,199 @@
+name: Controlled Official-Source Refresh Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_migration:
+        description: "Set true to apply only the official-source refresh audit-table migration after deployed code and schema checks pass. False is read-only."
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: controlled-official-source-refresh-migration
+  cancel-in-progress: false
+
+jobs:
+  resolve-target:
+    name: Resolve approved application-code revision
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      target_revision: ${{ steps.revision.outputs.target_revision }}
+    steps:
+      - name: Checkout main with full history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Resolve latest application-code commit
+        id: revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          test -n "$revision"
+          echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "expected_application_revision=$revision"
+
+  migrate:
+    name: Verify deployed code and optionally apply one additive migration
+    needs: resolve-target
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Validate target and run guarded migration
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
+          TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
+          CONFIRM_MIGRATION: ${{ inputs.confirm_migration }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,TARGET_REVISION,CONFIRM_MIGRATION
+          command_timeout: 6m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: project path must be absolute"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: project path must not contain .."; exit 2 ;; esac
+            test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
+            cd "$PROJECT_PATH"
+
+            git rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
+              echo "ERROR: Hostinger checkout Git metadata is required to verify the deployed code"
+              exit 4
+            }
+            DEPLOYED_REVISION="$(git rev-parse HEAD)"
+            echo "deployed_revision=$DEPLOYED_REVISION"
+            echo "expected_application_revision=$TARGET_REVISION"
+            git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || {
+              echo "ERROR: expected application revision is unavailable in Hostinger Git metadata"
+              exit 5
+            }
+            if ! git diff --quiet "$TARGET_REVISION" "$DEPLOYED_REVISION" -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
+              echo "ERROR: deployed application code differs from the approved target; migration blocked"
+              exit 6
+            fi
+            if ! git diff --quiet HEAD -- app bootstrap config database resources routes composer.json composer.lock public artisan ||                ! git diff --cached --quiet HEAD -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
+              echo "ERROR: tracked application-code drift detected; migration blocked"
+              exit 7
+            fi
+            echo "deployed_application_code_status=APPLICATION_CODE_MATCH"
+
+            export CONFIRM_MIGRATION
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+            $schema = \Illuminate\Support\Facades\Schema::class;
+            $db = \Illuminate\Support\Facades\DB::class;
+            $artisan = \Illuminate\Support\Facades\Artisan::class;
+            $table = 'official_source_refresh_events';
+            $migration = '2026_10_25_000002_create_official_source_refresh_events_table';
+            $path = 'database/migrations/'.$migration.'.php';
+            $requiredColumns = [
+                'id', 'source_id', 'source_change_observation_id', 'canonical_type',
+                'canonical_id', 'field_name', 'before_value', 'after_value',
+                'evidence_url', 'evidence_excerpt', 'content_fingerprint',
+                'observed_at', 'occurred_at', 'created_at', 'updated_at',
+            ];
+
+            if (! is_file(base_path($path))) {
+                fwrite(STDERR, "ERROR: required migration file is missing.".PHP_EOL);
+                exit(20);
+            }
+            if (! $schema::hasTable('migrations')) {
+                fwrite(STDERR, "ERROR: migrations table is missing; manual schema review is required.".PHP_EOL);
+                exit(21);
+            }
+
+            $tableExists = $schema::hasTable($table);
+            $migrationApplied = $db::table('migrations')->where('migration', $migration)->exists();
+            $missingColumns = [];
+            if ($tableExists) {
+                foreach ($requiredColumns as $column) {
+                    if (! $schema::hasColumn($table, $column)) {
+                        $missingColumns[] = $column;
+                    }
+                }
+            }
+
+            if ($tableExists && $migrationApplied && $missingColumns === []) {
+                echo json_encode([
+                    'migration_status' => 'ALREADY_READY',
+                    'table_exists' => true,
+                    'migration_applied' => true,
+                    'missing_columns' => [],
+                    'migration_executed_this_run' => false,
+                    'production_data_mutations' => 'NONE',
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+                exit(0);
+            }
+
+            if ($tableExists || $migrationApplied) {
+                fwrite(STDERR, json_encode([
+                    'migration_status' => 'BLOCKED_INCONSISTENT_SCHEMA',
+                    'table_exists' => $tableExists,
+                    'migration_applied' => $migrationApplied,
+                    'missing_columns' => $missingColumns,
+                    'migration_executed_this_run' => false,
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL);
+                exit(22);
+            }
+
+            if (getenv('CONFIRM_MIGRATION') !== 'true') {
+                echo json_encode([
+                    'migration_status' => 'NOT_APPLIED_DRY_RUN',
+                    'table_exists' => false,
+                    'migration_applied' => false,
+                    'required_columns' => $requiredColumns,
+                    'migration_would_run' => true,
+                    'migration_executed_this_run' => false,
+                    'production_data_mutations' => 'NONE',
+                    'next_action' => 'rerun_with_confirm_migration_true_after reviewing this report',
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+                exit(0);
+            }
+
+            $exitCode = $artisan::call('migrate', [
+                '--force' => true,
+                '--path' => $path,
+            ]);
+            echo $artisan::output();
+            if ($exitCode !== 0) {
+                fwrite(STDERR, "ERROR: targeted migration command failed.".PHP_EOL);
+                exit(23);
+            }
+
+            $tableExists = $schema::hasTable($table);
+            $migrationApplied = $db::table('migrations')->where('migration', $migration)->exists();
+            $missingColumns = [];
+            if ($tableExists) {
+                foreach ($requiredColumns as $column) {
+                    if (! $schema::hasColumn($table, $column)) {
+                        $missingColumns[] = $column;
+                    }
+                }
+            }
+            $ready = $tableExists && $migrationApplied && $missingColumns === [];
+            echo json_encode([
+                'migration_status' => $ready ? 'APPLIED_AND_VERIFIED' : 'POST_MIGRATION_VERIFICATION_FAILED',
+                'table_exists' => $tableExists,
+                'migration_applied' => $migrationApplied,
+                'missing_columns' => $missingColumns,
+                'migration_executed_this_run' => true,
+                'production_data_mutations' => 'NO_CANONICAL_RECORDS_CHANGED',
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            if (! $ready) {
+                exit(24);
+            }
+            PHP
+            echo "production_canonical_records_changed=NO"
