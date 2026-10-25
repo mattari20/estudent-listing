@@ -1,0 +1,155 @@
+name: Read-only Discovery Runtime Readiness
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discovery-runtime-readiness
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Audit deployed discovery runtime without mutations
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Resolve expected application revision
+        id: revision
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Resolve revision and fail closed if AI is enabled
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          test -n "$revision"
+          if grep -Eq "['\"]use_ai['\"][[:space:]]*=>[[:space:]]*true" config/institute_agent.php; then
+            echo "::error::A discovery profile enables AI; zero-cost runtime audit is blocked."
+            exit 12
+          fi
+          echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "expected_application_revision=$revision"
+          echo "scheduled_ai_extraction=disabled"
+
+      - name: Run read-only Hostinger runtime audit
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
+          TARGET_REVISION: ${{ steps.target.outputs.target_revision }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,TARGET_REVISION
+          command_timeout: 6m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: invalid project path"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: invalid project path"; exit 2 ;; esac
+            test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
+            cd "$PROJECT_PATH"
+            git rev-parse --is-inside-work-tree >/dev/null
+            if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+              echo "ERROR: tracked working-tree changes found; refusing runtime audit"
+              exit 4
+            fi
+
+            DEPLOYED_REVISION="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+            echo "deployed_application_revision=$DEPLOYED_REVISION"
+            echo "expected_application_revision=$TARGET_REVISION"
+            if [ "$DEPLOYED_REVISION" != "$TARGET_REVISION" ]; then
+              echo "runtime_readiness=BLOCKED_REVISION_MISMATCH"
+              exit 10
+            fi
+
+            php artisan --version
+            php artisan migrate:status --no-ansi > /tmp/estudent-migration-status.txt
+            php artisan route:list --path=institutes/operations/discovery-packages --json > /tmp/estudent-package-routes.json
+
+            php -r '
+              require "vendor/autoload.php";
+              $app = require "bootstrap/app.php";
+              $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+              $schema = \Illuminate\Support\Facades\Schema::class;
+              $db = \Illuminate\Support\Facades\DB::class;
+              $required = [
+                "institute_discovery_run_outcomes",
+                "source_monitoring_policies",
+                "source_snapshots",
+                "import_batches",
+                "import_rows",
+                "official_source_refresh_events",
+              ];
+              $tables = [];
+              foreach ($required as $table) $tables[$table] = $schema::hasTable($table);
+              $refreshMigration = $db::table("migrations")
+                ->where("migration", "2026_10_25_000002_create_official_source_refresh_events_table")
+                ->exists();
+              $outcomes = [];
+              if ($tables["institute_discovery_run_outcomes"]) {
+                $outcomes = $db::table("institute_discovery_run_outcomes")
+                  ->select("outcome", $db::raw("count(*) as count"))
+                  ->groupBy("outcome")->orderBy("outcome")->get()->mapWithKeys(
+                    fn ($row) => [$row->outcome => (int) $row->count]
+                  )->all();
+              }
+              $policies = ["active" => null, "due" => null];
+              if ($tables["source_monitoring_policies"]) {
+                $policies["active"] = $db::table("source_monitoring_policies")->where("status", "active")->count();
+                $policies["due"] = $db::table("source_monitoring_policies")->where("status", "active")
+                  ->where(fn ($q) => $q->whereNull("next_run_at")->orWhere("next_run_at", "<=", now()))->count();
+              }
+              echo "required_table_status=" . json_encode($tables, JSON_UNESCAPED_SLASHES) . PHP_EOL;
+              echo "official_source_refresh_migration_applied=" . ($refreshMigration ? "YES" : "NO") . PHP_EOL;
+              echo "discovery_outcome_totals=" . json_encode($outcomes, JSON_UNESCAPED_SLASHES) . PHP_EOL;
+              echo "monitoring_policy_counts=" . json_encode($policies, JSON_UNESCAPED_SLASHES) . PHP_EOL;
+              $missing = array_keys(array_filter($tables, fn ($exists) => !$exists));
+              if ($missing) {
+                echo "runtime_readiness=BLOCKED_REQUIRED_TABLES_MISSING:" . implode(",", $missing) . PHP_EOL;
+                exit(20);
+              }
+              if (!$refreshMigration) {
+                echo "official_source_refresh_status=BLOCKED_MIGRATION_NOT_APPLIED" . PHP_EOL;
+              } else {
+                echo "official_source_refresh_status=TABLE_AND_MIGRATION_PRESENT" . PHP_EOL;
+              }
+            '
+
+            php -r '
+              $routes = json_decode(file_get_contents("/tmp/estudent-package-routes.json"), true);
+              if (!is_array($routes)) { fwrite(STDERR, "ERROR: route:list JSON is malformed\n"); exit(2); }
+              $matches = array_values(array_filter($routes, fn ($r) => str_contains((string)($r["uri"] ?? ""), "institutes/operations/discovery-packages")));
+              $safe = count($matches) >= 2;
+              foreach ($matches as $route) {
+                $middleware = $route["middleware"] ?? [];
+                if (is_string($middleware)) $middleware = explode(",", $middleware);
+                $safe = $safe && in_array("auth", $middleware, true) && in_array("institute.operator", $middleware, true);
+              }
+              echo "protected_review_package_routes=" . count($matches) . PHP_EOL;
+              echo "package_route_auth_and_operator_middleware=" . ($safe ? "VERIFIED" : "BLOCKED") . PHP_EOL;
+              if (!$safe) exit(21);
+            '
+
+            php artisan institutes:data-integrity-report --no-ansi | php -r '
+              $report = json_decode(stream_get_contents(STDIN), true);
+              if (!is_array($report) || ($report["mutation_performed"] ?? true) !== false
+                || !is_array($report["canonical_counts"] ?? null) || in_array(null, $report["canonical_counts"], true)) {
+                fwrite(STDERR, "ERROR: read-only canonical count report failed validation\n"); exit(2);
+              }
+              echo "canonical_counts=" . json_encode($report["canonical_counts"], JSON_UNESCAPED_SLASHES) . PHP_EOL;
+              echo "canonical_mutations=NONE" . PHP_EOL;
+            '
+
+            echo "database_migrations=NOT_RUN"
+            echo "discovery_runs=NOT_TRIGGERED"
+            echo "production_data_mutations=NONE"
+            echo "paid_ai_calls=DISABLED"
+            echo "Note: this audit reports migration readiness; it never applies migrations."
