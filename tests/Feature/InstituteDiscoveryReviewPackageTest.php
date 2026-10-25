@@ -104,5 +104,51 @@ class InstituteDiscoveryReviewPackageTest extends TestCase
         $this->assertSame('reused', $again['status']);
         $this->assertDatabaseHas('import_rows', ['id' => ImportRow::query()->value('id'), 'status' => 'candidate']);
         $this->assertSame(1, Institution::where('slug', 'test-university')->count());
+
+        $secondBatch = ImportBatch::create([
+            'batch_key' => 'agent-test-package-second',
+            'entity_type' => 'program',
+            'source_type' => 'automated_discovery',
+            'source_id' => $source->id,
+            'status' => 'validated',
+            'total_rows' => 1,
+            'valid_rows' => 1,
+            'invalid_rows' => 0,
+            'candidate_rows' => 1,
+            'received_at' => now(),
+            'completed_at' => now(),
+            'notes' => 'Discovery candidates from source snapshot #'.$snapshot->id.'. discovery_extractor_version=4.',
+        ]);
+        ImportRow::create([
+            'import_batch_id' => $secondBatch->id,
+            'row_number' => 1,
+            'status' => 'candidate',
+            'match_state' => 'unresolved',
+            'parent_subject_type' => Institution::class,
+            'parent_subject_id' => $institution->id,
+            'payload' => [
+                'name' => 'Physics',
+                'slug' => 'physics',
+                '_provenance' => [
+                    'method' => 'deterministic',
+                    'confidence' => 0.95,
+                    'snapshot_id' => $snapshot->id,
+                    'evidence_id' => $evidence->id,
+                ],
+            ],
+            'normalized_payload' => ['name' => 'Physics', 'slug' => 'physics'],
+            'validation_errors' => null,
+        ]);
+
+        $secondPackage = $service->create($secondBatch->fresh());
+        $this->assertNotSame($result['csv_path'], $secondPackage['csv_path']);
+        $this->assertNotSame($result['manifest_path'], $secondPackage['manifest_path']);
+        $secondManifest = json_decode(Storage::disk('local')->get($secondPackage['manifest_path']), true);
+        $this->assertSame($secondBatch->id, $secondManifest['batch_id']);
+        $this->assertSame($snapshot->id, $secondManifest['snapshot_id']);
+        $this->assertSame(
+            hash('sha256', Storage::disk('local')->get($secondPackage['csv_path'])),
+            $secondManifest['checksums']['candidates_csv_sha256']
+        );
     }
 }
