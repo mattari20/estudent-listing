@@ -1,11 +1,11 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\ImportBatch;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Storage;
-use Symfony\\Component\\HttpFoundation\\BinaryFileResponse;
+use App\Models\ImportBatch;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class InstituteDiscoveryReviewPackageController
 {
@@ -22,7 +22,7 @@ class InstituteDiscoveryReviewPackageController
         // Empty/no-change discovery batches have no row payload to carry provenance.
         // Recover the snapshot from the service's recorded batch note, as the package
         // service does, so their manifest/CSV remain available to operators.
-        if ($snapshotId < 1 && preg_match('/source snapshot #(\\d+)/i', (string) $importBatch->notes, $matches) === 1) {
+        if ($snapshotId < 1 && preg_match('/source snapshot #(\d+)/i', (string) $importBatch->notes, $matches) === 1) {
             $snapshotId = (int) $matches[1];
         }
 
