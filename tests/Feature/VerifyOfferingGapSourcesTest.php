@@ -68,6 +68,51 @@ class VerifyOfferingGapSourcesTest extends TestCase
         }
     }
 
+    public function test_programme_name_inside_script_or_style_is_not_treated_as_source_evidence(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'source-verification-');
+        $this->assertNotFalse($path);
+        $handle = fopen($path, 'wb');
+        $this->assertNotFalse($handle);
+
+        $url = 'https://university.example.edu/programmes';
+        $body = '<html><head><title>University</title><style>.x{content:"BS Hidden Program"}</style><script>const program = "BS Hidden Program";</script></head><body>Official programme information</body></html>';
+        $response = new Response(new \\GuzzleHttp\\Psr7\\Response(200, ['Content-Type' => 'text/html; charset=UTF-8'], $body));
+        $retriever = Mockery::mock(SafeSourceHttpRetriever::class);
+        $retriever->shouldReceive('get')
+            ->once()
+            ->with($url, 15, 5, 'eStudent-OfficialSourceVerifier/1.0')
+            ->andReturn($response);
+        $this->app->instance(SafeSourceHttpRetriever::class, $retriever);
+
+        try {
+            fputcsv($handle, [
+                'program_id', 'institution_id', 'program_name', 'official_source_url',
+                'source_status', 'campus_status', 'remediation_decision',
+                'candidate_campus_id', 'candidate_campus_name',
+                'candidate_delivery_mode', 'campus_source_url',
+            ]);
+            fputcsv($handle, [
+                11, 2, 'BS Hidden Program', $url, 'not-verified',
+                'verify-campus', 'blocked', 4, 'Main Campus', 'on_campus', '',
+            ]);
+            fclose($handle);
+
+            $report = app(OfficialSourcePageVerifier::class)->verify($path);
+
+            $this->assertFalse($report['records'][0]['program_name_found_in_source_text']);
+            $this->assertNull($report['records'][0]['program_name_match_context']);
+            $this->assertSame(1, $report['summary']['programme_name_not_found_in_source']);
+            $this->assertSame(0, $report['database_mutations']);
+            $this->assertFalse($report['mutation_performed']);
+        } finally {
+            if (is_resource($handle)) {
+                fclose($handle);
+            }
+            @unlink($path);
+        }
+    }
+
     public function test_source_verification_reports_missing_urls_without_fetching_them(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'source-verification-');
