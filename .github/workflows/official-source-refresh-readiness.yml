@@ -89,15 +89,22 @@ jobs:
             echo "=== Application code revision comparison (read-only) ==="
             if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
               DEPLOYED_CHECKOUT_HEAD="$(git rev-parse HEAD)"
-              DEPLOYED_APPLICATION_REVISION="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
               echo "deployed_checkout_head=$DEPLOYED_CHECKOUT_HEAD"
-              echo "deployed_application_revision=${DEPLOYED_APPLICATION_REVISION:-unverifiable}"
               echo "expected_application_revision=$EXPECTED_REVISION"
-              # A docs/workflow-only commit may advance HEAD without changing application code.
-              # Compare the latest commit touching the same application paths used by the
-              # deploy/scheduled workflows. Never fetch or update repository metadata here.
-              if [ -n "$DEPLOYED_APPLICATION_REVISION" ] \
-                && [ "$DEPLOYED_APPLICATION_REVISION" = "$EXPECTED_REVISION" ] \
+
+              # The full checkout HEAD can advance for docs/workflow-only changes.
+              # Verify the actual application-path tree against the expected app revision.
+              # If the target object is absent in a shallow Hostinger checkout, fetch only
+              # that Git object; this does not checkout files or modify the working tree.
+              if ! git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
+                if git remote get-url origin >/dev/null 2>&1; then
+                  git fetch --quiet --no-tags origin "$EXPECTED_REVISION" \
+                    || echo "expected_revision_fetch=UNAVAILABLE"
+                fi
+              fi
+
+              if git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null \
+                && git diff --quiet "$EXPECTED_REVISION" "$DEPLOYED_CHECKOUT_HEAD" -- app bootstrap config database resources routes composer.json composer.lock public artisan \
                 && git diff --quiet -- app bootstrap config database resources routes composer.json composer.lock public artisan \
                 && git diff --cached --quiet -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
                 echo "application_code_status=APPLICATION_CODE_MATCH"
