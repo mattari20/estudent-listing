@@ -53,6 +53,7 @@ class VerifyOfferingGapSourcesTest extends TestCase
             $this->assertStringContainsString('bs computer science', $report['records'][0]['program_name_match_context']);
             $this->assertStringContainsString('main campus', $report['records'][0]['campus_name_match_context']);
             $this->assertSame('university.example.edu', $report['records'][0]['official_source_host']);
+            $this->assertSame(200, $report['records'][0]['official_source_http_status']);
             $this->assertSame('Official Programmes', $report['records'][0]['official_source_page_title']);
             $this->assertNotEmpty($report['records'][0]['official_source_retrieved_at']);
             $this->assertSame(hash('sha256', $body), $report['records'][0]['official_source_sha256']);
