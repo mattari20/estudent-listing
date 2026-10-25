@@ -66,6 +66,17 @@ class OfficialSourceRefreshPolicyServiceTest extends TestCase
         }
     }
 
+    public function test_evidence_url_with_embedded_credentials_is_blocked(): void
+    {
+        $proposal = $this->validProposal();
+        $proposal['evidence_url'] = 'https://user:secret@university.example.edu/admissions';
+
+        $result = (new OfficialSourceRefreshPolicyService())->evaluate($proposal);
+
+        $this->assertFalse($result['eligible']);
+        $this->assertContains('valid_field_evidence_url_required', $result['blockers']);
+    }
+
     public function test_timestamp_with_explicit_timezone_remains_eligible(): void
     {
         $proposal = $this->validProposal();
