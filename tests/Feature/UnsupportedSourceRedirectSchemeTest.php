@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Services\\SafeSourceHttpRetriever;
-use Illuminate\\Support\\Facades\\Http;
-use Tests\\TestCase;
+use App\Services\SafeSourceHttpRetriever;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
 
 class UnsupportedSourceRedirectSchemeTest extends TestCase
 {
@@ -16,7 +16,7 @@ class UnsupportedSourceRedirectSchemeTest extends TestCase
             ]),
         ]);
 
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Source redirect Location uses an unsupported URI scheme.');
 
         try {
