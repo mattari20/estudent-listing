@@ -57,7 +57,7 @@ class InstituteDiscoveryReviewPackageService
         if ($disk->exists($manifestPath) && $disk->exists($csvPath)) {
             $existing = json_decode($disk->get($manifestPath), true) ?: [];
             $existingCsv = $disk->get($csvPath);
-            $expectedChecksum = data_get($existing, 'checksums.candidates.csv');
+            $expectedChecksum = data_get($existing, 'checksums.candidates_csv_sha256');
 
             if ((int) ($existing['batch_id'] ?? 0) === (int) $batch->id
                 && (int) ($existing['snapshot_id'] ?? 0) === $snapshotId
@@ -142,7 +142,7 @@ class InstituteDiscoveryReviewPackageService
             'canonical_mutations_performed' => false,
             'automatic_approval_performed' => false,
             'files' => ['csv' => 'candidates.csv'],
-            'checksums' => ['candidates.csv' => hash('sha256', $csv)],
+            'checksums' => ['candidates_csv_sha256' => hash('sha256', $csv)],
         ];
 
         $disk->makeDirectory($directory);
