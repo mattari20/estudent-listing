@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Source;
 use App\Models\SourceRetrievalRun;
-use Illuminate\Support\Facades\Http;
 
 class SourceRetrievalService
 {
@@ -25,12 +24,12 @@ class SourceRetrievalService
                 throw new \InvalidArgumentException('Source has no URL.');
             }
 
-            app(SourceUrlGuard::class)->validate($source->url);
-
-            $response = Http::timeout(20)
-                ->connectTimeout(10)
-                ->withHeaders(['User-Agent' => 'eStudent-SourceMonitor/1.0'])
-                ->get($source->url);
+            $response = app(SafeSourceHttpRetriever::class)->get(
+                $source->url,
+                20,
+                10,
+                'eStudent-SourceMonitor/1.0'
+            );
 
             $body = $response->body();
 
