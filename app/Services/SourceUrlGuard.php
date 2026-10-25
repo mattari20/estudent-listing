@@ -47,6 +47,23 @@ class SourceUrlGuard
 
     private function isPublicIp(string $ip): bool
     {
+        // Explicitly reject multicast ranges; PHP's NO_RES_RANGE filter does
+        // not reject every multicast literal on all supported PHP versions.
+        $packedAddress = @inet_pton($ip);
+        if (is_string($packedAddress)) {
+            if (
+                strlen($packedAddress) === 4
+                && ord($packedAddress[0]) >= 224
+                && ord($packedAddress[0]) <= 239
+            ) {
+                return false;
+            }
+
+            if (strlen($packedAddress) === 16 && ord($packedAddress[0]) === 0xff) {
+                return false;
+            }
+        }
+
         // IPv4-mapped IPv6 literals can encode a private IPv4 destination,
         // e.g. ::ffff:127.0.0.1 or its hexadecimal equivalent ::ffff:7f00:1.
         // Classify the embedded IPv4 address with the same public-range policy.
