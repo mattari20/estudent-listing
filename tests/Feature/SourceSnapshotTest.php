@@ -77,4 +77,17 @@ class SourceSnapshotTest extends TestCase {
         $this->assertSame('unknown', $observation->materiality);
         $this->assertStringContainsString('inconclusive', $observation->summary);
     }
+
+    public function test_comparing_the_same_snapshot_twice_reuses_one_observation(): void
+    {
+        $source = Source::create(['source_type' => 'web', 'name' => 'Idempotent Observation Source', 'status' => 'active']);
+        $snapshot = app(SourceSnapshotService::class)->capture($source, 'stable official content', 'https://example.test/stable');
+        $service = app(SourceChangeObservationService::class);
+
+        $first = $service->compare($snapshot);
+        $second = $service->compare($snapshot);
+
+        $this->assertSame($first->id, $second->id);
+        $this->assertDatabaseCount('source_change_observations', 1);
+    }
 }
