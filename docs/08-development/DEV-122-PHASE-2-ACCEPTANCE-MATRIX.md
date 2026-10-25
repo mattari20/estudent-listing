@@ -72,3 +72,19 @@ The current main branch is ahead of Hostinger application code. Phase 2 remains 
 - [ ] Live Hostinger revision, scheduler, and authenticated operator acceptance gates above remain open; this repository-only audit coverage does not close them.
 
 Audit events currently record successful promotions only. They are transactionally coupled to the canonical write, but this table must not be treated as a complete immutable security log: failed/blocked attempts, deletion/retention controls, and production access policy require separate review.
+
+## Official-source drift refresh acceptance — 25 October 2026
+
+The authoritative source-of-truth policy is documented in `docs/official-source-drift-refresh-policy.md`. Repository-level changes in PRs #642–#645 add the following safeguards, subject to CI and merge verification:
+
+- [ ] A changed field is marked `refresh_eligible` only when evidence includes verified source identity, successful retrieval, confirmed entity match, observation timestamp, and content fingerprint; an `official=true` flag alone is insufficient.
+- [ ] Missing snapshot hashes are recorded as `uncomparable`, not falsely reported as a material source change.
+- [ ] Re-comparing the same snapshot reuses its observation and does not create duplicate drift findings.
+- [ ] An existing open reverification item escalates when a higher priority arrives, preserves its first-observed timestamp, and cannot be downgraded by a later lower-priority reason.
+- [ ] Integration connects `refresh_eligible` field diffs to a governed, transactional canonical update using current source evidence.
+- [ ] A real source change on a due monitoring policy creates a field-level before/after report and applies verified updates without indefinite review delay.
+- [ ] A failed, empty, malformed, or unverified source never overwrites, clears, or deactivates canonical data.
+- [ ] Staging verifies scheduler execution, applied migration state, audit snapshots, and no-change idempotency before any production write path is enabled.
+
+Important distinction: `refresh_eligible` is a classification outcome, not a database write. These PRs do not by themselves prove end-to-end automatic refresh, scheduler operation, or live Hostinger deployment. Phase 2 remains open until implementation, CI, staging, and live acceptance gates have evidence.
+
