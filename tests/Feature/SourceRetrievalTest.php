@@ -6,6 +6,12 @@ use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 class SourceRetrievalTest extends TestCase {
  use RefreshDatabase;
+ protected function setUp(): void {
+  parent::setUp();
+  $this->app->instance(\App\Services\SourceUrlGuard::class, new \App\Services\SourceUrlGuard(
+   static fn (string $host, int $type): array => [['host' => $host, 'type' => 'A', 'ip' => '93.184.216.34']]
+  ));
+ }
  public function test_public_source_is_retrieved_and_snapshotted(): void {
   Http::fake(['https://example.test/*'=>Http::response('official content',200,['Content-Type'=>'text/html'])]);
   $source=Source::create(['source_type'=>'web','name'=>'Official','url'=>'https://example.test/page','status'=>'active']);

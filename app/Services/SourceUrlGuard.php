@@ -2,8 +2,17 @@
 
 namespace App\Services;
 
+use Closure;
+
 class SourceUrlGuard
 {
+    private ?Closure $dnsResolver;
+
+    public function __construct(?Closure $dnsResolver = null)
+    {
+        $this->dnsResolver = $dnsResolver;
+    }
+
     public function validate(string $url): void
     {
         if (! filter_var($url, FILTER_VALIDATE_URL)) {
@@ -47,13 +56,48 @@ class SourceUrlGuard
             return;
         }
 
-        $records = dns_get_record($normalizedHost, DNS_A | DNS_AAAA);
-        foreach ($records ?: [] as $record) {
+        $records = $this->resolveDnsRecords($normalizedHost);
+        $addressCount = 0;
+
+        foreach ($records as $record) {
             $ip = $record['ip'] ?? $record['ipv6'] ?? null;
-            if ($ip && ! $this->isPublicIp($ip)) {
+            if (! is_string($ip) || $ip === '') {
+                continue;
+            }
+
+            $addressCount++;
+            if (! $this->isPublicIp($ip)) {
                 throw new \InvalidArgumentException('Source host resolves to a non-public address.');
             }
         }
+
+        if ($addressCount === 0) {
+            throw new \InvalidArgumentException('Source host did not resolve to a public IP address.');
+        }
+    }
+
+    /**
+     * Resolve host addresses, failing closed when DNS is unavailable or malformed.
+     *
+     * The optional resolver is a test seam; production uses PHP DNS resolution.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function resolveDnsRecords(string $host): array
+    {
+        try {
+            $records = $this->dnsResolver !== null
+                ? ($this->dnsResolver)($host, DNS_A | DNS_AAAA)
+                : @dns_get_record($host, DNS_A | DNS_AAAA);
+        } catch (\Throwable $exception) {
+            throw new \InvalidArgumentException('Source host DNS resolution failed.', 0, $exception);
+        }
+
+        if (! is_array($records) || $records === []) {
+            throw new \InvalidArgumentException('Source host did not resolve to a public IP address.');
+        }
+
+        return $records;
     }
 
     private function isInCidr(string $packedAddress, string $cidr): bool

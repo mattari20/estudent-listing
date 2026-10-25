@@ -8,6 +8,14 @@ use Tests\TestCase;
 
 class UnsupportedSourceRedirectSchemeTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->app->instance(\App\Services\SourceUrlGuard::class, new \App\Services\SourceUrlGuard(
+            static fn (string $host, int $type): array => [['host' => $host, 'type' => 'A', 'ip' => '93.184.216.34']]
+        ));
+    }
+
     public function test_redirect_to_unsupported_uri_scheme_is_rejected_before_following(): void
     {
         Http::fake([

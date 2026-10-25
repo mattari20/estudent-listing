@@ -12,6 +12,14 @@ class SafeSourceHttpRetrieverTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->app->instance(\App\Services\SourceUrlGuard::class, new \App\Services\SourceUrlGuard(
+            static fn (string $host, int $type): array => [['host' => $host, 'type' => 'A', 'ip' => '93.184.216.34']]
+        ));
+    }
+
     public function test_redirect_to_private_ip_is_blocked_before_second_request(): void
     {
         Http::fake([

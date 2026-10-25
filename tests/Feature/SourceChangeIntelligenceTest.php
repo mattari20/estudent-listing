@@ -6,6 +6,12 @@ use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 class SourceChangeIntelligenceTest extends TestCase {
  use RefreshDatabase;
+ protected function setUp(): void {
+  parent::setUp();
+  $this->app->instance(\App\Services\SourceUrlGuard::class, new \App\Services\SourceUrlGuard(
+   static fn (string $host, int $type): array => [['host' => $host, 'type' => 'A', 'ip' => '93.184.216.34']]
+  ));
+ }
  public function test_changed_source_links_assertions_and_queues_reverification(): void {
   Http::fake(['https://example.test/*'=>Http::sequence()->push('name old',200)->push('name new',200)]);
   $source=Source::create(['source_type'=>'web','name'=>'Official','url'=>'https://example.test/page','status'=>'active']);
