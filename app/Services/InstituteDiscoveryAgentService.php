@@ -31,12 +31,13 @@ class InstituteDiscoveryAgentService
         );
 
         app(DiscoveryMonitoringPolicyService::class)->ensure($source, $profile);
-        app(SourceUrlGuard::class)->validate($source->url);
 
-        $response = Http::timeout(30)
-            ->connectTimeout(10)
-            ->withHeaders(['User-Agent' => 'eStudent-InstituteDiscoveryAgent/1.0'])
-            ->get($source->url);
+        $response = app(SafeSourceHttpRetriever::class)->get(
+            $source->url,
+            30,
+            10,
+            'eStudent-InstituteDiscoveryAgent/1.0'
+        );
 
         if (! $response->successful()) {
             throw new \RuntimeException('Discovery source returned HTTP '.$response->status().'.');
