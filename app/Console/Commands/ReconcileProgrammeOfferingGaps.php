@@ -117,6 +117,9 @@ class ReconcileProgrammeOfferingGaps extends Command
                 'duplicate_existing_offering_relationships' => 0,
                 'program_name_mismatch_with_live_record' => 0,
                 'institution_found_and_name_matched' => 0,
+                'inactive_institution_rows' => 0,
+                'inactive_program_rows' => 0,
+                'inactive_campus_rows' => 0,
                 'program_found_and_institution_matched' => 0,
                 'campus_found_and_institution_matched' => 0,
                 'active_offering_already_exists' => 0,
@@ -169,6 +172,15 @@ class ReconcileProgrammeOfferingGaps extends Command
 
                 if ($institutionNameMatches) {
                     $summary['institution_found_and_name_matched']++;
+                }
+                if ($institution && $institution->status !== 'active') {
+                    $summary['inactive_institution_rows']++;
+                }
+                if ($program && $program->status !== 'active') {
+                    $summary['inactive_program_rows']++;
+                }
+                if ($campus && $campus->status !== 'active') {
+                    $summary['inactive_campus_rows']++;
                 }
                 if ($programMatches) {
                     $summary['program_found_and_institution_matched']++;
@@ -224,6 +236,9 @@ class ReconcileProgrammeOfferingGaps extends Command
 
                 $blockers = [];
                 if ($iid < 1 || ! $institution) $blockers[] = 'institution_missing';
+                if ($institution && $institution->status !== 'active') $blockers[] = 'institution_not_active';
+                if ($program && $program->status !== 'active') $blockers[] = 'program_not_active';
+                if ($campus && $campus->status !== 'active') $blockers[] = 'campus_not_active';
                 if (! $programNameMatches) $blockers[] = 'register_program_name_does_not_match_live_program';
                 if ($pid < 1 || ! $programMatches) $blockers[] = 'program_missing_or_wrong_institution';
                 if ($cid < 1 || ! $campusMatches) $blockers[] = 'campus_missing_or_wrong_institution';
