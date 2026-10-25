@@ -172,15 +172,29 @@ class OfficialSourcePageVerifier
                 'official_source_url' => $programUrl !== '' ? $programUrl : null,
                 'official_source_retrieval_status' => $programSource['retrieval_status'] ?? 'missing_url',
                 'official_source_http_status' => $programSource['http_status'] ?? null,
+                'official_source_host' => $this->urlHost($programUrl),
+                'official_source_retrieval_status' => $programSource['retrieval_status'] ?? 'missing_url',
+                'official_source_http_status' => $programSource['http_status'] ?? null,
                 'official_source_content_type' => $programSource['content_type'] ?? null,
+                'official_source_page_title' => $programSource['title'] ?? null,
+                'official_source_retrieved_at' => $programSource['retrieved_at'] ?? null,
                 'official_source_sha256' => $programSource['sha256'] ?? null,
                 'program_name_found_in_source_text' => $programUrl !== '' ? (bool) $programNameFound : null,
+                'program_name_match_context' => $programNameFound
+                    ? $this->contextForPhrase((string) ($programSource['normalized_text'] ?? ''), $row['program_name'])
+                    : null,
                 'campus_source_url' => $campusUrl !== '' ? $campusUrl : null,
+                'campus_source_host' => $this->urlHost($campusUrl),
                 'campus_source_retrieval_status' => $campusSource['retrieval_status'] ?? 'missing_url',
                 'campus_source_http_status' => $campusSource['http_status'] ?? null,
                 'campus_source_content_type' => $campusSource['content_type'] ?? null,
+                'campus_source_page_title' => $campusSource['title'] ?? null,
+                'campus_source_retrieved_at' => $campusSource['retrieved_at'] ?? null,
                 'campus_source_sha256' => $campusSource['sha256'] ?? null,
                 'campus_name_found_in_source_text' => $campusUrl !== '' ? (bool) $campusNameFound : null,
+                'campus_name_match_context' => $campusNameFound
+                    ? $this->contextForPhrase((string) ($campusSource['normalized_text'] ?? ''), $row['candidate_campus_name'])
+                    : null,
                 'source_ownership_verified' => false,
                 'review_required' => true,
             ];
@@ -262,6 +276,35 @@ class OfficialSourcePageVerifier
             $base['error_code'] = class_basename($exception);
             return $base;
         }
+    }
+
+    private function contextForPhrase(string $normalizedText, string $phrase): ?string
+    {
+        $needle = $this->normalizeText($phrase);
+        if ($needle === '') {
+            return null;
+        }
+
+        $position = strpos($normalizedText, $needle);
+        if ($position === false) {
+            return null;
+        }
+
+        $start = max(0, $position - 100);
+        $length = min(280, strlen($normalizedText) - $start);
+
+        return trim(substr($normalizedText, $start, $length));
+    }
+
+    private function urlHost(string $url): ?string
+    {
+        if ($url === '') {
+            return null;
+        }
+
+        $host = parse_url($url, PHP_URL_HOST);
+
+        return is_string($host) && $host !== '' ? mb_strtolower($host) : null;
     }
 
     private function containsPhrase(string $normalizedText, string $phrase): bool
