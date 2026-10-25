@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
 
 class InstituteDiscoveryAgentService
 {
-    public function run(string $profile = 'cui-lahore', bool $useAi = false): array
+    public function run(string $profile = 'cui-lahore', bool $useAi = false, bool $forceRefresh = false, ?int $supersedesBatchId = null): array
     {
         $definition = $this->definition($profile);
         $institution = $this->institution($definition);
@@ -70,6 +70,29 @@ class InstituteDiscoveryAgentService
             );
         }
 
+        if ($forceRefresh) {
+            if ($supersedesBatchId === null) {
+                throw new \InvalidArgumentException('A refresh requires a superseded batch ID to preserve history explicitly.');
+            }
+
+            $supersededBatch = ImportBatch::query()
+                ->whereKey($supersedesBatchId)
+                ->where('source_id', $source->id)
+                ->where('source_type', $useAi ? 'ai_extraction' : 'automated_discovery')
+                ->where('batch_key', 'like', ($useAi ? 'ai-' : 'agent-').$profile.'-%')
+                ->first();
+
+            if (! $supersededBatch) {
+                throw new \InvalidArgumentException('The superseded batch must belong to this profile and source.');
+            }
+
+            return $this->persistCandidates($profile, $institution, $source, $snapshot, $useAi, true, (int) $supersededBatch->id);
+        }
+
+        if ($supersedesBatchId !== null) {
+            throw new \InvalidArgumentException('A superseded batch ID is valid only for an explicit refresh.');
+        }
+
         return $this->persistCandidates($profile, $institution, $source, $snapshot, $useAi);
     }
 
@@ -94,7 +117,9 @@ class InstituteDiscoveryAgentService
         Institution $institution,
         Source $source,
         SourceSnapshot $snapshot,
-        bool $useAi
+        bool $useAi,
+        bool $forceNewBatch = false,
+        ?int $supersedesBatchId = null,
     ): array {
         if (! is_string($snapshot->content) || $snapshot->content === '') {
             throw new \RuntimeException('The discovery snapshot has no stored source content.');
@@ -106,7 +131,7 @@ class InstituteDiscoveryAgentService
             throw new \RuntimeException('AI extraction is currently enabled only for programme discovery profiles.');
         }
 
-        $existingBatch = $this->existingBatchForSnapshot($profile, $source, $snapshot, $useAi);
+        $existingBatch = $forceNewBatch ? null : $this->existingBatchForSnapshot($profile, $source, $snapshot, $useAi);
         if ($existingBatch) {
             return $this->summaryForExistingBatch(
                 $existingBatch,
@@ -157,7 +182,8 @@ class InstituteDiscoveryAgentService
             'received_at' => now(),
             'notes' => 'Discovery candidates from source snapshot #'.$snapshot->id
                 .'. discovery_extractor_version='.InstituteDiscoveryCandidateExtractor::VERSION
-                .'. Candidates remain non-canonical until governed approval and promotion.',
+                .'. Candidates remain non-canonical until governed approval and promotion.'
+                .($supersedesBatchId === null ? '' : ' refresh_of_batch_id='.$supersedesBatchId.'.'),
         ]);
 
         $candidateRows = 0;
@@ -200,7 +226,8 @@ class InstituteDiscoveryAgentService
                     $entityType,
                     $institution->id,
                     $slug,
-                    $batch->id
+                    $batch->id,
+                    $supersedesBatchId === null ? [] : [$supersedesBatchId]
                 );
             }
 
@@ -382,7 +409,8 @@ class InstituteDiscoveryAgentService
             'completed_at' => now(),
             'notes' => 'No candidates extracted from source snapshot #'.$snapshot->id
                 .'. discovery_extractor_version='.InstituteDiscoveryCandidateExtractor::VERSION
-                .'. This is a recorded no-change outcome; no canonical data was changed.',
+                .'. This is a recorded no-change outcome; no canonical data was changed.'
+                .($supersedesBatchId === null ? '' : ' refresh_of_batch_id='.$supersedesBatchId.'.'),
         ]);
 
         $reviewPackage = app(InstituteDiscoveryReviewPackageService::class)
