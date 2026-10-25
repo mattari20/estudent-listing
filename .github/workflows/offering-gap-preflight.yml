@@ -74,6 +74,7 @@ jobs:
           fi
           test -f artisan || { echo "::error::Laravel artisan entry point is missing."; exit 1; }
           test -f app/Console/Commands/OfferingGapPreflight.php || { echo "::error::Preflight command is missing at this revision."; exit 1; }
+          test -f app/Console/Commands/ReconcileProgrammeOfferingGaps.php || { echo "::error::Read-only relationship reconciliation command is missing at this revision."; exit 1; }
           test -f docs/step3-offering-gap-evidence-register.csv || { echo "::error::Evidence register is missing at this revision."; exit 1; }
           echo "Approved revision: $actual"
 
@@ -129,6 +130,48 @@ jobs:
             exit 1
           fi
 
+      - name: Run read-only programme-offering reconciliation
+        id: reconciliation
+        shell: bash
+        run: |
+          set +e
+          php artisan institutes:offering-gap-reconcile --json --no-ansi > "$RUNNER_TEMP/offering-gap-reconciliation.json" 2> "$RUNNER_TEMP/reconciliation-stderr.txt"
+          command_exit=$?
+          set -e
+          printf '%s\n' "$command_exit" > "$RUNNER_TEMP/reconciliation-exit-code.txt"
+          if [[ ! -s "$RUNNER_TEMP/offering-gap-reconciliation.json" ]]; then
+            echo "::error::Reconciliation produced no JSON report. Stderr is withheld to avoid accidental credential disclosure."
+            exit 1
+          fi
+          if ! jq -e 'type == "object" and has("database_mutations") and has("mutation_performed") and has("production_write_authorization")' "$RUNNER_TEMP/offering-gap-reconciliation.json" >/dev/null; then
+            echo "::error::Reconciliation report is missing required safety fields."
+            exit 1
+          fi
+          if [[ "$(jq -r '.database_mutations' "$RUNNER_TEMP/offering-gap-reconciliation.json")" != "0" || "$(jq -r '.mutation_performed' "$RUNNER_TEMP/offering-gap-reconciliation.json")" != "false" || "$(jq -r '.production_write_authorization' "$RUNNER_TEMP/offering-gap-reconciliation.json")" != "false" ]]; then
+            echo "::error::Reconciliation did not satisfy the zero-mutation safety contract."
+            exit 1
+          fi
+          if ! jq -e '.summary.register_rows == 36 and (.records | length) == 36 and .summary.register_row_count_matches_expected == true' "$RUNNER_TEMP/offering-gap-reconciliation.json" >/dev/null; then
+            echo "::error::Reconciliation must report exactly 36 register rows. Restricted artifact will show row-level blockers."
+            exit 1
+          fi
+          jq --arg revision "$(git rev-parse HEAD)" \
+             --arg run_id "$GITHUB_RUN_ID" \
+             --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+             --arg repository "$GITHUB_REPOSITORY" \
+             --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+             --argjson command_exit_code "$command_exit" \
+             '. + {workflow_metadata: {repository: $repository, approved_revision: $revision, run_id: $run_id, run_attempt: $run_attempt, generated_at_utc: $timestamp, command_exit_code: $command_exit_code, production_write_authorized: false}}' \
+             "$RUNNER_TEMP/offering-gap-reconciliation.json" > "$RUNNER_TEMP/offering-gap-reconciliation-with-metadata.json"
+          if [[ "$command_exit" -ne 0 ]]; then
+            echo "::error::Reconciliation command failed; inspect the restricted report artifact for the fail-closed reason."
+            exit 1
+          fi
+          if [[ "$(jq -r '.reconciliation_status // "MISSING"' "$RUNNER_TEMP/offering-gap-reconciliation.json")" != "ROW_LEVEL_REPORT_CREATED_REVIEW_REQUIRED" ]]; then
+            echo "::error::Reconciliation did not confirm the expected register count."
+            exit 1
+          fi
+
       - name: Upload restricted short-retention report
         if: always()
         uses: actions/upload-artifact@v4
@@ -138,5 +181,8 @@ jobs:
             ${{ runner.temp }}/offering-gap-preflight-with-metadata.json
             ${{ runner.temp }}/offering-gap-preflight.json
             ${{ runner.temp }}/preflight-exit-code.txt
+            ${{ runner.temp }}/offering-gap-reconciliation-with-metadata.json
+            ${{ runner.temp }}/offering-gap-reconciliation.json
+            ${{ runner.temp }}/reconciliation-exit-code.txt
           if-no-files-found: warn
           retention-days: 3
