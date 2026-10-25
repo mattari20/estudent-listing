@@ -150,7 +150,7 @@ class InstituteDiscoveryAgentService
             );
 
         if ($candidates === []) {
-            return $this->persistEmptyOutcome($profile, $institution, $source, $snapshot, $entityType, $useAi);
+            return $this->persistEmptyOutcome($profile, $institution, $source, $snapshot, $entityType, $useAi, $supersedesBatchId);
         }
 
         $excerptLines = [];
@@ -383,7 +383,8 @@ class InstituteDiscoveryAgentService
         Source $source,
         SourceSnapshot $snapshot,
         string $entityType,
-        bool $useAi
+        bool $useAi,
+        ?int $supersedesBatchId = null,
     ): array {
         $evidence = Evidence::create([
             'source_id' => $source->id,
