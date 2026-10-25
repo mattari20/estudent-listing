@@ -141,6 +141,7 @@ class InstituteDiscoveryAgentService
 
         $candidateRows = 0;
         $duplicateRows = 0;
+        $invalidRows = 0;
 
         foreach ($candidates as $index => $candidate) {
             $payload = $this->candidatePayload($entityType, $candidate, $useAi);
@@ -148,25 +149,37 @@ class InstituteDiscoveryAgentService
             $payload['_provenance']['snapshot_id'] = $snapshot->id;
             $payload['_provenance']['evidence_id'] = $evidence->id;
 
-            $duplicate = app(ImportDuplicateDetectorService::class)->find(
+            $blockers = app(InstituteDiscoveryCandidateQualityService::class)->blockers(
                 $entityType,
-                $institution->id,
-                $payload['slug'],
-                $batch->id
+                $candidate,
+                $source->url,
+                $useAi
             );
 
-            $status = $duplicate ? 'duplicate' : 'candidate';
+            $duplicate = $blockers === []
+                ? app(ImportDuplicateDetectorService::class)->find(
+                    $entityType,
+                    $institution->id,
+                    $payload['slug'],
+                    $batch->id
+                )
+                : null;
+
+            $status = $blockers !== [] ? 'invalid' : ($duplicate ? 'duplicate' : 'candidate');
+            $validationErrors = $blockers !== []
+                ? $blockers
+                : ($duplicate ? [$duplicate['message']] : null);
 
             ImportRow::create([
                 'import_batch_id' => $batch->id,
                 'row_number' => $index + 1,
                 'status' => $status,
-                'match_state' => $duplicate ? 'duplicate' : 'unresolved',
+                'match_state' => $blockers !== [] ? 'unresolved' : ($duplicate ? 'duplicate' : 'unresolved'),
                 'parent_subject_type' => Institution::class,
                 'parent_subject_id' => $institution->id,
                 'payload' => $payload,
                 'normalized_payload' => $payload,
-                'validation_errors' => $duplicate ? [$duplicate['message']] : null,
+                'validation_errors' => $validationErrors,
                 'notes' => 'Evidence #'.$evidence->id.' from '.$source->url,
             ]);
 
@@ -175,18 +188,26 @@ class InstituteDiscoveryAgentService
                 'subject_type' => Institution::class,
                 'subject_id' => $institution->id,
                 'attribute' => 'candidate_'.$entityType,
-                'value' => $candidate['name'],
+                'value' => (string) ($candidate['name'] ?? ''),
                 'verification_state' => $useAi ? 'ai_extracted' : 'discovered',
-                'confidence' => $candidate['confidence'] ?? ($entityType === 'campus' ? 0.9000 : 0.9500),
+                'confidence' => is_numeric($candidate['confidence'] ?? null)
+                    ? (float) $candidate['confidence']
+                    : ($entityType === 'campus' ? 0.9000 : 0.9500),
             ]);
 
-            $status === 'candidate' ? $candidateRows++ : $duplicateRows++;
+            if ($status === 'candidate') {
+                $candidateRows++;
+            } elseif ($status === 'duplicate') {
+                $duplicateRows++;
+            } else {
+                $invalidRows++;
+            }
         }
 
         $batch->update([
             'total_rows' => count($candidates),
-            'valid_rows' => count($candidates),
-            'invalid_rows' => 0,
+            'valid_rows' => $candidateRows + $duplicateRows,
+            'invalid_rows' => $invalidRows,
             'candidate_rows' => $candidateRows,
             'completed_at' => now(),
         ]);
