@@ -28,13 +28,13 @@ class StructuredEnrichmentPayloadValidator
                 continue;
             }
 
-            if (! array_key_exists($field, $payload) || $payload[$field] === null || $payload[$field] === '') {
+            if (! array_key_exists($field, $payload) || ($payload[$field] === '' || ($payload[$field] === null && ! ($entityType === 'offering' && $field === 'campus_id')))) {
                 $blockers[] = $field.':required';
                 continue;
             }
 
             if (in_array($field, ['institution_id', 'program_id', 'campus_id'], true)
-                && (! is_numeric($payload[$field]) || (int) $payload[$field] < 1)) {
+                && $payload[$field] !== null && (! is_numeric($payload[$field]) || (int) $payload[$field] < 1)) {
                 $blockers[] = $field.':must_be_positive_id';
             }
         }
