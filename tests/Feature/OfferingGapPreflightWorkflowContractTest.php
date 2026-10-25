@@ -37,4 +37,17 @@ class OfferingGapPreflightWorkflowContractTest extends TestCase
         $this->assertStringContainsString('command_exit_code', $workflow);
         $this->assertStringContainsString('preflight_status', $workflow);
     }
+    public function test_preflight_report_exposes_register_evidence_provenance(): void
+    {
+        $command = file_get_contents(base_path('app/Console/Commands/OfferingGapPreflight.php'));
+
+        $this->assertIsString($command);
+        $this->assertStringContainsString("'register_line' => \$row['_line']", $command);
+        $this->assertStringContainsString("'official_source_url' => \$row['official_source_url']", $command);
+        $this->assertStringContainsString("'source_status_register' => \$row['source_status']", $command);
+        $this->assertStringContainsString("'campus_status_register' => \$row['campus_status']", $command);
+        $this->assertStringContainsString("'remediation_decision_register' => \$row['remediation_decision']", $command);
+        $this->assertStringContainsString("'campus_source_url' => \$row['campus_source_url']", $command);
+    }
+
 }
