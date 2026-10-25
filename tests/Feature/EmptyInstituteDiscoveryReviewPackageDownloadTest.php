@@ -63,7 +63,9 @@ class EmptyInstituteDiscoveryReviewPackageDownloadTest extends TestCase
         $response = app(InstituteDiscoveryReviewPackageController::class)
             ->download(Request::create('/'), $batch, 'manifest');
 
-        $this->assertSame('private, no-store, max-age=0', $response->headers->get('Cache-Control'));
+        $cacheDirectives = array_map('trim', explode(',', (string) $response->headers->get('Cache-Control')));
+        sort($cacheDirectives);
+        $this->assertSame(['max-age=0', 'no-store', 'private'], $cacheDirectives);
         $this->assertSame('nosniff', $response->headers->get('X-Content-Type-Options'));
         $this->assertSame('manifest.json', $response->getFile()->getFilename());
     }
