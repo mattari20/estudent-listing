@@ -71,8 +71,13 @@ class InstituteDiscoveryOperatorAccessTest extends TestCase
             'normalized_payload' => ['name' => 'Example Program'],
         ]);
         $directory = 'institute-discovery-review-packages/snapshot-991';
-        Storage::disk('local')->put($directory.'/candidates.csv', "candidate_name\nExample Program\n");
-        Storage::disk('local')->put($directory.'/manifest.json', json_encode(['snapshot_id' => 991]));
+        $csv = "candidate_name\nExample Program\n";
+        Storage::disk('local')->put($directory.'/candidates.csv', $csv);
+        Storage::disk('local')->put($directory.'/manifest.json', json_encode([
+            'batch_id' => $batch->id,
+            'snapshot_id' => 991,
+            'checksums' => ['candidates_csv_sha256' => hash('sha256', $csv)],
+        ]));
 
         $csvResponse = $this->actingAs($operator)
             ->get('/institutes/operations/discovery-packages/'.$batch->id.'/csv');
