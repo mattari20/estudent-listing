@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\EnrichmentImportRow;
 use App\Models\ImportBatch;
+use App\Models\StructuredEnrichmentPromotionEvent;
 use App\Models\Institution;
 use App\Services\StructuredEnrichmentPromoter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -65,5 +66,13 @@ class StructuredEnrichmentPromotionIdempotencyTest extends TestCase
             'slug' => 'bs-computer-science',
             'name' => 'Bachelor of Science in Computer Science',
         ]);
+
+        $this->assertDatabaseCount('structured_enrichment_promotion_events', 2);
+        $latestEvent = StructuredEnrichmentPromotionEvent::query()->orderByDesc('id')->firstOrFail();
+        $this->assertSame('promotion_succeeded', $latestEvent->event_type);
+        $this->assertSame($row->id, $latestEvent->enrichment_import_row_id);
+        $this->assertSame($first->id, $latestEvent->canonical_id);
+        $this->assertSame('BS Computer Science', $latestEvent->before_snapshot['name']);
+        $this->assertSame('Bachelor of Science in Computer Science', $latestEvent->after_snapshot['name']);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Campus;
 use App\Models\Program;
 use App\Models\ProgramOffering;
+use App\Models\StructuredEnrichmentPromotionEvent;
 use App\Models\EnrichmentImportRow;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -45,6 +46,8 @@ class StructuredEnrichmentPromoter
                 throw new RuntimeException('Enrichment payload blocked: '.implode(',', $payloadBlockers));
             }
 
+            $beforeSnapshot = $this->currentCanonicalSnapshot($lockedRow->entity_type, $payload);
+
             // Discovery-sourced rows must carry the governed review contract.
             // Legacy/manual import rows remain compatible until they are migrated.
             $isDiscoverySourced = isset($payload['_provenance']) || isset($payload['_governed_review']);
@@ -54,9 +57,8 @@ class StructuredEnrichmentPromoter
                     throw new RuntimeException('Governed discovery proposal is missing its review contract.');
                 }
 
-                $current = $this->currentCanonicalSnapshot($lockedRow->entity_type, $payload);
                 $guard = $this->promotionGuard ?? app(InstituteDiscoveryPromotionGuard::class);
-                $decision = $guard->evaluate($review, $current);
+                $decision = $guard->evaluate($review, $beforeSnapshot);
                 if (! $decision['eligible']) {
                     throw new RuntimeException(
                         'Governed discovery promotion blocked: '.implode(',', $decision['blockers'])
@@ -67,12 +69,33 @@ class StructuredEnrichmentPromoter
             // Internal metadata is evidence, not canonical model attributes.
             unset($payload['_provenance'], $payload['_governed_review']);
 
-            return match ($lockedRow->entity_type) {
+            $canonical = match ($lockedRow->entity_type) {
                 'campus' => $this->promoteCampus($payload),
                 'program' => $this->promoteProgram($payload),
                 'offering' => $this->promoteOffering($payload),
                 default => throw new RuntimeException('Unsupported enrichment entity type.'),
             };
+
+            $lockedRow->loadMissing('batch');
+            StructuredEnrichmentPromotionEvent::create([
+                'enrichment_import_row_id' => $lockedRow->id,
+                'import_batch_id' => $lockedRow->import_batch_id,
+                'entity_type' => $lockedRow->entity_type,
+                'event_type' => 'promotion_succeeded',
+                'canonical_type' => $canonical::class,
+                'canonical_id' => $canonical->getKey(),
+                'actor_type' => 'system',
+                'reason' => $isDiscoverySourced ? 'Governed discovery promotion passed policy and snapshot checks.' : 'Approved legacy/manual enrichment row promoted.',
+                'before_snapshot' => $beforeSnapshot,
+                'after_snapshot' => $canonical->getAttributes(),
+                'metadata' => [
+                    'governed_discovery' => $isDiscoverySourced,
+                    'review_package_id' => $isDiscoverySourced ? ($review['review_package_id'] ?? null) : null,
+                ],
+                'occurred_at' => now(),
+            ]);
+
+            return $canonical;
         }, 3);
     }
 
