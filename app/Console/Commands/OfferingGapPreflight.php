@@ -127,9 +127,11 @@ class OfferingGapPreflight extends Command
                     if ($anyOffering) $summary['duplicate_offering_exists']++;
                 }
 
+                $officialEvidenceUrlValid = $this->isSafeEvidenceUrl($row['official_source_url']);
+                $campusEvidenceUrlValid = $this->isSafeEvidenceUrl($row['campus_source_url']);
                 $evidenceOk = $row['source_status'] === 'source-found'
-                    && $row['official_source_url'] !== ''
-                    && $row['campus_source_url'] !== ''
+                    && $officialEvidenceUrlValid
+                    && $campusEvidenceUrlValid
                     && str_contains($row['campus_status'], 'confirmed')
                     && $row['remediation_decision'] === 'ready-for-validation';
                 $blockers = [];
@@ -139,6 +141,8 @@ class OfferingGapPreflight extends Command
                     && mb_strtolower(trim($row['candidate_campus_name'])) === mb_strtolower(trim((string) $campus->name));
                 if (!$candidateCampusNameMatchesLive) $blockers[] = 'candidate_campus_name_does_not_match_live_name';
                 if (str_contains($row['campus_status'], 'wrong-campus')) $blockers[] = 'register_marks_wrong_campus';
+                if (!$officialEvidenceUrlValid) $blockers[] = 'invalid_official_programme_evidence_url';
+                if (!$campusEvidenceUrlValid) $blockers[] = 'invalid_campus_evidence_url';
                 if (!$evidenceOk) $blockers[] = 'official_programme_and_campus_evidence_not_confirmed';
                 if ($activeOffering) $blockers[] = 'active_offering_already_exists';
                 if ($anyOffering) $blockers[] = 'offering_row_already_exists';
@@ -174,6 +178,8 @@ class OfferingGapPreflight extends Command
                     'candidate_delivery_mode' => $row['candidate_delivery_mode'],
                     'any_offering_exists_for_program_campus' => (bool) $anyOffering,
                     'active_offering_exists_for_program_campus' => (bool) $activeOffering,
+                    'official_evidence_url_valid' => (bool) $officialEvidenceUrlValid,
+                    'campus_evidence_url_valid' => (bool) $campusEvidenceUrlValid,
                     'evidence_gate_passed' => (bool) $evidenceOk,
                     'preflight_result' => $ready ? 'READY_FOR_MANUAL_REVIEW_ONLY' : 'BLOCKED',
                     'blockers' => $blockers,
@@ -194,6 +200,23 @@ class OfferingGapPreflight extends Command
             $report['errors'][] = 'preflight_failed:' . class_basename($e);
             return $this->finish($report, $startedAt, self::FAILURE);
         }
+    }
+
+
+    private function isSafeEvidenceUrl(string $url): bool
+    {
+        if ($url === '' || ! filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        $parts = parse_url($url);
+        if (! is_array($parts)) {
+            return false;
+        }
+
+        return in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true)
+            && ! isset($parts['user'])
+            && ! isset($parts['pass']);
     }
 
     private function finish(array $report, float $startedAt, int $exitCode): int
