@@ -90,7 +90,11 @@ class InstituteDiscoveryAgentService
             );
         }
 
+        if ($forceRefresh) {
+            return $this->persistCandidates($profile, $institution, $source, $snapshot, $useAi, true, (int) $supersedesBatchId);
+        }
 
+        return $this->persistCandidates($profile, $institution, $source, $snapshot, $useAi);
     }
 
     public function runFromSnapshot(
