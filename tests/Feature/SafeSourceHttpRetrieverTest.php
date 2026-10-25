@@ -135,7 +135,7 @@ class SafeSourceHttpRetrieverTest extends TestCase
     public function test_redirect_to_private_ipv6_loopback_is_blocked_before_second_request(): void
     {
         Http::fake([
-            'https://example.test/start' => Http::response('', 302, [
+            'http://example.test/start' => Http::response('', 302, [
                 'Location' => 'http://[::1]/admin',
             ]),
         ]);
@@ -144,7 +144,7 @@ class SafeSourceHttpRetrieverTest extends TestCase
         $this->expectExceptionMessage('Source host is not publicly routable.');
 
         app(SafeSourceHttpRetriever::class)->get(
-            'https://example.test/start',
+            'http://example.test/start',
             10,
             5,
             'eStudent-Test/1.0'
