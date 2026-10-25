@@ -93,6 +93,33 @@ jobs:
             $migration = '2026_10_25_000002_create_official_source_refresh_events_table';
             $migrationTableExists = $schema::hasTable('migrations');
             $tableExists = $schema::hasTable($table);
+            $requiredColumns = [
+                'id',
+                'source_id',
+                'source_change_observation_id',
+                'canonical_type',
+                'canonical_id',
+                'field_name',
+                'before_value',
+                'after_value',
+                'evidence_url',
+                'evidence_excerpt',
+                'content_fingerprint',
+                'observed_at',
+                'occurred_at',
+                'created_at',
+                'updated_at',
+            ];
+            $missingColumns = [];
+            if ($tableExists) {
+                foreach ($requiredColumns as $column) {
+                    if (! $schema::hasColumn($table, $column)) {
+                        $missingColumns[] = $column;
+                    }
+                }
+            } else {
+                $missingColumns = $requiredColumns;
+            }
             $migrationRows = [];
             if ($migrationTableExists) {
                 $migrationRows = $db::table('migrations')
@@ -102,13 +129,17 @@ jobs:
                     ->all();
             }
             $migrationApplied = count($migrationRows) > 0;
-            $ready = $tableExists && $migrationApplied;
+            $columnsReady = $tableExists && $missingColumns === [];
+            $ready = $tableExists && $migrationApplied && $columnsReady;
             echo json_encode([
                 'check' => 'official_source_refresh_schema_readiness',
                 'checked_at' => now()->toIso8601String(),
                 'mutation_performed' => false,
                 'table' => $table,
                 'table_exists' => $tableExists,
+                'required_columns' => $requiredColumns,
+                'missing_columns' => $missingColumns,
+                'columns_ready' => $columnsReady,
                 'migrations_table_exists' => $migrationTableExists,
                 'expected_migration' => $migration,
                 'migration_applied' => $migrationApplied,
