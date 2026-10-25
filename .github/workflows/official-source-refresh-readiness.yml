@@ -163,6 +163,10 @@ jobs:
                 'schema_ready' => $ready,
                 'next_action' => $ready ? 'continue_staging_acceptance_tests' : 'migration_not_confirmed_apply_only_through_approved_deployment_process',
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            if (! $ready) {
+                fwrite(STDERR, "ERROR: official-source refresh schema is not ready; no migration or production data mutation was run.".PHP_EOL);
+                exit(10);
+            }
             PHP
             echo "database_migrations=NOT_RUN"
             echo "production_data_mutations=NOT_RUN"
