@@ -210,7 +210,10 @@ class ReconcileProgrammeOfferingGaps extends Command
                 if (! $campusUrlValid) $blockers[] = 'invalid_or_missing_campus_url';
                 if (! $registerEvidenceReady) $blockers[] = 'register_evidence_not_confirmed_for_validation';
 
-                if ($activeExact) {
+                if ($blockers !== []) {
+                    $classification = 'BLOCKED_INSUFFICIENT_OR_MISMATCHED_EVIDENCE';
+                    $summary['blocked_rows']++;
+                } elseif ($activeExact) {
                     $classification = 'ACTIVE_OFFERING_ALREADY_EXISTS';
                     $summary['review_only_rows']++;
                 } elseif ($inactiveExact) {
@@ -222,9 +225,6 @@ class ReconcileProgrammeOfferingGaps extends Command
                 } elseif ($otherCampus) {
                     $classification = 'OFFERING_EXISTS_AT_OTHER_CAMPUS_REQUIRES_REVIEW';
                     $summary['review_only_rows']++;
-                } elseif ($blockers !== []) {
-                    $classification = 'BLOCKED_INSUFFICIENT_OR_MISMATCHED_EVIDENCE';
-                    $summary['blocked_rows']++;
                 } else {
                     $classification = 'MISSING_RELATIONSHIP_CANDIDATE_REQUIRES_SOURCE_REVIEW';
                     $summary['missing_relationship_candidates']++;
