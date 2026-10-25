@@ -22,9 +22,6 @@ class SourceUrlGuard
         }
 
         $host = $parts['host'] ?? '';
-        // PHP may retain square brackets around IPv6 literals in parse_url().
-        // Strip them before IP classification so ::1 and unique-local IPv6
-        // addresses cannot bypass the non-public address check.
         $normalizedHost = trim($host, '[]');
 
         if ($normalizedHost === '') {
@@ -36,7 +33,6 @@ class SourceUrlGuard
                 throw new \InvalidArgumentException('Source host is not publicly routable.');
             }
 
-            // Literal IPs need no DNS lookup; validate the address directly.
             return;
         }
 
@@ -51,6 +47,24 @@ class SourceUrlGuard
 
     private function isPublicIp(string $ip): bool
     {
+        // IPv4-mapped IPv6 literals can encode a private IPv4 destination,
+        // e.g. ::ffff:127.0.0.1 or its hexadecimal equivalent ::ffff:7f00:1.
+        // Classify the embedded IPv4 address with the same public-range policy.
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            $packed = @inet_pton($ip);
+            if (
+                is_string($packed)
+                && strlen($packed) === 16
+                && substr($packed, 0, 10) === str_repeat("\0", 10)
+                && substr($packed, 10, 2) === "\xff\xff"
+            ) {
+                $embeddedIpv4 = inet_ntop(substr($packed, 12, 4));
+                if (! is_string($embeddedIpv4) || ! $this->isPublicIp($embeddedIpv4)) {
+                    return false;
+                }
+            }
+        }
+
         return filter_var(
             $ip,
             FILTER_VALIDATE_IP,
