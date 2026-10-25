@@ -1,6 +1,11 @@
 name: Official Source Refresh Readiness (Read-only)
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/official-source-refresh-readiness.yml
   workflow_dispatch:
     inputs:
       project_path:
