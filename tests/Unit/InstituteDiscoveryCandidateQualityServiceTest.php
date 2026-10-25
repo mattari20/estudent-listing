@@ -57,4 +57,16 @@ class InstituteDiscoveryCandidateQualityServiceTest extends TestCase
 
         $this->assertContains('unsupported_entity_type', $blockers);
     }
+    public function test_source_url_with_embedded_credentials_is_blocked(): void
+    {
+        $blockers = (new InstituteDiscoveryCandidateQualityService())->blockers(
+            'program',
+            ['name' => 'BS Computer Science', 'confidence' => 0.95],
+            'https://operator:secret@university.example.edu/programmes',
+            false
+        );
+
+        $this->assertContains('source_url_invalid', $blockers);
+    }
+
 }
