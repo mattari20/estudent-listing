@@ -38,7 +38,7 @@ class InstituteDiscoveryIdentityResolutionService
 
         $matches = $model->where('institution_id', $institutionId)
             ->where(function ($query) use ($key, $name) {
-                $query->where('slug', $key)
+                $query->where('slug', Str::slug($name))
                     ->orWhereRaw('LOWER(TRIM(name)) = ?', [Str::lower(trim($name))]);
             })
             ->limit(2)
