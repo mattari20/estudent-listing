@@ -13,10 +13,11 @@
 | PR-E tests | Passed on latest PR head | [Test workflow](https://github.com/mattari20/estudent-listing/actions/runs/40187826097), [Laravel CI](https://github.com/mattari20/estudent-listing/actions/runs/40187826117) |
 | PR-F tests | Passed on latest PR head after updating legacy fixtures | [Test workflow](https://github.com/mattari20/estudent-listing/actions/runs/40187908056), [Laravel CI](https://github.com/mattari20/estudent-listing/actions/runs/40187908055) |
 | Hostinger deployed-code and governed scheduler smoke check | Application-code revision matched; no-op | [Scheduled run #19](https://github.com/mattari20/estudent-listing/actions/runs/40188541139) |
-| Hostinger read-only diagnostics | Revision matched; private storage boundary and guest denial passed; Hostinger cron status unresolved | [Diagnostics run](https://github.com/mattari20/estudent-listing/actions/runs/40188742737) |
-| Official-source refresh schema readiness | **Failed — migration/table absent** | [Read-only readiness run, attempt 2](https://github.com/mattari20/estudent-listing/actions/runs/40187990642) |
+| Hostinger read-only diagnostics | Application tree matched; private storage boundary and guest denial passed; native cron status unresolved | [Latest diagnostics](https://github.com/mattari20/estudent-listing/actions/runs/40189064829) |
+| Official-source refresh schema readiness | **Failed — migration/table absent** | [Latest readiness run](https://github.com/mattari20/estudent-listing/actions/runs/40189064804) |
 | PR-G — reusable read-only runtime readiness audit | Merged | [PR #743](https://github.com/mattari20/estudent-listing/pull/743), merge commit `43398d4d61bfa845139a7126981cf512b7b0bb4c` |
-| PR-H — evidence report plus revision-check correction | In progress | [PR #744](https://github.com/mattari20/estudent-listing/pull/744) |
+| PR-H — initial revision-check correction and evidence report | Merged | [PR #744](https://github.com/mattari20/estudent-listing/pull/744), merge commit `c3f81b56e62437205bf732cb9645d1044e0ce3af` |
+| PR-I — compare deployed application file tree | Pending review/CI | [PR #745](https://github.com/mattari20/estudent-listing/pull/745) |
 
 ## 2. Hostinger evidence from scheduled run #19
 
@@ -34,28 +35,27 @@ The scheduled workflow reported:
 - Bootstrap and source-monitor commands exited successfully, with zero source-monitor work performed.
 - Paid AI calls, migrations, canonical promotion, and publication were disabled/not run.
 
-**Interpretation:** This verifies the *path-filtered application-code revision* and a safe no-op execution. The later [Hostinger read-only diagnostics run](https://github.com/mattari20/estudent-listing/actions/runs/40188742737) also reported the expected application revision matched, the `institute_discovery_run_outcomes` table and its migration are present, two monitoring policies are active, the private review-package root is outside the public root, 10 private package files were found, and unauthenticated requests to discovery history/package download redirected to the Institutes login. It also reported `hostinger_scheduler_cron=missing_or_unreadable`. The GitHub Actions scheduled workflow itself is running and invokes the governed commands directly; the Hostinger native cron entry remains unverified and may affect other Laravel scheduled tasks. The diagnostics did not test an authenticated CSV/manifest download or response headers.
+**Interpretation:** This verifies the *path-filtered application-code revision* and a safe no-op execution. The latest [Hostinger read-only diagnostics run](https://github.com/mattari20/estudent-listing/actions/runs/40189064829) reported the application tree matched the expected application revision, the `institute_discovery_run_outcomes` table and its migration are present, two monitoring policies are active, the private review-package root is outside the public root, 10 private package files were found, and unauthenticated requests to discovery history/package download redirected to the Institutes login. It also reported `hostinger_scheduler_cron=missing_or_unreadable`. The GitHub Actions scheduled workflow itself is running and invokes the governed commands directly; the Hostinger native cron entry remains unverified and may affect other Laravel scheduled tasks. The diagnostics did not test an authenticated CSV/manifest download or response headers.
 
 These checks do **not** prove that a changed official source produced a new review package or that a due policy completed a discovery run.
 
-A separate read-only official-source readiness run (including a second attempt) reported:
+The latest read-only official-source readiness run [#40189064804](https://github.com/mattari20/estudent-listing/actions/runs/40189064804) confirmed:
 - `official_source_refresh_events` table: absent.
 - Expected migration `2026_10_25_000002_create_official_source_refresh_events_table`: migration file present, but not recorded as applied.
 - No migration or production data mutation was run.
-- That workflow compared the full checkout HEAD with the application-only revision. A docs/workflow-only merge can advance checkout HEAD without changing the deployed application code, so this comparison produced a false drift/unverifiable status.
 
-PR-H corrects this check to compare the latest commit touching the same application paths used by the controlled-deploy and scheduled-discovery workflows, and also checks for tracked or staged application-code edits. The corrected workflow must run after merge to verify the fix.
+PR-H's first correction still used `git log -1 -- <application paths>`; after a merge commit, Git path-history simplification selected the merge commit rather than the application-content revision. The readiness run therefore still reported a false drift status. PR-I changes the check to compare the actual deployed application-path tree against the expected application revision, fetching only the expected commit object into Git metadata if needed (no checkout or application-file change). The corrected workflow must run after PR-I merges.
 
 ## 3. Blocking acceptance gates
 
 ### A. Deployment and schema readiness
-- [ ] Dispatch the new read-only runtime readiness workflow after PR-G is merged; this chat's available GitHub actions do not expose workflow-dispatch, so no manual dispatch has been claimed.
+- [ ] Dispatch the new read-only runtime readiness workflow after PR-G is merged; the available GitHub actions connector does not expose workflow-dispatch, so no manual dispatch has been claimed.
 - [x] Read-only check confirms `official_source_refresh_events` is absent and migration `2026_10_25_000002_create_official_source_refresh_events_table` is not applied. Evidence: [Official Source Refresh Readiness run, attempt 2](https://github.com/mattari20/estudent-listing/actions/runs/40187990642).
-- [x] Correct the false full-HEAD-vs-application-revision comparison in the official-source readiness workflow; PR-H includes the code change, pending CI and merge.
-- [ ] Re-run the corrected revision/schema check after PR-H merges; expected outcome is application-code match and a clear schema-not-ready result until migration is separately approved and applied.
+- [x] Confirm the official-source readiness workflow's revision comparison was faulty; PR-H attempted a path-history comparison but the latest run showed that still produces a false mismatch.
+- [ ] Merge PR-I after CI passes and re-run the readiness check; expected outcome is application-code match and a clear schema-not-ready result until migration is separately approved and applied.
 - [ ] Decide whether Hostinger's native cron is required for any Laravel scheduled tasks beyond the GitHub Actions workflow. If yes, verify the entry in Hostinger's scheduler UI; diagnostics returned `missing_or_unreadable`. The GitHub Actions scheduled discovery workflow is active and invokes its governed commands directly.
 - [ ] Do not apply migrations from the audit. The required migration remains unapplied; use the controlled migration workflow only after preflight, exact impact, and approval requirements are reviewed.
-- [ ] If the migration is absent, use the existing controlled migration workflow only after its preflight, exact impact, and approval requirements are reviewed. Do not use ad-hoc production SQL.
+
 
 ### B. Scheduled zero-cost discovery
 - [ ] Investigate why the scheduled run found zero active due monitoring policies, and verify whether this is intended configuration or a scheduling-policy gap.
@@ -64,7 +64,7 @@ PR-H corrects this check to compare the latest commit touching the same applicat
 - [ ] Verify batch row counts, manifest counts, CSV checksum, and provenance reconcile.
 
 ### C. Protected package retrieval
-- [x] Read-only Hostinger diagnostics found the private package root outside the public root and confirmed unauthenticated requests redirect to the Institutes login. Evidence: [Hostinger diagnostics](https://github.com/mattari20/estudent-listing/actions/runs/40188742737).
+- [x] Read-only Hostinger diagnostics found the private package root outside the public root and confirmed unauthenticated requests redirect to the Institutes login. Evidence: [latest Hostinger diagnostics](https://github.com/mattari20/estudent-listing/actions/runs/40189064829).
 - [ ] In an authenticated operator session, download CSV and manifest for a known discovery batch.
 - [x] Verify unauthenticated access is rejected.
 - [ ] Verify batch ID, snapshot ID, and CSV SHA-256 validation; test that a mismatched or tampered package fails closed.
@@ -88,4 +88,4 @@ PR-H corrects this check to compare the latest commit touching the same applicat
 
 ## 5. Closure decision
 
-**Phase 2 closure is not yet justified.** PR-E, PR-F, and PR-G are merged with green CI. Hostinger application-code revision checks match when using the application-only revision; the official-source readiness workflow is being corrected to use that same comparison. The source-refresh table/migration is absent, Hostinger's cron entry is missing or unreadable, the scheduled discovery run found no due policies, authenticated package downloads/headers remain unverified, and candidate/offering remediation workpacks still need evidence-backed completion. The next closure report must replace each open checkbox with a result, exact run/commit link, and any remaining blocker.
+**Phase 2 closure is not yet justified.** PR-E, PR-F, PR-G, and PR-H are merged with green CI. Hostinger diagnostics confirm the application tree matches the expected application revision. The official-source readiness workflow's revision comparison still falsely flags the merge commit, so PR-I is correcting it. The source-refresh table/migration is absent, Hostinger's native cron entry is missing or unreadable, the latest scheduled discovery run found no due policies, authenticated package downloads/headers remain unverified, and candidate/offering remediation workpacks still need evidence-backed completion. The next closure report must replace each open checkbox with a result, exact run/commit link, and any remaining blocker.
