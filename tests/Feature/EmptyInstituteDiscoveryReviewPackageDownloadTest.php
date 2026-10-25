@@ -1,15 +1,15 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Http\\Controllers\\InstituteDiscoveryReviewPackageController;
-use App\\Models\\ImportBatch;
-use App\\Models\\Source;
-use App\\Models\\SourceSnapshot;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Storage;
-use Tests\\TestCase;
+use App\Http\Controllers\InstituteDiscoveryReviewPackageController;
+use App\Models\ImportBatch;
+use App\Models\Source;
+use App\Models\SourceSnapshot;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
 
 class EmptyInstituteDiscoveryReviewPackageDownloadTest extends TestCase
 {
