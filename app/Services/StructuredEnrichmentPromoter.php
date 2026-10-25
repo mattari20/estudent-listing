@@ -12,7 +12,7 @@ use RuntimeException;
 class StructuredEnrichmentPromoter
 {
     public function __construct(
-        private readonly InstituteDiscoveryPromotionGuard $promotionGuard
+        private readonly ?InstituteDiscoveryPromotionGuard $promotionGuard = null
     ) {
     }
 
@@ -44,7 +44,8 @@ class StructuredEnrichmentPromoter
                 }
 
                 $current = $this->currentCanonicalSnapshot($lockedRow->entity_type, $payload);
-                $decision = $this->promotionGuard->evaluate($review, $current);
+                $guard = $this->promotionGuard ?? app(InstituteDiscoveryPromotionGuard::class);
+                $decision = $guard->evaluate($review, $current);
                 if (! $decision['eligible']) {
                     throw new RuntimeException(
                         'Governed discovery promotion blocked: '.implode(',', $decision['blockers'])
