@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Campus;
 use App\Models\Program;
 use App\Models\ProgramOffering;
+use App\Models\StructuredEnrichmentPromotionEvent;
 use App\Models\EnrichmentImportRow;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
