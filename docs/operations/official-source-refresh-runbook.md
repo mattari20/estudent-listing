@@ -20,6 +20,8 @@ Only fields allowlisted by `OfficialSourceCanonicalRefreshService` may be update
 
 ## Read-only Hostinger readiness check
 
+The diagnostic is configured to run automatically after a successful **Controlled Hostinger Code Deployment** workflow. This includes a successful preflight-only run, so check the deployment workflow input/result to distinguish a dry run from a real deployment. A manual run remains available:
+
 1. Open GitHub Actions for this repository and select **Official Source Refresh Readiness (Read-only)**.
 2. Select **Run workflow** on `main`. Keep the default absolute project path unless the deployed Laravel project is located elsewhere.
 3. Review the run output for:
