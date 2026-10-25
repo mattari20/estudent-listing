@@ -32,6 +32,26 @@ class InstituteDiscoveryAgentService
 
         app(DiscoveryMonitoringPolicyService::class)->ensure($source, $profile);
 
+        if ($forceRefresh) {
+            if ($supersedesBatchId === null) {
+                throw new \InvalidArgumentException('A refresh requires a superseded batch ID to preserve history explicitly.');
+            }
+
+            $supersededBatch = ImportBatch::query()
+                ->whereKey($supersedesBatchId)
+                ->where('source_id', $source->id)
+                ->where('source_type', $useAi ? 'ai_extraction' : 'automated_discovery')
+                ->where('batch_key', 'like', ($useAi ? 'ai-' : 'agent-').$profile.'-%')
+                ->first();
+
+            if (! $supersededBatch) {
+                throw new \InvalidArgumentException('The superseded batch must belong to this profile and source.');
+            }
+        } elseif ($supersedesBatchId !== null) {
+            throw new \InvalidArgumentException('A superseded batch ID is valid only for an explicit refresh.');
+        }
+
+
         $response = app(SafeSourceHttpRetriever::class)->get(
             $source->url,
             30,
@@ -70,30 +90,7 @@ class InstituteDiscoveryAgentService
             );
         }
 
-        if ($forceRefresh) {
-            if ($supersedesBatchId === null) {
-                throw new \InvalidArgumentException('A refresh requires a superseded batch ID to preserve history explicitly.');
-            }
 
-            $supersededBatch = ImportBatch::query()
-                ->whereKey($supersedesBatchId)
-                ->where('source_id', $source->id)
-                ->where('source_type', $useAi ? 'ai_extraction' : 'automated_discovery')
-                ->where('batch_key', 'like', ($useAi ? 'ai-' : 'agent-').$profile.'-%')
-                ->first();
-
-            if (! $supersededBatch) {
-                throw new \InvalidArgumentException('The superseded batch must belong to this profile and source.');
-            }
-
-            return $this->persistCandidates($profile, $institution, $source, $snapshot, $useAi, true, (int) $supersededBatch->id);
-        }
-
-        if ($supersedesBatchId !== null) {
-            throw new \InvalidArgumentException('A superseded batch ID is valid only for an explicit refresh.');
-        }
-
-        return $this->persistCandidates($profile, $institution, $source, $snapshot, $useAi);
     }
 
     public function runFromSnapshot(
@@ -131,9 +128,16 @@ class InstituteDiscoveryAgentService
             throw new \RuntimeException('AI extraction is currently enabled only for programme discovery profiles.');
         }
 
-        $existingBatch = $forceNewBatch ? null : $this->existingBatchForSnapshot($profile, $source, $snapshot, $useAi);
+        $existingBatch = $this->existingBatchForSnapshot(
+            $profile,
+            $source,
+            $snapshot,
+            $useAi,
+            $forceNewBatch ? $supersedesBatchId : null
+        );
         if ($existingBatch) {
             return $this->summaryForExistingBatch(
+                $profile,
                 $existingBatch,
                 $institution,
                 $source,
@@ -305,6 +309,7 @@ class InstituteDiscoveryAgentService
         Source $source,
         SourceSnapshot $snapshot,
         bool $useAi,
+        ?int $refreshOfBatchId = null,
     ): ?ImportBatch {
         $sourceType = $useAi ? 'ai_extraction' : 'automated_discovery';
         $batchPrefix = ($useAi ? 'ai-' : 'agent-').$profile.'-';
@@ -315,6 +320,7 @@ class InstituteDiscoveryAgentService
             ->where('source_type', $sourceType)
             ->where('batch_key', 'like', $batchPrefix.'%')
             ->where('notes', 'like', '%'.$versionMarker.'%')
+            ->when($refreshOfBatchId !== null, fn ($query) => $query->where('notes', 'like', '%refresh_of_batch_id='.$refreshOfBatchId.'%'))
             ->latest('id')
             ->get();
 
@@ -333,6 +339,7 @@ class InstituteDiscoveryAgentService
     }
 
     private function summaryForExistingBatch(
+        string $profile,
         ImportBatch $batch,
         Institution $institution,
         Source $source,
@@ -362,7 +369,7 @@ class InstituteDiscoveryAgentService
 
         return [
             'entity_type' => $batch->entity_type,
-            'profile' => $institution->slug,
+            'profile' => $profile,
             'institution_id' => $institution->id,
             'source_id' => $source->id,
             'snapshot_id' => $batchSnapshot->id,
