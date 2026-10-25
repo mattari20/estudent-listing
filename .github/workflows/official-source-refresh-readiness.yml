@@ -6,6 +6,16 @@ on:
       - main
     paths:
       - .github/workflows/official-source-refresh-readiness.yml
+      - app/**
+      - bootstrap/**
+      - config/**
+      - database/migrations/**
+      - resources/**
+      - routes/**
+      - public/**
+      - composer.json
+      - composer.lock
+      - artisan
   workflow_dispatch:
     inputs:
       project_path:
