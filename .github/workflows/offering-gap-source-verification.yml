@@ -1,6 +1,16 @@
 name: Official source verification for offering gaps
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/offering-gap-source-verification.yml
+      - app/Console/Commands/VerifyOfferingGapSources.php
+      - app/Services/OfficialSourcePageVerifier.php
+      - docs/step3-offering-gap-evidence-register.csv
+      - composer.json
+      - composer.lock
   workflow_dispatch:
   schedule:
     - cron: '23 4 * * 1'
