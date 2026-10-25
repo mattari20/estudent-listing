@@ -171,6 +171,7 @@ class OfficialSourcePageVerifier
                 'candidate_campus_name' => $row['candidate_campus_name'],
                 'official_source_url' => $programUrl !== '' ? $programUrl : null,
                 'official_source_retrieval_status' => $programSource['retrieval_status'] ?? 'missing_url',
+                'official_source_http_status' => $programSource['http_status'] ?? null,
                 'official_source_host' => $this->urlHost($programUrl),
                 'official_source_content_type' => $programSource['content_type'] ?? null,
                 'official_source_page_title' => $programSource['title'] ?? null,
