@@ -316,7 +316,7 @@ class InstituteDiscoveryAgentService
                 'name' => $candidate['name'],
                 'slug' => Str::slug($candidate['name']),
                 'campus_type' => $candidate['campus_type'] ?? 'campus',
-                'status' => ($candidate['status'] ?? 'unknown') === 'unknown' ? 'active' : $candidate['status'],
+                'status' => $candidate['status'] ?? 'unknown',
                 '_provenance' => [
                     'method' => $useAi ? 'ai_extraction' : 'deterministic',
                     'confidence' => $candidate['confidence'] ?? 0.9000,
@@ -331,7 +331,7 @@ class InstituteDiscoveryAgentService
             'program_level' => $candidate['program_level'] ?? 'undergraduate',
             'award' => $candidate['award'] ?? null,
             'discipline' => $candidate['discipline'] ?? null,
-            'status' => ($candidate['status'] ?? 'unknown') === 'unknown' ? 'active' : $candidate['status'],
+            'status' => $candidate['status'] ?? 'unknown',
             'description' => $useAi
                 ? 'AI-extracted candidate from the official institutional programme source.'
                 : 'Discovered from the official institutional programme source.',

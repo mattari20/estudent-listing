@@ -257,4 +257,17 @@ class InstituteDiscoveryAgentTest extends TestCase
         $this->assertFalse($manifest['canonical_mutations_performed']);
     }
 
+    public function test_missing_candidate_status_is_preserved_as_unknown_not_assumed_active(): void
+    {
+        $service = new InstituteDiscoveryAgentService();
+        $method = new \ReflectionMethod($service, 'candidatePayload');
+        $method->setAccessible(true);
+
+        $program = $method->invoke($service, 'program', ['name' => 'Test Programme'], false);
+        $campus = $method->invoke($service, 'campus', ['name' => 'Test Campus'], false);
+
+        $this->assertSame('unknown', $program['status']);
+        $this->assertSame('unknown', $campus['status']);
+    }
+
 }
