@@ -190,9 +190,9 @@ class SourceChangeDiscoveryServiceTest extends TestCase
             'materiality' => 'high',
         ]);
 
-        $agent = \\Mockery::mock(\\App\\Services\\InstituteDiscoveryAgentService::class);
+        $agent = \Mockery::mock(\App\Services\InstituteDiscoveryAgentService::class);
         $agent->shouldNotReceive('runFromSnapshot');
-        $this->app->instance(\\App\\Services\\InstituteDiscoveryAgentService::class, $agent);
+        $this->app->instance(\App\Services\InstituteDiscoveryAgentService::class, $agent);
 
         $result = app(SourceChangeDiscoveryService::class)->process($observation);
 
