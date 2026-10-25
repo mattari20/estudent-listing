@@ -66,4 +66,59 @@ class OfficialSourceIdentityVerifierTest extends TestCase
         $this->assertContains('source_not_active', $result['blockers']);
         $this->assertContains('source_type_not_authoritative', $result['blockers']);
     }
+
+    public function test_credentials_in_source_url_are_not_verified_as_official(): void
+    {
+        $url = 'https://user:secret@university.example.edu/programs';
+        $source = new Source([
+            'source_type' => 'official',
+            'name' => 'Credential-bearing URL',
+            'url' => $url,
+            'status' => 'active',
+        ]);
+
+        $result = (new OfficialSourceIdentityVerifier())->verify($source, [
+            'example-university' => ['source' => ['url' => $url]],
+        ]);
+
+        $this->assertFalse($result['verified']);
+        $this->assertContains('source_url_invalid', $result['blockers']);
+        $this->assertContains('source_not_bound_to_verified_profile', $result['blockers']);
+    }
+
+    public function test_private_ipv4_source_url_is_not_verified_as_official(): void
+    {
+        $url = 'http://127.0.0.1/programs';
+        $source = new Source([
+            'source_type' => 'official',
+            'name' => 'Private network URL',
+            'url' => $url,
+            'status' => 'active',
+        ]);
+
+        $result = (new OfficialSourceIdentityVerifier())->verify($source, [
+            'example-university' => ['source' => ['url' => $url]],
+        ]);
+
+        $this->assertFalse($result['verified']);
+        $this->assertContains('source_url_invalid', $result['blockers']);
+    }
+
+    public function test_private_ipv6_source_url_is_not_verified_as_official(): void
+    {
+        $url = 'http://[::1]/programs';
+        $source = new Source([
+            'source_type' => 'official',
+            'name' => 'Private IPv6 URL',
+            'url' => $url,
+            'status' => 'active',
+        ]);
+
+        $result = (new OfficialSourceIdentityVerifier())->verify($source, [
+            'example-university' => ['source' => ['url' => $url]],
+        ]);
+
+        $this->assertFalse($result['verified']);
+        $this->assertContains('source_url_invalid', $result['blockers']);
+    }
 }
