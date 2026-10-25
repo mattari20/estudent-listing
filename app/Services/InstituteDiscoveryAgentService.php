@@ -313,16 +313,16 @@ class InstituteDiscoveryAgentService
         bool $useAi,
     ): array {
         $batch->loadMissing('rows');
-        $evidenceId = Evidence::query()
-            ->where('source_id', $source->id)
-            ->where('snapshot_id', (int) preg_match('/source snapshot #(\\d+)/i', (string) $batch->notes, $matches) ? (int) $matches[1] : $snapshot->id)
-            ->latest('id')
-            ->value('id');
         $batchSnapshotId = $snapshot->id;
         if (preg_match('/source snapshot #(\\d+)/i', (string) $batch->notes, $matches) === 1) {
             $batchSnapshotId = (int) $matches[1];
         }
         $batchSnapshot = SourceSnapshot::query()->find($batchSnapshotId) ?? $snapshot;
+        $evidenceId = Evidence::query()
+            ->where('source_id', $source->id)
+            ->where('snapshot_id', $batchSnapshot->id)
+            ->latest('id')
+            ->value('id');
         $reviewPackage = app(InstituteDiscoveryReviewPackageService::class)->create(
             $batch,
             $batchSnapshot,
