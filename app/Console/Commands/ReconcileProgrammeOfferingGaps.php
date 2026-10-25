@@ -49,6 +49,7 @@ class ReconcileProgrammeOfferingGaps extends Command
             }
             foreach ([
                 'programs' => ['id', 'institution_id', 'name', 'status'],
+                'institutions' => ['id', 'name', 'status'],
                 'campuses' => ['id', 'institution_id', 'name', 'status'],
                 'program_offerings' => ['id', 'program_id', 'campus_id', 'delivery_mode', 'status'],
             ] as $table => $columns) {
@@ -113,6 +114,9 @@ class ReconcileProgrammeOfferingGaps extends Command
                 'register_row_count_matches_expected' => count($rows) === $report['expected_rows'],
                 'duplicate_program_ids' => 0,
                 'duplicate_candidate_keys' => 0,
+                'duplicate_existing_offering_relationships' => 0,
+                'program_name_mismatch_with_live_record' => 0,
+                'institution_found_and_name_matched' => 0,
                 'program_found_and_institution_matched' => 0,
                 'campus_found_and_institution_matched' => 0,
                 'active_offering_already_exists' => 0,
@@ -128,6 +132,9 @@ class ReconcileProgrammeOfferingGaps extends Command
                 $pid = ctype_digit($row['program_id']) ? (int) $row['program_id'] : 0;
                 $iid = ctype_digit($row['institution_id']) ? (int) $row['institution_id'] : 0;
                 $cid = ctype_digit($row['candidate_campus_id']) ? (int) $row['candidate_campus_id'] : 0;
+                $institution = $iid > 0
+                    ? DB::table('institutions')->where('id', $iid)->first(['id', 'name', 'status'])
+                    : null;
                 $program = $pid > 0
                     ? DB::table('programs')->where('id', $pid)->first(['id', 'institution_id', 'name', 'status'])
                     : null;
@@ -137,6 +144,11 @@ class ReconcileProgrammeOfferingGaps extends Command
 
                 $programMatches = $program && (int) $program->institution_id === $iid;
                 $campusMatches = $campus && (int) $campus->institution_id === $iid;
+                $programNameMatches = $program
+                    && $this->normalizeName($row['program_name']) === $this->normalizeName((string) $program->name);
+                $institutionNameMatches = $institution
+                    && $this->normalizeName($institution->name) !== ''
+                    && $this->normalizeName($institution->name) !== 'unknown';
                 $campusNameMatches = $campus
                     && mb_strtolower(trim($row['candidate_campus_name'])) === mb_strtolower(trim((string) $campus->name));
 
@@ -155,8 +167,14 @@ class ReconcileProgrammeOfferingGaps extends Command
                 }
                 $seenCandidateKeys[$candidateKey] = true;
 
+                if ($institutionNameMatches) {
+                    $summary['institution_found_and_name_matched']++;
+                }
                 if ($programMatches) {
                     $summary['program_found_and_institution_matched']++;
+                }
+                if ($program && ! $programNameMatches) {
+                    $summary['program_name_mismatch_with_live_record']++;
                 }
                 if ($campusMatches) {
                     $summary['campus_found_and_institution_matched']++;
@@ -178,6 +196,10 @@ class ReconcileProgrammeOfferingGaps extends Command
                 $inactiveExact = $exactModeOfferings->contains(fn ($offering) => $offering->status !== 'active');
                 $differentMode = $pairOfferings->isNotEmpty() && $exactModeOfferings->isEmpty();
                 $otherCampus = $programOfferings->contains(fn ($offering) => (int) $offering->campus_id !== $cid);
+                $duplicateExactRelationship = $exactModeOfferings->count() > 1;
+                if ($duplicateExactRelationship) {
+                    $summary['duplicate_existing_offering_relationships']++;
+                }
 
                 if ($activeExact) {
                     $summary['active_offering_already_exists']++;
@@ -201,6 +223,8 @@ class ReconcileProgrammeOfferingGaps extends Command
                     && $row['remediation_decision'] === 'ready-for-validation';
 
                 $blockers = [];
+                if ($iid < 1 || ! $institution) $blockers[] = 'institution_missing';
+                if (! $programNameMatches) $blockers[] = 'register_program_name_does_not_match_live_program';
                 if ($pid < 1 || ! $programMatches) $blockers[] = 'program_missing_or_wrong_institution';
                 if ($cid < 1 || ! $campusMatches) $blockers[] = 'campus_missing_or_wrong_institution';
                 if (! $campusNameMatches) $blockers[] = 'candidate_campus_name_does_not_match_live_name';
@@ -213,6 +237,9 @@ class ReconcileProgrammeOfferingGaps extends Command
                 if ($blockers !== []) {
                     $classification = 'BLOCKED_INSUFFICIENT_OR_MISMATCHED_EVIDENCE';
                     $summary['blocked_rows']++;
+                } elseif ($duplicateExactRelationship) {
+                    $classification = 'DUPLICATE_EXISTING_OFFERING_RELATIONSHIP_REQUIRES_REVIEW';
+                    $summary['review_only_rows']++;
                 } elseif ($activeExact) {
                     $classification = 'ACTIVE_OFFERING_ALREADY_EXISTS';
                     $summary['review_only_rows']++;
@@ -234,8 +261,12 @@ class ReconcileProgrammeOfferingGaps extends Command
                     'register_line' => $row['_line'],
                     'program_id' => $pid ?: null,
                     'institution_id' => $iid ?: null,
+                    'institution_name_live' => $institution->name ?? null,
+                    'institution_status_live' => $institution->status ?? null,
+                    'institution_found' => (bool) $institution,
                     'program_name_register' => $row['program_name'],
                     'program_name_live' => $program->name ?? null,
+                    'program_name_matches_live' => (bool) $programNameMatches,
                     'program_status_live' => $program->status ?? null,
                     'program_institution_matches' => (bool) $programMatches,
                     'candidate_campus_id' => $cid ?: null,
@@ -247,6 +278,7 @@ class ReconcileProgrammeOfferingGaps extends Command
                     'candidate_delivery_mode' => $row['candidate_delivery_mode'],
                     'matching_program_campus_offerings' => $pairOfferings->count(),
                     'matching_delivery_mode_offerings' => $exactModeOfferings->count(),
+                    'duplicate_exact_relationship_rows' => max(0, $exactModeOfferings->count() - 1),
                     'active_exact_offering_exists' => (bool) $activeExact,
                     'inactive_exact_offering_exists' => (bool) $inactiveExact,
                     'different_delivery_mode_exists' => (bool) $differentMode,
@@ -288,9 +320,18 @@ class ReconcileProgrammeOfferingGaps extends Command
             'INACTIVE_OFFERING_EXISTS_REQUIRES_REVIEW' => 'review_existing_record_and_status_no_automatic_reactivation',
             'OFFERING_EXISTS_DELIVERY_MODE_MISMATCH_REQUIRES_REVIEW' => 'verify_delivery_mode_against_official_source',
             'OFFERING_EXISTS_AT_OTHER_CAMPUS_REQUIRES_REVIEW' => 'verify_campus_mapping_before_any_change',
+            'DUPLICATE_EXISTING_OFFERING_RELATIONSHIP_REQUIRES_REVIEW' => 'review_duplicate_canonical_offering_rows_before_any_change',
             'BLOCKED_INSUFFICIENT_OR_MISMATCHED_EVIDENCE' => 'collect_or_correct_evidence_and_re-run_read_only_audit',
             default => 'prepare_row_level_repair_proposal_after_official_source_review',
         };
+    }
+
+    private function normalizeName(string $name): string
+    {
+        $name = mb_strtolower(trim($name));
+        $name = preg_replace('/\\s+/u', ' ', $name) ?? $name;
+
+        return $name;
     }
 
     private function isSafeEvidenceUrl(string $url): bool
