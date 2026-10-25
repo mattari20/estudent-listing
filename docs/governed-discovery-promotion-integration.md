@@ -9,7 +9,7 @@ The discovery pipeline is composed from independently testable stages:
 
 ## Promotion boundary
 
-The legacy `StructuredEnrichmentPromoter` now runs promotion inside a database transaction, locks and re-checks the import row's approval state, and invokes `InstituteDiscoveryPromotionGuard` for discovery-sourced rows carrying `_provenance` or `_governed_review` metadata. Governed discovery rows without a review contract fail closed. Internal metadata is removed before canonical model attributes are written.
+The legacy `StructuredEnrichmentPromoter` now runs promotion inside a database transaction, validates required payload fields and positive relationship IDs before any write, locks and re-checks the import row's approval state, and invokes `InstituteDiscoveryPromotionGuard` for discovery-sourced rows carrying `_provenance` or `_governed_review` metadata. Governed discovery rows without a review contract fail closed. Internal metadata is removed before canonical model attributes are written.
 
 Legacy/manual import rows without discovery metadata retain their prior approval-based behavior for compatibility. This is an intentional migration boundary, not a claim that every legacy import is governed. A later migration should classify all source types explicitly and move legacy sources to the same evidence/review contract.
 
