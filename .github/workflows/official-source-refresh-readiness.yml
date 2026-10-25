@@ -68,9 +68,8 @@ jobs:
               DEPLOYED_REVISION="$(git rev-parse HEAD)"
               echo "deployed_revision=$DEPLOYED_REVISION"
               echo "expected_application_revision=$EXPECTED_REVISION"
-              if ! git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
-                git fetch --quiet --no-tags origin "$EXPECTED_REVISION" || true
-              fi
+              # Never fetch or update repository metadata on the production host.
+              # If the expected commit is unavailable locally, report it as unverifiable.
               if git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null && \
                 git diff --quiet "$EXPECTED_REVISION" "$DEPLOYED_REVISION" -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
                 echo "application_code_status=APPLICATION_CODE_MATCH"
