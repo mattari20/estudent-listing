@@ -142,12 +142,18 @@ class InstituteDiscoveryAgentService
         $candidateRows = 0;
         $duplicateRows = 0;
         $invalidRows = 0;
+        $seenSlugs = [];
 
         foreach ($candidates as $index => $candidate) {
             $payload = $this->candidatePayload($entityType, $candidate, $useAi);
             $payload['_provenance']['source_id'] = $source->id;
             $payload['_provenance']['snapshot_id'] = $snapshot->id;
             $payload['_provenance']['evidence_id'] = $evidence->id;
+            $payload['_provenance']['source_url'] = $source->url;
+            $payload['_provenance']['source_authority'] = $source->authority_scope;
+            $payload['_provenance']['captured_at'] = $snapshot->captured_at?->toIso8601String();
+            $payload['_provenance']['content_hash'] = $snapshot->content_hash;
+            $payload['_provenance']['extractor_version'] = InstituteDiscoveryCandidateExtractor::VERSION;
 
             $blockers = app(InstituteDiscoveryCandidateQualityService::class)->blockers(
                 $entityType,
@@ -156,14 +162,26 @@ class InstituteDiscoveryAgentService
                 $useAi
             );
 
-            $duplicate = $blockers === []
-                ? app(ImportDuplicateDetectorService::class)->find(
+            $slug = (string) ($payload['slug'] ?? '');
+            $withinBatchDuplicate = $slug !== '' && isset($seenSlugs[$slug]);
+            if ($slug !== '') {
+                $seenSlugs[$slug] = true;
+            }
+
+            $duplicate = null;
+            if ($blockers === [] && $withinBatchDuplicate) {
+                $duplicate = [
+                    'kind' => 'same_batch',
+                    'message' => 'A candidate with the same normalized slug already appears earlier in this source batch.',
+                ];
+            } elseif ($blockers === []) {
+                $duplicate = app(ImportDuplicateDetectorService::class)->find(
                     $entityType,
                     $institution->id,
-                    $payload['slug'],
+                    $slug,
                     $batch->id
-                )
-                : null;
+                );
+            }
 
             $status = $blockers !== [] ? 'invalid' : ($duplicate ? 'duplicate' : 'candidate');
             $validationErrors = $blockers !== []
