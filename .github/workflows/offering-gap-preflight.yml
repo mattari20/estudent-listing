@@ -39,8 +39,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Trim accidental surrounding whitespace/newlines from the UI input,
+          # then validate the exact immutable SHA. Never silently accept suffixes,
+          # branch names, or partial hashes.
+          REQUESTED_REVISION="$(printf '%s' "$REQUESTED_REVISION" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
           if [[ ! "$REQUESTED_REVISION" =~ ^[0-9a-fA-F]{40}$ ]]; then
-            echo "::error::Supply an exact 40-character commit SHA; branch names are not accepted."
+            echo "::error::Revision input must contain only the exact 40-character commit SHA (no labels, numbering, or punctuation)."
+            echo "::notice::Use: 8904591c57bd9426b00dff66b9d8dda121a6ada2"
             exit 1
           fi
           for name in DB_HOST DB_PORT DB_DATABASE DB_USERNAME DB_PASSWORD; do
