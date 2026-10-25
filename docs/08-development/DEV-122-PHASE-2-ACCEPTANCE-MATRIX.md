@@ -58,3 +58,17 @@ The current main branch is ahead of Hostinger application code. Phase 2 remains 
 - [ ] Authenticated operator must load live run history and download an existing CSV and manifest; verify `Cache-Control: private, no-store, max-age=0` and `X-Content-Type-Options: nosniff`.
 - [ ] Verify a source-change run and an unchanged-source run each record the expected outcome without changing canonical counts.
 - [ ] Hostinger cron remains `missing_or_unreadable`; GitHub's scheduled workflow is configured, but Hostinger cron itself is not independently verified.
+
+
+## Structured enrichment promotion audit coverage — 25 October 2026
+
+- [x] Dedicated `structured_enrichment_promotion_events` table and Eloquent model merged in PR #638.
+- [x] Successful canonical promotion records before/after snapshots in the same transaction as the canonical write.
+- [x] Program idempotency test verifies two audit events and the before/after program name.
+- [x] Campus idempotency test verifies two audit events and the before/after campus name (this PR).
+- [x] Offering idempotency test verifies two audit events and the before/after offering status (this PR).
+- [ ] Add an explicit rollback regression test proving a failed audit insert rolls back the canonical write.
+- [ ] Verify audit-table migration and audit-event contents in a deployed test/staging environment.
+- [ ] Live Hostinger revision, scheduler, and authenticated operator acceptance gates above remain open; this repository-only audit coverage does not close them.
+
+Audit events currently record successful promotions only. They are transactionally coupled to the canonical write, but this table must not be treated as a complete immutable security log: failed/blocked attempts, deletion/retention controls, and production access policy require separate review.
