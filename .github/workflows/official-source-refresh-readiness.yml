@@ -91,6 +91,8 @@ jobs:
             $schema = \Illuminate\Support\Facades\Schema::class;
             $table = 'official_source_refresh_events';
             $migration = '2026_10_25_000002_create_official_source_refresh_events_table';
+            $migrationFile = base_path('database/migrations/'.$migration.'.php');
+            $migrationFileExists = is_file($migrationFile);
             $migrationTableExists = $schema::hasTable('migrations');
             $tableExists = $schema::hasTable($table);
             $requiredColumns = [
@@ -130,7 +132,7 @@ jobs:
             }
             $migrationApplied = count($migrationRows) > 0;
             $columnsReady = $tableExists && $missingColumns === [];
-            $ready = $tableExists && $migrationApplied && $columnsReady;
+            $ready = $tableExists && $migrationApplied && $columnsReady && $migrationFileExists;
             echo json_encode([
                 'check' => 'official_source_refresh_schema_readiness',
                 'checked_at' => now()->toIso8601String(),
@@ -142,6 +144,7 @@ jobs:
                 'columns_ready' => $columnsReady,
                 'migrations_table_exists' => $migrationTableExists,
                 'expected_migration' => $migration,
+                'migration_file_exists' => $migrationFileExists,
                 'migration_applied' => $migrationApplied,
                 'matching_migrations' => $migrationRows,
                 'schema_ready' => $ready,
