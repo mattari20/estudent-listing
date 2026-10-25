@@ -38,6 +38,17 @@ class SourceChangeDiscoveryService
                 continue;
             }
 
+            $identity = app(OfficialSourceIdentityVerifier::class)->verify($observation->source, [
+                $profileKey => $definition,
+            ]);
+            if (! $identity['verified']) {
+                return $this->record($base + [
+                    'profile_key' => $profileKey,
+                    'outcome' => 'source_identity_blocked',
+                    'details' => ['blockers' => $identity['blockers']],
+                ]);
+            }
+
             if (! ($definition['monitoring']['auto_discovery'] ?? true)) {
                 return $this->record($base + [
                     'profile_key' => $profileKey,

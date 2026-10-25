@@ -163,6 +163,46 @@ class SourceChangeDiscoveryServiceTest extends TestCase
         $this->assertSame(63, $stored->details['duplicate_rows']);
     }
 
+
+    public function test_discovery_is_blocked_when_matching_profile_source_is_not_authoritative(): void
+    {
+        $url = 'https://third-party.example.test/university';
+        config()->set('institute_agent.profiles.unverified-source', [
+            'institution_slug' => 'example-university',
+            'source' => ['name' => 'Unverified source', 'type' => 'official', 'url' => $url, 'authority_scope' => 'official programmes'],
+            'entity_type' => 'program',
+            'monitoring' => ['auto_discovery' => true, 'use_ai' => false],
+        ]);
+
+        $source = Source::create([
+            'source_type' => 'web',
+            'name' => 'Third-party directory',
+            'url' => $url,
+            'authority_scope' => 'directory listing',
+            'status' => 'active',
+        ]);
+        $snapshot = $this->createSnapshot($source, '<html>third-party content</html>');
+        $observation = SourceChangeObservation::create([
+            'source_id' => $source->id,
+            'current_snapshot_id' => $snapshot->id,
+            'observed_at' => now(),
+            'change_state' => 'changed',
+            'materiality' => 'high',
+        ]);
+
+        $agent = \Mockery::mock(\App\Services\InstituteDiscoveryAgentService::class);
+        $agent->shouldNotReceive('runFromSnapshot');
+        $this->app->instance(\App\Services\InstituteDiscoveryAgentService::class, $agent);
+
+        $result = app(SourceChangeDiscoveryService::class)->process($observation);
+
+        $this->assertSame('source_identity_blocked', $result['outcome']);
+        $this->assertDatabaseHas('institute_discovery_run_outcomes', [
+            'source_id' => $source->id,
+            'outcome' => 'source_identity_blocked',
+        ]);
+    }
+
     private function createSource(): Source
     {
         return Source::create([
