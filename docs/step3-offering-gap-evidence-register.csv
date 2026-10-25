@@ -15,8 +15,8 @@ program_id,institution_id,program_name,official_source_url,source_status,campus_
 61,6,BS Information Technology,https://ue.edu.pk/degreeprograms.php,source-found,wrong-campus-in-current-record,blocked,16,Township Main Campus,on_campus,https://ue.edu.pk/meritlist.html
 62,6,BS English,https://ue.edu.pk/degreeprograms.php,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,https://ue.edu.pk/meritlist.html
 63,6,BS Business Analytics,https://ue.edu.pk/programs.php?id=200,source-found,verify-Township-campus,review,16,Township Main Campus,on_campus,https://ue.edu.pk/meritlist.html
-39,8,BSc Management Science,https://admission.lums.edu.pk/undergraduate-programmes,source-found,verify-LUMS-campus,review,2,LUMS Main Campus,on_campus,
-40,8,BSc Economics,https://admission.lums.edu.pk/undergraduate-programmes,source-found,verify-LUMS-campus,review,2,LUMS Main Campus,on_campus,
+39,8,BSc Management Science,https://admission.lums.edu.pk/undergraduate-programmes,source-found,verify-LUMS-campus,review,2,LUMS Main Campus,on_campus,https://www.lums.edu.pk/contact-us
+40,8,BSc Economics,https://admission.lums.edu.pk/undergraduate-programmes,source-found,verify-LUMS-campus,review,2,LUMS Main Campus,on_campus,https://www.lums.edu.pk/contact-us
 1,9,BS (Computer Sciences),https://lahore.comsats.edu.pk/cs/programs.aspx,source-found,main-campus-confirmed,review,1,COMSATS Lahore,on_campus,https://lahore.comsats.edu.pk/cs/bscs.aspx
 69,10,BS Game Design,https://soca.uol.edu.pk/course/bs-in-game-design/,source-found,verify-current-program-and-campus,review,18,Main Campus,on_campus,
 71,11,BS Accounting & Finance,,not-verified,verify-Islamabad-campus,blocked,19,Islamabad Main Campus,on_campus,
@@ -34,4 +34,4 @@ program_id,institution_id,program_name,official_source_url,source_status,campus_
 8,17,BS Computer Science,https://admissions.kiu.edu.pk/p/bs-fall-admissions-2025-ZSARUH,source-found,main-campus-confirmed,review,7,Gilgit Main Campus,on_campus,https://admissions.kiu.edu.pk/p/bs-fall-admissions-2025-ZSARUH
 30,18,BS Polymer Engineering,https://www.ntu.edu.pk/admissions,source-found,main-campus-confirmed,review,8,Faisalabad Main Campus,on_campus,https://www.ntu.edu.pk/admissions
 31,18,Bachelor of Fashion Design,https://www.ntu.edu.pk/admissions,source-found,main-campus-confirmed,review,8,Faisalabad Main Campus,on_campus,https://www.ntu.edu.pk/admissions
-10,19,BS Computer Science,https://nust.edu.pk/admissions/undergraduates/list-of-ug-programmes-and-institutions,source-found,verify-current-NUST-campus,review,9,Islamabad Main Campus,on_campus,
+10,19,BS Computer Science,https://nust.edu.pk/admissions/undergraduates/list-of-ug-programmes-and-institutions,source-found,verify-current-NUST-campus,review,9,Islamabad Main Campus,on_campus,https://nust.edu.pk/admissions/undergraduates/list-of-ug-programmes-and-institutions/
