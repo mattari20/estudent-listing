@@ -1,0 +1,87 @@
+name: Official source verification for offering gaps
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Read-only official source verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout source revision
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Verify required files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f artisan
+          test -f app/Console/Commands/VerifyOfferingGapSources.php
+          test -f app/Services/OfficialSourcePageVerifier.php
+          test -f docs/step3-offering-gap-evidence-register.csv
+          echo "Verified revision: $(git rev-parse HEAD)"
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: dom, mbstring, xml, curl
+          coverage: none
+
+      - name: Install application dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress --no-dev --optimize-autoloader
+
+      - name: Verify source pages without database access
+        shell: bash
+        run: |
+          set +e
+          php artisan institutes:verify-offering-gap-sources --json --no-ansi > "$RUNNER_TEMP/offering-gap-source-verification.json" 2> "$RUNNER_TEMP/source-verification-stderr.txt"
+          command_exit=$?
+          set -e
+          printf '%s\n' "$command_exit" > "$RUNNER_TEMP/source-verification-exit-code.txt"
+          if [[ ! -s "$RUNNER_TEMP/offering-gap-source-verification.json" ]]; then
+            echo "::error::Source verification produced no JSON report."
+            exit 1
+          fi
+          if ! jq -e 'type == "object" and .database_mutations == 0 and .mutation_performed == false and .source_ownership_verified == false' "$RUNNER_TEMP/offering-gap-source-verification.json" >/dev/null; then
+            echo "::error::Source verification report failed its read-only safety contract."
+            exit 1
+          fi
+          if ! jq -e '.summary.register_rows == 36 and (.records | length) == 36' "$RUNNER_TEMP/offering-gap-source-verification.json" >/dev/null; then
+            echo "::error::Source verification must produce exactly 36 row-level results."
+            exit 1
+          fi
+          jq --arg revision "$(git rev-parse HEAD)" \
+             --arg run_id "$GITHUB_RUN_ID" \
+             --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+             --arg repository "$GITHUB_REPOSITORY" \
+             --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+             --argjson command_exit_code "$command_exit" \
+             '. + {workflow_metadata: {repository: $repository, revision: $revision, run_id: $run_id, run_attempt: $run_attempt, generated_at_utc: $timestamp, command_exit_code: $command_exit_code}}' \
+             "$RUNNER_TEMP/offering-gap-source-verification.json" > "$RUNNER_TEMP/offering-gap-source-verification-with-metadata.json"
+          if [[ "$command_exit" -ne 0 ]]; then
+            echo "::error::Source verification command failed; inspect the report artifact."
+            exit 1
+          fi
+
+      - name: Upload short-retention source verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: offering-gap-source-verification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/offering-gap-source-verification-with-metadata.json
+            ${{ runner.temp }}/offering-gap-source-verification.json
+            ${{ runner.temp }}/source-verification-exit-code.txt
+          if-no-files-found: warn
+          retention-days: 3
