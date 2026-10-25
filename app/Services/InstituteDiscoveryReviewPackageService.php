@@ -47,22 +47,32 @@ class InstituteDiscoveryReviewPackageService
             $evidenceId = $evidenceId === null ? null : (int) $evidenceId;
         }
 
-        $directory = 'institute-discovery-review-packages/snapshot-'.$snapshotId;
+        // Packages are keyed by both batch and snapshot. A single source snapshot
+        // may legitimately produce multiple immutable batches across extractor versions.
+        $directory = 'institute-discovery-review-packages/batch-'.$batch->id.'-snapshot-'.$snapshotId;
         $csvPath = $directory.'/candidates.csv';
         $manifestPath = $directory.'/manifest.json';
         $disk = Storage::disk('local');
 
         if ($disk->exists($manifestPath) && $disk->exists($csvPath)) {
             $existing = json_decode($disk->get($manifestPath), true) ?: [];
+            $existingCsv = $disk->get($csvPath);
+            $expectedChecksum = data_get($existing, 'checksums.candidates.csv');
 
-            return [
-                'status' => 'reused',
-                'batch_id' => (int) $batch->id,
-                'snapshot_id' => $snapshotId,
-                'candidate_count' => (int) ($existing['candidate_count'] ?? $batch->rows->count()),
-                'csv_path' => $csvPath,
-                'manifest_path' => $manifestPath,
-            ];
+            if ((int) ($existing['batch_id'] ?? 0) === (int) $batch->id
+                && (int) ($existing['snapshot_id'] ?? 0) === $snapshotId
+                && is_string($existingCsv)
+                && is_string($expectedChecksum)
+                && hash_equals($expectedChecksum, hash('sha256', $existingCsv))) {
+                return [
+                    'status' => 'reused',
+                    'batch_id' => (int) $batch->id,
+                    'snapshot_id' => $snapshotId,
+                    'candidate_count' => (int) ($existing['candidate_count'] ?? $batch->rows->count()),
+                    'csv_path' => $csvPath,
+                    'manifest_path' => $manifestPath,
+                ];
+            }
         }
 
         $headers = [
@@ -111,7 +121,7 @@ class InstituteDiscoveryReviewPackageService
         $candidateCount = $batch->rows->count();
         $manifest = [
             'package_type' => 'institute_discovery_review',
-            'schema_version' => 1,
+            'schema_version' => 2,
             'status' => $candidateCount > 0 ? 'review_required' : 'no_candidates',
             'created_at' => now()->toIso8601String(),
             'batch_id' => (int) $batch->id,
@@ -132,6 +142,7 @@ class InstituteDiscoveryReviewPackageService
             'canonical_mutations_performed' => false,
             'automatic_approval_performed' => false,
             'files' => ['csv' => 'candidates.csv'],
+            'checksums' => ['candidates.csv' => hash('sha256', $csv)],
         ];
 
         $disk->makeDirectory($directory);
