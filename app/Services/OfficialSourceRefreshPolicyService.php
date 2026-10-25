@@ -34,7 +34,11 @@ class OfficialSourceRefreshPolicyService
         }
         if (! is_string($proposal['evidence_url'] ?? null)
             || ! filter_var($proposal['evidence_url'], FILTER_VALIDATE_URL)
-            || ! in_array(strtolower((string) parse_url($proposal['evidence_url'], PHP_URL_SCHEME)), ['http', 'https'], true)) {
+            || ! in_array(strtolower((string) parse_url($proposal['evidence_url'], PHP_URL_SCHEME)), ['http', 'https'], true)
+            || parse_url($proposal['evidence_url'], PHP_URL_HOST) === false
+            || parse_url($proposal['evidence_url'], PHP_URL_HOST) === null
+            || parse_url($proposal['evidence_url'], PHP_URL_USER) !== null
+            || parse_url($proposal['evidence_url'], PHP_URL_PASS) !== null) {
             $blockers[] = 'valid_field_evidence_url_required';
         }
         if (! is_string($proposal['evidence_excerpt'] ?? null) || trim($proposal['evidence_excerpt']) === '') {
