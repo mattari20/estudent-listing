@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use DateTimeImmutable;
+
 /**
  * Deterministic gate for applying field-level corrections from official sources.
  *
@@ -38,7 +40,7 @@ class OfficialSourceRefreshPolicyService
         if (! is_string($proposal['evidence_excerpt'] ?? null) || trim($proposal['evidence_excerpt']) === '') {
             $blockers[] = 'field_evidence_excerpt_required';
         }
-        if (! is_string($proposal['observed_at'] ?? null) || trim($proposal['observed_at']) === '') {
+        if (! $this->isValidTimestamp($proposal['observed_at'] ?? null)) {
             $blockers[] = 'source_observation_timestamp_required';
         }
         if (! is_string($proposal['content_fingerprint'] ?? null) || trim($proposal['content_fingerprint']) === '') {
@@ -67,6 +69,23 @@ class OfficialSourceRefreshPolicyService
                 ? 'Verified official-source evidence supports a field correction; revalidate the latest source and canonical version transactionally before applying.'
                 : 'Official-source refresh is blocked until every source, identity, and field-evidence requirement passes.',
         ];
+    }
+
+    private function isValidTimestamp(mixed $value): bool
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return false;
+        }
+
+        try {
+            // Require an explicit timezone so timestamps from different sources
+            // cannot be silently interpreted in the server's local timezone.
+            $timestamp = new DateTimeImmutable($value);
+            return preg_match('/(?:Z|[+-][0-9]{2}:[0-9]{2})$/i', trim($value)) === 1
+                && $timestamp->getTimestamp() > 0;
+        } catch (\\Throwable) {
+            return false;
+        }
     }
 
     private function normalize(mixed $value): string
