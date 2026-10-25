@@ -334,8 +334,12 @@ class InstituteDiscoveryAgentTest extends TestCase
         $service = app(InstituteDiscoveryAgentService::class);
         $original = $service->run('cui-lahore');
         $refreshed = $service->run('cui-lahore', false, true, $original['batch_id']);
+        $retriedRefresh = $service->run('cui-lahore', false, true, $original['batch_id']);
 
         $this->assertNotSame($original['batch_id'], $refreshed['batch_id']);
+        $this->assertSame($refreshed['batch_id'], $retriedRefresh['batch_id']);
+        $this->assertSame(2, ImportBatch::where('source_id', $original['source_id'])
+            ->where('source_type', 'automated_discovery')->count());
         $this->assertDatabaseHas('import_batches', [
             'id' => $original['batch_id'],
             'status' => 'validated',
