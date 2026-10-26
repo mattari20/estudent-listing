@@ -50,13 +50,10 @@ jobs:
 
             # Reuse the existing protected offering-gap audit environment secrets.
             # Do not fall back to the app .env credentials if any are missing.
-            for name in AUDIT_DB_HOST AUDIT_DB_PORT AUDIT_DB_DATABASE AUDIT_DB_USERNAME AUDIT_DB_PASSWORD; do
-              eval "value=\${$name:-}"
-              if [ -z "$value" ]; then
-                echo "ERROR: Existing offering-gap environment secret is missing: $name"
-                exit 10
-              fi
-            done
+            if [ -z "${AUDIT_DB_HOST:-}" ] || [ -z "${AUDIT_DB_PORT:-}" ] || [ -z "${AUDIT_DB_DATABASE:-}" ] || [ -z "${AUDIT_DB_USERNAME:-}" ] || [ -z "${AUDIT_DB_PASSWORD:-}" ]; then
+              echo "ERROR: One or more existing offering-gap environment secrets are missing; no audit commands were run."
+              exit 10
+            fi
             export DB_CONNECTION=mysql
             export DB_HOST="$AUDIT_DB_HOST"
             export DB_PORT="$AUDIT_DB_PORT"
