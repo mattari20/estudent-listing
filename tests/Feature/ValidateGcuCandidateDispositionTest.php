@@ -15,7 +15,7 @@ class ValidateGcuCandidateDispositionTest extends TestCase
         fputcsv($h,['batch-1','row-1','1','BS Example','bs-example','program','https://example.edu/programs','snap-1','ev-1','v1','Programs','Undergraduate','BS Example','body','','','','needs_review','keep-for-review','Official page supports candidate','reviewer-1','2026-10-26']);
         fclose($h);
         try {
-            $exit=Artisan::call('institutes:gcu-disposition-validate',[$path,'--expected-rows'=>1,'--json'=>true]);
+            $exit=Artisan::call('institutes:gcu-disposition-validate',['file'=>$path,'--expected-rows'=>1,'--json'=>true]);
             $report=json_decode(Artisan::output(),true);
             $this->assertSame(0,$exit);
             $this->assertSame('VALIDATION_PASSED_REVIEW_REQUIRED',$report['status']);
@@ -32,7 +32,7 @@ class ValidateGcuCandidateDispositionTest extends TestCase
         fputcsv($h,['batch-1','row-1','1','BS Example','bs-example','program','https://example.edu','snap-1','v1','duplicate-of-row','row-1','Duplicate']);
         fclose($h);
         try {
-            $exit=Artisan::call('institutes:gcu-disposition-validate',[$path,'--expected-rows'=>1,'--json'=>true]);
+            $exit=Artisan::call('institutes:gcu-disposition-validate',['file'=>$path,'--expected-rows'=>1,'--json'=>true]);
             $report=json_decode(Artisan::output(),true);
             $this->assertSame(1,$exit);
             $this->assertContains('invalid_duplicate_target_for_row:row-1',$report['errors']);
