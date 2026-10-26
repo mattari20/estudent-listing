@@ -158,12 +158,20 @@ jobs:
           trap 'rm -f "$key_file" "$known_hosts"' EXIT
           printf '%s\n' "$SSH_PRIVATE_KEY" > "$key_file"
           chmod 600 "$key_file"
-          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" 2>/dev/null > "$known_hosts"
-          [[ -s "$known_hosts" ]] || { echo "::error::Could not obtain Hostinger SSH host key."; exit 1; }
-          if ! ssh-keygen -lf "$known_hosts" -E sha256 | awk '{print $2}' | grep -Fxq "$SSH_FINGERPRINT"; then
-            echo "::error::Hostinger SSH fingerprint did not match the configured trusted fingerprint."
-            exit 1
-          fi
+          scanned_hosts="$RUNNER_TEMP/hostinger_scanned_hosts"
+          : > "$known_hosts"
+          trap 'rm -f "$key_file" "$known_hosts" "$scanned_hosts"' EXIT
+          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" 2>/dev/null > "$scanned_hosts"
+          [[ -s "$scanned_hosts" ]] || { echo "::error::Could not obtain Hostinger SSH host key."; exit 1; }
+          while IFS= read -r host_key_line; do
+            printf '%s\n' "$host_key_line" > "$RUNNER_TEMP/host_key_candidate"
+            candidate_fingerprint="$(ssh-keygen -lf "$RUNNER_TEMP/host_key_candidate" -E sha256 2>/dev/null | awk '{print $2}')"
+            if [[ "$candidate_fingerprint" == "$SSH_FINGERPRINT" ]]; then
+              printf '%s\n' "$host_key_line" >> "$known_hosts"
+            fi
+          done < "$scanned_hosts"
+          rm -f "$RUNNER_TEMP/host_key_candidate"
+          [[ -s "$known_hosts" ]] || { echo "::error::Hostinger SSH fingerprint did not match the configured trusted fingerprint."; exit 1; }
           scp -i "$key_file" -o IdentitiesOnly=yes -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes -P "$SSH_PORT" "$SSH_USER@$SSH_HOST:$PREFLIGHT_PATH" "$report_dir/preflight.json"
           scp -i "$key_file" -o IdentitiesOnly=yes -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes -P "$SSH_PORT" "$SSH_USER@$SSH_HOST:$RECON_PATH" "$report_dir/reconciliation.json"
           jq -e 'type == "object" and .database_mutations == 0 and .mutation_performed == false and (.records | length) == 36' "$report_dir/reconciliation.json" >/dev/null
