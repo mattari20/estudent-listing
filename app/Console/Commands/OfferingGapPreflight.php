@@ -205,10 +205,11 @@ class OfferingGapPreflight extends Command
         } catch (Throwable $e) {
             // Preserve useful diagnostics without exposing SQL, hostnames, bindings, or credentials.
             $sqlState = null;
-            if ($e instanceof \\Illuminate\\Database\\QueryException) {
+            if ($e instanceof \Illuminate\Database\QueryException) {
                 $sqlState = $e->errorInfo[0] ?? $e->getCode();
             }
-            $report['errors'][] = 'preflight_failed:' . class_basename($e) . ($sqlState ? ':SQLSTATE_' . preg_replace('/[^A-Za-z0-9]/', '', (string) $sqlState) : '');
+            $safeSqlState = $sqlState ? preg_replace('/[^A-Za-z0-9]/', '', (string) $sqlState) : '';
+            $report['errors'][] = 'preflight_failed:' . class_basename($e) . ($safeSqlState !== '' ? ':SQLSTATE_' . $safeSqlState : '');
             return $this->finish($report, $startedAt, self::FAILURE);
         }
     }
