@@ -127,12 +127,18 @@ jobs:
           PROJECT_PATH: ${{ inputs.project_path }}
         run: |
           set -euo pipefail
-          preflight_path="$(printf '%s\n' "$AUDIT_STDOUT" | sed -n 's/^PREFLIGHT_PATH=//p')"
-          recon_path="$(printf '%s\n' "$AUDIT_STDOUT" | sed -n 's/^RECON_PATH=//p')"
+          # The SSH action may normalize line endings; trim CR and select the last exact marker.
+          preflight_path="$(printf '%s\n' "$AUDIT_STDOUT" | tr -d '\r' | sed -n 's/^PREFLIGHT_PATH=//p' | tail -n 1)"
+          recon_path="$(printf '%s\n' "$AUDIT_STDOUT" | tr -d '\r' | sed -n 's/^RECON_PATH=//p' | tail -n 1)"
           expected_prefix="${PROJECT_PATH%/}/storage/app/private/phase2-offering-gap-audits/"
-          case "$preflight_path" in "${expected_prefix}"preflight-*.json) ;; *) echo "::error::Unexpected preflight report path."; exit 1 ;; esac
-          case "$recon_path" in "${expected_prefix}"reconciliation-*.json) ;; *) echo "::error::Unexpected reconciliation report path."; exit 1 ;; esac
-          [[ -n "$preflight_path" && -n "$recon_path" ]] || { echo "::error::Hostinger did not return both report paths."; exit 1; }
+          if [[ -z "$preflight_path" || -z "$recon_path" ]]; then
+            echo "::error::Hostinger SSH action did not return both report-path markers; refusing to guess report locations."
+            echo "preflight_marker_found=$([[ -n "$preflight_path" ]] && echo yes || echo no)"
+            echo "reconciliation_marker_found=$([[ -n "$recon_path" ]] && echo yes || echo no)"
+            exit 1
+          fi
+          case "$preflight_path" in "${expected_prefix}"preflight-*.json) ;; *) echo "::error::Unexpected preflight report path (path prefix or filename did not match the configured project directory)."; exit 1 ;; esac
+          case "$recon_path" in "${expected_prefix}"reconciliation-*.json) ;; *) echo "::error::Unexpected reconciliation report path (path prefix or filename did not match the configured project directory)."; exit 1 ;; esac
           echo "preflight_path=$preflight_path" >> "$GITHUB_OUTPUT"
           echo "reconciliation_path=$recon_path" >> "$GITHUB_OUTPUT"
 
