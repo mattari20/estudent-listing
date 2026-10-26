@@ -23,6 +23,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Run audit through existing Hostinger SSH connection
+        id: hostinger_audit
         uses: appleboy/ssh-action@v1.2.0
         env:
           PROJECT_PATH: ${{ inputs.project_path }}
@@ -30,6 +31,8 @@ jobs:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          fingerprint: ${{ secrets.HOSTINGER_SSH_FINGERPRINT }}
+          capture_stdout: true
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
           envs: PROJECT_PATH
           command_timeout: 8m
@@ -43,11 +46,11 @@ jobs:
             cd "$PROJECT_PATH"
 
             # Credentials remain on Hostinger; this workflow is read-only.
-            echo "database_credentials_location=HOSTINGER_ONLY"
-            echo "database_grants_check=SKIPPED_HOSTINGER_SHARED_HOSTING_LIMITATION"
-            echo "audit_mode=APPLICATION_COMMANDS_READ_ONLY"
-            echo "database_migrations=NOT_RUN"
-            echo "production_data_mutations=NOT_AUTHORIZED"
+            echo "database_credentials_location=HOSTINGER_ONLY" >&2
+            echo "database_grants_check=SKIPPED_HOSTINGER_SHARED_HOSTING_LIMITATION" >&2
+            echo "audit_mode=APPLICATION_COMMANDS_READ_ONLY" >&2
+            echo "database_migrations=NOT_RUN" >&2
+            echo "production_data_mutations=NOT_AUTHORIZED" >&2
 
             umask 077
             REPORT_DIR="$PROJECT_PATH/storage/app/private/phase2-offering-gap-audits"
@@ -59,19 +62,19 @@ jobs:
             CHECKER="$REPORT_DIR/validate-report-$STAMP.php"
             trap 'rm -f "$CHECKER"' EXIT
 
-            echo "=== Run read-only preflight (no migrations) ==="
+            echo "=== Run read-only preflight (no migrations) ===" >&2
             if php artisan institutes:offering-gap-preflight --json --no-ansi > "$PREFLIGHT"; then
-              echo "preflight_command_status=PASS"
+              echo "preflight_command_status=PASS" >&2
             else
-              echo "preflight_command_status=FAIL"
+              echo "preflight_command_status=FAIL" >&2
               exit 40
             fi
 
-            echo "=== Run read-only row-level reconciliation (no mutations) ==="
+            echo "=== Run read-only row-level reconciliation (no mutations) ===" >&2
             if php artisan institutes:offering-gap-reconcile --json --no-ansi > "$RECON"; then
-              echo "reconciliation_command_status=PASS"
+              echo "reconciliation_command_status=PASS" >&2
             else
-              echo "reconciliation_command_status=FAIL"
+              echo "reconciliation_command_status=FAIL" >&2
               exit 41
             fi
 
@@ -112,4 +115,65 @@ jobs:
             echo 'production_data_mutations=NOT_RUN'.PHP_EOL;
             PHP
 
-            php "$CHECKER" "$PREFLIGHT" "$RECON"
+            php "$CHECKER" "$PREFLIGHT" "$RECON" >&2
+            printf 'PREFLIGHT_PATH=%s\nRECON_PATH=%s\n' "$PREFLIGHT" "$RECON"
+
+      - name: Validate report paths from Hostinger
+        id: report_paths
+        if: success()
+        shell: bash
+        env:
+          AUDIT_STDOUT: ${{ steps.hostinger_audit.outputs.stdout }}
+          PROJECT_PATH: ${{ inputs.project_path }}
+        run: |
+          set -euo pipefail
+          preflight_path="$(printf '%s\n' "$AUDIT_STDOUT" | sed -n 's/^PREFLIGHT_PATH=//p')"
+          recon_path="$(printf '%s\n' "$AUDIT_STDOUT" | sed -n 's/^RECON_PATH=//p')"
+          expected_prefix="${PROJECT_PATH%/}/storage/app/private/phase2-offering-gap-audits/"
+          case "$preflight_path" in "${expected_prefix}"preflight-*.json) ;; *) echo "::error::Unexpected preflight report path."; exit 1 ;; esac
+          case "$recon_path" in "${expected_prefix}"reconciliation-*.json) ;; *) echo "::error::Unexpected reconciliation report path."; exit 1 ;; esac
+          [[ -n "$preflight_path" && -n "$recon_path" ]] || { echo "::error::Hostinger did not return both report paths."; exit 1; }
+          echo "preflight_path=$preflight_path" >> "$GITHUB_OUTPUT"
+          echo "reconciliation_path=$recon_path" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Hostinger SSH fingerprint and download private reports
+        if: success()
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          SSH_FINGERPRINT: ${{ secrets.HOSTINGER_SSH_FINGERPRINT }}
+          PREFLIGHT_PATH: ${{ steps.report_paths.outputs.preflight_path }}
+          RECON_PATH: ${{ steps.report_paths.outputs.reconciliation_path }}
+        run: |
+          set -euo pipefail
+          [[ -n "$SSH_HOST" && -n "$SSH_USER" && -n "$SSH_PORT" && -n "$SSH_PRIVATE_KEY" && -n "$SSH_FINGERPRINT" ]] || { echo "::error::Hostinger SSH secrets and the verified host fingerprint are required."; exit 1; }
+          key_file="$RUNNER_TEMP/hostinger_audit_key"
+          known_hosts="$RUNNER_TEMP/hostinger_known_hosts"
+          report_dir="$RUNNER_TEMP/offering-gap-reports"
+          mkdir -p "$report_dir"
+          chmod 700 "$report_dir"
+          trap 'rm -f "$key_file" "$known_hosts"' EXIT
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$key_file"
+          chmod 600 "$key_file"
+          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" 2>/dev/null > "$known_hosts"
+          [[ -s "$known_hosts" ]] || { echo "::error::Could not obtain Hostinger SSH host key."; exit 1; }
+          if ! ssh-keygen -lf "$known_hosts" -E sha256 | awk '{print $2}' | grep -Fxq "$SSH_FINGERPRINT"; then
+            echo "::error::Hostinger SSH fingerprint did not match the configured trusted fingerprint."
+            exit 1
+          fi
+          scp -i "$key_file" -o IdentitiesOnly=yes -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes -P "$SSH_PORT" "$SSH_USER@$SSH_HOST:$PREFLIGHT_PATH" "$report_dir/preflight.json"
+          scp -i "$key_file" -o IdentitiesOnly=yes -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes -P "$SSH_PORT" "$SSH_USER@$SSH_HOST:$RECON_PATH" "$report_dir/reconciliation.json"
+          jq -e 'type == "object" and .database_mutations == 0 and .mutation_performed == false and (.records | length) == 36' "$report_dir/reconciliation.json" >/dev/null
+          jq -e 'type == "object" and .database_mutations == 0 and .mutation_performed == false and (.records | length) == 36' "$report_dir/preflight.json" >/dev/null
+
+      - name: Upload restricted short-retention report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hostinger-offering-gap-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/offering-gap-reports/
+          if-no-files-found: warn
+          retention-days: 3
