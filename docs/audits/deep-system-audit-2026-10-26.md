@@ -17,7 +17,8 @@ The default branch contains 1,236 tracked tree entries at the time of review. Th
 2. **Import and promotion have multiple layers.** The repository includes preflight, duplicate audit, verification, provenance readiness, promotion guards, reconciliation, and reversal services. These need end-to-end contract review.
 3. **Geography integrity has explicit failure modes.** Existing service code checks missing geography, inactive ancestors, missing parents, and cycles. We still need to establish whether every write/import/promotion path invokes these checks and whether live records currently violate them.
 4. **Production readiness is composed from multiple checks.** Promotion readiness checks import verification, source verification, and provenance readiness. We need to verify consistent enforcement at every canonical write path.
-5. **CI for PR #821 is green.** Laravel CI run 1615 and Test run 1851 completed successfully on the audit branch. This validates the suites that ran, not live data or the entire application.
+5. **CI for PR #821 is green.** Laravel CI run 1615 and Test run 1851 completed successfully on the CSV-fix branch. This validates the suites that ran, not live data or the entire application.
+6. **Import integrity command overstates health.** `institutes:import-integrity-audit` returned `status=healthy` whenever the two import tables existed, without evaluating the grouped row states. The report therefore described successful table access as healthy data. A focused fix is proposed in PR #823: use `status=completed` and explicitly state that row states still require review.
 
 ## Preliminary findings register
 
@@ -26,6 +27,7 @@ The default branch contains 1,236 tracked tree entries at the time of review. Th
 | CSV-01 | Enrichment CSV import | First-column UTF-8 BOM may prevent header recognition | `InstituteEnrichmentImportController`, `EnrichmentImportSchemaService` | Medium | Confirmed by source review | Fix proposed in PR #821 |
 | CSV-02 | Geography CSV import | First-column UTF-8 BOM may prevent header recognition | `GeographyImportController`, `GeographySchemaProfileService` | Medium | Confirmed by source review | Fix proposed in PR #821 |
 | CSV-03 | CSV schema validation | Duplicate headers are silently deduplicated instead of rejected | Both schema validators | Medium | Confirmed by source review | Fix proposed in PR #821 |
+| AUDIT-01 | Import integrity reporting | Audit labels data `healthy` solely because required tables exist; row-state distribution is not part of that health decision | `app/Console/Commands/ImportIntegrityAudit.php` and `tests/Feature/ImportIntegrityAuditTest.php` | Medium | Confirmed by source review | Fix proposed in PR #823 |
 | DATA-01 | Live data quality | Current duplicate, unverified, orphan, and stale-record counts are not established by this repository-only review | Read-only live audit exists; fresh output not inspected in this review | High | Unknown until report evidence | Pending |
 | PROMO-01 | Canonical promotion | Verify all canonical writes enforce review, source, provenance, parent integrity, and stale-review guards | Promotion/readiness services and controllers | High | Audit gap, not confirmed defect | Pending |
 | GEO-01 | Geography hierarchy | Verify import, seed, and promotion paths enforce active parent, cycle, and hierarchy constraints | Geography integrity/import/seed services | High | Audit gap, not confirmed defect | Pending |
