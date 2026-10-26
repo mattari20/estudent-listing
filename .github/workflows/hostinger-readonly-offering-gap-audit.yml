@@ -26,12 +26,14 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
         env:
           PROJECT_PATH: ${{ inputs.project_path }}
+          AUDIT_DB_USERNAME: ${{ secrets.OFFERING_GAP_READONLY_DB_USERNAME }}
+          AUDIT_DB_PASSWORD: ${{ secrets.OFFERING_GAP_READONLY_DB_PASSWORD }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          envs: PROJECT_PATH
+          envs: PROJECT_PATH,AUDIT_DB_USERNAME,AUDIT_DB_PASSWORD
           command_timeout: 8m
           script: |
             set -eu
@@ -42,7 +44,17 @@ jobs:
             test -f "$PROJECT_PATH/.env" || { echo "ERROR: application .env is missing"; exit 5; }
             cd "$PROJECT_PATH"
 
-            echo "=== Verify current Laravel database account grants (read-only) ==="
+            # Require a separate least-privilege account. Never fall back to
+            # the application's DB credentials if the audit secrets are absent.
+            if [ -z "${AUDIT_DB_USERNAME:-}" ] || [ -z "${AUDIT_DB_PASSWORD:-}" ]; then
+              echo "ERROR: Configure OFFERING_GAP_READONLY_DB_USERNAME and OFFERING_GAP_READONLY_DB_PASSWORD as Actions secrets for a dedicated SELECT-only database user."
+              exit 10
+            fi
+            export DB_USERNAME="$AUDIT_DB_USERNAME"
+            export DB_PASSWORD="$AUDIT_DB_PASSWORD"
+            unset AUDIT_DB_USERNAME AUDIT_DB_PASSWORD
+
+            echo "=== Verify dedicated audit DB account grants (read-only) ==="
             php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
@@ -63,7 +75,7 @@ jobs:
             echo 'database_privilege_status='.($safe ? 'READ_ONLY_CONFIRMED' : 'NOT_READ_ONLY_OR_SELECT_MISSING').PHP_EOL;
             echo 'database_grant_line_count='.count($grants).PHP_EOL;
             if (! $safe) {
-                echo 'ERROR: Audit stopped. Use a dedicated database user with SELECT-only privileges; no audit commands were run.'.PHP_EOL;
+                echo 'ERROR: Audit stopped. The dedicated audit account is not SELECT-only; no audit commands were run.'.PHP_EOL;
                 exit(20);
             }
             PHP
