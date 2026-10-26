@@ -175,7 +175,7 @@ jobs:
                     '--path' => $path,
                 ]);
                 echo $artisan::output();
-            } catch (\\Throwable $exception) {
+            } catch (\Throwable $exception) {
                 fwrite(STDERR, "ERROR: targeted migration threw an exception: ".$exception->getMessage().PHP_EOL);
                 exit(23);
             }
