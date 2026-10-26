@@ -1,9 +1,9 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use Illuminate\\Support\\Facades\\Artisan;
-use Tests\\TestCase;
+use Illuminate\Support\Facades\Artisan;
+use Tests\TestCase;
 
 class ValidateGcuCandidateDispositionTest extends TestCase
 {
