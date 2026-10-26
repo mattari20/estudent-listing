@@ -14,7 +14,7 @@ class RefreshInstituteDiscoveryBatchGuardTest extends TestCase
     public function test_refresh_requires_explicit_confirmation_before_creating_a_batch(): void
     {
         $exit = Artisan::call('institutes:refresh-discovery', [
-            'profile' => 'gcu',
+            'profile' => 'gcu-lahore-programs',
             '--supersedes-batch-id' => 1,
         ]);
 
