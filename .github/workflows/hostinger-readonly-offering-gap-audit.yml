@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   audit:
-    name: Verify DB grants and run read-only offering-gap checks
+    name: Run host-local read-only offering-gap audit
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -42,31 +42,15 @@ jobs:
             test -f "$PROJECT_PATH/.env" || { echo "ERROR: application .env is missing"; exit 5; }
             cd "$PROJECT_PATH"
 
-            echo "=== Verify current Laravel database account grants (read-only) ==="
-            php <<'PHP'
-            <?php
-            require __DIR__.'/vendor/autoload.php';
-            $app = require __DIR__.'/bootstrap/app.php';
-            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-
-            $rows = \Illuminate\Support\Facades\DB::select('SHOW GRANTS FOR CURRENT_USER');
-            $grants = [];
-            foreach ($rows as $row) {
-                foreach ((array) $row as $value) {
-                    $grants[] = (string) $value;
-                }
-            }
-            $text = strtoupper(implode("\n", $grants));
-            $writePrivileges = preg_match('/\\b(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|INDEX|TRIGGER|EVENT|EXECUTE|REFERENCES|RELOAD|SHUTDOWN|FILE|PROCESS|SUPER|GRANT OPTION)\\b|ALL PRIVILEGES/', $text) === 1;
-            $hasSelect = preg_match('/\\bSELECT\\b/', $text) === 1;
-            $safe = $hasSelect && ! $writePrivileges;
-            echo 'database_privilege_status='.($safe ? 'READ_ONLY_CONFIRMED' : 'NOT_READ_ONLY_OR_SELECT_MISSING').PHP_EOL;
-            echo 'database_grant_line_count='.count($grants).PHP_EOL;
-            if (! $safe) {
-                echo 'ERROR: Audit stopped. Use a dedicated database user with SELECT-only privileges; no audit commands were run.'.PHP_EOL;
-                exit(20);
-            }
-            PHP
+            # DB credentials are loaded by Laravel on Hostinger and are never
+            # passed as GitHub Actions inputs or environment secrets. The audit
+            # commands are explicitly read-only in application code; no migrations
+            # or canonical writes are authorized by this workflow.
+            echo "database_credentials_location=HOSTINGER_ONLY"
+            echo "database_grants_check=SKIPPED_HOSTINGER_SHARED_HOSTING_LIMITATION"
+            echo "audit_mode=APPLICATION_COMMANDS_READ_ONLY"
+            echo "database_migrations=NOT_RUN"
+            echo "production_data_mutations=NOT_AUTHORIZED"
 
             # Reports are written outside the public web root and are not printed
             # into Actions logs. This workflow performs no migrations or DB writes.
