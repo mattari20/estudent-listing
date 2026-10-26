@@ -83,6 +83,7 @@ jobs:
               echo "preflight_command_status=PASS"
             else
               echo "preflight_command_status=FAIL"
+              exit 40
             fi
 
             echo "=== Run read-only row-level reconciliation (no mutations) ==="
@@ -90,6 +91,7 @@ jobs:
               echo "reconciliation_command_status=PASS"
             else
               echo "reconciliation_command_status=FAIL"
+              exit 41
             fi
 
             php - "$PREFLIGHT" "$RECON" <<'PHP'
@@ -102,6 +104,18 @@ jobs:
                 }
                 $name = str_starts_with(basename($path), 'preflight-') ? 'preflight' : 'reconciliation';
                 $summary = $data['summary'] ?? [];
+                if (($data['errors'] ?? []) !== []) {
+                    echo $name.'_report_errors=present'.PHP_EOL;
+                    exit(32);
+                }
+                if ((int) ($summary['register_rows'] ?? 0) !== 36) {
+                    echo $name.'_register_row_count_status=INVALID'.PHP_EOL;
+                    exit(33);
+                }
+                if ($name === 'reconciliation' && ($data['reconciliation_status'] ?? '') !== 'ROW_LEVEL_REPORT_CREATED_REVIEW_REQUIRED') {
+                    echo 'reconciliation_status=UNEXPECTED'.PHP_EOL;
+                    exit(34);
+                }
                 echo $name.'_register_rows='.(int) ($summary['register_rows'] ?? 0).PHP_EOL;
                 echo $name.'_database_mutations='.(int) ($data['database_mutations'] ?? -1).PHP_EOL;
                 echo $name.'_mutation_performed='.((($data['mutation_performed'] ?? null) === false) ? 'false' : 'unexpected').PHP_EOL;
