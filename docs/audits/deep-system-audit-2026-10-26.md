@@ -114,3 +114,19 @@ Live evidence: [Hostinger read-only diagnostics run 40309531178](https://github.
 - No production database writes, migrations, imports, or discovery runs were performed for this report.
 - Only the three CSV findings currently have source-level confirmation. All other entries are audit work items, not claims that defects are confirmed.
 - Final report must include counts by severity, exact file/line references, test evidence, live-report timestamps, and remediation order.
+
+### Record-level promotion failure trace — read-only evidence
+
+The Hostinger diagnostic job output exposes four institution import rows with the latest event `promotion_failed`. These are still candidate rows in validated batches; no retry or canonical write is authorized from this evidence alone.
+
+| Import row ID | Institution name | Batch ID | CSV row | Latest error class | Evidence status |
+|---:|---|---:|---:|---|---|
+| 15 | Lahore College for Women University | 2 | 6 | `RuntimeException` | Candidate; inspect event metadata and active source evidence before retry |
+| 16 | University of Education Lahore | 2 | 7 | `RuntimeException` | Candidate; inspect event metadata and active source evidence before retry |
+| 17 | University of Veterinary and Animal Sciences Lahore | 2 | 8 | `RuntimeException` | Candidate; inspect event metadata and active source evidence before retry |
+| 29 | Federal Urdu University of Arts, Sciences & Technology | 10 | 2 | `RuntimeException` | Candidate; inspect event metadata and identity decisions before retry |
+
+**Important limitation:** the read-only row trace provides the exception class but not the underlying exception message, and does not provide enough evidence to safely assign a root cause. The reported four failures should therefore be treated as four *runtime-exception events*, not as four proven instances of the same defect. The earlier summary's “1 missing active source evidence” classification is not attributable to these four rows from the exposed fields alone; reconcile the event-level and source-evidence summaries before using that classification. No error payloads, credentials, or private source notes are reproduced here.
+
+The same trace shows that rows 15–17 belong to batch 2 and row 29 to batch 10. This is **not** a list of the three failed import batches: those batch-level failures are a separate count and still need their own exact IDs/status/error categories. Do not retry entire batches based on row-level promotion events.
+
