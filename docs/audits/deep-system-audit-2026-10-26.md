@@ -130,3 +130,37 @@ The Hostinger diagnostic job output exposes four institution import rows with th
 
 The same trace shows that rows 15–17 belong to batch 2 and row 29 to batch 10. This is **not** a list of the three failed import batches: those batch-level failures are a separate count and still need their own exact IDs/status/error categories. Do not retry entire batches based on row-level promotion events.
 
+## Final checkpoint report for this work session — 2026-10-26
+
+### Code and documentation validation
+
+- **PR #821 — CSV header hardening:** latest reported Laravel CI and Test runs passed. This change is still open/unmerged; do not treat it as deployed.
+- **PR #823 — import-integrity status wording:** latest reported Laravel CI and Test runs passed. This change is still open/unmerged; do not treat it as deployed.
+- **This audit-report commit** (`16e8a19a9dfc4c0eff8b20d3148047942e6154a2)): both current-head checks completed successfully:
+  - [Laravel CI run 40319173991](https://github.com/mattari20/estudent-listing/actions/runs/40319173991) — success
+  - [Test run 40319173978](https://github.com/mattari20/estudent-listing/actions/runs/40319173978) — success
+- Passing CI confirms the tests executed by those workflows pass on the relevant commit. It does not certify live data, prove all untested paths, or mean open PRs have been merged/deployed.
+
+### Work items closed vs. still open
+
+| Workstream | Evidence/result | Status |
+|---|---|---|
+| CSV BOM and duplicate-header fix | Code/tests in PR #821; CI green | Ready for review; open/unmerged |
+| Import-integrity status semantics | Code/tests in PR #823; CI green | Ready for review; open/unmerged |
+| 36 active programs lacking offerings | Exact record register exists; official-source verification still required | Evidence register complete; disposition open |
+| Promotion failures | Row IDs 15, 16, 17, 29 identified; each latest event is `promotion_failed` with `RuntimeException` | Row trace recorded; root cause unproven |
+| Three failed import batches | Live summary confirms count = 3, but inspected diagnostic output does not expose exact batch-level IDs/reasons | Open; must retrieve a batch-level diagnostic |
+| 192 duplicate import rows | Count confirmed; exact row-to-canonical mapping/dependency impact not yet independently audited | Open; no deletion |
+| Nine institution import rows without approved identity decision | Count confirmed; row-level identity review remains | Open |
+| Public listing and institution detail smoke checks | HTTP 200 on the inspected run; operator-only routes redirect guests to login | Snapshot passed; broader security audit open |
+| Geography coverage | 22 active campuses have geography; no district-level assignments reported | Coverage review open; not yet classified as defect |
+| System-wide Phase 2 sign-off | Full route/schema/security/search/discovery/migration coverage not yet complete | Not complete |
+
+### Data-safety statement
+
+This session used repository and previously captured read-only diagnostics. No production database writes, imports, promotions, deletions, migrations, or discovery jobs were executed. Do not retry batches or promotion rows until the underlying batch/event metadata and current source evidence are available. Do not delete the 192 duplicate rows based only on a duplicate status or similar name.
+
+### Overall result
+
+The scoped code/documentation work has passing CI evidence, and the audit now records exact IDs for four promotion-failure rows. **The full system audit and Phase 2 closure are not complete** because batch-level failure reasons, duplicate canonical links, official evidence for missing offerings, and the remaining route/security/schema/workflow audits are outstanding. This is the honest completion boundary for this checkpoint.
+
