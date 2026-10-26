@@ -57,13 +57,15 @@ The latest inspected Hostinger diagnostics run was successful, confirmed `deploy
 | Active campuses without active geography | 0 | Geography relation check passes for active campuses |
 | Active offerings without active program | 0 | No relationship gap reported |
 | Active offerings without active campus | 0 | No relationship gap reported |
-| Import batches | 18 | Includes historical/test import activity; needs row-level reconciliation |
+| Import batches | 18 total: 15 validated, 3 failed | Failed batch IDs and failure reasons need record-level review |
 | Import rows | 347 | 22 promoted, 126 candidate, 192 duplicate, 7 rejected |
 | Rows with open conflicts | 0 | No open import conflicts were counted |
+| Duplicate institution-name groups after trim/case-fold | 0 | This narrow check does not rule out aliases, near-duplicates, or slug collisions |
+| Active campus district coverage | no district-level assignments reported | Review geography granularity and intended coverage before classifying as defect |
 | Institution rows without approved identity decision | 9 | Review before any attempted promotion |
 | Promotion failures in summarized audit | 4 | 1 missing active source evidence; 3 other runtime exceptions |
 
-**Operational conclusion:** schema and application revision checks passed, and the public listing/detail smoke checks passed. Data completeness is not yet production-ready: 36 active programs lack active offerings, 126 candidate rows still need review, 192 duplicate rows need canonical-link verification, 9 institution import rows lack an approved identity decision, and 4 promotion failures require diagnosis. These are review queues, not authorization to bulk promote, delete, or rewrite records. The user has previously identified the current data as test/dummy data; any reset or replacement still requires a reviewed, exact-scope workflow and must preserve users and migration history.
+**Operational conclusion:** schema and application revision checks passed, and the public listing/detail smoke checks passed. Data completeness is not yet production-ready: 36 active programs lack active offerings, 126 candidate rows still need review, 192 duplicate rows need canonical-link verification, 9 institution import rows lack an approved identity decision, and 4 promotion failures require diagnosis. The same snapshot has 3 failed import batches, which must be tied to batch IDs and their safe-to-share failure categories before retrying. These are review queues, not authorization to bulk promote, delete, or rewrite records. The user has previously identified the current data as test/dummy data; any reset or replacement still requires a reviewed, exact-scope workflow and must preserve users and migration history.
 
 Live evidence: [Hostinger read-only diagnostics run 40309531178](https://github.com/mattari20/estudent-listing/actions/runs/40309531178); [public site monitor run 40309531038](https://github.com/mattari20/estudent-listing/actions/runs/40309531038). Exact program IDs, names, institution names, and slugs are recorded in [the 36-row offering-gap register](active-programs-without-offerings-2026-10-26.md).
 
