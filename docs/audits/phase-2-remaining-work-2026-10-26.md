@@ -4,10 +4,14 @@
 **Purpose:** Remaining Phase 2 work after the current audit checkpoint  
 **Operating rule:** Read-only diagnosis first; all canonical data changes require a row-level plan and explicit approval. CI green is not production sign-off.
 
+## Data-baseline reset requested for fresh import
+
+The owner has confirmed that earlier live/test figures are dummy-data figures and should not be used as acceptance targets for the upcoming fresh import. Treat all historical counts and record-level IDs in this audit as a historical diagnostic snapshot only. Before fresh import, generate a new read-only baseline from the currently deployed revision and clearly label it with timestamp, revision, environment, and `data_baseline=pre_fresh_import`. Do not delete or reset existing records as part of this plan; the cleanup strategy must be separately reviewed against schema, foreign keys, audit history, and user/admin records.
+
 ## Current checkpoint
 
 - PR #821 — CSV BOM normalization and duplicate-header rejection: CI passed; open/unmerged.
-- PR #823 — import integrity status semantics: CI passed; open/unmerged.
+- PR #823 — import integrity audit status and sanitized failed-batch diagnostics: code updated; current-head CI must be checked before acceptance; open/unmerged.
 - Audit report commit `16e8a19a9dfc4c0eff8b20d3148047942e6154a2`: Laravel CI run 40319173991 and Test run 40319173978 passed.
 - Live read-only snapshot: 19 active institutions, 22 active campuses, 85 active programs, 55 active offerings, 5 admission intakes; 36 active programs without active offerings.
 - Import queue: 18 batches (15 validated, 3 failed); 347 rows (22 promoted, 126 candidate, 192 duplicate, 7 rejected); 9 rows lack approved identity decisions; 4 promotion-failure events.
@@ -16,7 +20,7 @@
 ## Remaining Phase 2 plan (ordered)
 
 ### P0 — Close import failure evidence gaps
-1. Extend or use a read-only batch-level diagnostic to emit exact IDs/status/timestamps and safe error categories for the 3 failed batches. Do not expose credentials, raw exception messages, private notes, or full payloads.
+1. PR #823 now extends the read-only import audit to emit exact failed batch IDs/status/timestamps and inferred safe categories without returning raw notes/payloads. Validate its CI and confirm categories are explicitly marked inferred, not root cause.
 2. Inspect promotion event metadata for row IDs 15, 16, 17, and 29 and reconcile the earlier summary that one failure lacked active source evidence. Preserve audit trails.
 3. Produce a retry eligibility matrix. Retry only rows/batches whose input, source evidence, identity decision, and idempotency conditions have been verified.
 
@@ -79,6 +83,16 @@
 - No production deletes, bulk approvals, promotions, or reset operations as part of audit-only work.
 - Any future data repair must include exact IDs, before/after counts, relationship/dependency impact, reversible execution plan, and explicit authorization.
 - Preserve users and migration history if a test-data reset is later separately approved.
+
+## Fresh-import readiness criteria
+
+- A fresh pre-import baseline has been generated from the deployed revision and historical dummy counts are not reused as targets.
+- CSV templates and schema profiles are documented; BOM and duplicate-header cases are tested.
+- A small representative import can be validated and previewed without automatic publication.
+- Duplicate and identity conflicts are visible in the review queue with stable row IDs and source evidence.
+- Promotion is idempotent, audited, and gated by authorized approval.
+- Failed batches can be diagnosed with safe categories and retried only after cause/input/evidence review.
+- A rollback/containment plan exists for the import batch; no destructive reset is assumed.
 
 ## Phase 2 completion criteria
 
