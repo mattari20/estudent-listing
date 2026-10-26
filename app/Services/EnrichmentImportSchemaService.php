@@ -26,8 +26,11 @@ class EnrichmentImportSchemaService
     public function validateHeaders(array $headers, string $entityType): array
     {
         $profile = $this->profile($entityType);
-        $headers = array_values(array_unique(array_map(fn ($value) => trim((string) $value), $headers)));
+        $headers = array_map(fn ($value) => trim((string) $value), $headers);
         $errors = [];
+        if (count($headers) !== count(array_unique($headers))) {
+            $errors[] = 'Duplicate column names are not allowed.';
+        }
 
         foreach ($headers as $header) {
             if (! in_array($header, $profile['columns'], true)) {
