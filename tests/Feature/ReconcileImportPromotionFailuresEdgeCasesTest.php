@@ -1,13 +1,13 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\ImportBatch;
-use App\\Models\\ImportPromotionEvent;
-use App\\Models\\ImportRow;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\Artisan;
-use Tests\\TestCase;
+use App\Models\ImportBatch;
+use App\Models\ImportPromotionEvent;
+use App\Models\ImportRow;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
+use Tests\TestCase;
 
 class ReconcileImportPromotionFailuresEdgeCasesTest extends TestCase
 {
