@@ -29,8 +29,8 @@ program_id,institution_id,program_name,official_source_url,source_status,campus_
 49,15,BS Artificial Intelligence,https://webdata.au.edu.pk/Pages/Admission/eligibility_criteria.aspx,source-found,verify-Air-University-campus,review,5,Islamabad Main Campus,on_campus,https://webdata.au.edu.pk/Pages/Admission/newpages/Bachelor_programs.aspx
 50,15,BS Cyber Security,https://webdata.au.edu.pk/Pages/Admission/eligibility_criteria.aspx,source-found,verify-Islamabad-campus,review,5,Islamabad Main Campus,on_campus,https://webdata.au.edu.pk/Pages/Admission/newpages/Bachelor_programs.aspx
 51,15,BS Information Technology,https://webdata.au.edu.pk/Pages/Admission/eligibility_criteria.aspx,source-found,verify-Islamabad-campus,review,5,Islamabad Main Campus,on_campus,https://webdata.au.edu.pk/Pages/Admission/newpages/Bachelor_programs.aspx
-7,16,BS Computer Science,https://vu.edu.pk/AboutUs/ProgramDetails?StudyProgramID=4,source-found,verify-virtual-delivery-model-and-campus,review,6,Lahore Main Campus,online,
-55,16,BS Biotechnology,https://vu.edu.pk/AboutUs/ProgramsOffered?Degree=BS,source-found,verify-virtual-delivery-model-and-campus,review,6,Lahore Main Campus,online,
+7,16,BS Computer Science,https://vu.edu.pk/AboutUs/ProgramDetails?StudyProgramID=4,source-found,verify-virtual-delivery-model-and-campus,review,6,Lahore Main Campus,online,https://vu.edu.pk/PVCs/Default?p=punjab
+55,16,BS Biotechnology,https://vu.edu.pk/AboutUs/ProgramsOffered?Degree=BS,source-found,verify-virtual-delivery-model-and-campus,review,6,Lahore Main Campus,online,https://vu.edu.pk/PVCs/Default?p=punjab
 8,17,BS Computer Science,https://admissions.kiu.edu.pk/p/bs-fall-admissions-2025-ZSARUH,source-found,main-campus-confirmed,review,7,Gilgit Main Campus,on_campus,https://admissions.kiu.edu.pk/p/bs-fall-admissions-2025-ZSARUH
 30,18,BS Polymer Engineering,https://www.ntu.edu.pk/admissions,source-found,main-campus-confirmed,review,8,Faisalabad Main Campus,on_campus,https://www.ntu.edu.pk/admissions
 31,18,Bachelor of Fashion Design,https://www.ntu.edu.pk/admissions,source-found,main-campus-confirmed,review,8,Faisalabad Main Campus,on_campus,https://www.ntu.edu.pk/admissions
