@@ -89,6 +89,13 @@ class InstituteEnrichmentImportController
         $seenSlugs = [];
         $pending = [];
 
+        if ($header) {
+            $header = array_map(fn ($value) => trim((string) $value), $header);
+            if (isset($header[0])) {
+                $header[0] = preg_replace('/^\\xEF\\xBB\\xBF/', '', $header[0]);
+            }
+        }
+
         $headerErrors = $header
             ? $schemas->validateHeaders($header, $validated['entity_type'])
             : ['CSV header is missing.'];
@@ -104,8 +111,6 @@ class InstituteEnrichmentImportController
 
             return view('institutes.import-result', compact('batch', 'institution'));
         }
-
-        $header = array_map(fn ($value) => trim((string) $value), $header);
 
         while (($data = fgetcsv($handle)) !== false) {
             $rowNumber++;

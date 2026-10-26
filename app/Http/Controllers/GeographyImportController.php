@@ -19,9 +19,10 @@ class GeographyImportController {
   $source=Source::create(['source_type'=>$validated['source_type'],'name'=>$validated['source_name'],'url'=>$validated['source_url']??null,'status'=>'active']);
   $batch=ImportBatch::create(['batch_key'=>(string)Str::uuid(),'entity_type'=>'geography','source_type'=>$validated['source_type'],'source_id'=>$source->id,'status'=>'processing','received_at'=>now(),'notes'=>'schema_profile='.$profile->profile_key.'@'.$profile->version]);
   $handle=fopen($request->file('csv')->getRealPath(),'r'); $header=fgetcsv($handle);
+  if($header){$header=array_map(fn($v)=>trim((string)$v),$header);if(isset($header[0]))$header[0]=preg_replace('/^\\xEF\\xBB\\xBF/','',$header[0]);}
   $headerErrors=$header?$profiles->validateHeaders($header,$profile):['CSV header is missing.'];
   if($headerErrors){fclose($handle);$batch->update(['status'=>'failed','completed_at'=>now(),'notes'=>implode('; ',$headerErrors)]);return view('institutes.geography-import-result',compact('batch'));}
-  $header=array_map(fn($v)=>trim((string)$v),$header);$row=1;$valid=0;$invalid=0;$pending=[];
+  $row=1;$valid=0;$invalid=0;$pending=[];
   while(($data=fgetcsv($handle))!==false){$row++;$payload=[];foreach($header as $i=>$key)$payload[$key]=isset($data[$i])?trim((string)$data[$i]):null;$normalized=$service->normalize($payload);$errors=$service->validate($normalized);$status=$errors?'invalid':'candidate';$errors?$invalid++:$valid++;$pending[]=['import_batch_id'=>$batch->id,'row_number'=>$row,'status'=>$status,'match_state'=>'unresolved','payload'=>json_encode($payload),'normalized_payload'=>json_encode($normalized),'validation_errors'=>$errors?json_encode($errors):null,'created_at'=>now(),'updated_at'=>now()];if(count($pending)>=500){\App\Models\ImportRow::insert($pending);$pending=[];}}
   fclose($handle);if($pending)\App\Models\ImportRow::insert($pending);
   $batch->update(['status'=>'validated','total_rows'=>$row-1,'valid_rows'=>$valid,'invalid_rows'=>$invalid,'candidate_rows'=>$valid,'completed_at'=>now()]);

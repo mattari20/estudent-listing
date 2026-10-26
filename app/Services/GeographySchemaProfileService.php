@@ -14,7 +14,8 @@ class GeographySchemaProfileService {
   ]);
  }
  public function validateHeaders(array $headers,ImportSchemaProfile $profile): array {
-  $headers=array_values(array_unique(array_map(fn($v)=>trim((string)$v),$headers)));$errors=[];
+  $headers=array_map(fn($v)=>trim((string)$v),$headers);$errors=[];
+  if(count($headers)!==count(array_unique($headers)))$errors[]='Duplicate column names are not allowed.';
   foreach($headers as $h)if(!in_array($h,$profile->columns??[],true))$errors[]="Unsupported column: {$h}";
   foreach($profile->required_columns??[] as $h)if(!in_array($h,$headers,true))$errors[]="Required column missing: {$h}";
   return $errors;
