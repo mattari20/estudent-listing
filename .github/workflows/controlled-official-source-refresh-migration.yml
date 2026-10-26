@@ -63,6 +63,7 @@ jobs:
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
           envs: PROJECT_PATH,TARGET_REVISION,CONFIRM_MIGRATION
           command_timeout: 6m
+          script_stop: true
           script: |
             set -eu
             case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: project path must be absolute"; exit 2 ;; esac
@@ -168,13 +169,18 @@ jobs:
                 exit(0);
             }
 
-            $exitCode = $artisan::call('migrate', [
-                '--force' => true,
-                '--path' => $path,
-            ]);
-            echo $artisan::output();
+            try {
+                $exitCode = $artisan::call('migrate', [
+                    '--force' => true,
+                    '--path' => $path,
+                ]);
+                echo $artisan::output();
+            } catch (\\Throwable $exception) {
+                fwrite(STDERR, "ERROR: targeted migration threw an exception: ".$exception->getMessage().PHP_EOL);
+                exit(23);
+            }
             if ($exitCode !== 0) {
-                fwrite(STDERR, "ERROR: targeted migration command failed.".PHP_EOL);
+                fwrite(STDERR, "ERROR: targeted migration command failed with exit code ".$exitCode.".".PHP_EOL);
                 exit(23);
             }
 
