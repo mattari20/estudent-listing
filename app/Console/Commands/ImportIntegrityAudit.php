@@ -27,7 +27,6 @@ class ImportIntegrityAudit extends Command
             return self::FAILURE;
         }
 
-        $report['status'] = 'healthy';
         $report['groups'] = DB::table('import_rows')
             ->join('import_batches', 'import_batches.id', '=', 'import_rows.import_batch_id')
             ->select('import_batches.entity_type', 'import_rows.status', DB::raw('COUNT(*) as total'))
@@ -40,6 +39,11 @@ class ImportIntegrityAudit extends Command
                 'status' => $row->status,
                 'count' => (int) $row->total,
             ])->all();
+
+        // This command summarizes row states; it does not certify the rows as
+        // clean or promotion-ready. "completed" describes the audit execution.
+        $report['status'] = 'completed';
+        $report['interpretation'] = 'Audit completed successfully. Review grouped row states and promotion-readiness reports before taking action.';
 
         $this->line(json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         return self::SUCCESS;
