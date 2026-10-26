@@ -1,6 +1,6 @@
 # Guarded live offering-gap preflight workflow
 
-The manual workflow is `.github/workflows/offering-gap-preflight.yml`. It is deliberately read-only and is not a data-repair or import workflow.
+The manual workflow is `.github/workflows/offering-gap-preflight.yml`. It is deliberately read-only and is not a data-repair or import workflow. The Hostinger SSH audit workflow is `.github/workflows/hostinger-readonly-offering-gap-audit.yml`; it can retrieve the private Hostinger reports as a short-retention GitHub artifact after SSH host-key verification.
 
 ## One-time repository configuration
 
@@ -14,6 +14,7 @@ The manual workflow is `.github/workflows/offering-gap-preflight.yml`. It is del
    - `OFFERING_GAP_DB_PASSWORD`
 4. The database username must be a dedicated least-privilege account with SELECT-only access to the four tables needed by the command: `programs`, `institutions`, `campuses`, and `program_offerings`. Do not use a site administrator or database owner account. Grant no INSERT, UPDATE, DELETE, DDL, or migration privileges. Restrict its network access to the minimum required.
 5. Do not put credentials in workflow inputs, repository files, logs, artifacts, or issue comments. Do not configure these secrets until the database account is confirmed read-only.
+6. For the Hostinger SSH audit workflow, add `HOSTINGER_SSH_FINGERPRINT` as a repository or environment secret containing the independently verified `SHA256:...` fingerprint for the Hostinger SSH host key. Do not derive trust solely from an unverified `ssh-keyscan` result. The workflow compares the scanned key against this pinned fingerprint before downloading reports.
 
 The workflow intentionally fails before connecting if any required secret is absent. Secret names are new, dedicated names; this change does not assume existing Hostinger credential names or expose any existing secret.
 
@@ -36,6 +37,15 @@ The workflow intentionally fails before connecting if any required secret is abs
 - No database records are created, changed, activated, deactivated, published, or deleted by this workflow.
 - `READY_FOR_MANUAL_REVIEW_ONLY` is not permission to write production data. Any future apply operation needs a separate reviewed record-level plan and explicit authorization.
 - A run cannot be considered a live database verification until the required environment secrets are configured and a real workflow run completes against the intended database.
+
+## Hostinger private report retrieval
+
+- The Hostinger workflow runs both audit commands on the host and keeps the JSON files under `storage/app/private/phase2-offering-gap-audits` with restrictive permissions.
+- The workflow returns only the two report paths in action output; it does not stream row-level JSON into public logs.
+- A separate runner step verifies the Hostinger SSH host key against `HOSTINGER_SSH_FINGERPRINT`, downloads the two files over SSH, validates the 36-row and zero-mutation contracts, and uploads them as a three-day GitHub Actions artifact.
+- Artifact access is controlled by repository permissions. Keep repository membership restricted because row-level records can contain operationally sensitive information.
+- If the fingerprint secret is absent or does not match, retrieval fails closed. Do not disable host-key verification to make the workflow pass.
+- This retrieval feature does not resolve the shared-hosting database-user/grants limitation. The Hostinger-side application commands remain read-only by contract, but database-account grants still have not been independently confirmed as SELECT-only.
 
 ## Report interpretation
 
