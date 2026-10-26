@@ -128,8 +128,8 @@ jobs:
         run: |
           set -euo pipefail
           # The SSH action may normalize line endings; trim CR and select the last exact marker.
-          preflight_path="$(printf '%s\\n' "$AUDIT_STDOUT" | tr -d '\\r' | sed -n 's/^PREFLIGHT_PATH=//p' | tail -n 1)"
-          recon_path="$(printf '%s\\n' "$AUDIT_STDOUT" | tr -d '\\r' | sed -n 's/^RECON_PATH=//p' | tail -n 1)"
+          preflight_path="$(printf '%s\n' "$AUDIT_STDOUT" | tr -d '\r' | sed -n 's/^PREFLIGHT_PATH=//p' | tail -n 1)"
+          recon_path="$(printf '%s\n' "$AUDIT_STDOUT" | tr -d '\r' | sed -n 's/^RECON_PATH=//p' | tail -n 1)"
           expected_prefix="${PROJECT_PATH%/}/storage/app/private/phase2-offering-gap-audits/"
           if [[ -z "$preflight_path" || -z "$recon_path" ]]; then
             echo "::error::Hostinger SSH action did not return both report-path markers; refusing to guess report locations."
