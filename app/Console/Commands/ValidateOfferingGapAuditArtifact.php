@@ -24,13 +24,21 @@ class ValidateOfferingGapAuditArtifact extends Command
                 if (($decoded['production_write_authorization']??null)!==false) $result['errors'][]='production_write_authorization_not_false';
                 if (isset($decoded['records'])&&!is_array($decoded['records'])) $result['errors'][]='records_not_array';
                 $count=is_array($decoded['records']??null)?count($decoded['records']):0;
-                $expected=max(0,(int)$this->option('expected-rows'));
-                $result['summary']=['record_count'=>$count,'expected_record_count'=>$expected,'record_count_matches_expected'=>$count===$expected,'source_status'=>$decoded['reconciliation_status']??null];
-                if ($count!==$expected) $result['errors'][]='record_count_mismatch';
-                if (is_array($decoded['records']??null)) foreach ($decoded['records'] as $index=>$record) {
-                    if (!is_array($record)||!array_key_exists('classification',$record)||!array_key_exists('blockers',$record)||!array_key_exists('canonical_mutation_performed',$record)) $result['errors'][]='record_schema_invalid_at_index:'.$index;
-                    elseif ($record['canonical_mutation_performed']!==false) $result['errors'][]='record_mutation_marker_not_false_at_index:'.$index;
+                $expected=max(0,(int)$this->option('expected-rows')); $classificationCounts=[]; $blockerCount=0;
+                $records=is_array($decoded['records']??null)?$decoded['records']:[];
+                foreach($records as $index=>$record){
+                    if(!is_array($record)||!array_key_exists('classification',$record)||!array_key_exists('blockers',$record)||!array_key_exists('canonical_mutation_performed',$record)){$result['errors'][]='record_schema_invalid_at_index:'.$index;continue;}
+                    $classification=(string)$record['classification'];$classificationCounts[$classification]=($classificationCounts[$classification]??0)+1;
+                    if(!is_array($record['blockers'])){$result['errors'][]='record_blockers_not_array_at_index:'.$index;}else{$blockerCount+=count($record['blockers']);}
+                    if($record['canonical_mutation_performed']!==false)$result['errors'][]='record_mutation_marker_not_false_at_index:'.$index;
                 }
+                ksort($classificationCounts);
+                $sourceSummary=is_array($decoded['summary']??null)?$decoded['summary']:[];
+                if(isset($sourceSummary['record_count'])&&(int)$sourceSummary['record_count']!==$count)$result['errors'][]='summary_record_count_mismatch';
+                if(isset($sourceSummary['classification_counts'])&&$sourceSummary['classification_counts']!==$classificationCounts){$provided=$sourceSummary['classification_counts'];if(is_array($provided))ksort($provided);if($provided!==$classificationCounts)$result['errors'][]='summary_classification_counts_mismatch';}
+                if(isset($sourceSummary['blocker_count'])&&(int)$sourceSummary['blocker_count']!==$blockerCount)$result['errors'][]='summary_blocker_count_mismatch';
+                $result['summary']=['record_count'=>$count,'expected_record_count'=>$expected,'record_count_matches_expected'=>$count===$expected,'classification_counts'=>$classificationCounts,'blocker_count_total'=>$blockerCount,'source_summary_has_classification_counts'=>array_key_exists('classification_counts',$sourceSummary),'source_status'=>$decoded['reconciliation_status']??null];
+                if ($count!==$expected) $result['errors'][]='record_count_mismatch';
             }
         }
         $result['status']=$result['errors']===[]?'ARTIFACT_VALID_REVIEW_REQUIRED':'BLOCKED';
