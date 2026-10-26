@@ -42,18 +42,13 @@ jobs:
             test -f "$PROJECT_PATH/.env" || { echo "ERROR: application .env is missing"; exit 5; }
             cd "$PROJECT_PATH"
 
-            # DB credentials are loaded by Laravel on Hostinger and are never
-            # passed as GitHub Actions inputs or environment secrets. The audit
-            # commands are explicitly read-only in application code; no migrations
-            # or canonical writes are authorized by this workflow.
+            # Credentials remain on Hostinger; this workflow is read-only.
             echo "database_credentials_location=HOSTINGER_ONLY"
             echo "database_grants_check=SKIPPED_HOSTINGER_SHARED_HOSTING_LIMITATION"
             echo "audit_mode=APPLICATION_COMMANDS_READ_ONLY"
             echo "database_migrations=NOT_RUN"
             echo "production_data_mutations=NOT_AUTHORIZED"
 
-            # Reports are written outside the public web root and are not printed
-            # into Actions logs. This workflow performs no migrations or DB writes.
             umask 077
             REPORT_DIR="$PROJECT_PATH/storage/app/private/phase2-offering-gap-audits"
             mkdir -p "$REPORT_DIR"
@@ -61,6 +56,8 @@ jobs:
             STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
             PREFLIGHT="$REPORT_DIR/preflight-$STAMP.json"
             RECON="$REPORT_DIR/reconciliation-$STAMP.json"
+            CHECKER="$REPORT_DIR/validate-report-$STAMP.php"
+            trap 'rm -f "$CHECKER"' EXIT
 
             echo "=== Run read-only preflight (no migrations) ==="
             if php artisan institutes:offering-gap-preflight --json --no-ansi > "$PREFLIGHT"; then
@@ -78,7 +75,9 @@ jobs:
               exit 41
             fi
 
-            php - "$PREFLIGHT" "$RECON" <<'PHP'
+            # Use a private temporary PHP file rather than "php -" because
+            # this Hostinger PHP CLI treats "-" as a filename.
+            cat > "$CHECKER" <<'PHP'
             <?php
             foreach (array_slice($argv, 1) as $path) {
                 $data = json_decode((string) file_get_contents($path), true);
@@ -112,3 +111,5 @@ jobs:
             echo 'database_migrations=NOT_RUN'.PHP_EOL;
             echo 'production_data_mutations=NOT_RUN'.PHP_EOL;
             PHP
+
+            php "$CHECKER" "$PREFLIGHT" "$RECON"
