@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
-class ValidateOfferingGapAuditCountConsistencyTest extends TestCase
+class ValidateOfferingGapCountConsistencyTest extends TestCase
 {
     public function test_summary_counts_must_match_record_classifications_and_blockers(): void
     {
