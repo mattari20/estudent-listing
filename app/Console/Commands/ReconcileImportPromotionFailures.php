@@ -37,12 +37,19 @@ class ReconcileImportPromotionFailures extends Command
             }
             foreach ($grouped as &$row) { $row['batch_ids']=array_values(array_unique($row['batch_ids'])); $row['event_categories']=array_values(array_unique($row['event_categories'])); $row['historical_event_count']=count($row['event_ids']); $row['historical_failure_does_not_prove_current_unresolved_state']=true; $row['proposed_disposition']=$row['current_state_requires_review']?'review_current_row_and_evidence':'verify_current_state_before_closing_historical_event'; } unset($row);
             $report['rows']=array_values($grouped); $report['unresolved_events']=$unresolved;
-            $report['summary']=['source_event_count'=>$events->count(),'unique_stable_row_count'=>count($grouped),'unresolved_event_count'=>count($unresolved),'duplicate_or_identity_collision_event_count'=>$events->filter(fn($e)=>$this->classify((string)$e->event_type,(string)($e->reason??''),$e->metadata)==='duplicate_or_identity_collision')->count(),'validation_or_missing_field_event_count'=>$events->filter(fn($e)=>$this->classify((string)$e->event_type,(string)($e->reason??''),$e->metadata)==='validation_or_missing_field')->count(),'rows_currently_flagged_for_review'=>collect($report['rows'])->where('current_state_requires_review',true)->count(),'baseline_76_event_total_is_not_assumed'=>true];
+            $categories=$events->map(fn($e)=>$this->classify((string)$e->event_type,(string)($e->reason??''),$e->metadata));
+            $report['summary']=['source_event_count'=>$events->count(),'unique_stable_row_count'=>count($grouped),'unresolved_event_count'=>count($unresolved),'duplicate_or_identity_collision_event_count'=>$categories->filter(fn($c)=>$c==='duplicate_or_identity_collision')->count(),'validation_or_missing_field_event_count'=>$categories->filter(fn($c)=>$c==='validation_or_missing_field')->count(),'other_or_unclassified_event_count'=>$categories->filter(fn($c)=>$c==='other_or_unclassified')->count(),'classified_event_count'=>$categories->count(),'rows_currently_flagged_for_review'=>collect($report['rows'])->where('current_state_requires_review',true)->count(),'baseline_76_event_total_is_not_assumed'=>true];
             $report['limitations']=['Categories are inferred from stored event type, reason and metadata; unknown categories require review.','Current row status is not source-evidence verification.','No event history, import row, or canonical record is changed.'];
             return $this->finish($report,self::SUCCESS);
         } catch (Throwable $e) { $report['errors'][]='reconciliation_failed:'.class_basename($e); return $this->finish($report,self::FAILURE); }
     }
     private function classify(string $type,string $reason,mixed $metadata): string {
+        $decoded=is_array($metadata)?$metadata:(is_string($metadata)?json_decode($metadata,true):null);
+        if (is_array($decoded)) {
+            $explicit=mb_strtolower(trim((string)($decoded['failure_category']??$decoded['category']??'')));
+            $allowed=['duplicate_or_identity_collision','validation_or_missing_field','other_or_unclassified'];
+            if (in_array($explicit,$allowed,true)) return $explicit;
+        }
         $text=mb_strtolower($type.' '.$reason.' '.(is_string($metadata)?$metadata:json_encode($metadata)));
         if (preg_match('/duplicate|collision|identity|already exists|matched to another/',$text)) return 'duplicate_or_identity_collision';
         if (preg_match('/validation|missing|required|invalid field|field is empty/',$text)) return 'validation_or_missing_field';
