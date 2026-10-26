@@ -20,18 +20,24 @@ jobs:
   audit:
     name: Verify DB grants and run read-only offering-gap checks
     runs-on: ubuntu-latest
+    environment: offering-gap-readonly-audit
     timeout-minutes: 10
     steps:
       - name: Run audit through existing Hostinger SSH connection
         uses: appleboy/ssh-action@v1.2.0
         env:
           PROJECT_PATH: ${{ inputs.project_path }}
+          AUDIT_DB_HOST: ${{ secrets.OFFERING_GAP_DB_HOST }}
+          AUDIT_DB_PORT: ${{ secrets.OFFERING_GAP_DB_PORT }}
+          AUDIT_DB_DATABASE: ${{ secrets.OFFERING_GAP_DB_DATABASE }}
+          AUDIT_DB_USERNAME: ${{ secrets.OFFERING_GAP_DB_USERNAME }}
+          AUDIT_DB_PASSWORD: ${{ secrets.OFFERING_GAP_DB_PASSWORD }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          envs: PROJECT_PATH
+          envs: PROJECT_PATH,AUDIT_DB_HOST,AUDIT_DB_PORT,AUDIT_DB_DATABASE,AUDIT_DB_USERNAME,AUDIT_DB_PASSWORD
           command_timeout: 8m
           script: |
             set -eu
@@ -42,7 +48,24 @@ jobs:
             test -f "$PROJECT_PATH/.env" || { echo "ERROR: application .env is missing"; exit 5; }
             cd "$PROJECT_PATH"
 
-            echo "=== Verify current Laravel database account grants (read-only) ==="
+            # Reuse the existing protected offering-gap audit environment secrets.
+            # Do not fall back to the app .env credentials if any are missing.
+            for name in AUDIT_DB_HOST AUDIT_DB_PORT AUDIT_DB_DATABASE AUDIT_DB_USERNAME AUDIT_DB_PASSWORD; do
+              eval "value=\${$name:-}"
+              if [ -z "$value" ]; then
+                echo "ERROR: Existing offering-gap environment secret is missing: $name"
+                exit 10
+              fi
+            done
+            export DB_CONNECTION=mysql
+            export DB_HOST="$AUDIT_DB_HOST"
+            export DB_PORT="$AUDIT_DB_PORT"
+            export DB_DATABASE="$AUDIT_DB_DATABASE"
+            export DB_USERNAME="$AUDIT_DB_USERNAME"
+            export DB_PASSWORD="$AUDIT_DB_PASSWORD"
+            unset AUDIT_DB_HOST AUDIT_DB_PORT AUDIT_DB_DATABASE AUDIT_DB_USERNAME AUDIT_DB_PASSWORD
+
+            echo "=== Verify existing offering-gap audit DB credentials are read-only ==="
             php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
