@@ -71,7 +71,7 @@ jobs:
 
       - name: Verify revision and required preflight files
         env:
-          REQUESTED_REVISION: ${{ inputs.revision }}
+          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
         shell: bash
         run: |
           set -euo pipefail
