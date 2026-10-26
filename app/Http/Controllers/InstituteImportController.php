@@ -23,9 +23,9 @@ class InstituteImportController {
   $source=Source::create(['source_type'=>$validated['source_type'],'name'=>$validated['source_name'],'url'=>$validated['source_url']??null,'status'=>'active']);
   $batch=ImportBatch::create(['batch_key'=>(string)Str::uuid(),'entity_type'=>'institution','source_type'=>$validated['source_type'],'source_id'=>$source->id,'status'=>'processing','received_at'=>now(),'notes'=>'schema_profile='.$profile->profile_key.'@'.$profile->version]);
   $handle=fopen($request->file('csv')->getRealPath(),'r'); $header=fgetcsv($handle); $rowNumber=1; $valid=0; $invalid=0; $candidate=0; $seen=[]; $pending=[];
+  if($header){$header=array_map(fn($v)=>trim((string)$v),$header);if(isset($header[0]))$header[0]=preg_replace('/^\\xEF\\xBB\\xBF/','',$header[0]);}
   $headerErrors=$header?$profiles->validateHeaders($header,$profile):['CSV header is missing.'];
   if($headerErrors){ fclose($handle); $batch->update(['status'=>'failed','completed_at'=>now(),'notes'=>implode('; ',$headerErrors)]); return view('institutes.import-result',compact('batch')); }
-  $header=array_map(fn($v)=>trim((string)$v),$header);
   while(($data=fgetcsv($handle))!==false){
    $rowNumber++; $payload=[]; foreach($header as $i=>$key) $payload[$key]=isset($data[$i])?trim((string)$data[$i]):null;
    $normalized=$support->normalize($payload); $rowErrors=$support->validateRow($normalized,$seen); $slug=(string)($normalized['slug']??''); if($slug!=='')$seen[$slug]=true;
