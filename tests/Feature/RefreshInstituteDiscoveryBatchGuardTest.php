@@ -47,7 +47,7 @@ class RefreshInstituteDiscoveryBatchGuardTest extends TestCase
         ]);
 
         $exit = Artisan::call('institutes:refresh-discovery', [
-            'profile' => 'gcu',
+            'profile' => 'gcu-lahore-programs',
             '--confirm-new-batch' => true,
             '--supersedes-batch-id' => 999999,
         ]);
