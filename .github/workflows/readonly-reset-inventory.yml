@@ -1,0 +1,165 @@
+name: Read-only Reset Inventory
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/readonly-reset-inventory.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: readonly-reset-inventory
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    name: Inventory deployed schema and row counts (read-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout main and resolve expected application-code revision
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Calculate target revision
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          test -n "$revision"
+          echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "expected_application_revision=$revision"
+
+      - name: Run read-only live inventory through Hostinger SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
+          TARGET_REVISION: ${{ steps.target.outputs.target_revision }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,TARGET_REVISION
+          command_timeout: 6m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: invalid project path"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: invalid project path"; exit 2 ;; esac
+            test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
+            cd "$PROJECT_PATH"
+            git rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
+              echo "ERROR: Hostinger Git metadata unavailable; inventory blocked"
+              exit 4
+            }
+            DEPLOYED_REVISION="$(git rev-parse HEAD)"
+            git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || {
+              echo "ERROR: target revision missing from Hostinger Git metadata"
+              exit 5
+            }
+            if ! git diff --quiet "$TARGET_REVISION" "$DEPLOYED_REVISION" -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
+              echo "ERROR: deployed application-code mismatch; no database query run"
+              exit 6
+            fi
+            if ! git diff --quiet HEAD -- app bootstrap config database resources routes composer.json composer.lock public artisan || ! git diff --cached --quiet HEAD -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
+              echo "ERROR: tracked application-code drift; no database query run"
+              exit 7
+            fi
+            echo "deployed_application_code_status=APPLICATION_CODE_MATCH"
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+            $db = \Illuminate\Support\Facades\DB::connection();
+            $connectionName = $db->getName();
+            $databaseName = $db->getDatabaseName();
+            $tables = $db->select(
+                "SELECT TABLE_NAME AS table_name, ENGINE AS engine
+                 FROM information_schema.TABLES
+                 WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = 'BASE TABLE'
+                 ORDER BY TABLE_NAME",
+                [$databaseName]
+            );
+            $columns = $db->select(
+                "SELECT TABLE_NAME AS table_name, COLUMN_NAME AS column_name, ORDINAL_POSITION AS ordinal_position,
+                        COLUMN_TYPE AS column_type, IS_NULLABLE AS is_nullable, COLUMN_DEFAULT AS column_default,
+                        EXTRA AS extra, COLUMN_KEY AS column_key
+                 FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = ?
+                 ORDER BY TABLE_NAME, ORDINAL_POSITION",
+                [$databaseName]
+            );
+            $foreignKeys = $db->select(
+                "SELECT TABLE_NAME AS table_name, COLUMN_NAME AS column_name,
+                        CONSTRAINT_NAME AS constraint_name, REFERENCED_TABLE_NAME AS referenced_table_name,
+                        REFERENCED_COLUMN_NAME AS referenced_column_name
+                 FROM information_schema.KEY_COLUMN_USAGE
+                 WHERE TABLE_SCHEMA = ? AND REFERENCED_TABLE_NAME IS NOT NULL
+                 ORDER BY TABLE_NAME, CONSTRAINT_NAME, ORDINAL_POSITION",
+                [$databaseName]
+            );
+
+            $columnMap = [];
+            foreach ($columns as $column) {
+                $columnMap[$column->table_name][] = [
+                    'name' => $column->column_name,
+                    'position' => (int) $column->ordinal_position,
+                    'type' => $column->column_type,
+                    'nullable' => $column->is_nullable,
+                    'default' => $column->column_default,
+                    'extra' => $column->extra,
+                    'key' => $column->column_key,
+                ];
+            }
+            $tableNames = array_map(fn ($table) => $table->table_name, $tables);
+            $counts = [];
+            foreach ($tableNames as $tableName) {
+                $counts[$tableName] = (int) $db->table($tableName)->count();
+            }
+            $schemaShape = [
+                'tables' => $tableNames,
+                'columns' => $columnMap,
+                'foreign_keys' => array_map(fn ($fk) => [
+                    'table' => $fk->table_name,
+                    'column' => $fk->column_name,
+                    'constraint' => $fk->constraint_name,
+                    'references_table' => $fk->referenced_table_name,
+                    'references_column' => $fk->referenced_column_name,
+                ], $foreignKeys),
+            ];
+            $fingerprint = hash('sha256', json_encode($schemaShape, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+            $report = [
+                'status' => 'READ_ONLY_INVENTORY_COMPLETE',
+                'database_connection_name' => $connectionName,
+                'database_name' => $databaseName,
+                'table_count' => count($tables),
+                'column_count' => count($columns),
+                'foreign_key_count' => count($foreignKeys),
+                'schema_fingerprint_sha256' => $fingerprint,
+                'row_counts_are_exact' => true,
+                'tables' => array_map(fn ($table) => [
+                    'name' => $table->table_name,
+                    'engine' => $table->engine,
+                    'row_count' => $counts[$table->table_name] ?? null,
+                    'columns' => $columnMap[$table->table_name] ?? [],
+                ], $tables),
+                'foreign_keys' => $schemaShape['foreign_keys'],
+                'mutations_performed' => false,
+                'migrations_run' => false,
+                'reset_performed' => false,
+                'next_step' => 'Classify tables and produce a dry-run reset manifest; no rows were changed.',
+            ];
+            echo "RESET_INVENTORY_JSON_BEGIN\n";
+            echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), PHP_EOL;
+            echo "RESET_INVENTORY_JSON_END\n";
+            PHP
+            echo "database_mutations=NONE"
