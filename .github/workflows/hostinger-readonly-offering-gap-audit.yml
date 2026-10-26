@@ -78,9 +78,8 @@ jobs:
               exit 41
             fi
 
-            php - "$PREFLIGHT" "$RECON" <<'PHP'
-            <?php
-            foreach (array_slice($argv, 1) as $path) {
+            php -r '
+            foreach ($argv as $path) {
                 $data = json_decode((string) file_get_contents($path), true);
                 if (! is_array($data)) {
                     echo basename($path).'_json_status=INVALID'.PHP_EOL;
@@ -108,7 +107,7 @@ jobs:
                     exit(31);
                 }
             }
-            echo 'report_storage=PRIVATE_HOSTINGER_STORAGE'.PHP_EOL;
-            echo 'database_migrations=NOT_RUN'.PHP_EOL;
-            echo 'production_data_mutations=NOT_RUN'.PHP_EOL;
-            PHP
+            echo "report_storage=PRIVATE_HOSTINGER_STORAGE".PHP_EOL;
+            echo "database_migrations=NOT_RUN".PHP_EOL;
+            echo "production_data_mutations=NOT_RUN".PHP_EOL;
+            ' "$PREFLIGHT" "$RECON"
