@@ -15,8 +15,8 @@ on:
 permissions:
   contents: read
 
-# Configure this environment with required reviewers if available, and only add
-# dedicated read-only database credentials as environment secrets.
+# Restrict this environment to authorized maintainers. Reuse the existing
+# database-user credentials stored as environment secrets; never print their values.
 jobs:
   preflight:
     name: Read-only live database preflight
@@ -54,7 +54,7 @@ jobs:
           fi
           for name in DB_HOST DB_PORT DB_DATABASE DB_USERNAME DB_PASSWORD; do
             if [[ -z "${!name}" ]]; then
-              echo "::error::Missing required environment secret for $name. Configure dedicated read-only credentials in the offering-gap-readonly-audit environment."
+              echo "::error::Missing required environment secret for $name. Check the existing database connection secrets in the offering-gap-readonly-audit environment."
               exit 1
             fi
           done
