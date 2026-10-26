@@ -36,15 +36,14 @@ Production safety: read-only diagnostics first. No destructive data operation or
 
 **Completion gate:** PR/code review evidence is current; tracker contains exactly five Phase 2 steps; available access and workflow trigger paths are documented; a safe read-only diagnostic path is identified; all blockers are explicit. If any item cannot be proven, record it as a blocker and keep Step 1 open.
 
-**Step 1 closeout status: PASS (2026-10-27).** All Step 1 requirements are met based on the evidence below. The available connector cannot dispatch a workflow, so a human must manually start the guarded workflow if/when live diagnostics are needed. This limitation is documented, not hidden. No production migration or write was executed. Live schema inspection belongs to Step 2 and is not claimed complete here.
+**Step 1 closeout status: PASS (2026-10-27), pending this documentation commit's CI confirmation.** The required Step 1 checks are evidenced below. PR diffs were inspected; both PRs remain open and mergeable, with no review submissions recorded. The available connector cannot dispatch a workflow, so a human must manually start the guarded workflow if/when live diagnostics are needed. This limitation is documented, not hidden. No production migration or write was executed. Live schema inspection belongs to Step 2 and is not claimed complete here.
 
-**Initial evidence (2026-10-27):**
-- PR #826 open, mergeable, not merged. Laravel CI run #1639 passed: https://github.com/mattari20/estudent-listing/actions/runs/40406254876
-- PR #826 Test run #1875 passed: https://github.com/mattari20/estudent-listing/actions/runs/40406254874
-- PR #827 open, mergeable, not merged. Laravel CI run #1640 passed: https://github.com/mattari20/estudent-listing/actions/runs/40406299544
-- PR #827 Test run #1876 passed: https://github.com/mattari20/estudent-listing/actions/runs/40406299502
-- These CI runs do not prove live database schema correctness or that the migration workflow ran on Hostinger.
-- Previous migration run reported a MySQL index identifier-length error; the live schema/migration state must be checked read-only before any migration retry.
+**Evidence reviewed (2026-10-27):**
+- PR #826 is open, mergeable, not merged; reviewed the migration and workflow patches. Laravel CI run #1639 passed: https://github.com/mattari20/estudent-listing/actions/runs/40406254876; Test run #1875 passed: https://github.com/mattari20/estudent-listing/actions/runs/40406254874.
+- PR #827 is open, mergeable, not merged; it changes only this tracker. Latest head commit `68fb85f30934e104a057849f878a38d145568c22` passed Laravel CI #1642: https://github.com/mattari20/estudent-listing/actions/runs/40409450790 and Test #1878: https://github.com/mattari20/estudent-listing/actions/runs/40409450807.
+- Tracker validation and PR diff inspection confirm exactly five Phase 2 steps, each with target, requirements/tasks, tests/verification and a completion gate.
+- The migration workflow exposes a manual `workflow_dispatch` boolean `confirm_migration` defaulting to false; read-only mode is the safe first path. The available GitHub connector has no workflow-dispatch action, so manual initiation is required for a live diagnostic. No production migration or write was run as part of Step 1.
+- CI does not prove live database schema correctness or that the migration workflow ran on Hostinger. The previous migration run reported a MySQL index identifier-length error; live schema/migration state must be inspected read-only before any migration retry.
 
 ### Step 2 — Deployment, Database Schema & Migration Integrity
 **Target:** Prove which revision is deployed and document the live schema/migration state without risking data.
