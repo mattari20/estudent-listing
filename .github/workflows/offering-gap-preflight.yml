@@ -126,6 +126,11 @@ jobs:
             echo "::error::Preflight did not report the required zero-mutation safety contract."
             exit 1
           fi
+          # Fail on the command's own sanitized error before checking success-only summary fields.
+          if [[ "$command_exit" -ne 0 ]]; then
+            echo "::error::Preflight command failed; inspect the restricted report artifact for the sanitized failure code."
+            exit 1
+          fi
           if ! jq -e '.summary.register_rows == 36 and (.records | length) == 36 and (([.records[].program_id] | length) == ([.records[].program_id] | unique | length))' "$RUNNER_TEMP/offering-gap-preflight.json" >/dev/null; then
             echo "::error::Preflight report must contain exactly 36 register rows and 36 records with unique programme IDs."
             exit 1
