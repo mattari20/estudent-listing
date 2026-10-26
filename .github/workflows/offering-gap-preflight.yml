@@ -4,6 +4,14 @@ on:
   # Run every day at 02:00 UTC (07:00 Pakistan time) against the current main commit.
   schedule:
     - cron: '0 2 * * *'
+  # Also verify relevant workflow/code/register changes after they land on main.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/offering-gap-preflight.yml'
+      - 'app/Console/Commands/OfferingGapPreflight.php'
+      - 'app/Console/Commands/ReconcileProgrammeOfferingGaps.php'
+      - 'docs/step3-offering-gap-evidence-register.csv'
   workflow_dispatch:
     inputs:
       revision:
