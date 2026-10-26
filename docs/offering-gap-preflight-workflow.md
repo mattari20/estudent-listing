@@ -50,3 +50,19 @@ The workflow intentionally fails before connecting if any required secret is abs
 ## Report interpretation
 
 The report includes the exact commit SHA, timestamp, workflow run ID, command exit code, blockers, and zero-mutation declaration. A failed command still attempts to upload the report artifact. If the command fails before JSON output is produced, the job reports failure and no successful preflight should be inferred.
+
+
+## Step 3 closure checklist (2026-10-26)
+
+Before declaring the offering-gap remediation complete, record a disposition for every row in the 36-row live report:
+
+- [ ] Confirm the report is from the intended Hostinger database and exact application commit.
+- [ ] Confirm the report has 36 rows and explicitly reports zero mutations.
+- [ ] For each row, record the official programme source, exact award-title match, campus source, canonical campus mapping, and any blockers.
+- [ ] Keep ambiguous institution identities, generic award labels, online/virtual campus assumptions, and conflicting campus evidence in review or blocked status.
+- [ ] Reconcile report row IDs against canonical programme and offering IDs; do not treat historic failure-event counts as unique unresolved records.
+- [ ] Document a separate record-level proposed repair plan and duplicate checks before any future production write.
+- [ ] Verify database grants independently; a successful audit command is not proof that the database account is SELECT-only.
+- [ ] Record the workflow run URL, artifact/report checksum or identifier, inspected commit SHA, and reviewer disposition in the Step 3 tracking issue.
+
+A green workflow is evidence that a process ran, not proof that all rows are correct or ready for promotion. No closure decision should be based only on aggregate counts.
