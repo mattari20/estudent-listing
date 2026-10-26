@@ -78,8 +78,10 @@ jobs:
               exit 41
             fi
 
-            php -r '
-            foreach ($argv as $path) {
+            VALIDATOR="$REPORT_DIR/validate-$STAMP.php"
+            cat > "$VALIDATOR" <<'PHP'
+            <?php
+            foreach (array_slice($argv, 1) as $path) {
                 $data = json_decode((string) file_get_contents($path), true);
                 if (! is_array($data)) {
                     echo basename($path).'_json_status=INVALID'.PHP_EOL;
@@ -107,7 +109,9 @@ jobs:
                     exit(31);
                 }
             }
-            echo "report_storage=PRIVATE_HOSTINGER_STORAGE".PHP_EOL;
-            echo "database_migrations=NOT_RUN".PHP_EOL;
-            echo "production_data_mutations=NOT_RUN".PHP_EOL;
-            ' "$PREFLIGHT" "$RECON"
+            echo 'report_storage=PRIVATE_HOSTINGER_STORAGE'.PHP_EOL;
+            echo 'database_migrations=NOT_RUN'.PHP_EOL;
+            echo 'production_data_mutations=NOT_RUN'.PHP_EOL;
+            PHP
+            php "$VALIDATOR" "$PREFLIGHT" "$RECON"
+            rm -f "$VALIDATOR"
