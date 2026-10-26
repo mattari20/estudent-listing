@@ -127,3 +127,14 @@ These are broader future workstreams, not additional Phase 2 steps:
 5. Blockers, risk and remaining work.
 6. Explicit completion-gate decision: PASS or NOT YET.
 7. Do not begin the next step unless the current gate is PASS.
+
+**Step 1 re-verification (2026-10-27; current head undefined): NOT YET — mandatory evidence gap.**
+- Rechecked current PR state: #826 and #827 are both open, mergeable, and not merged. Neither has a submitted review recorded.
+- PR #826 head `576c0b237e003df8cd346dabd49b3c5d206a246d`: Laravel CI #1639 and Test #1875 both completed successfully. Current PR #826 diff was reviewed; migration workflow defaults `confirm_migration=false`, verifies deployed application-code parity, stops on inconsistent table/migration history, and enables SSH `script_stop: true`. No production migration/write was run.
+- PR #827 current head is `undefined`. The latest successful recorded Laravel CI #1644 and Test #1880 are linked below, but their run object reports head commit `a78f6bb626f66dfee35d11500309f440094a62ed`, not the current PR head. They are therefore not accepted as CI proof for the current head. Earlier successful checks #1642/#1878 were for `68fb85f30934e104a057849f878a38d145568c22` and are also stale.
+- Workflow inspection: `.github/workflows/laravel-ci.yml` and `.github/workflows/test.yml` run on PRs targeting `main` and pushes to `main`; both use SQLite test databases. `.github/workflows/hostinger-readonly-diagnostics.yml` has push, six-hour schedule (`17 */6 * * *`), and manual `workflow_dispatch` triggers; it uses Hostinger SSH secrets `HOSTINGER_SSH_HOST`, `HOSTINGER_SSH_USER`, `HOSTINGER_SSH_PRIVATE_KEY`, and `HOSTINGER_SSH_PORT`, and contains read-only diagnostics. `.github/workflows/controlled-official-source-refresh-migration.yml` has a manual `confirm_migration` input defaulting false, code-parity checks, and inconsistent-schema stop gates.
+- The available GitHub connector exposes run/job read operations and failed-job reruns, but no workflow-dispatch action. Manual initiation is required for a live Hostinger diagnostic. Secret values cannot be inspected through the available connector; only secret names referenced by workflows were confirmed.
+- Tracker validation: exactly five Phase 2 step headings and five explicit completion gates are present. No production write/migration/deletion/deployment occurred during this re-verification.
+- Resume/closeout condition: rerun both Laravel CI and Test on this exact current head, record those run IDs and completed results here, and then re-evaluate the gate. Live Hostinger schema diagnostics remain Step 2 scope and were not executed here.
+
+Current-head CI links to inspect: [Laravel CI workflow](https://github.com/mattari20/estudent-listing/actions/workflows/laravel-ci.yml) · [Test workflow](https://github.com/mattari20/estudent-listing/actions/workflows/test.yml).
