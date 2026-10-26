@@ -1,0 +1,116 @@
+name: Hostinger Read-only Offering Gap Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_path:
+        description: "Absolute path to the Institutes Laravel project directory containing artisan"
+        required: true
+        type: string
+        default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hostinger-readonly-offering-gap-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Verify DB grants and run read-only offering-gap checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Run audit through existing Hostinger SSH connection
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH
+          command_timeout: 8m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: project_path must be absolute"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: project_path must not contain .."; exit 2 ;; esac
+            test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
+            test -f "$PROJECT_PATH/vendor/autoload.php" || { echo "ERROR: Composer dependencies are missing"; exit 4; }
+            test -f "$PROJECT_PATH/.env" || { echo "ERROR: application .env is missing"; exit 5; }
+            cd "$PROJECT_PATH"
+
+            echo "=== Verify current Laravel database account grants (read-only) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+            $rows = \Illuminate\Support\Facades\DB::select('SHOW GRANTS FOR CURRENT_USER');
+            $grants = [];
+            foreach ($rows as $row) {
+                foreach ((array) $row as $value) {
+                    $grants[] = (string) $value;
+                }
+            }
+            $text = strtoupper(implode("\n", $grants));
+            $writePrivileges = preg_match('/\\b(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|INDEX|TRIGGER|EVENT|EXECUTE|REFERENCES|RELOAD|SHUTDOWN|FILE|PROCESS|SUPER|GRANT OPTION)\\b|ALL PRIVILEGES/', $text) === 1;
+            $hasSelect = preg_match('/\\bSELECT\\b/', $text) === 1;
+            $safe = $hasSelect && ! $writePrivileges;
+            echo 'database_privilege_status='.($safe ? 'READ_ONLY_CONFIRMED' : 'NOT_READ_ONLY_OR_SELECT_MISSING').PHP_EOL;
+            echo 'database_grant_line_count='.count($grants).PHP_EOL;
+            if (! $safe) {
+                echo 'ERROR: Audit stopped. Use a dedicated database user with SELECT-only privileges; no audit commands were run.'.PHP_EOL;
+                exit(20);
+            }
+            PHP
+
+            # Reports are written outside the public web root and are not printed
+            # into Actions logs. This workflow performs no migrations or DB writes.
+            umask 077
+            REPORT_DIR="$PROJECT_PATH/storage/app/private/phase2-offering-gap-audits"
+            mkdir -p "$REPORT_DIR"
+            chmod 700 "$REPORT_DIR"
+            STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+            PREFLIGHT="$REPORT_DIR/preflight-$STAMP.json"
+            RECON="$REPORT_DIR/reconciliation-$STAMP.json"
+
+            echo "=== Run read-only preflight (no migrations) ==="
+            if php artisan institutes:offering-gap-preflight --json --no-ansi > "$PREFLIGHT"; then
+              echo "preflight_command_status=PASS"
+            else
+              echo "preflight_command_status=FAIL"
+            fi
+
+            echo "=== Run read-only row-level reconciliation (no mutations) ==="
+            if php artisan institutes:offering-gap-reconcile --json --no-ansi > "$RECON"; then
+              echo "reconciliation_command_status=PASS"
+            else
+              echo "reconciliation_command_status=FAIL"
+            fi
+
+            php - "$PREFLIGHT" "$RECON" <<'PHP'
+            <?php
+            foreach (array_slice($argv, 1) as $path) {
+                $data = json_decode((string) file_get_contents($path), true);
+                if (! is_array($data)) {
+                    echo basename($path).'_json_status=INVALID'.PHP_EOL;
+                    exit(30);
+                }
+                $name = str_starts_with(basename($path), 'preflight-') ? 'preflight' : 'reconciliation';
+                $summary = $data['summary'] ?? [];
+                echo $name.'_register_rows='.(int) ($summary['register_rows'] ?? 0).PHP_EOL;
+                echo $name.'_database_mutations='.(int) ($data['database_mutations'] ?? -1).PHP_EOL;
+                echo $name.'_mutation_performed='.((($data['mutation_performed'] ?? null) === false) ? 'false' : 'unexpected').PHP_EOL;
+                if (($data['database_mutations'] ?? null) !== 0 || ($data['mutation_performed'] ?? null) !== false) {
+                    echo 'ERROR: Audit report failed its zero-mutation contract.'.PHP_EOL;
+                    exit(31);
+                }
+            }
+            echo 'report_storage=PRIVATE_HOSTINGER_STORAGE'.PHP_EOL;
+            echo 'database_migrations=NOT_RUN'.PHP_EOL;
+            echo 'production_data_mutations=NOT_RUN'.PHP_EOL;
+            PHP
