@@ -43,7 +43,7 @@ class ImportIntegrityAudit extends Command
         // This command summarizes row states; it does not certify the rows as
         // clean or promotion-ready. "completed" describes the audit execution.
         $report['status'] = 'completed';
-        $report['interpretation'] = 'Audit completed successfully. Review grouped row states and promotion-readiness reports before taking action.';
+        $report['interpretation'] = 'Audit completed successfully; this audit does not certify data health. Review grouped row states and promotion-readiness reports before taking action.';
 
         $this->line(json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         return self::SUCCESS;
