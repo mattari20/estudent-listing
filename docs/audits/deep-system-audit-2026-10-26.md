@@ -65,7 +65,13 @@ The latest inspected Hostinger diagnostics run was successful, confirmed `deploy
 
 **Operational conclusion:** schema and application revision checks passed, and the public listing/detail smoke checks passed. Data completeness is not yet production-ready: 36 active programs lack active offerings, 126 candidate rows still need review, 192 duplicate rows need canonical-link verification, 9 institution import rows lack an approved identity decision, and 4 promotion failures require diagnosis. These are review queues, not authorization to bulk promote, delete, or rewrite records. The user has previously identified the current data as test/dummy data; any reset or replacement still requires a reviewed, exact-scope workflow and must preserve users and migration history.
 
-Live evidence: [Hostinger read-only diagnostics run 40309531178](https://github.com/mattari20/estudent-listing/actions/runs/40309531178); [public site monitor run 40309531038](https://github.com/mattari20/estudent-listing/actions/runs/40309531038).
+Live evidence: [Hostinger read-only diagnostics run 40309531178](https://github.com/mattari20/estudent-listing/actions/runs/40309531178); [public site monitor run 40309531038](https://github.com/mattari20/estudent-listing/actions/runs/40309531038). Exact program IDs, names, institution names, and slugs are recorded in [the 36-row offering-gap register](active-programs-without-offerings-2026-10-26.md).
+
+## Remediation validation update — 2026-10-26
+
+- PR #821 current-head validation passed: [Laravel CI run 1621](https://github.com/mattari20/estudent-listing/actions/runs/40316350361) and [Test run 1857](https://github.com/mattari20/estudent-listing/actions/runs/40316350693). These cover code/tests in CI, not production writes.
+- PR #823 current-head validation passed: [Laravel CI run 1620](https://github.com/mattari20/estudent-listing/actions/runs/40316298460) and [Test run 1856](https://github.com/mattari20/estudent-listing/actions/runs/40316298478).
+- PRs remain open and unmerged; no production writes were performed.
 
 ## Full-system audit plan
 
