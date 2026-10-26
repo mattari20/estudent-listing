@@ -40,6 +40,8 @@ class ImportIntegrityAuditTest extends TestCase
         $output = json_decode(Artisan::output(), true);
 
         $this->assertSame(0, $exitCode);
+        $this->assertSame('completed', $output['status']);
+        $this->assertStringContainsString('does not certify', $output['interpretation']);
         $this->assertFalse($output['mutation_performed']);
         $this->assertSame([
             ['entity_type' => 'campus', 'status' => 'candidate', 'count' => 1],
