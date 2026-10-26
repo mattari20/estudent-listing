@@ -28,7 +28,7 @@ The default branch contains 1,236 tracked tree entries at the time of review. Th
 | CSV-02 | Geography CSV import | First-column UTF-8 BOM may prevent header recognition | `GeographyImportController`, `GeographySchemaProfileService` | Medium | Confirmed by source review | Fix proposed in PR #821 |
 | CSV-03 | CSV schema validation | Duplicate headers are silently deduplicated instead of rejected | Both schema validators | Medium | Confirmed by source review | Fix proposed in PR #821 |
 | AUDIT-01 | Import integrity reporting | Audit labels data `healthy` solely because required tables exist; row-state distribution is not part of that health decision | `app/Console/Commands/ImportIntegrityAudit.php` and `tests/Feature/ImportIntegrityAuditTest.php` | Medium | Confirmed by source review | Fix proposed in PR #823 |
-| DATA-01 | Live data quality | Current duplicate, unverified, orphan, and stale-record counts are not established by this repository-only review | Read-only live audit exists; fresh output not inspected in this review | High | Unknown until report evidence | Pending |
+| DATA-01 | Live data quality | Live snapshot identifies 36 active programs without active offerings; import review queue has 126 candidate rows, 192 duplicate rows requiring link verification, 7 rejected rows, and 4 promotion failures | Hostinger read-only diagnostics run [40309531178](https://github.com/mattari20/estudent-listing/actions/runs/40309531178), 2026-10-26 10:43 UTC; record-level audit output | High | Confirmed counts; record disposition still needs review | Remediation plan pending; no writes |
 | PROMO-01 | Canonical promotion | Verify all canonical writes enforce review, source, provenance, parent integrity, and stale-review guards | Promotion/readiness services and controllers | High | Audit gap, not confirmed defect | Pending |
 | GEO-01 | Geography hierarchy | Verify import, seed, and promotion paths enforce active parent, cycle, and hierarchy constraints | Geography integrity/import/seed services | High | Audit gap, not confirmed defect | Pending |
 | DUP-01 | Duplicate resolution | Verify cross-batch duplicate audit, aliases, slug collisions, and canonical promotion are consistent | Duplicate audit and identity-resolution services | High | Audit gap, not confirmed defect | Pending |
@@ -39,6 +39,32 @@ The default branch contains 1,236 tracked tree entries at the time of review. Th
 | DB-01 | Schema and migrations | Check migration ordering, duplicate table-creation migrations, schema drift, foreign keys and indexes | `database/migrations`, reset inventory | High | Audit gap, not confirmed defect | Pending |
 | TEST-01 | Test coverage | Map critical paths to tests, identify missing failure cases, and verify tests run in CI | `tests/Feature`, `tests/Unit`, CI workflows | Medium | Audit gap, not confirmed defect | Pending |
 | DEPLOY-01 | Production deployment | Compare deployed code revision to repository and inspect latest read-only diagnostics | Hostinger read-only diagnostic workflows | High | Not established by source review alone | Pending |
+
+## Live read-only baseline — 2026-10-26
+
+The latest inspected Hostinger diagnostics run was successful, confirmed `deployment_revision_status=APPLICATION_CODE_MATCH`, and reported no production data mutations. The public site monitor returned HTTP 200 for the listing page and University of the Punjab detail page. Guest access to operator-only discovery history and review-package download was denied by redirect to the Institutes login.
+
+### Canonical data snapshot
+
+| Metric | Live value | Interpretation |
+|---|---:|---|
+| Active institutions | 19 | All 19 canonical institutions are active in this snapshot |
+| Active campuses | 22 | No active institution is missing an active campus |
+| Active programs | 85 | 36 active programs have no active offering |
+| Active program offerings | 55 | All 55 offerings were active |
+| Admission intakes | 5 | No intake-without-active-offering gap reported |
+| Active campuses without active geography | 0 | Geography relation check passes for active campuses |
+| Active offerings without active program | 0 | No relationship gap reported |
+| Active offerings without active campus | 0 | No relationship gap reported |
+| Import batches | 18 | Includes historical/test import activity; needs row-level reconciliation |
+| Import rows | 347 | 22 promoted, 126 candidate, 192 duplicate, 7 rejected |
+| Rows with open conflicts | 0 | No open import conflicts were counted |
+| Institution rows without approved identity decision | 9 | Review before any attempted promotion |
+| Promotion failures in summarized audit | 4 | 1 missing active source evidence; 3 other runtime exceptions |
+
+**Operational conclusion:** schema and application revision checks passed, and the public listing/detail smoke checks passed. Data completeness is not yet production-ready: 36 active programs lack active offerings, 126 candidate rows still need review, 192 duplicate rows need canonical-link verification, 9 institution import rows lack an approved identity decision, and 4 promotion failures require diagnosis. These are review queues, not authorization to bulk promote, delete, or rewrite records. The user has previously identified the current data as test/dummy data; any reset or replacement still requires a reviewed, exact-scope workflow and must preserve users and migration history.
+
+Live evidence: [Hostinger read-only diagnostics run 40309531178](https://github.com/mattari20/estudent-listing/actions/runs/40309531178); [public site monitor run 40309531038](https://github.com/mattari20/estudent-listing/actions/runs/40309531038).
 
 ## Full-system audit plan
 
