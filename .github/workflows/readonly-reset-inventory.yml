@@ -60,8 +60,11 @@ jobs:
               exit 4
             }
             DEPLOYED_REVISION="$(git rev-parse HEAD)"
-            git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || {
-              echo "ERROR: target revision missing from Hostinger Git metadata"
+            if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
+              git fetch --quiet --no-tags origin "$TARGET_REVISION" || git fetch --quiet --no-tags origin main
+            fi
+            git cat-file -e "$TARGET_REVISION^{commit}" || {
+              echo "ERROR: target revision unavailable after safe fetch; inventory blocked"
               exit 5
             }
             if ! git diff --quiet "$TARGET_REVISION" "$DEPLOYED_REVISION" -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
