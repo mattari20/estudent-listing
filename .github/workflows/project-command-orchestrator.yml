@@ -64,6 +64,10 @@ jobs:
         id: gate
         env: {COMMAND: ${{ steps.cmd.outputs.value }}}
         run: |
+          set -euo pipefail
+          # Create the report directory before shell redirection. Without this,
+          # bash fails to open stdout redirection and Python never starts.
+          mkdir -p controller-report
           set +e
           python scripts/project_command_orchestrator.py --command "$COMMAND" --state-file controller-state.json --output controller-report/command-state.json > controller-report/command-state.stdout.json
           rc=$?; set -e; echo "exit_code=$rc" >> "$GITHUB_OUTPUT"; cat controller-report/command-state.stdout.json
