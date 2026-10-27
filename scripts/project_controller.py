@@ -150,6 +150,38 @@ def build_report(root: Path, api: Callable[[str], Any]) -> dict[str, Any]:
         blockers.append("Tracker still contains the earlier Step 1 blocker statement; reconcile it with current evidence.")
     if open_prs:
         blockers.append(f"{len(open_prs)} pull request(s) remain open and require status/review.")
+    step1_checks = [
+        {
+            "task": "authoritative_protocol_and_five_step_tracker",
+            "status": "PASS" if protocol_ok else "BLOCKED",
+            "evidence": "Local checkout validates protocol presence and exact five-step tracker structure.",
+        },
+        {
+            "task": "governed_discovery_workflow",
+            "status": "PASS" if run_report.get("governed_discovery", {}).get("status") == "completed" and run_report.get("governed_discovery", {}).get("conclusion") == "success" else "BLOCKED",
+            "evidence": run_report.get("governed_discovery", {}).get("html_url", "No successful run evidence found."),
+        },
+        {
+            "task": "hostinger_read_only_diagnostics",
+            "status": "PASS" if run_report.get("hostinger_readonly_diagnostics", {}).get("status") == "completed" and run_report.get("hostinger_readonly_diagnostics", {}).get("conclusion") == "success" else "BLOCKED",
+            "evidence": run_report.get("hostinger_readonly_diagnostics", {}).get("html_url", "No successful run evidence found."),
+        },
+        {
+            "task": "open_pull_request_review_and_ci",
+            "status": "BLOCKED" if open_prs else "REVIEW",
+            "evidence": "Open pull requests must be reviewed individually; controller does not merge or infer approval.",
+        },
+        {
+            "task": "tracker_evidence_reconciliation",
+            "status": "BLOCKED" if governance["tracker_step1_blocker_text_present"] else "REVIEW",
+            "evidence": "Tracker status must be updated only after checking current run evidence and acceptance gates.",
+        },
+    ]
+    passed_step1_tasks = sum(item["status"] == "PASS" for item in step1_checks)
+    next_resume_point = next(
+        (item["task"] for item in step1_checks if item["status"] != "PASS"),
+        "independent_final_step1_acceptance_review",
+    )
     return {
         "schema_version": 1,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -159,6 +191,9 @@ def build_report(root: Path, api: Callable[[str], Any]) -> dict[str, Any]:
         "governance": governance,
         "open_pull_requests": open_prs,
         "latest_workflow_runs": run_report,
+        "step_progress": {"step": 1, "status": "IN_PROGRESS" if blockers else "READY_FOR_HUMAN_ACCEPTANCE_REVIEW", "tasks_total": len(step1_checks), "tasks_passed": passed_step1_tasks, "tasks": step1_checks},
+        "resume_point": next_resume_point,
+        "failure_repair_retest_policy": "A failed check remains BLOCKED; repair the cause, rerun that check and relevant regressions, and recompute from current repository/workflow evidence. No automatic retries or step closure.",
         "step1_closure_candidate": bool(protocol_ok and green_runs and not blockers),
         "status": controller_status,
         "blockers": blockers,
