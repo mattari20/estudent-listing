@@ -24,7 +24,7 @@ on:
 permissions:
   contents: read
   actions: read
-  pull-requests: read
+  pull-requests: write
   issues: write
 concurrency:
   group: institutes-directory-command-orchestrator
@@ -162,7 +162,15 @@ jobs:
           PY
           body="$(printf '<!-- institutes-project-controller-state -->\n%s\n<!-- end-state -->\n\nLast command: %s\nWorkflow: %s' "$(cat persisted-state.json)" "$COMMAND" "$RUN_URL")"
           id="$(gh api "repos/$GH_REPO/issues/$ISSUE/comments?per_page=100" --paginate --jq '[.[] | select(.body | contains("<!-- institutes-project-controller-state -->"))] | sort_by(.created_at, .id) | last | .id // empty')"
-          if [[ -n "$id" ]]; then gh api --method PATCH "repos/$GH_REPO/issues/comments/$id" -f body="$body" >/dev/null; else gh api --method POST "repos/$GH_REPO/issues/$ISSUE/comments" -f body="$body" >/dev/null; fi
+          if [[ -n "$id" ]]; then
+            if ! gh api --method PATCH "repos/$GH_REPO/issues/comments/$id" -f body="$body" >/dev/null; then
+              echo "::warning::GitHub denied resume-comment update; the run artifact contains the complete state/report."
+            fi
+          else
+            if ! gh api --method POST "repos/$GH_REPO/issues/$ISSUE/comments" -f body="$body" >/dev/null; then
+              echo "::warning::GitHub denied resume-comment creation; the run artifact contains the complete state/report."
+            fi
+          fi
       - name: Upload report and resume state
         if: always() && steps.cmd.outputs.accepted == 'true'
         uses: actions/upload-artifact@v4
