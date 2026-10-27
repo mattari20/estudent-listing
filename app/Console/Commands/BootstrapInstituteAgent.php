@@ -44,7 +44,6 @@ class BootstrapInstituteAgent extends Command
             }
 
             $sourceDefinition = $definition['source'] ?? [];
-            $sourceUrl = $sourceDefinition['url'] ?? null;
 
             if (($definition['monitoring']['enabled'] ?? true) !== true) {
                 $monitoring->disableForProfile($profile);
@@ -58,7 +57,7 @@ class BootstrapInstituteAgent extends Command
             $parentSlug = $definition['institution_slug'] ?? null;
             if (is_string($parentSlug) && $parentSlug !== ''
                 && ! Institution::query()->where('slug', $parentSlug)->exists()) {
-                $monitoring->disableForProfile($profile, is_string($sourceUrl) ? $sourceUrl : null);
+                $monitoring->disableForProfile($profile);
                 $this->warn(
                     $profile.' blocked: required parent institution "'.$parentSlug
                     .'" is missing from canonical data; the profile policy is disabled and no discovery was run.'
