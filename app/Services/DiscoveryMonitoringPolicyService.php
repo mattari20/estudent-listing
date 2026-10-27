@@ -36,21 +36,12 @@ class DiscoveryMonitoringPolicyService
         );
     }
 
-    public function disableForProfile(string $profile, ?string $sourceUrl = null): int
+    public function disableForProfile(string $profile): int
     {
-        $name = 'Automated discovery — '.$profile;
-        $query = SourceMonitoringPolicy::query()
-            ->where('name', $name)
+        return SourceMonitoringPolicy::query()
+            ->where('name', 'Automated discovery — '.$profile)
             ->where('attribute', 'automated_discovery')
-            ->where('status', '!=', 'disabled');
-
-        if (is_string($sourceUrl) && $sourceUrl !== '') {
-            $sourceId = Source::query()->where('url', $sourceUrl)->value('id');
-            if ($sourceId !== null) {
-                $query->where('source_id', (int) $sourceId);
-            }
-        }
-
-        return $query->update(['status' => 'disabled']);
+            ->where('status', '!=', 'disabled')
+            ->update(['status' => 'disabled']);
     }
 }
