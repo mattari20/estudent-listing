@@ -131,7 +131,9 @@ jobs:
           python scripts/project_controller.py --offline --output-dir controller-report/offline-smoke
       - name: Run read-only GitHub inventory
         if: steps.gate.outputs.exit_code == '0'
-        env: {GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}, GITHUB_REPOSITORY: ${{ github.repository }}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: python scripts/project_controller.py --output-dir controller-report/live
       - name: Persist resume point in issue/PR comment
         if: always() && steps.cmd.outputs.accepted == 'true' && steps.cmd.outputs.issue != ''
