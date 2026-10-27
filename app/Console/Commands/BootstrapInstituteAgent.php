@@ -43,26 +43,29 @@ class BootstrapInstituteAgent extends Command
                 continue;
             }
 
+            $sourceDefinition = $definition['source'] ?? [];
+            $sourceUrl = $sourceDefinition['url'] ?? null;
+
             if (($definition['monitoring']['enabled'] ?? true) !== true) {
+                $monitoring->disableForProfile($profile, is_string($sourceUrl) ? $sourceUrl : null);
                 $skipped++;
                 continue;
             }
 
             // A missing canonical parent is a profile-level readiness blocker, not a
-            // fatal workflow error. Do not register/run this profile until the parent
-            // is independently verified and added through the governed data workflow.
+            // fatal workflow error. Disable any previously active policy rather than
+            // letting a stale scheduled policy continue running against a blocked profile.
             $parentSlug = $definition['institution_slug'] ?? null;
             if (is_string($parentSlug) && $parentSlug !== ''
                 && ! Institution::query()->where('slug', $parentSlug)->exists()) {
+                $monitoring->disableForProfile($profile, is_string($sourceUrl) ? $sourceUrl : null);
                 $this->warn(
                     $profile.' blocked: required parent institution "'.$parentSlug
-                    .'" is missing from canonical data; no discovery was run for this profile.'
+                    .'" is missing from canonical data; the profile policy is disabled and no discovery was run.'
                 );
                 $skipped++;
                 continue;
             }
-
-            $sourceDefinition = $definition['source'] ?? [];
 
             $source = Source::query()->updateOrCreate(
                 ['url' => $sourceDefinition['url'] ?? null],
