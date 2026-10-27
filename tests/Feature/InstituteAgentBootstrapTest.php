@@ -155,12 +155,20 @@ class InstituteAgentBootstrapTest extends TestCase
             'subject_type' => 'institution',
             'status' => 'active',
         ]);
-        $this->assertDatabaseHas('assertions', [
-            'evidence_id' => Assertion::query()->where('subject_type', ImportRow::class)->where('subject_id', $row->id)->value('evidence_id'),
-            'subject_type' => ImportRow::class,
-            'subject_id' => $row->id,
-            'attribute' => 'institution_identity_candidate',
-            'verification_state' => 'discovered',
+        $assertion = Assertion::query()
+            ->where('subject_type', ImportRow::class)
+            ->where('subject_id', $row->id)
+            ->where('attribute', 'institution_identity_candidate')
+            ->firstOrFail();
+        $this->assertSame('discovered', $assertion->verification_state);
+        $this->assertSame(
+            (int) $row->normalized_payload['_provenance']['evidence_id'],
+            (int) $assertion->evidence_id
+        );
+        $this->assertDatabaseHas('evidences', [
+            'id' => $assertion->evidence_id,
+            'source_id' => $source->id,
+            'status' => 'active',
         ]);
         $this->assertSame(1, $batch->fresh()->candidate_rows);
         $this->assertStringContainsString('institution_identity_extractor_version=1', $batch->notes);
