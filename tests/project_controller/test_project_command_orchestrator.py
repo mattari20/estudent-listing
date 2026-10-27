@@ -10,6 +10,8 @@ class Tests(unittest.TestCase):
   return d,r
  def test_short_commands(self):
   self.assertTrue(o.parse_command(" Continue ")["valid"]); self.assertEqual(o.parse_command("Move to Step 3")["requested_step"],3); self.assertFalse(o.parse_command("skip")["valid"])
+ def test_command_whitespace_is_normalized(self):
+  self.assertEqual(o.parse_command("  Move   to   Step 2  ")["requested_step"],2)
  def test_non_text_commands_fail_closed(self):
   for value in (None, 7, {}, []):
    with self.subTest(value=value):
