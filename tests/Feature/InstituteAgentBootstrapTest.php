@@ -111,7 +111,7 @@ class InstituteAgentBootstrapTest extends TestCase
             'total_rows' => 0, 'valid_rows' => 0, 'invalid_rows' => 0,
             'candidate_rows' => 0, 'duplicate_rows' => 0,
             'received_at' => now(), 'completed_at' => now(),
-            'notes' => 'No candidates extracted. discovery_extractor_version=4',
+            'notes' => 'No candidates extracted. discovery_extractor_version=5',
         ]);
         $this->artisan('institutes:bootstrap-agent', ['--profile' => ['gcu-lahore-programs']])->assertExitCode(0);
         $this->assertSame(1, ImportBatch::query()->where('source_id', $source->id)->count());
