@@ -150,11 +150,26 @@ jobs:
             }
             PHP
             echo "=== Hostinger scheduler cron presence (read-only; command contents suppressed) ==="
-            CRON_OUTPUT="$(crontab -l 2>/dev/null || true)"
-            if printf '%s\n' "$CRON_OUTPUT" | grep -Eq 'artisan[[:space:]]+schedule:run|schedule:run[[:space:]]'; then
-              echo "hostinger_scheduler_cron=present"
+            # Distinguish an explicitly empty user crontab from an unreadable or
+            # otherwise failing crontab command. Never print scheduler command contents.
+            set +e
+            CRON_OUTPUT="$(crontab -l 2>&1)"
+            CRON_STATUS=$?
+            set -e
+            if [ "$CRON_STATUS" -eq 0 ]; then
+              if printf '%s\n' "$CRON_OUTPUT" | grep -Eq 'artisan[[:space:]]+schedule:run|schedule:run[[:space:]]'; then
+                echo "hostinger_scheduler_cron=present"
+              else
+                echo "hostinger_scheduler_cron=missing"
+                echo "hostinger_scheduler_cron_evidence=crontab_read_succeeded_no_laravel_schedule_entry"
+              fi
+            elif printf '%s\n' "$CRON_OUTPUT" | grep -Eiq 'no crontab for'; then
+              echo "hostinger_scheduler_cron=missing"
+              echo "hostinger_scheduler_cron_evidence=crontab_reports_no_user_crontab"
             else
-              echo "hostinger_scheduler_cron=missing_or_unreadable"
+              echo "hostinger_scheduler_cron=unreadable"
+              echo "hostinger_scheduler_cron_exit_code=$CRON_STATUS"
+              echo "hostinger_scheduler_cron_evidence=crontab_command_failed_or_access_denied"
             fi
             echo "=== Deployed code revision (read-only) ==="
             DEPLOYMENT_DRIFT=0
