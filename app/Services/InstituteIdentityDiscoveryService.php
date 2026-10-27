@@ -68,6 +68,29 @@ class InstituteIdentityDiscoveryService
             );
         }
 
+        return $this->stageSnapshot($profile, $source, $snapshot, $definition);
+    }
+
+    public function runFromSnapshot(string $profile, SourceSnapshot $snapshot, array $definition): array
+    {
+        if (($definition['entity_type'] ?? null) !== 'institution') {
+            throw new RuntimeException('Institution identity discovery requires entity_type=institution.');
+        }
+
+        $source = Source::query()->findOrFail($snapshot->source_id);
+        if ($source->url !== ($definition['source']['url'] ?? null)) {
+            throw new RuntimeException('The monitoring snapshot does not belong to the configured institution identity profile.');
+        }
+
+        if (($definition['monitoring']['use_ai'] ?? false) === true) {
+            throw new RuntimeException('Institution identity discovery is deterministic-only; AI extraction is not permitted.');
+        }
+
+        return $this->stageSnapshot($profile, $source, $snapshot, $definition);
+    }
+
+    private function stageSnapshot(string $profile, Source $source, SourceSnapshot $snapshot, array $definition): array
+    {
         $versionMarker = 'institution_identity_extractor_version='.self::VERSION;
         $existingBatches = ImportBatch::query()
             ->where('source_id', $source->id)
