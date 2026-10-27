@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\ImportBatch;
+use App\Models\Institution;
 use App\Models\Source;
 use App\Models\SourceSnapshot;
 use App\Services\DiscoveryMonitoringPolicyService;
@@ -41,6 +42,20 @@ class BootstrapInstituteAgent extends Command
             }
 
             if (($definition['monitoring']['enabled'] ?? true) !== true) {
+                $skipped++;
+                continue;
+            }
+
+            // A missing canonical parent is a profile-level readiness blocker, not a
+            // fatal workflow error. Do not register/run this profile until the parent
+            // is independently verified and added through the governed data workflow.
+            $parentSlug = $definition['institution_slug'] ?? null;
+            if (is_string($parentSlug) && $parentSlug !== ''
+                && ! Institution::query()->where('slug', $parentSlug)->exists()) {
+                $this->warn(
+                    $profile.' blocked: required parent institution "'.$parentSlug
+                    .'" is missing from canonical data; no discovery was run for this profile.'
+                );
                 $skipped++;
                 continue;
             }
