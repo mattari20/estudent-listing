@@ -67,10 +67,10 @@ class InstituteDiscoveryCandidateExtractorTest extends TestCase
             'short_name' => 'GCU',
             'slug' => 'government-college-university-lahore',
             'institution_type' => 'public university',
-            'identity_terms' => ['Government College University Lahore', 'GC University Lahore'],
+            'identity_terms' => ['Government College University, Lahore', 'Government College University Lahore'],
         ];
-        $html = '<html><head><title>GC University Lahore</title></head><body>'
-            .'<p>Government College University Lahore is a public university.</p>'
+        $html = '<html><head><title>Government College University, Lahore — HEC</title></head><body>'
+            .'<p>Government College University, Lahore is a public university.</p>'
             .'</body></html>';
 
         $candidates = (new InstituteDiscoveryCandidateExtractor())->extract('institution', $html, $identity);
@@ -78,7 +78,7 @@ class InstituteDiscoveryCandidateExtractorTest extends TestCase
         $this->assertCount(1, $candidates);
         $this->assertSame('Government College University Lahore', $candidates[0]['name']);
         $this->assertSame('government-college-university-lahore', $candidates[0]['slug']);
-        $this->assertStringContainsString('Government College University Lahore', $candidates[0]['evidence_excerpt']);
+        $this->assertStringContainsString('Government College University, Lahore', $candidates[0]['evidence_excerpt']);
 
         $unrelated = '<html><body><h1>Example Technical Academy</h1><p>Other institute</p></body></html>';
         $this->assertSame([], (new InstituteDiscoveryCandidateExtractor())->extract('institution', $unrelated, $identity));
