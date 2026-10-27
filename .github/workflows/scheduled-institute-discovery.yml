@@ -36,7 +36,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: deployment-handoff
-      - name: Require an explicit verified-deployment marker
+      - name: Validate verified-deployment handoff
         id: check
         env:
           EXPECTED_DEPLOYMENT_RUN_ID: ${{ github.event.workflow_run.id }}
@@ -49,15 +49,23 @@ jobs:
           if [ -f "$artifact" ]; then
             target_revision="$(sed -n 's/^target_revision=//p' "$artifact")"
           fi
-          if [ -f "$artifact" ] &&
-            grep -Fqx "verified=true" "$artifact" &&
-            grep -Fqx "application_code_parity=VERIFIED" "$artifact" &&
-            grep -Fqx "application_code_parity_method=git_diff_target_vs_deployed_paths" "$artifact" &&
-            grep -Fqx "read_only_preflight=COMPLETED" "$artifact" &&
-            grep -Fqx "deployment_run_id=$EXPECTED_DEPLOYMENT_RUN_ID" "$artifact" &&
-            grep -Fqx "workflow_run_head_sha=$EXPECTED_WORKFLOW_HEAD_SHA" "$artifact" &&
-            grep -Fqx "workflow_run_name=Controlled Hostinger Code Deployment" "$artifact" &&
-            grep -Eq '^target_revision=[0-9a-f]{40}
+          if [ -f "$artifact" ] \
+            && grep -Fqx "verified=true" "$artifact" \
+            && grep -Fqx "application_code_parity=VERIFIED" "$artifact" \
+            && grep -Fqx "application_code_parity_method=git_diff_target_vs_deployed_paths" "$artifact" \
+            && grep -Fqx "read_only_preflight=COMPLETED" "$artifact" \
+            && grep -Fqx "deployment_run_id=$EXPECTED_DEPLOYMENT_RUN_ID" "$artifact" \
+            && grep -Fqx "workflow_run_head_sha=$EXPECTED_WORKFLOW_HEAD_SHA" "$artifact" \
+            && grep -Fqx "workflow_run_name=Controlled Hostinger Code Deployment" "$artifact" \
+            && grep -Eq '^target_revision=[0-9a-f]{40}$' "$artifact" \
+            && grep -Eq '^deployment_attempt=[1-9][0-9]*$' "$artifact"; then
+            echo "verified=true" >> "$GITHUB_OUTPUT"
+            echo "target_revision=$target_revision" >> "$GITHUB_OUTPUT"
+            echo "deployment_handoff=verified_and_bound_to_triggering_run"
+          else
+            echo "verified=false" >> "$GITHUB_OUTPUT"
+            echo "deployment_handoff=absent_or_incomplete_or_mismatched; governed discovery will not run"
+          fi
 
   resolve-target:
     needs: deployment-handoff
