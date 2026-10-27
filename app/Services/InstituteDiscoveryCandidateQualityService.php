@@ -53,7 +53,19 @@ class InstituteDiscoveryCandidateQualityService
             $blockers[] = 'ai_candidate_missing_evidence_excerpt';
         }
 
-        if (! in_array($entityType, ['program', 'campus'], true)) {
+        if ($entityType === 'institution') {
+            foreach (['official_name', 'short_name', 'institution_type', 'evidence_excerpt'] as $field) {
+                if (! is_string($candidate[$field] ?? null) || trim($candidate[$field]) === '') {
+                    $blockers[] = 'institution_identity_missing_'.$field;
+                }
+            }
+
+            if (preg_match('/(^|[^a-z])campus([^a-z]|$)/i', $name) === 1) {
+                $blockers[] = 'institution_candidate_looks_like_campus';
+            }
+        }
+
+        if (! in_array($entityType, ['program', 'campus', 'institution'], true)) {
             $blockers[] = 'unsupported_entity_type';
         }
 
