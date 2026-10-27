@@ -6,6 +6,12 @@ on:
       - main
     paths:
       - ".github/workflows/scheduled-institute-discovery.yml"
+      - "app/Console/Commands/BootstrapInstituteAgent.php"
+      - "app/Services/InstituteIdentityDiscoveryService.php"
+      - "app/Services/InstituteDiscoveryCandidateExtractor.php"
+      - "app/Services/InstituteDiscoveryCandidateQualityService.php"
+      - "app/Services/DiscoveryMonitoringPolicyService.php"
+      - "config/institute_agent.php"
   schedule:
     - cron: "15 * * * *"
   workflow_dispatch:
