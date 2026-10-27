@@ -54,19 +54,47 @@ jobs:
           GH_REPO: ${{ github.repository }}
           ISSUE: ${{ steps.cmd.outputs.issue }}
         run: |
-          gh api "repos/$GH_REPO/issues/$ISSUE/comments?per_page=100" --paginate |
-            python -c 'import json,sys; a=json.load(sys.stdin); x=[c for c in a if "<!-- institutes-project-controller-state -->" in c.get("body","")]; print(x[-1]["body"].split("<!-- institutes-project-controller-state -->",1)[1].split("<!-- end-state -->",1)[0].strip() if x else "{}")' > controller-state.json
-          python -c 'import json; json.load(open("controller-state.json"))'
+          # --jq emits one JSON object per line, so pagination cannot concatenate
+          # arrays into invalid JSON. Keep only well-formed state-marker comments.
+          gh api "repos/$GH_REPO/issues/$ISSUE/comments?per_page=100" --paginate --jq '.[] | select(.body | contains("<!-- institutes-project-controller-state -->")) | {id: .id, body: .body, created_at: .created_at}' > state-comments.jsonl
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          items = [json.loads(line) for line in Path("state-comments.jsonl").read_text().splitlines() if line.strip()]
+          items.sort(key=lambda x: (x.get("created_at", ""), x.get("id", 0)))
+          raw = "{}"
+          if items:
+              body = items[-1].get("body", "")
+              marker = "<!-- institutes-project-controller-state -->"
+              end = "<!-- end-state -->"
+              if marker in body and end in body.split(marker, 1)[1]:
+                  raw = body.split(marker, 1)[1].split(end, 1)[0].strip()
+          # Validate the persisted data is an object; corrupt state fails closed.
+          state = json.loads(raw)
+          if not isinstance(state, dict):
+              raise SystemExit("Persisted resume state must be a JSON object.")
+          Path("controller-state.json").write_text(json.dumps(state, indent=2) + "\n")
+          PY
       - name: Initialize empty state
         if: steps.cmd.outputs.issue == ''
         run: echo '{}' > controller-state.json
+      - name: Verify restored resume state
+        if: steps.cmd.outputs.issue != ''
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          state = json.loads(Path("controller-state.json").read_text())
+          # This workflow is allowed to restore resume metadata only; it must
+          # never let a persisted state value bypass the authoritative tracker.
+          assert isinstance(state, dict)
+          print(json.dumps({"restored_state_valid": True, "has_resume_point": isinstance(state.get("resume_point"), str)}))
+          PY
       - name: Enforce current step gate
         id: gate
         env: {COMMAND: ${{ steps.cmd.outputs.value }}}
         run: |
           set -euo pipefail
-          # Create the report directory before shell redirection. Without this,
-          # bash fails to open stdout redirection and Python never starts.
           mkdir -p controller-report
           set +e
           python scripts/project_command_orchestrator.py --command "$COMMAND" --state-file controller-state.json --output controller-report/command-state.json > controller-report/command-state.stdout.json
@@ -93,16 +121,21 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           python - <<'PY'
-          import json,os
+          import json, os
           from pathlib import Path
-          p=Path("controller-report/command-state.json")
-          r=json.loads(p.read_text()) if p.exists() else {"decision":"STOP","resume_point":"Inspect workflow logs","reason":"No command report was produced."}
-          r.update(last_command=os.environ["COMMAND"],workflow_run=os.environ["RUN_URL"])
-          Path("persisted-state.json").write_text(json.dumps(r,indent=2))
+          p = Path("controller-report/command-state.json")
+          if p.exists():
+              r = json.loads(p.read_text())
+          else:
+              r = {"decision": "STOP", "resume_point": "Inspect workflow logs", "reason": "No command report was produced."}
+          r.update(last_command=os.environ["COMMAND"], workflow_run=os.environ["RUN_URL"])
+          Path("persisted-state.json").write_text(json.dumps(r, indent=2) + "\n")
+          # Round-trip the exact JSON to catch an invalid report before persisting.
+          restored = json.loads(Path("persisted-state.json").read_text())
+          assert restored == r and isinstance(restored, dict)
           PY
           body="$(printf '<!-- institutes-project-controller-state -->\n%s\n<!-- end-state -->\n\nLast command: %s\nWorkflow: %s' "$(cat persisted-state.json)" "$COMMAND" "$RUN_URL")"
-          comments="$(gh api "repos/$GH_REPO/issues/$ISSUE/comments?per_page=100" --paginate)"
-          id="$(printf '%s' "$comments" | python -c 'import json,sys; a=json.load(sys.stdin); x=[c for c in a if "<!-- institutes-project-controller-state -->" in c.get("body","")]; print(x[-1]["id"] if x else "")')"
+          id="$(gh api "repos/$GH_REPO/issues/$ISSUE/comments?per_page=100" --paginate --jq '[.[] | select(.body | contains("<!-- institutes-project-controller-state -->"))] | sort_by(.created_at, .id) | last | .id // empty')"
           if [[ -n "$id" ]]; then gh api --method PATCH "repos/$GH_REPO/issues/comments/$id" -f body="$body" >/dev/null; else gh api --method POST "repos/$GH_REPO/issues/$ISSUE/comments" -f body="$body" >/dev/null; fi
       - name: Upload report and resume state
         if: always()
