@@ -22,13 +22,24 @@ def evaluate(root, command, previous=None):
  t=tracker.read_text(); g=protocol.read_text()
  if any(h not in t for h in STEPS.values()) or "Do not start the next Step" not in g:
   return {**p,"decision":"STOP","reason":"Governance validation failed."}
- # Default is NOT_EVIDENCED. A gate is PASS only with an explicit step-specific PASS
- # status in the tracker; prose describing requirements is never treated as evidence.
+ # Read the closeout status from each actual step section. Do not infer PASS
+ # from generic completion-gate prose or historical evidence elsewhere in the tracker.
  gates={}
- for n in STEPS:
-  explicit=re.search(rf"(?im)^(?:Final )?Step {n} gate:\s*\*\*PASS\*\*|^Step {n} closeout status:\s*PASS\b",t)
-  blocked=re.search(rf"(?im)^(?:Final )?Step {n} gate:\s*\*\*(?:NOT YET|BLOCKED)\*\*|^Step {n} closeout status:\s*(?:BLOCKED|NOT CLOSED)",t)
-  gates[n]="PASS" if explicit and not blocked else ("BLOCKED" if blocked else "NOT_EVIDENCED")
+ for n, heading in STEPS.items():
+  begin=t.find(heading)
+  if begin < 0:
+   gates[n]="NOT_EVIDENCED"
+   continue
+  following=[t.find(h,begin+len(heading)) for h in STEPS.values() if t.find(h,begin+len(heading))>=0]
+  section=t[begin:min(following) if following else len(t)]
+  status=re.search(rf"(?im)^\\*\\*Step {n} closeout status:\\s*([^*\\n]+)",section)
+  value=status.group(1).strip().upper() if status else ""
+  if value.startswith("PASS") and not any(word in value for word in ("BLOCKED","NOT CLOSED","NOT YET")):
+   gates[n]="PASS"
+  elif any(word in value for word in ("BLOCKED","NOT CLOSED","NOT YET")):
+   gates[n]="BLOCKED"
+  else:
+   gates[n]="NOT_EVIDENCED"
  current=next((n for n in STEPS if gates[n]!="PASS"),5)
  target=p.get("requested_step") or current
  if target!=current:
