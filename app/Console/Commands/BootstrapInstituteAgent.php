@@ -47,7 +47,7 @@ class BootstrapInstituteAgent extends Command
             $sourceUrl = $sourceDefinition['url'] ?? null;
 
             if (($definition['monitoring']['enabled'] ?? true) !== true) {
-                $monitoring->disableForProfile($profile, is_string($sourceUrl) ? $sourceUrl : null);
+                $monitoring->disableForProfile($profile);
                 $skipped++;
                 continue;
             }
