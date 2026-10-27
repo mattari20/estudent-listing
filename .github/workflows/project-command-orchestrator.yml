@@ -26,7 +26,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issue_comment' &&
-       contains(fromJSON('["Continue","continue","Resume","resume","Move to Step 2","move to step 2","Move to Step 3","move to step 3"]'), github.event.comment.body))
+       (github.event.comment.body == 'Continue' || github.event.comment.body == 'continue' || github.event.comment.body == 'Resume' || github.event.comment.body == 'resume' || github.event.comment.body == 'Move to Step 2' || github.event.comment.body == 'move to step 2' || github.event.comment.body == 'Move to Step 3' || github.event.comment.body == 'move to step 3'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
