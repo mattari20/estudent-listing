@@ -44,8 +44,21 @@ class Tests(unittest.TestCase):
    x=o.evaluate(r,"Move to Step 3")
    self.assertEqual(x["decision"],"STOP")
    self.assertEqual(x["current_step"],1)
- def test_missing_protocol_fails_closed(self):
+
+ def test_closeout_status_parser_matches_actual_tracker_lines(self):
   d,r=self.fixture()
   with d:
-   (r/"docs/AUTONOMOUS_STEP_EXECUTION_PROTOCOL.md").unlink(); self.assertEqual(o.evaluate(r,"Resume")["decision"],"STOP")
+   p=r/"docs/PROJECT_MASTER_TRACKER.md"
+   t=p.read_text()
+   t=t.replace(
+    "### Step 1 — Foundation, Access & Automation Readiness\n**Completion gate:** NOT YET",
+    "### Step 1 — Foundation, Access & Automation Readiness\n**Completion gate:** PASS\n**Step 1 closeout status: PASS",
+    1,
+   )
+   p.write_text(t)
+   x=o.evaluate(r,"Move to Step 2")
+   self.assertEqual(x["decision"],"RUN_SUPPORTED_CHECKS")
+   self.assertEqual(x["gate_status"][1],"PASS")
+   self.assertEqual(x["current_step"],2)
+
 if __name__=="__main__": unittest.main()

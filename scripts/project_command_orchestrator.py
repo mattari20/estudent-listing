@@ -32,7 +32,7 @@ def evaluate(root, command, previous=None):
    continue
   following=[t.find(h,begin+len(heading)) for h in STEPS.values() if t.find(h,begin+len(heading))>=0]
   section=t[begin:min(following) if following else len(t)]
-  status=re.search(rf"(?im)^\\*\\*Step {n} closeout status:\\s*([^*\\n]+)",section)
+  status=re.search(rf"(?im)^\*\*Step {n} closeout status:\s*([^*\n]+)",section)
   value=status.group(1).strip().upper() if status else ""
   if value.startswith("PASS") and not any(word in value for word in ("BLOCKED","NOT CLOSED","NOT YET")):
    gates[n]="PASS"
