@@ -102,7 +102,23 @@ return new class extends Migration
 
         $missing = [];
         foreach (self::REQUIRED_INDEXES as $name => $columns) {
-            if (($existingIndexes[$name] ?? null) !== ['columns' => $columns, 'unique' => false]) {
+            $actual = $existingIndexes[$name] ?? null;
+            if ($actual === ['columns' => $columns, 'unique' => false]) {
+                continue;
+            }
+
+            // Laravel-generated names vary by driver/schema history. An equivalent
+            // non-unique index with the same ordered columns satisfies the contract.
+            // Do not rename it or create a duplicate merely to match the name.
+            $equivalentExists = false;
+            foreach ($existingIndexes as $existing) {
+                if ($existing['columns'] === $columns && $existing['unique'] === false) {
+                    $equivalentExists = true;
+                    break;
+                }
+            }
+
+            if (! $equivalentExists) {
                 $missing[$name] = $columns;
             }
         }
