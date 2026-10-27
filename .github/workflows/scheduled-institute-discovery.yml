@@ -76,10 +76,51 @@ jobs:
               exit 4
             fi
 
-            DEPLOYED_APPLICATION_REVISION="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
-            echo "deployed_application_revision=$DEPLOYED_APPLICATION_REVISION"
+            DEPLOYED_REVISION="$(git rev-parse HEAD)"
+            echo "deployed_git_revision=$DEPLOYED_REVISION"
             echo "expected_application_revision=$TARGET_REVISION"
-            if [ "$DEPLOYED_APPLICATION_REVISION" != "$TARGET_REVISION" ]; then
+
+            # Resolve the approved target even when the deployed checkout is shallow.
+            # A path-filtered git-log commit ID is not an application-code identity:
+            # shallow boundaries can make a docs/workflow-only tip appear to touch all paths.
+            if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
+              if [ -f .git/shallow ]; then
+                git fetch --quiet --no-tags --unshallow origin main || {
+                  echo "ERROR: could not obtain full origin/main history for parity verification"
+                  echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+                  exit 9
+                }
+              else
+                git fetch --quiet --no-tags origin main || {
+                  echo "ERROR: could not fetch origin/main for parity verification"
+                  echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+                  exit 9
+                }
+              fi
+            fi
+            git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || {
+              echo "ERROR: approved application target commit is unavailable"
+              echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+              exit 9
+            }
+            git fetch --quiet --no-tags origin main || {
+              echo "ERROR: unable to verify the approved target against origin/main"
+              echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+              exit 9
+            }
+            git merge-base --is-ancestor "$TARGET_REVISION" FETCH_HEAD || {
+              echo "ERROR: approved application target is not reachable from origin/main"
+              echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+              exit 9
+            }
+            APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
+            if git diff --quiet "$TARGET_REVISION" "$DEPLOYED_REVISION" -- $APP_CODE_PATHS &&
+               git diff --quiet HEAD -- $APP_CODE_PATHS &&
+               git diff --cached --quiet HEAD -- $APP_CODE_PATHS; then
+              echo "application_code_parity=match"
+              echo "application_code_parity_method=git_diff_target_vs_deployed_paths"
+            else
+              echo "application_code_parity=mismatch_or_unverifiable"
               echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_MISMATCH"
               echo "No source retrieval or database writes were run."
               exit 10
