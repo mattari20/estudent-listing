@@ -15,6 +15,11 @@ Permanent public path: `/institutes/`
 
 This slice establishes the Laravel application skeleton, /institutes/ routes, Institution model/migration, basic public views, frontend baseline and first feature test.
 
+## Project documentation
+
+- [Autonomous Step Execution, Implementation, Testing & Repair Protocol](docs/AUTONOMOUS_STEP_EXECUTION_PROTOCOL.md)
+- [Project Master Tracker](docs/PROJECT_MASTER_TRACKER.md)
+
 ## Setup
 
 Use the official Laravel 13 dependency installation flow. Then copy `.env.example` to `.env`, configure MySQL, generate the application key, run migrations, install/build frontend dependencies, and run tests.

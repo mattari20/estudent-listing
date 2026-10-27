@@ -2,7 +2,7 @@ name: Laravel CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/persistent-project-controller]
   pull_request:
     branches: [main]
 

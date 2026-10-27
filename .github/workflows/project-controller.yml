@@ -1,0 +1,67 @@
+name: Institutes Directory Project Controller
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "31 4 * * *"
+  pull_request:
+    branches:
+      - main
+      - docs/project-master-tracker-and-phase2-gates
+    paths:
+      - "scripts/project_controller.py"
+      - "tests/project_controller/**"
+      - ".github/workflows/project-controller.yml"
+      - "docs/PROJECT_MASTER_TRACKER.md"
+      - "docs/AUTONOMOUS_STEP_EXECUTION_PROTOCOL.md"
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/project_controller.py"
+      - "tests/project_controller/**"
+      - ".github/workflows/project-controller.yml"
+      - "docs/PROJECT_MASTER_TRACKER.md"
+      - "docs/AUTONOMOUS_STEP_EXECUTION_PROTOCOL.md"
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: institutes-directory-project-controller
+  cancel-in-progress: false
+
+jobs:
+  test-and-report:
+    name: Validate controller and publish read-only review package
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test controller offline against isolated fixtures
+        run: |
+          python -m unittest discover -s tests/project_controller -v
+          python scripts/project_controller.py --offline --output-dir controller-report/offline-smoke
+
+      - name: Run read-only project inventory
+        run: python scripts/project_controller.py --output-dir controller-report/live
+
+      - name: Upload controller report
+        uses: actions/upload-artifact@v4
+        with:
+          name: institutes-directory-project-controller-report
+          path: controller-report/
+          if-no-files-found: error
+          retention-days: 30
