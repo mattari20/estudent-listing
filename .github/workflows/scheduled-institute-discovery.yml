@@ -6,11 +6,24 @@ on:
       - main
     paths:
       - ".github/workflows/scheduled-institute-discovery.yml"
+      - "app/Console/Commands/BootstrapInstituteAgent.php"
+      - "app/Services/InstituteIdentityDiscoveryService.php"
+      - "app/Services/SourceChangeDiscoveryService.php"
+      - "app/Services/InstituteDiscoveryCandidateExtractor.php"
+      - "app/Services/InstituteDiscoveryCandidateQualityService.php"
+      - "app/Services/DiscoveryMonitoringPolicyService.php"
+      - "config/institute_agent.php"
   schedule:
     - cron: "15 * * * *"
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "Controlled Hostinger Code Deployment"
+    types: [completed]
+    branches: [main]
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -18,7 +31,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  deployment-handoff:
+    if: ${{ github.event_name == 'workflow_run' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      verified: ${{ steps.check.outputs.verified }}
+    steps:
+      - name: Download the deployment verification handoff
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: deployment-verified-handoff
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: deployment-handoff
+      - name: Require an explicit verified-deployment marker
+        id: check
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f deployment-handoff/deployment-verification.txt ] &&
+            grep -Fqx "verified=true" deployment-handoff/deployment-verification.txt; then
+            echo "verified=true" >> "$GITHUB_OUTPUT"
+            echo "deployment_handoff=verified"
+          else
+            echo "verified=false" >> "$GITHUB_OUTPUT"
+            echo "deployment_handoff=absent_or_unverified; governed discovery will not run"
+          fi
+
   resolve-target:
+    needs: deployment-handoff
+    if: ${{ always() && (github.event_name != 'workflow_run' || needs.deployment-handoff.outputs.verified == 'true') }}
     name: Resolve approved application-code revision
     runs-on: ubuntu-latest
     timeout-minutes: 3

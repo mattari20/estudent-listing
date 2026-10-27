@@ -2,13 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Models\Assertion;
 use App\Models\ImportBatch;
+use App\Models\ImportRow;
 use App\Models\Institution;
 use App\Models\Source;
 use App\Models\SourceSnapshot;
 use App\Models\SourceMonitoringPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class InstituteAgentBootstrapTest extends TestCase
@@ -23,6 +26,11 @@ class InstituteAgentBootstrapTest extends TestCase
         ]);
 
         Http::fake([
+            'https://gcu.edu.pk/' => Http::response(
+                '<html><head><title>GC University Lahore</title></head><body><p>Government College University Lahore is a public university.</p></body></html>',
+                200,
+                ['Content-Type' => 'text/html']
+            ),
             'https://gcu.edu.pk/admissions.php?pg=bs-program' => Http::response(
                 '<html><body><a href="/x">Bachelor of Computer Science</a><a href="/y">Bachelor of Artificial Intelligence</a></body></html>',
                 200,
@@ -81,7 +89,7 @@ class InstituteAgentBootstrapTest extends TestCase
         $this->artisan('institutes:bootstrap-agent', ['--profile' => ['gcu-lahore-programs']])->assertExitCode(0);
         $latest = ImportBatch::query()->where('source_id', $source->id)->latest('id')->firstOrFail();
         $this->assertSame(2, (int) $latest->total_rows);
-        $this->assertStringContainsString('discovery_extractor_version=4', $latest->notes);
+        $this->assertStringContainsString('discovery_extractor_version=5', $latest->notes);
     }
 
     public function test_bootstrap_does_not_repeat_a_current_version_empty_discovery(): void
@@ -103,11 +111,71 @@ class InstituteAgentBootstrapTest extends TestCase
             'total_rows' => 0, 'valid_rows' => 0, 'invalid_rows' => 0,
             'candidate_rows' => 0, 'duplicate_rows' => 0,
             'received_at' => now(), 'completed_at' => now(),
-            'notes' => 'No candidates extracted. discovery_extractor_version=4',
+            'notes' => 'No candidates extracted. discovery_extractor_version=5',
         ]);
         $this->artisan('institutes:bootstrap-agent', ['--profile' => ['gcu-lahore-programs']])->assertExitCode(0);
         $this->assertSame(1, ImportBatch::query()->where('source_id', $source->id)->count());
         $this->assertSame(0, SourceSnapshot::query()->where('source_id', $source->id)->count());
     }
 
+
+    public function test_bootstrap_stages_official_institution_identity_for_review_without_creating_canonical_data(): void
+    {
+        Storage::fake('local');
+        Http::fake([
+            'https://gcu.edu.pk/' => Http::response(
+                '<html><head><title>GC University Lahore</title></head><body>'
+                .'<main><p>Government College University Lahore is a public university committed to quality education.</p></main>'
+                .'</body></html>',
+                200,
+                ['Content-Type' => 'text/html']
+            ),
+        ]);
+
+        $this->artisan('institutes:bootstrap-agent', [
+            '--profile' => ['gcu-lahore-institution-identity'],
+        ])->assertExitCode(0);
+
+        $source = Source::query()->where('url', 'https://gcu.edu.pk/')->firstOrFail();
+        $batch = ImportBatch::query()->where('source_id', $source->id)->firstOrFail();
+        $row = ImportRow::query()->where('import_batch_id', $batch->id)->firstOrFail();
+
+        $this->assertSame('institution', $batch->entity_type);
+        $this->assertSame('validated', $batch->status);
+        $this->assertSame('candidate', $row->status);
+        $this->assertSame('new_candidate', $row->match_state);
+        $this->assertNull($row->parent_subject_id);
+        $this->assertNull($row->parent_subject_type);
+        $this->assertSame('Government College University Lahore', $row->normalized_payload['name']);
+        $this->assertSame('government-college-university-lahore', $row->normalized_payload['slug']);
+        $this->assertSame(0, Institution::query()->count(), 'Discovery must not write a canonical institution.');
+        $this->assertDatabaseHas('source_monitoring_policies', [
+            'source_id' => $source->id,
+            'attribute' => 'automated_discovery',
+            'subject_type' => 'institution',
+            'status' => 'active',
+        ]);
+        $assertion = Assertion::query()
+            ->where('subject_type', ImportRow::class)
+            ->where('subject_id', $row->id)
+            ->where('attribute', 'institution_identity_candidate')
+            ->firstOrFail();
+        $this->assertSame('discovered', $assertion->verification_state);
+        $this->assertSame(
+            (int) $row->normalized_payload['_provenance']['evidence_id'],
+            (int) $assertion->evidence_id
+        );
+        $this->assertDatabaseHas('evidence', [
+            'id' => $assertion->evidence_id,
+            'source_id' => $source->id,
+            'status' => 'active',
+        ]);
+        $this->assertSame(1, $batch->fresh()->candidate_rows);
+        $this->assertStringContainsString('institution_identity_extractor_version=1', $batch->notes);
+        $manifestPath = 'institute-discovery-review-packages/batch-'.$batch->id.'-snapshot-'.$row->normalized_payload['_provenance']['snapshot_id'].'/manifest.json';
+        Storage::disk('local')->assertExists($manifestPath);
+        $manifest = json_decode(Storage::disk('local')->get($manifestPath), true);
+        $this->assertSame(false, $manifest['canonical_mutations_performed']);
+        $this->assertSame(false, $manifest['automatic_approval_performed']);
+    }
 }

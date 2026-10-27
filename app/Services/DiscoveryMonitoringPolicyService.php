@@ -15,7 +15,7 @@ class DiscoveryMonitoringPolicyService
             ['source_id' => $source->id, 'attribute' => 'automated_discovery'],
             [
                 'name' => 'Automated discovery — '.$profile,
-                'subject_type' => 'program',
+                'subject_type' => config("institute_agent.profiles.{$profile}.entity_type", 'program'),
                 'fresh_after_days' => (int) ($definition['fresh_after_days'] ?? 7),
                 'stale_after_days' => (int) ($definition['stale_after_days'] ?? 30),
                 'priority' => $definition['priority'] ?? 'normal',

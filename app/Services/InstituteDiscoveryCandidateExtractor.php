@@ -7,15 +7,84 @@ use Illuminate\Support\Str;
 class InstituteDiscoveryCandidateExtractor
 {
     /** Bump when deterministic extraction rules change. */
-    public const VERSION = '4';
+    public const VERSION = '5';
 
-    public function extract(string $entityType, string $html): array
+    public function extract(string $entityType, string $html, array $identity = []): array
     {
         return match ($entityType) {
             'program' => $this->programs($html),
             'campus' => $this->campuses($html),
+            'institution' => $this->institution($html, $identity),
             default => throw new \InvalidArgumentException("Unsupported autonomous discovery entity type: {$entityType}"),
         };
+    }
+
+    /**
+     * Create a top-level identity candidate only when the official source page
+     * contains a configured institution identity term. Configured values alone
+     * are never enough: the page must corroborate an identity term and the row
+     * remains non-canonical until the existing identity-review process approves it.
+     */
+    private function institution(string $html, array $identity): array
+    {
+        foreach (['name', 'official_name', 'short_name', 'slug', 'institution_type'] as $field) {
+            if (! is_string($identity[$field] ?? null) || trim($identity[$field]) === '') {
+                return [];
+            }
+        }
+
+        $terms = array_values(array_filter(
+            $identity['identity_terms'] ?? [],
+            fn ($term): bool => is_string($term) && trim($term) !== ''
+        ));
+        if ($terms === []) {
+            return [];
+        }
+
+        libxml_use_internal_errors(true);
+        $dom = new \DOMDocument();
+        $dom->loadHTML($html);
+        $xpath = new \DOMXPath($dom);
+        $parts = [$this->normalize($dom->textContent ?? '')];
+
+        foreach ($xpath->query('//title | //meta[@property="og:site_name"] | //meta[@name="application-name"]') as $node) {
+            $value = $node->nodeName === 'meta'
+                ? $node->getAttribute('content')
+                : ($node->textContent ?? '');
+            if ($value !== '') {
+                $parts[] = $this->normalize($value);
+            }
+        }
+
+        $visibleText = $this->normalize(implode(' ', array_filter($parts)));
+        $matchedTerm = null;
+        $matchedOffset = false;
+        foreach ($terms as $term) {
+            $offset = mb_stripos($visibleText, trim($term));
+            if ($offset !== false) {
+                $matchedTerm = trim($term);
+                $matchedOffset = $offset;
+                break;
+            }
+        }
+        libxml_clear_errors();
+
+        if ($matchedTerm === null || $matchedOffset === false) {
+            return [];
+        }
+
+        $excerpt = trim(mb_substr($visibleText, max(0, $matchedOffset - 90), 260));
+
+        return [[
+            'name' => trim($identity['name']),
+            'official_name' => trim($identity['official_name']),
+            'short_name' => trim($identity['short_name']),
+            'slug' => trim($identity['slug']),
+            'institution_type' => trim($identity['institution_type']),
+            'status' => 'candidate',
+            'confidence' => 0.9800,
+            'evidence_excerpt' => $excerpt !== '' ? $excerpt : $matchedTerm,
+        ]];
     }
 
     private function programs(string $html): array

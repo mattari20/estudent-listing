@@ -166,3 +166,26 @@ jobs:
             echo "offering_gap_preflight=COMPLETED_READ_ONLY"
             echo "database_migrations=NOT_RUN"
             echo "production_data_mutations=NOT_RUN"
+
+      - name: Prepare verified deployment handoff for governed discovery
+        if: ${{ inputs.confirm_deployment }}
+        env:
+          TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p deployment-handoff
+          {
+            echo "verified=true"
+            echo "target_revision=$TARGET_REVISION"
+            echo "deployment_run_id=$GITHUB_RUN_ID"
+          } > deployment-handoff/deployment-verification.txt
+
+      - name: Publish verified deployment handoff
+        if: ${{ inputs.confirm_deployment }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-verified-handoff
+          path: deployment-handoff/deployment-verification.txt
+          if-no-files-found: error
+          retention-days: 2
