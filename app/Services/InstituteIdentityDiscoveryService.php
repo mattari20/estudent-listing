@@ -187,7 +187,11 @@ class InstituteIdentityDiscoveryService
                 $blockers[] = 'duplicate_identity_slug_within_batch';
             }
 
-            $status = $blockers !== [] ? ($withinBatchDuplicate ? 'duplicate' : 'invalid') : 'candidate';
+            $status = $blockers === []
+                ? 'candidate'
+                : ($withinBatchDuplicate && count($blockers) === 1 && $blockers[0] === 'duplicate_identity_slug_within_batch'
+                    ? 'duplicate'
+                    : 'invalid');
             $row = ImportRow::create([
                 'import_batch_id' => $batch->id,
                 'row_number' => $index + 1,
