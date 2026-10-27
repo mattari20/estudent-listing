@@ -140,6 +140,7 @@ jobs:
             ];
             $missingColumns = [];
             $missingIndexes = [];
+            $existingIndexes = [];
             if ($tableExists) {
                 foreach ($requiredColumns as $column) {
                     if (! $schema::hasColumn($table, $column)) {
@@ -147,7 +148,6 @@ jobs:
                     }
                 }
 
-                $existingIndexes = [];
                 foreach ($schema::getIndexes($table) as $index) {
                     $name = $index['name'] ?? null;
                     if (is_string($name) && $name !== '') {
@@ -178,6 +178,30 @@ jobs:
             $migrationApplied = count($migrationRows) > 0;
             $columnsReady = $tableExists && $missingColumns === [];
             $indexesReady = $tableExists && $missingIndexes === [];
+            $indexDiagnostics = [];
+            foreach ($requiredIndexes as $name => $columns) {
+                $actual = $existingIndexes[$name] ?? null;
+                if ($actual === null) {
+                    $sameColumnsElsewhere = [];
+                    foreach ($existingIndexes as $existingName => $existingDefinition) {
+                        if ($existingDefinition['columns'] === $columns) {
+                            $sameColumnsElsewhere[] = $existingName;
+                        }
+                    }
+                    $classification = $sameColumnsElsewhere === [] ? 'absent' : 'equivalent_under_different_name';
+                } elseif ($actual['columns'] !== $columns) {
+                    $classification = 'name_collision_wrong_columns';
+                } elseif ($actual['unique'] !== false) {
+                    $classification = 'wrong_uniqueness';
+                } else {
+                    $classification = 'exact';
+                }
+                $indexDiagnostics[$name] = [
+                    'classification' => $classification,
+                    'expected_columns' => $columns,
+                    'actual' => $actual,
+                ];
+            }
             $ready = $tableExists && $migrationApplied && $columnsReady && $indexesReady && $migrationFileExists;
             echo json_encode([
                 'check' => 'official_source_refresh_schema_readiness',
@@ -189,6 +213,8 @@ jobs:
                 'missing_columns' => $missingColumns,
                 'columns_ready' => $columnsReady,
                 'required_indexes' => $requiredIndexes,
+                'existing_indexes' => $existingIndexes,
+                'index_diagnostics' => $indexDiagnostics,
                 'missing_indexes' => $missingIndexes,
                 'indexes_ready' => $indexesReady,
                 'migrations_table_exists' => $migrationTableExists,
