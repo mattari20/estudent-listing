@@ -9,6 +9,7 @@ use App\Models\SourceSnapshot;
 use App\Services\DiscoveryMonitoringPolicyService;
 use App\Services\InstituteDiscoveryAgentService;
 use App\Services\InstituteDiscoveryCandidateExtractor;
+use App\Services\InstituteIdentityDiscoveryService;
 use Illuminate\Console\Command;
 
 class BootstrapInstituteAgent extends Command
@@ -22,6 +23,7 @@ class BootstrapInstituteAgent extends Command
     public function handle(
         DiscoveryMonitoringPolicyService $monitoring,
         InstituteDiscoveryAgentService $agent,
+        InstituteIdentityDiscoveryService $identityDiscovery,
     ): int {
         $profiles = $this->option('profile');
 
@@ -100,27 +102,33 @@ class BootstrapInstituteAgent extends Command
                 }
             }
 
-            $snapshot = SourceSnapshot::query()
-                ->where('source_id', $source->id)
-                ->latest('captured_at')
-                ->first();
-
             try {
-                $summary = $snapshot
-                    ? $agent->runFromSnapshot(
-                        $profile,
-                        $snapshot,
-                        (bool) ($definition['monitoring']['use_ai'] ?? false)
-                    )
-                    : $agent->run(
-                        $profile,
-                        (bool) ($definition['monitoring']['use_ai'] ?? false)
-                    );
+                if (($definition['entity_type'] ?? 'program') === 'institution') {
+                    $summary = $identityDiscovery->run($profile, $source, $definition);
+                } else {
+                    $snapshot = SourceSnapshot::query()
+                        ->where('source_id', $source->id)
+                        ->latest('captured_at')
+                        ->first();
+
+                    $summary = $snapshot
+                        ? $agent->runFromSnapshot(
+                            $profile,
+                            $snapshot,
+                            (bool) ($definition['monitoring']['use_ai'] ?? false)
+                        )
+                        : $agent->run(
+                            $profile,
+                            (bool) ($definition['monitoring']['use_ai'] ?? false)
+                        );
+                }
 
                 $discovered++;
+                $details = ' batch #'.($summary['batch_id'] ?? 'unavailable')
+                    .'; private review package '.data_get($summary, 'review_package.manifest_path', 'not-created');
                 $this->info(
                     $profile.' bootstrap discovery created '
-                    .($summary['candidate_rows'] ?? 0).' candidate row(s).'
+                    .($summary['candidate_rows'] ?? 0).' candidate row(s).'.$details
                 );
             } catch (\Throwable $e) {
                 $this->error($profile.' bootstrap discovery failed: '.$e->getMessage());
