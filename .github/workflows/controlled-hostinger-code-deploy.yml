@@ -148,6 +148,7 @@ jobs:
               exit 7
             fi
             echo "application_code_parity=VERIFIED"
+            echo "application_code_parity_method=git_diff_target_vs_deployed_paths"
             if [ "$DID_DEPLOY" = true ]; then
               echo "deployment_status=CODE_DEPLOYED_AND_VERIFIED"
             else
@@ -177,8 +178,14 @@ jobs:
           mkdir -p deployment-handoff
           {
             echo "verified=true"
+            echo "application_code_parity=VERIFIED"
+            echo "application_code_parity_method=git_diff_target_vs_deployed_paths"
+            echo "read_only_preflight=COMPLETED"
             echo "target_revision=$TARGET_REVISION"
             echo "deployment_run_id=$GITHUB_RUN_ID"
+            echo "workflow_run_head_sha=$GITHUB_SHA"
+            echo "workflow_run_name=Controlled Hostinger Code Deployment"
+            echo "deployment_attempt=$GITHUB_RUN_ATTEMPT"
           } > deployment-handoff/deployment-verification.txt
 
       - name: Publish verified deployment handoff
