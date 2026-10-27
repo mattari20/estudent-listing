@@ -58,9 +58,11 @@ jobs:
           else
             c="$INPUT_COMMAND"; i="$INPUT_ISSUE"
           fi
-          echo "value=$c" >> "$GITHUB_OUTPUT"
-          echo "issue=$i" >> "$GITHUB_OUTPUT"
-          echo "accepted=$accepted" >> "$GITHUB_OUTPUT"
+          {
+            echo "value=$c"
+            echo "issue=$i"
+            echo "accepted=$accepted"
+          } >> "$GITHUB_OUTPUT"
           if [[ "$accepted" != true ]]; then echo "Ignoring unrelated issue comment; no project command was requested."; fi
       - uses: actions/checkout@v4
         with:
