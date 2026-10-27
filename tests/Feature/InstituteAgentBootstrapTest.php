@@ -165,7 +165,7 @@ class InstituteAgentBootstrapTest extends TestCase
             (int) $row->normalized_payload['_provenance']['evidence_id'],
             (int) $assertion->evidence_id
         );
-        $this->assertDatabaseHas('evidences', [
+        $this->assertDatabaseHas('evidence', [
             'id' => $assertion->evidence_id,
             'source_id' => $source->id,
             'status' => 'active',
