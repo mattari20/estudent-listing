@@ -123,6 +123,26 @@ class InstituteAgentBootstrapTest extends TestCase
 
     public function test_bootstrap_stages_official_institution_identity_for_review_without_creating_canonical_data(): void
     {
+        Source::create([
+            'source_type' => 'official',
+            'name' => 'Government College University Lahore — Unreachable Former Source',
+            'url' => 'https://gcu.edu.pk/',
+            'authority_scope' => 'legacy official homepage',
+            'status' => 'active',
+        ]);
+        $oldSource = Source::query()->where('url', 'https://gcu.edu.pk/')->firstOrFail();
+        SourceMonitoringPolicy::create([
+            'source_id' => $oldSource->id,
+            'name' => 'Automated discovery — gcu-lahore-institution-identity',
+            'subject_type' => 'institution',
+            'attribute' => 'automated_discovery',
+            'fresh_after_days' => 7,
+            'stale_after_days' => 30,
+            'priority' => 'normal',
+            'status' => 'active',
+            'cadence' => 'weekly',
+        ]);
+
         Storage::fake('local');
         Http::fake([
             'https://www.hec.gov.pk/english/universities/Pages/Punjab/Government-College-University%2C-Lahore.aspx' => Http::response(
@@ -138,6 +158,11 @@ class InstituteAgentBootstrapTest extends TestCase
         $this->artisan('institutes:bootstrap-agent', [
             '--profile' => ['gcu-lahore-institution-identity'],
         ])->assertExitCode(0);
+
+        $this->assertSame('disabled', SourceMonitoringPolicy::query()
+            ->where('source_id', $oldSource->id)
+            ->where('name', 'Automated discovery — gcu-lahore-institution-identity')
+            ->value('status'));
 
         $source = Source::query()->where('url', 'https://www.hec.gov.pk/english/universities/Pages/Punjab/Government-College-University%2C-Lahore.aspx')->firstOrFail();
         $batch = ImportBatch::query()->where('source_id', $source->id)->firstOrFail();
@@ -181,4 +206,38 @@ class InstituteAgentBootstrapTest extends TestCase
         $this->assertSame(false, $manifest['canonical_mutations_performed']);
         $this->assertSame(false, $manifest['automatic_approval_performed']);
     }
+
+    public function test_bootstrap_disables_a_stale_policy_when_its_required_parent_is_missing(): void
+    {
+        $source = Source::create([
+            'source_type' => 'official',
+            'name' => 'COMSATS University Islamabad — Lahore Campus',
+            'url' => 'https://lahore.comsats.edu.pk/',
+            'authority_scope' => 'official campus information',
+            'status' => 'active',
+        ]);
+        SourceMonitoringPolicy::create([
+            'source_id' => $source->id,
+            'name' => 'Automated discovery — cui-lahore-campus',
+            'subject_type' => 'campus',
+            'attribute' => 'automated_discovery',
+            'fresh_after_days' => 7,
+            'stale_after_days' => 30,
+            'priority' => 'normal',
+            'status' => 'active',
+            'cadence' => 'weekly',
+        ]);
+
+        $this->artisan('institutes:bootstrap-agent', [
+            '--profile' => ['cui-lahore-campus'],
+        ])->assertExitCode(0);
+
+        $this->assertSame('disabled', SourceMonitoringPolicy::query()
+            ->where('source_id', $source->id)
+            ->where('name', 'Automated discovery — cui-lahore-campus')
+            ->value('status'));
+        $this->assertSame(0, SourceSnapshot::query()->where('source_id', $source->id)->count());
+        $this->assertSame(0, ImportBatch::query()->where('source_id', $source->id)->count());
+    }
+
 }
