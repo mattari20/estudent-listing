@@ -319,3 +319,6 @@ These are broader future workstreams, not additional Phase 2 steps:
 
 
 - Recovery implementation PR [#849](https://github.com/mattari20/estudent-listing/pull/849) was opened from `fix/step1-index-repair-and-national-source-registry` at head `e1571d2c21082a3f35c2557eae024aebb2b34b8b`, based on main `23104442f4fa34a2335d3d16c8c5d0fbcafd0594`. It contains the separate confirmed index-repair path, stricter index contract, regression tests and national source inventory. The first status query returned no status contexts and no PR-triggered workflow runs for that head; checks are not yet verified. Do not merge until actual exact-head required checks and workflow syntax validation are visible.
+
+
+- National-pipeline hardening added to PR #849: one profile's retrieval/parser exception now records its profile, source URL and reason, states explicitly that a 403 is not proof of non-existence, and continues processing independent profiles. The command still exits non-zero if any source failed, so partial results are not mislabeled fully successful. A regression test simulates HEC HTTP 403 and verifies the independent GCU programme profile still produces its source snapshot/import batch; this is a test of failure isolation, not a claim of national data coverage. Exact-head CI is pending.
