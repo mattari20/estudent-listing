@@ -29,5 +29,12 @@ class DeploymentHandoffContractTest extends TestCase
         $this->assertStringContainsString('workflow_run_name=Controlled Hostinger Code Deployment', $discoveryWorkflow);
         $this->assertStringContainsString('DEPLOYMENT_HANDOFF_TARGET_REVISION', $discoveryWorkflow);
         $this->assertStringContainsString('Verified deployment target does not match current main application revision.', $discoveryWorkflow);
+
+        $this->assertStringContainsString('workflow_run:', $discoveryWorkflow);
+        $this->assertStringContainsString('- "Controlled Hostinger Code Deployment"', $discoveryWorkflow);
+        $this->assertStringContainsString('schedule:', $discoveryWorkflow);
+        $this->assertStringNotContainsString("\\n  push:\\n", $discoveryWorkflow);
+        $this->assertStringContainsString('workflow_run:', file_get_contents(base_path('.github/workflows/official-source-refresh-readiness.yml')));
+        $this->assertStringContainsString('- Controlled Official-Source Refresh Migration', file_get_contents(base_path('.github/workflows/official-source-refresh-readiness.yml')));
     }
 }
