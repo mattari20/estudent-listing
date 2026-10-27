@@ -26,6 +26,7 @@ on:
   workflow_run:
     workflows:
       - Controlled Hostinger Code Deployment
+      - Controlled Official-Source Refresh Migration
     types:
       - completed
     branches:
@@ -147,15 +148,35 @@ jobs:
                 'created_at',
                 'updated_at',
             ];
+            $requiredIndexes = [
+                'official_refresh_source_idx' => ['source_id'],
+                'official_refresh_observation_idx' => ['source_change_observation_id'],
+                'official_refresh_canonical_field_idx' => ['canonical_type', 'canonical_id', 'field_name'],
+            ];
             $missingColumns = [];
+            $missingIndexes = [];
             if ($tableExists) {
                 foreach ($requiredColumns as $column) {
                     if (! $schema::hasColumn($table, $column)) {
                         $missingColumns[] = $column;
                     }
                 }
+
+                $existingIndexes = [];
+                foreach ($schema::getIndexes($table) as $index) {
+                    $name = $index['name'] ?? null;
+                    if (is_string($name) && $name !== '') {
+                        $existingIndexes[$name] = array_values($index['columns'] ?? []);
+                    }
+                }
+                foreach ($requiredIndexes as $name => $columns) {
+                    if (($existingIndexes[$name] ?? null) !== $columns) {
+                        $missingIndexes[$name] = $columns;
+                    }
+                }
             } else {
                 $missingColumns = $requiredColumns;
+                $missingIndexes = $requiredIndexes;
             }
             $migrationRows = [];
             if ($migrationTableExists) {
@@ -167,7 +188,8 @@ jobs:
             }
             $migrationApplied = count($migrationRows) > 0;
             $columnsReady = $tableExists && $missingColumns === [];
-            $ready = $tableExists && $migrationApplied && $columnsReady && $migrationFileExists;
+            $indexesReady = $tableExists && $missingIndexes === [];
+            $ready = $tableExists && $migrationApplied && $columnsReady && $indexesReady && $migrationFileExists;
             echo json_encode([
                 'check' => 'official_source_refresh_schema_readiness',
                 'checked_at' => now()->toIso8601String(),
@@ -177,13 +199,20 @@ jobs:
                 'required_columns' => $requiredColumns,
                 'missing_columns' => $missingColumns,
                 'columns_ready' => $columnsReady,
+                'required_indexes' => $requiredIndexes,
+                'missing_indexes' => $missingIndexes,
+                'indexes_ready' => $indexesReady,
                 'migrations_table_exists' => $migrationTableExists,
                 'expected_migration' => $migration,
                 'migration_file_exists' => $migrationFileExists,
                 'migration_applied' => $migrationApplied,
                 'matching_migrations' => $migrationRows,
                 'schema_ready' => $ready,
-                'next_action' => $ready ? 'continue_staging_acceptance_tests' : 'migration_not_confirmed_apply_only_through_approved_deployment_process',
+                'next_action' => $ready
+                    ? 'continue_staging_acceptance_tests'
+                    : (($tableExists && $columnsReady && $indexesReady && ! $migrationApplied)
+                        ? 'run_controlled_official_source_refresh_migration_with_confirm_migration_true_to_reconcile_verified_schema_ledger'
+                        : 'review_schema_or_migration_status_apply_only_through_approved_controlled_workflow'),
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             if (! $ready) {
                 fwrite(STDERR, "ERROR: official-source refresh schema is not ready; no migration or production data mutation was run.".PHP_EOL);
