@@ -113,7 +113,8 @@ jobs:
       - name: Enforce current step gate
         if: steps.cmd.outputs.accepted == 'true'
         id: gate
-        env: {COMMAND: ${{ steps.cmd.outputs.value }}}
+        env:
+          COMMAND: ${{ steps.cmd.outputs.value }}
         run: |
           set -euo pipefail
           mkdir -p controller-report
