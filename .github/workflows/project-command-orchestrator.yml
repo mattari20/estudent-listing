@@ -79,6 +79,18 @@ jobs:
       - name: Initialize empty state
         if: steps.cmd.outputs.issue == ''
         run: echo '{}' > controller-state.json
+      - name: Verify restored resume state
+        if: steps.cmd.outputs.issue != ''
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          state = json.loads(Path("controller-state.json").read_text())
+          # This workflow is allowed to restore resume metadata only; it must
+          # never let a persisted state value bypass the authoritative tracker.
+          assert isinstance(state, dict)
+          print(json.dumps({"restored_state_valid": True, "has_resume_point": isinstance(state.get("resume_point"), str)}))
+          PY
       - name: Enforce current step gate
         id: gate
         env: {COMMAND: ${{ steps.cmd.outputs.value }}}
