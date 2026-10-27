@@ -86,6 +86,7 @@ class InstituteDiscoveryCandidateExtractor
             'evidence_excerpt' => $excerpt !== '' ? $excerpt : $matchedTerm,
         ]];
     }
+
     private function programs(string $html): array
     {
         libxml_use_internal_errors(true);
