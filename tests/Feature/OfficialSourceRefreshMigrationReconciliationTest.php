@@ -82,6 +82,42 @@ class OfficialSourceRefreshMigrationReconciliationTest extends TestCase
         }
     }
 
+    public function test_preexisting_index_with_wrong_uniqueness_or_column_order_fails_closed(): void
+    {
+        foreach (['unique', 'wrong_columns'] as $definition) {
+            Schema::dropIfExists(self::TABLE);
+            $this->createTable();
+            DB::table('migrations')->where('migration', self::MIGRATION)->delete();
+
+            if ($definition === 'unique') {
+                Schema::table(self::TABLE, function (Blueprint $table): void {
+                    $table->dropIndex('official_refresh_source_idx');
+                    $table->unique('source_id', 'official_refresh_source_idx');
+                });
+            } else {
+                Schema::table(self::TABLE, function (Blueprint $table): void {
+                    $table->dropIndex('official_refresh_canonical_field_idx');
+                    $table->index(['canonical_id', 'canonical_type', 'field_name'], 'official_refresh_canonical_field_idx');
+                });
+            }
+
+            $beforeColumns = Schema::getColumnListing(self::TABLE);
+            $beforeIndexes = $this->indexMap();
+
+            try {
+                $migration = require base_path('database/migrations/'.self::MIGRATION.'.php');
+                $migration->up();
+                $this->fail('A pre-existing index with '.$definition.' must not be reconciled.');
+            } catch (RuntimeException $exception) {
+                $this->assertStringContainsString('refusing migration-ledger reconciliation', $exception->getMessage());
+            }
+
+            $this->assertSame($beforeColumns, Schema::getColumnListing(self::TABLE));
+            $this->assertSame($beforeIndexes, $this->indexMap());
+            $this->assertFalse(DB::table('migrations')->where('migration', self::MIGRATION)->exists());
+        }
+    }
+
     private function createTable(array $missingIndexes = []): void
     {
         Schema::create(self::TABLE, function (Blueprint $table) use ($missingIndexes): void {
