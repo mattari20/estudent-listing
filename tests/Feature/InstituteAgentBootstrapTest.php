@@ -211,15 +211,15 @@ class InstituteAgentBootstrapTest extends TestCase
     {
         $source = Source::create([
             'source_type' => 'official',
-            'name' => 'COMSATS University Islamabad — Lahore Campus',
-            'url' => 'https://lahore.comsats.edu.pk/',
-            'authority_scope' => 'official campus information',
+            'name' => 'Government College University Lahore — Official BS Programs',
+            'url' => 'https://gcu.edu.pk/admissions.php?pg=bs-program',
+            'authority_scope' => 'official undergraduate admissions/program listing',
             'status' => 'active',
         ]);
         SourceMonitoringPolicy::create([
             'source_id' => $source->id,
-            'name' => 'Automated discovery — cui-lahore-campus',
-            'subject_type' => 'campus',
+            'name' => 'Automated discovery — gcu-lahore-programs',
+            'subject_type' => 'program',
             'attribute' => 'automated_discovery',
             'fresh_after_days' => 7,
             'stale_after_days' => 30,
@@ -229,12 +229,12 @@ class InstituteAgentBootstrapTest extends TestCase
         ]);
 
         $this->artisan('institutes:bootstrap-agent', [
-            '--profile' => ['cui-lahore-campus'],
+            '--profile' => ['gcu-lahore-programs'],
         ])->assertExitCode(0);
 
         $this->assertSame('disabled', SourceMonitoringPolicy::query()
             ->where('source_id', $source->id)
-            ->where('name', 'Automated discovery — cui-lahore-campus')
+            ->where('name', 'Automated discovery — gcu-lahore-programs')
             ->value('status'));
         $this->assertSame(0, SourceSnapshot::query()->where('source_id', $source->id)->count());
         $this->assertSame(0, ImportBatch::query()->where('source_id', $source->id)->count());
