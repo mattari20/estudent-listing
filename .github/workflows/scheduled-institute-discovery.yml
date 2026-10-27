@@ -71,7 +71,7 @@ jobs:
             test -f "$PROJECT_PATH/config/institute_agent.php" || { echo "ERROR: discovery config not found"; exit 3; }
             cd "$PROJECT_PATH"
             git rev-parse --is-inside-work-tree >/dev/null
-            if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+            if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
               echo "ERROR: tracked working-tree changes found; refusing scheduled execution"
               exit 4
             fi
@@ -80,23 +80,28 @@ jobs:
             echo "deployed_git_revision=$DEPLOYED_REVISION"
             echo "expected_application_revision=$TARGET_REVISION"
 
-            # Resolve the approved target even when the deployed checkout is shallow.
+            # Always unshallow a shallow checkout before deriving/validating ancestry.
             # A path-filtered git-log commit ID is not an application-code identity:
             # shallow boundaries can make a docs/workflow-only tip appear to touch all paths.
+            if [ -f .git/shallow ]; then
+              git fetch --quiet --no-tags --unshallow origin main || {
+                echo "ERROR: could not obtain full origin/main history for parity verification"
+                echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+                exit 9
+              }
+            else
+              git fetch --quiet --no-tags origin main || {
+                echo "ERROR: could not fetch origin/main for parity verification"
+                echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+                exit 9
+              }
+            fi
             if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
-              if [ -f .git/shallow ]; then
-                git fetch --quiet --no-tags --unshallow origin main || {
-                  echo "ERROR: could not obtain full origin/main history for parity verification"
-                  echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
-                  exit 9
-                }
-              else
-                git fetch --quiet --no-tags origin main || {
-                  echo "ERROR: could not fetch origin/main for parity verification"
-                  echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
-                  exit 9
-                }
-              fi
+              git fetch --quiet --no-tags origin "$TARGET_REVISION" || {
+                echo "ERROR: could not fetch approved application target"
+                echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+                exit 9
+              }
             fi
             git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || {
               echo "ERROR: approved application target commit is unavailable"
