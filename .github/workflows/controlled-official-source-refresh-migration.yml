@@ -132,11 +132,49 @@ jobs:
                 'official_refresh_observation_idx' => ['source_change_observation_id'],
                 'official_refresh_canonical_field_idx' => ['canonical_type', 'canonical_id', 'field_name'],
             ];
+            // Treat an equivalent non-unique index with identical ordered columns as satisfying the logical contract.
+            // Preserve its existing name; never rename or create a duplicate index.
+            $indexSatisfaction = static function (array $allIndexes) use ($requiredIndexes): array {
+                $existing = [];
+                foreach ($allIndexes as $index) {
+                    $name = $index['name'] ?? null;
+                    if (is_string($name) && $name !== '') {
+                        $existing[$name] = [
+                            'columns' => array_values($index['columns'] ?? []),
+                            'unique' => (bool) ($index['unique'] ?? false),
+                        ];
+                    }
+                }
+
+                $missing = [];
+                $satisfiedBy = [];
+                foreach ($requiredIndexes as $name => $columns) {
+                    $actual = $existing[$name] ?? null;
+                    if ($actual !== null) {
+                        if ($actual['columns'] === $columns && $actual['unique'] === false) {
+                            $satisfiedBy[$name] = $name;
+                            continue;
+                        }
+                        $missing[$name] = $columns;
+                        continue;
+                    }
+
+                    foreach ($existing as $existingName => $definition) {
+                        if ($definition['columns'] === $columns && $definition['unique'] === false) {
+                            $satisfiedBy[$name] = $existingName;
+                            continue 2;
+                        }
+                    }
+                    $missing[$name] = $columns;
+                }
+
+                return [$missing, $satisfiedBy, $existing];
+            };
             $tableExists = $schema::hasTable($table);
             $migrationApplied = $db::table('migrations')->where('migration', $migration)->exists();
             $missingColumns = [];
             $missingIndexes = [];
-            $inspectSchema = static function () use ($schema, $table, $requiredColumns, $requiredIndexes): array {
+            $inspectSchema = static function () use ($schema, $table, $requiredColumns, $indexSatisfaction): array {
                 $missingColumns = [];
                 foreach ($requiredColumns as $column) {
                     if (! $schema::hasColumn($table, $column)) {
@@ -144,24 +182,7 @@ jobs:
                     }
                 }
 
-                $existingIndexes = [];
-                foreach ($schema::getIndexes($table) as $index) {
-                    $name = $index['name'] ?? null;
-                    if (is_string($name) && $name !== '') {
-                        $existingIndexes[$name] = [
-                            'columns' => array_values($index['columns'] ?? []),
-                            'unique' => (bool) ($index['unique'] ?? false),
-                        ];
-                    }
-                }
-
-                $missingIndexes = [];
-                foreach ($requiredIndexes as $name => $columns) {
-                    $actual = $existingIndexes[$name] ?? null;
-                    if ($actual === null || $actual['columns'] !== $columns || $actual['unique'] !== false) {
-                        $missingIndexes[$name] = $columns;
-                    }
-                }
+                [$missingIndexes] = $indexSatisfaction($schema::getIndexes($table));
 
                 return [$missingColumns, $missingIndexes];
             };
@@ -185,45 +206,20 @@ jobs:
                 }
 
                 $allIndexes = $schema::getIndexes($table);
-                $byName = [];
-                foreach ($allIndexes as $index) {
-                    if (is_string($index['name'] ?? null)) {
-                        $byName[$index['name']] = [
-                            'columns' => array_values($index['columns'] ?? []),
-                            'unique' => (bool) ($index['unique'] ?? false),
-                        ];
-                    }
-                }
-                $repairable = [];
+                [$missing, $satisfiedBy, $existingByName] = $indexSatisfaction($allIndexes);
                 foreach ($requiredIndexes as $name => $columns) {
-                    $actual = $byName[$name] ?? null;
-                    if ($actual !== null) {
-                        if ($actual['columns'] !== $columns || $actual['unique'] !== false) {
-                            fwrite(STDERR, json_encode([
-                                'migration_status' => 'BLOCKED_INDEX_NAME_COLLISION',
-                                'index' => $name,
-                                'actual' => $actual,
-                                'expected' => ['columns' => $columns, 'unique' => false],
-                                'production_schema_mutations' => 'NONE',
-                            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL);
-                            exit(26);
-                        }
-                        continue;
+                    if (isset($existingByName[$name]) && ! isset($satisfiedBy[$name])) {
+                        fwrite(STDERR, json_encode([
+                            'migration_status' => 'BLOCKED_INDEX_NAME_COLLISION',
+                            'index' => $name,
+                            'actual' => $existingByName[$name],
+                            'expected' => ['columns' => $columns, 'unique' => false],
+                            'production_schema_mutations' => 'NONE',
+                        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL);
+                        exit(26);
                     }
-                    foreach ($allIndexes as $existing) {
-                        if (array_values($existing['columns'] ?? []) === $columns) {
-                            fwrite(STDERR, json_encode([
-                                'migration_status' => 'BLOCKED_EQUIVALENT_INDEX_UNDER_DIFFERENT_NAME',
-                                'expected_index' => $name,
-                                'existing_index' => $existing['name'] ?? null,
-                                'columns' => $columns,
-                                'production_schema_mutations' => 'NONE',
-                            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL);
-                            exit(27);
-                        }
-                    }
-                    $repairable[$name] = $columns;
                 }
+                $repairable = $missing;
 
                 if ($repairable === []) {
                     echo json_encode([
@@ -258,6 +254,7 @@ jobs:
                 echo json_encode([
                     'migration_status' => 'INDEX_REPAIR_APPLIED_AND_VERIFIED',
                     'indexes_added' => $applied,
+                    'indexes_satisfied_by_existing_equivalent' => $satisfiedBy,
                     'migration_ledger_changed' => false,
                     'production_canonical_records_changed' => 'NO',
                     'next_action' => 'rerun_readiness_read_only_then_reconcile_ledger_only_if_schema_is_fully_ready',

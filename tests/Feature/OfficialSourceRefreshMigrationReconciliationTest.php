@@ -118,6 +118,29 @@ class OfficialSourceRefreshMigrationReconciliationTest extends TestCase
         }
     }
 
+    public function test_equivalent_source_index_name_satisfies_migration_contract_without_renaming_or_duplication(): void
+    {
+        Schema::dropIfExists(self::TABLE);
+        $this->createTable();
+        DB::table('migrations')->where('migration', self::MIGRATION)->delete();
+
+        Schema::table(self::TABLE, function (Blueprint $table): void {
+            $table->dropIndex('official_refresh_source_idx');
+            $table->index('source_id', 'official_source_refresh_events_source_id_index');
+        });
+
+        $beforeColumns = Schema::getColumnListing(self::TABLE);
+        $beforeIndexes = $this->indexMap();
+        $migration = require base_path('database/migrations/'.self::MIGRATION.'.php');
+        $migration->up();
+
+        $this->assertSame($beforeColumns, Schema::getColumnListing(self::TABLE));
+        $this->assertSame($beforeIndexes, $this->indexMap());
+        $this->assertArrayHasKey('official_source_refresh_events_source_id_index', $this->indexMap());
+        $this->assertArrayNotHasKey('official_refresh_source_idx', $this->indexMap());
+        $this->assertFalse(DB::table('migrations')->where('migration', self::MIGRATION)->exists());
+    }
+
     private function createTable(array $missingIndexes = []): void
     {
         Schema::create(self::TABLE, function (Blueprint $table) use ($missingIndexes): void {
