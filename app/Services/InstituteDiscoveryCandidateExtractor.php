@@ -15,7 +15,7 @@ class InstituteDiscoveryCandidateExtractor
             'program' => $this->programs($html),
             'campus' => $this->campuses($html),
             'institution' => $this->institution($html, $identity),
-            default => throw new \\InvalidArgumentException("Unsupported autonomous discovery entity type: {$entityType}"),
+            default => throw new \InvalidArgumentException("Unsupported autonomous discovery entity type: {$entityType}"),
         };
     }
 
