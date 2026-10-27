@@ -8,6 +8,7 @@ on:
       - ".github/workflows/scheduled-institute-discovery.yml"
       - "app/Console/Commands/BootstrapInstituteAgent.php"
       - "app/Services/InstituteIdentityDiscoveryService.php"
+      - "app/Services/SourceChangeDiscoveryService.php"
       - "app/Services/InstituteDiscoveryCandidateExtractor.php"
       - "app/Services/InstituteDiscoveryCandidateQualityService.php"
       - "app/Services/DiscoveryMonitoringPolicyService.php"
