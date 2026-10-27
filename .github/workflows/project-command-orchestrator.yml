@@ -73,7 +73,7 @@ jobs:
           state = json.loads(raw)
           if not isinstance(state, dict):
               raise SystemExit("Persisted resume state must be a JSON object.")
-          Path("controller-state.json").write_text(json.dumps(state, indent=2) + "\\n")
+          Path("controller-state.json").write_text(json.dumps(state, indent=2) + "\n")
           PY
       - name: Initialize empty state
         if: steps.cmd.outputs.issue == ''
@@ -115,7 +115,7 @@ jobs:
           else:
               r = {"decision": "STOP", "resume_point": "Inspect workflow logs", "reason": "No command report was produced."}
           r.update(last_command=os.environ["COMMAND"], workflow_run=os.environ["RUN_URL"])
-          Path("persisted-state.json").write_text(json.dumps(r, indent=2) + "\\n")
+          Path("persisted-state.json").write_text(json.dumps(r, indent=2) + "\n")
           # Round-trip the exact JSON to catch an invalid report before persisting.
           restored = json.loads(Path("persisted-state.json").read_text())
           assert restored == r and isinstance(restored, dict)
