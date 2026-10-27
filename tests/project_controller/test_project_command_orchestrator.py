@@ -10,6 +10,33 @@ class Tests(unittest.TestCase):
   return d,r
  def test_short_commands(self):
   self.assertTrue(o.parse_command(" Continue ")["valid"]); self.assertEqual(o.parse_command("Move to Step 3")["requested_step"],3); self.assertFalse(o.parse_command("skip")["valid"])
+ def test_non_text_commands_fail_closed(self):
+  for value in (None, 7, {}, []):
+   with self.subTest(value=value):
+    result=o.parse_command(value)
+    self.assertFalse(result["valid"])
+ def test_later_pass_does_not_skip_first_unpassed_step(self):
+  d,r=self.fixture()
+  with d:
+   p=r/"docs/PROJECT_MASTER_TRACKER.md"
+   t=p.read_text()
+   t=t.replace("### Step 3 — Data Integrity, Verification & Duplicate Audit\\n**Completion gate:** NOT YET",
+               "### Step 3 — Data Integrity, Verification & Duplicate Audit\\n**Completion gate:** PASS\\n**Step 3 closeout status: PASS",1)
+   p.write_text(t)
+   result=o.evaluate(r,"Move to Step 3")
+   self.assertEqual(result["decision"],"STOP")
+   self.assertEqual(result["current_step"],1)
+ def test_blocked_status_is_not_pass(self):
+  d,r=self.fixture()
+  with d:
+   p=r/"docs/PROJECT_MASTER_TRACKER.md"
+   t=p.read_text().replace("### Step 1 — Foundation, Access & Automation Readiness\\n**Completion gate:** NOT YET",
+                           "### Step 1 — Foundation, Access & Automation Readiness\\n**Completion gate:** PASS\\n**Step 1 closeout status: PASS WITH BLOCKED ITEMS",1)
+   p.write_text(t)
+   result=o.evaluate(r,"Move to Step 2")
+   self.assertEqual(result["decision"],"STOP")
+   self.assertNotEqual(result["gate_status"][1],"PASS")
+
  def test_step_two_blocked(self):
   d,r=self.fixture()
   with d: self.assertEqual(o.evaluate(r,"Move to Step 2")["decision"],"STOP")
