@@ -50,6 +50,13 @@ if git diff --quiet HEAD -- app bootstrap config database resources routes compo
   echo 'FAIL: partial application-code change was accepted' >&2
   exit 1
 fi
+git checkout -- app/parity-fixture.php
+printf '<?php return 4;\\n' > app/untracked-parity-fixture.php
+if [ -z "$(git status --porcelain --untracked-files=all)" ]; then
+  echo 'FAIL: untracked application code was not reported' >&2
+  exit 1
+fi
+rm app/untracked-parity-fixture.php
 
 # A shallow checkout must not derive an application revision with path-limited
 # git log; fetch full history, then compare code content. The test asserts the
