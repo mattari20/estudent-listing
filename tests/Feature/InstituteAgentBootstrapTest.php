@@ -26,8 +26,10 @@ class InstituteAgentBootstrapTest extends TestCase
         ]);
 
         Http::fake([
-            'https://gcu.edu.pk/' => Http::response(
-                '<html><head><title>GC University Lahore</title></head><body><p>Government College University Lahore is a public university.</p></body></html>',
+            'https://www.hec.gov.pk/english/universities/Pages/Punjab/Government-College-University%2C-Lahore.aspx' => Http::response(
+                '<html><head><title>Government College University, Lahore — HEC</title></head><body>'
+                .'<h1>Government College University, Lahore</h1><p>Sector: Public</p><p>Recognised University: Yes</p><p>City: Lahore</p>'
+                .'</body></html>',
                 200,
                 ['Content-Type' => 'text/html']
             ),
@@ -123,9 +125,10 @@ class InstituteAgentBootstrapTest extends TestCase
     {
         Storage::fake('local');
         Http::fake([
-            'https://gcu.edu.pk/' => Http::response(
-                '<html><head><title>GC University Lahore</title></head><body>'
-                .'<main><p>Government College University Lahore is a public university committed to quality education.</p></main>'
+            'https://www.hec.gov.pk/english/universities/Pages/Punjab/Government-College-University%2C-Lahore.aspx' => Http::response(
+                '<html><head><title>Government College University, Lahore — HEC</title></head><body>'
+                .'<main><h1>Government College University, Lahore</h1><p>Sector: Public</p>'
+                .'<p>Recognised University: Yes</p><p>City: Lahore</p><p>Province: Punjab</p></main>'
                 .'</body></html>',
                 200,
                 ['Content-Type' => 'text/html']
@@ -136,7 +139,7 @@ class InstituteAgentBootstrapTest extends TestCase
             '--profile' => ['gcu-lahore-institution-identity'],
         ])->assertExitCode(0);
 
-        $source = Source::query()->where('url', 'https://gcu.edu.pk/')->firstOrFail();
+        $source = Source::query()->where('url', 'https://www.hec.gov.pk/english/universities/Pages/Punjab/Government-College-University%2C-Lahore.aspx')->firstOrFail();
         $batch = ImportBatch::query()->where('source_id', $source->id)->firstOrFail();
         $row = ImportRow::query()->where('import_batch_id', $batch->id)->firstOrFail();
 
