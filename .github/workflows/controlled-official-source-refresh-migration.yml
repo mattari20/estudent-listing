@@ -50,13 +50,14 @@ jobs:
         env:
           PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
           TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
+          CONFIRM_INDEX_REPAIR: ${{ inputs.confirm_index_repair }}
           CONFIRM_MIGRATION: ${{ inputs.confirm_migration }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          envs: PROJECT_PATH,TARGET_REVISION,CONFIRM_MIGRATION
+          envs: PROJECT_PATH,TARGET_REVISION,CONFIRM_INDEX_REPAIR,CONFIRM_MIGRATION
           command_timeout: 6m
           script_stop: true
           script: |
@@ -116,6 +117,11 @@ jobs:
                 exit(21);
             }
 
+            if (getenv('CONFIRM_INDEX_REPAIR') === 'true' && getenv('CONFIRM_MIGRATION') === 'true') {
+                fwrite(STDERR, "ERROR: index repair and migration-ledger reconciliation are separate operations; select only one confirmation.".PHP_EOL);
+                exit(19);
+            }
+
             $requiredIndexes = [
                 'official_refresh_source_idx' => ['source_id'],
                 'official_refresh_observation_idx' => ['source_change_observation_id'],
@@ -137,13 +143,17 @@ jobs:
                 foreach ($schema::getIndexes($table) as $index) {
                     $name = $index['name'] ?? null;
                     if (is_string($name) && $name !== '') {
-                        $existingIndexes[$name] = array_values($index['columns'] ?? []);
+                        $existingIndexes[$name] = [
+                            'columns' => array_values($index['columns'] ?? []),
+                            'unique' => (bool) ($index['unique'] ?? false),
+                        ];
                     }
                 }
 
                 $missingIndexes = [];
                 foreach ($requiredIndexes as $name => $columns) {
-                    if (($existingIndexes[$name] ?? null) !== $columns) {
+                    $actual = $existingIndexes[$name] ?? null;
+                    if ($actual === null || $actual['columns'] !== $columns || $actual['unique'] !== false) {
                         $missingIndexes[$name] = $columns;
                     }
                 }
@@ -155,6 +165,105 @@ jobs:
                 [$missingColumns, $missingIndexes] = $inspectSchema();
             }
             $schemaMatches = $tableExists && $missingColumns === [] && $missingIndexes === [];
+
+            // Explicit, separate, additive index repair. Never infer approval from
+            // confirm_migration; the latter is reserved for ledger-only reconciliation.
+            if (getenv('CONFIRM_INDEX_REPAIR') === 'true') {
+                if (! $tableExists || $missingColumns !== []) {
+                    fwrite(STDERR, json_encode([
+                        'migration_status' => 'BLOCKED_INDEX_REPAIR_SCHEMA_COLUMNS_NOT_READY',
+                        'table_exists' => $tableExists,
+                        'missing_columns' => $missingColumns,
+                        'migration_executed_this_run' => false,
+                    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL);
+                    exit(25);
+                }
+
+                $allIndexes = $schema::getIndexes($table);
+                $byName = [];
+                foreach ($allIndexes as $index) {
+                    if (is_string($index['name'] ?? null)) {
+                        $byName[$index['name']] = [
+                            'columns' => array_values($index['columns'] ?? []),
+                            'unique' => (bool) ($index['unique'] ?? false),
+                        ];
+                    }
+                }
+                $repairable = [];
+                foreach ($requiredIndexes as $name => $columns) {
+                    $actual = $byName[$name] ?? null;
+                    if ($actual !== null) {
+                        if ($actual['columns'] !== $columns || $actual['unique'] !== false) {
+                            fwrite(STDERR, json_encode([
+                                'migration_status' => 'BLOCKED_INDEX_NAME_COLLISION',
+                                'index' => $name,
+                                'actual' => $actual,
+                                'expected' => ['columns' => $columns, 'unique' => false],
+                                'production_schema_mutations' => 'NONE',
+                            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL);
+                            exit(26);
+                        }
+                        continue;
+                    }
+                    foreach ($allIndexes as $existing) {
+                        if (array_values($existing['columns'] ?? []) === $columns) {
+                            fwrite(STDERR, json_encode([
+                                'migration_status' => 'BLOCKED_EQUIVALENT_INDEX_UNDER_DIFFERENT_NAME',
+                                'expected_index' => $name,
+                                'existing_index' => $existing['name'] ?? null,
+                                'columns' => $columns,
+                                'production_schema_mutations' => 'NONE',
+                            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL);
+                            exit(27);
+                        }
+                    }
+                    $repairable[$name] = $columns;
+                }
+
+                if ($repairable === []) {
+                    echo json_encode([
+                        'migration_status' => 'INDEX_REPAIR_NOT_NEEDED',
+                        'missing_indexes' => [],
+                        'migration_ledger_changed' => false,
+                        'production_data_mutations' => 'NONE',
+                    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+                    exit(0);
+                }
+
+                $repairPlan = [
+                    'official_refresh_source_idx' => ['source_id'],
+                    'official_refresh_observation_idx' => ['source_change_observation_id'],
+                    'official_refresh_canonical_field_idx' => ['canonical_type', 'canonical_id', 'field_name'],
+                ];
+                $applied = [];
+                foreach ($repairable as $name => $columns) {
+                    $schema::table($table, static function (\\Illuminate\\Database\\Schema\\Blueprint $blueprint) use ($name, $columns): void {
+                        $blueprint->index($columns, $name);
+                    });
+                    $applied[] = $name;
+                }
+
+                [$missingColumnsAfter, $missingIndexesAfter] = $inspectSchema();
+                if ($missingColumnsAfter !== [] || $missingIndexesAfter !== []) {
+                    fwrite(STDERR, json_encode([
+                        'migration_status' => 'INDEX_REPAIR_POSTCHECK_FAILED',
+                        'indexes_added' => $applied,
+                        'missing_columns' => $missingColumnsAfter,
+                        'missing_indexes' => $missingIndexesAfter,
+                        'migration_ledger_changed' => false,
+                    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL);
+                    exit(28);
+                }
+
+                echo json_encode([
+                    'migration_status' => 'INDEX_REPAIR_APPLIED_AND_VERIFIED',
+                    'indexes_added' => $applied,
+                    'migration_ledger_changed' => false,
+                    'production_canonical_records_changed' => 'NO',
+                    'next_action' => 'rerun_readiness_read_only_then_reconcile_ledger_only_if_schema_is_fully_ready',
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+                exit(0);
+            }
 
             if ($schemaMatches && $migrationApplied) {
                 echo json_encode([
