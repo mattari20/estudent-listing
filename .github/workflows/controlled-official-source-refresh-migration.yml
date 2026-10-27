@@ -76,47 +76,132 @@ jobs:
               echo "ERROR: Hostinger checkout Git metadata is required to verify the deployed code"
               exit 4
             }
-            DEPLOYED_REVISION="$(git rev-parse HEAD)"
+            # Keep shell execution explicit: capture and print each Git guard's result
+            # before deciding whether the database phase is allowed to begin.
+            DEPLOYED_REVISION="$(git rev-parse HEAD 2>&1)"
+            HEAD_STATUS=$?
+            echo "deployed_head_status=$HEAD_STATUS"
+            if [ "$HEAD_STATUS" -ne 0 ]; then
+              echo "ERROR: unable to resolve deployed HEAD; migration blocked"
+              exit 4
+            fi
             echo "deployed_revision=$DEPLOYED_REVISION"
             echo "expected_application_revision=$TARGET_REVISION"
-            # Hostinger's Git metadata may contain a HEAD commit without the target
-            # commit's full object graph. First try the configured remote's main branch;
-            # then request the exact approved commit by SHA. Fetching only adds Git objects
-            # and does not checkout, reset, or overwrite deployed application files.
-            if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
-              git remote get-url origin >/dev/null 2>&1 || {
-                echo "ERROR: target commit is absent and no origin remote is configured; cannot verify safely"
-                exit 5
-              }
-              if ! git fetch --no-tags origin main 2>&1; then
-                echo "WARNING: fetch of origin/main failed; attempting exact approved commit fetch"
-              fi
+            case "$TARGET_REVISION" in
+              [0-9a-f][0-9a-f][0-9a-f][0-9a-f]*) ;;
+              *) echo "ERROR: expected application revision is not a hexadecimal commit SHA"; exit 5 ;;
+            esac
+
+            # Record whether origin exists without revealing a possibly credentialed URL.
+            REMOTE_STATUS=0
+            REMOTE_URL="$(git remote get-url origin 2>/dev/null)"
+            REMOTE_STATUS=$?
+            echo "origin_remote_present=$([ "$REMOTE_STATUS" -eq 0 ] && echo true || echo false)"
+            if [ "$REMOTE_STATUS" -ne 0 ] || [ -z "$REMOTE_URL" ]; then
+              echo "ERROR: origin remote is absent or unreadable; cannot verify approved code safely"
+              exit 5
             fi
-            if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
-              if ! git fetch --no-tags origin "$TARGET_REVISION" 2>&1; then
+            unset REMOTE_URL
+
+            TARGET_OBJECT_STATUS=0
+            git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null
+            TARGET_OBJECT_STATUS=$?
+            echo "target_object_initial_status=$TARGET_OBJECT_STATUS"
+            if [ "$TARGET_OBJECT_STATUS" -ne 0 ]; then
+              FETCH_MAIN_STATUS=0
+              git fetch --no-tags origin main:refs/remotes/origin/step1-verification-main
+              FETCH_MAIN_STATUS=$?
+              echo "fetch_main_status=$FETCH_MAIN_STATUS"
+              if [ "$FETCH_MAIN_STATUS" -ne 0 ]; then
+                echo "WARNING: origin/main fetch failed; trying the exact approved commit SHA"
+              fi
+            else
+              echo "fetch_main_status=NOT_REQUIRED_TARGET_OBJECT_ALREADY_PRESENT"
+            fi
+
+            TARGET_OBJECT_STATUS=0
+            git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null
+            TARGET_OBJECT_STATUS=$?
+            echo "target_object_after_branch_fetch_status=$TARGET_OBJECT_STATUS"
+            if [ "$TARGET_OBJECT_STATUS" -ne 0 ]; then
+              FETCH_TARGET_STATUS=0
+              git fetch --no-tags origin "$TARGET_REVISION"
+              FETCH_TARGET_STATUS=$?
+              echo "fetch_exact_target_status=$FETCH_TARGET_STATUS"
+              if [ "$FETCH_TARGET_STATUS" -ne 0 ]; then
                 echo "ERROR: exact approved commit fetch failed; cannot verify deployed application safely"
                 exit 5
               fi
+            else
+              echo "fetch_exact_target_status=NOT_REQUIRED_TARGET_OBJECT_PRESENT"
             fi
-            git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || {
-              echo "ERROR: approved application commit object remains unavailable after branch and exact-SHA fetches"
+
+            TARGET_OBJECT_STATUS=0
+            git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null
+            TARGET_OBJECT_STATUS=$?
+            echo "target_object_commit_status=$TARGET_OBJECT_STATUS"
+            if [ "$TARGET_OBJECT_STATUS" -ne 0 ]; then
+              echo "ERROR: approved target object is unavailable or is not a commit; migration blocked"
               exit 5
-            }
-            # Confirm the fetched commit is reachable from the approved main history.
-            git fetch --no-tags origin main 2>&1 || {
-              echo "ERROR: unable to refresh origin/main for approved-target reachability verification"
+            fi
+
+            FETCH_MAIN_STATUS=0
+            git fetch --no-tags origin main:refs/remotes/origin/step1-verification-main
+            FETCH_MAIN_STATUS=$?
+            echo "fetch_verified_main_status=$FETCH_MAIN_STATUS"
+            if [ "$FETCH_MAIN_STATUS" -ne 0 ]; then
+              echo "ERROR: unable to refresh named verification ref for origin/main; migration blocked"
               exit 5
-            }
-            git merge-base --is-ancestor "$TARGET_REVISION" FETCH_HEAD || {
-              echo "ERROR: approved target commit is not reachable from origin/main; migration blocked"
+            fi
+            VERIFIED_MAIN_REVISION="$(git rev-parse refs/remotes/origin/step1-verification-main 2>&1)"
+            VERIFIED_MAIN_STATUS=$?
+            echo "verified_main_revision_status=$VERIFIED_MAIN_STATUS"
+            if [ "$VERIFIED_MAIN_STATUS" -ne 0 ]; then
+              echo "ERROR: fetched main verification ref could not be resolved; migration blocked"
               exit 5
-            }
-            if ! git diff --quiet "$TARGET_REVISION" "$DEPLOYED_REVISION" -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
-              echo "ERROR: deployed application code differs from the approved target; migration blocked"
+            fi
+            echo "verified_main_revision=$VERIFIED_MAIN_REVISION"
+
+            REACHABILITY_STATUS=0
+            git merge-base --is-ancestor "$TARGET_REVISION" refs/remotes/origin/step1-verification-main
+            REACHABILITY_STATUS=$?
+            echo "target_reachability_status=$REACHABILITY_STATUS"
+            MERGE_BASE="$(git merge-base "$TARGET_REVISION" refs/remotes/origin/step1-verification-main 2>&1)"
+            MERGE_BASE_STATUS=$?
+            echo "merge_base_status=$MERGE_BASE_STATUS"
+            if [ "$MERGE_BASE_STATUS" -eq 0 ]; then
+              echo "merge_base_sha=$MERGE_BASE"
+            else
+              echo "merge_base_sha=UNAVAILABLE"
+            fi
+            if [ "$REACHABILITY_STATUS" -ne 0 ] || [ "$MERGE_BASE_STATUS" -ne 0 ]; then
+              echo "ERROR: approved target is not proven reachable from current origin/main; migration blocked"
+              exit 5
+            fi
+
+            APP_CODE_PATHS="app bootstrap config database resources routes composer.json composer.lock public artisan"
+            APP_DIFF_STATUS=0
+            git diff --quiet "$TARGET_REVISION" "$DEPLOYED_REVISION" -- $APP_CODE_PATHS
+            APP_DIFF_STATUS=$?
+            echo "target_vs_deployed_application_diff_status=$APP_DIFF_STATUS"
+            if [ "$APP_DIFF_STATUS" -eq 1 ]; then
+              echo "ERROR: deployed application code differs from approved target; migration blocked"
+              exit 6
+            elif [ "$APP_DIFF_STATUS" -ne 0 ]; then
+              echo "ERROR: git diff could not verify target/deployed application parity; migration blocked"
               exit 6
             fi
-            if ! git diff --quiet HEAD -- app bootstrap config database resources routes composer.json composer.lock public artisan ||                ! git diff --cached --quiet HEAD -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
-              echo "ERROR: tracked application-code drift detected; migration blocked"
+
+            WORKTREE_DIFF_STATUS=0
+            git diff --quiet HEAD -- $APP_CODE_PATHS
+            WORKTREE_DIFF_STATUS=$?
+            echo "tracked_worktree_application_drift_status=$WORKTREE_DIFF_STATUS"
+            INDEX_DIFF_STATUS=0
+            git diff --cached --quiet HEAD -- $APP_CODE_PATHS
+            INDEX_DIFF_STATUS=$?
+            echo "tracked_index_application_drift_status=$INDEX_DIFF_STATUS"
+            if [ "$WORKTREE_DIFF_STATUS" -ne 0 ] || [ "$INDEX_DIFF_STATUS" -ne 0 ]; then
+              echo "ERROR: tracked application-code worktree/index drift detected; migration blocked"
               exit 7
             fi
             echo "deployed_application_code_status=APPLICATION_CODE_MATCH"
