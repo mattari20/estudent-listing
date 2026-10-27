@@ -15,6 +15,12 @@ on:
     types: [created]
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/project-command-orchestrator.yml"
+      - "scripts/project_command_orchestrator.py"
+      - "tests/project_controller/**"
 permissions:
   contents: read
   actions: read
@@ -47,7 +53,7 @@ jobs:
               Continue|continue|Resume|resume|"Move to Step 2"|"move to step 2"|"Move to Step 3"|"move to step 3") ;;
               *) accepted=false ;;
             esac
-          elif [[ "$EVENT" == push ]]; then
+          elif [[ "$EVENT" == push || "$EVENT" == pull_request ]]; then
             c="Continue"; i=""
           else
             c="$INPUT_COMMAND"; i="$INPUT_ISSUE"
