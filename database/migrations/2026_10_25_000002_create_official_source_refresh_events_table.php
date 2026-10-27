@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('official_source_refresh_events', function (Blueprint $table): void {
             $table->id();
-            $table->unsignedBigInteger('source_id')->nullable()->index();
-            $table->unsignedBigInteger('source_change_observation_id')->nullable()->index();
+            $table->unsignedBigInteger('source_id')->nullable()->index('official_refresh_source_idx');
+            $table->unsignedBigInteger('source_change_observation_id')->nullable()->index('official_refresh_observation_idx');
             $table->string('canonical_type', 100);
             $table->unsignedBigInteger('canonical_id');
             $table->string('field_name', 100);
