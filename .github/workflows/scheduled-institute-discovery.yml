@@ -32,11 +32,12 @@ concurrency:
 
 jobs:
   deployment-handoff:
-    if: ${{ github.event_name == 'workflow_run' }}
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 2
     outputs:
       verified: ${{ steps.check.outputs.verified }}
+      target_revision: ${{ steps.check.outputs.target_revision }}
     steps:
       - name: Download the deployment verification handoff
         uses: actions/download-artifact@v4
@@ -49,16 +50,492 @@ jobs:
           path: deployment-handoff
       - name: Require an explicit verified-deployment marker
         id: check
+        env:
+          EXPECTED_DEPLOYMENT_RUN_ID: ${{ github.event.workflow_run.id }}
+          EXPECTED_WORKFLOW_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f deployment-handoff/deployment-verification.txt ] &&
-            grep -Fqx "verified=true" deployment-handoff/deployment-verification.txt; then
+          artifact="deployment-handoff/deployment-verification.txt"
+          target_revision=""
+          if [ -f "$artifact" ]; then
+            target_revision="$(sed -n 's/^target_revision=//p' "$artifact")"
+          fi
+          if [ -f "$artifact" ] &&
+            grep -Fqx "verified=true" "$artifact" &&
+            grep -Fqx "application_code_parity=VERIFIED" "$artifact" &&
+            grep -Fqx "application_code_parity_method=git_diff_target_vs_deployed_paths" "$artifact" &&
+            grep -Fqx "read_only_preflight=COMPLETED" "$artifact" &&
+            grep -Fqx "deployment_run_id=$EXPECTED_DEPLOYMENT_RUN_ID" "$artifact" &&
+            grep -Fqx "workflow_run_head_sha=$EXPECTED_WORKFLOW_HEAD_SHA" "$artifact" &&
+            grep -Fqx "workflow_run_name=Controlled Hostinger Code Deployment" "$artifact" &&
+            grep -Eq '^target_revision=[0-9a-f]{40}
+
+  resolve-target:
+    needs: deployment-handoff
+    if: ${{ always() && (github.event_name != 'workflow_run' || needs.deployment-handoff.outputs.verified == 'true') }}
+    name: Resolve approved application-code revision
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      target_revision: ${{ steps.revision.outputs.target_revision }}
+    steps:
+      - name: Checkout main with full history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Resolve latest application-code revision
+        id: revision
+        env:
+          DEPLOYMENT_HANDOFF_TARGET_REVISION: ${{ needs.deployment-handoff.outputs.target_revision }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          test -n "$revision"
+          if grep -Eq "['\"]use_ai['\"][[:space:]]*=>[[:space:]]*true" config/institute_agent.php; then
+            echo "::error::At least one configured discovery profile enables AI; scheduled zero-cost execution is blocked."
+            exit 12
+          fi
+          if [ "$GITHUB_EVENT_NAME" = "workflow_run" ] &&
+            [ "$revision" != "$DEPLOYMENT_HANDOFF_TARGET_REVISION" ]; then
+            echo "::error::Verified deployment target does not match current main application revision."
+            echo "deployment_handoff_target_revision=$DEPLOYMENT_HANDOFF_TARGET_REVISION"
+            echo "current_expected_application_revision=$revision"
+            exit 13
+          fi
+          echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "expected_application_revision=$revision"
+          echo "scheduled_ai_extraction=disabled"
+
+  discover:
+    name: Run governed discovery and source monitoring
+    needs: resolve-target
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Run guarded discovery on Hostinger
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
+          TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,TARGET_REVISION
+          command_timeout: 12m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: invalid project path"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: invalid project path"; exit 2 ;; esac
+            test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
+            test -f "$PROJECT_PATH/config/institute_agent.php" || { echo "ERROR: discovery config not found"; exit 3; }
+            cd "$PROJECT_PATH"
+            git rev-parse --is-inside-work-tree >/dev/null
+            if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
+              echo "ERROR: tracked working-tree changes found; refusing scheduled execution"
+              exit 4
+            fi
+
+            DEPLOYED_REVISION="$(git rev-parse HEAD)"
+            echo "deployed_git_revision=$DEPLOYED_REVISION"
+            echo "expected_application_revision=$TARGET_REVISION"
+
+            # Always unshallow a shallow checkout before deriving/validating ancestry.
+            # A path-filtered git-log commit ID is not an application-code identity:
+            # shallow boundaries can make a docs/workflow-only tip appear to touch all paths.
+            if [ -f .git/shallow ]; then
+              git fetch --quiet --no-tags --unshallow origin main || {
+                echo "ERROR: could not obtain full origin/main history for parity verification"
+                echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+                exit 9
+              }
+            else
+              git fetch --quiet --no-tags origin main || {
+                echo "ERROR: could not fetch origin/main for parity verification"
+                echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+                exit 9
+              }
+            fi
+            if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
+              git fetch --quiet --no-tags origin "$TARGET_REVISION" || {
+                echo "ERROR: could not fetch approved application target"
+                echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+                exit 9
+              }
+            fi
+            git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || {
+              echo "ERROR: approved application target commit is unavailable"
+              echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+              exit 9
+            }
+            git fetch --quiet --no-tags origin main || {
+              echo "ERROR: unable to verify the approved target against origin/main"
+              echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+              exit 9
+            }
+            git merge-base --is-ancestor "$TARGET_REVISION" FETCH_HEAD || {
+              echo "ERROR: approved application target is not reachable from origin/main"
+              echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+              exit 9
+            }
+            APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
+            if git diff --quiet "$TARGET_REVISION" "$DEPLOYED_REVISION" -- $APP_CODE_PATHS &&
+               git diff --quiet HEAD -- $APP_CODE_PATHS &&
+               git diff --cached --quiet HEAD -- $APP_CODE_PATHS; then
+              echo "application_code_parity=match"
+              echo "application_code_parity_method=git_diff_target_vs_deployed_paths"
+            else
+              echo "application_code_parity=mismatch_or_unverifiable"
+              echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_MISMATCH"
+              echo "No source retrieval or database writes were run."
+              exit 10
+            fi
+
+            if grep -Eq "['\"]use_ai['\"][[:space:]]*=>[[:space:]]*true" config/institute_agent.php; then
+              echo "ERROR: AI extraction is enabled in a discovery profile; refusing scheduled zero-cost run"
+              exit 11
+            fi
+
+            canonical_counts() {
+              php artisan institutes:data-integrity-report --no-ansi | php -r '
+                $report = json_decode(stream_get_contents(STDIN), true);
+                if (!is_array($report)
+                    || ($report["mutation_performed"] ?? true) !== false
+                    || !is_array($report["canonical_counts"] ?? null)
+                    || in_array(null, $report["canonical_counts"], true)) {
+                    fwrite(STDERR, "ERROR: unable to verify canonical counts safely\n");
+                    exit(2);
+                }
+                echo json_encode($report["canonical_counts"], JSON_UNESCAPED_SLASHES);
+              '
+            }
+
+            discovery_outcome_count() {
+              php -r '
+                require "vendor/autoload.php";
+                $app = require "bootstrap/app.php";
+                $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+                $schema = \Illuminate\Support\Facades\Schema::class;
+                $db = \Illuminate\Support\Facades\DB::class;
+                if (!$schema::hasTable("institute_discovery_run_outcomes")) {
+                    fwrite(STDERR, "ERROR: discovery outcome table is missing\n");
+                    exit(2);
+                }
+                echo $db::table("institute_discovery_run_outcomes")->count();
+              '
+            }
+
+            due_policy_count() {
+              php -r '
+                require "vendor/autoload.php";
+                $app = require "bootstrap/app.php";
+                $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+                $schema = \Illuminate\Support\Facades\Schema::class;
+                $db = \Illuminate\Support\Facades\DB::class;
+                if (!$schema::hasTable("source_monitoring_policies")) {
+                    fwrite(STDERR, "ERROR: source monitoring policy table is missing\n");
+                    exit(2);
+                }
+                echo $db::table("source_monitoring_policies")
+                    ->where("status", "active")
+                    ->where(function ($query) {
+                        $query->whereNull("next_run_at")->orWhere("next_run_at", "<=", now());
+                    })
+                    ->count();
+              '
+            }
+
+            BEFORE_COUNTS="$(canonical_counts)" || { echo "ERROR: read-only preflight failed"; exit 12; }
+            BEFORE_OUTCOME_COUNT="$(discovery_outcome_count)" || { echo "ERROR: discovery outcome ledger preflight failed"; exit 14; }
+            echo "canonical_counts_before=$BEFORE_COUNTS"
+            echo "discovery_outcome_count_before=$BEFORE_OUTCOME_COUNT"
+            echo "database_migrations=NOT_RUN"
+            echo "canonical_promotion=NOT_RUN"
+            echo "publications=NOT_RUN"
+            echo "paid_ai_calls=DISABLED"
+
+            set +e
+            php artisan institutes:bootstrap-agent --no-ansi
+            BOOTSTRAP_EXIT=$?
+            set -e
+
+            DUE_POLICY_COUNT="$(due_policy_count)" || { echo "ERROR: unable to inspect due monitoring policies"; exit 16; }
+            echo "due_monitoring_policies=$DUE_POLICY_COUNT"
+
+            set +e
+            php artisan institutes:monitor-changes --no-ansi
+            MONITOR_EXIT=$?
+            set -e
+
+            AFTER_COUNTS="$(canonical_counts)" || { echo "ERROR: post-run canonical count check failed"; exit 13; }
+            AFTER_OUTCOME_COUNT="$(discovery_outcome_count)" || { echo "ERROR: post-run discovery outcome ledger check failed"; exit 15; }
+            echo "canonical_counts_after=$AFTER_COUNTS"
+            echo "discovery_outcome_count_after=$AFTER_OUTCOME_COUNT"
+            echo "bootstrap_agent_exit_code=$BOOTSTRAP_EXIT"
+            echo "monitor_changes_exit_code=$MONITOR_EXIT"
+
+            if [ "$BEFORE_COUNTS" != "$AFTER_COUNTS" ]; then
+              echo "ERROR: canonical counts changed during governed discovery; stop and investigate"
+              exit 20
+            fi
+            if [ "$BOOTSTRAP_EXIT" -ne 0 ] || [ "$MONITOR_EXIT" -ne 0 ]; then
+              echo "discovery_status=PARTIAL_OR_FAILED_REVIEW_PIPELINE"
+              exit 21
+            fi
+
+            if [ "$DUE_POLICY_COUNT" -gt 0 ] && [ "$AFTER_OUTCOME_COUNT" -le "$BEFORE_OUTCOME_COUNT" ]; then
+              echo "ERROR: due source-monitoring policies ran without recording a discovery outcome"
+              exit 22
+            fi
+
+            if [ "$DUE_POLICY_COUNT" -eq 0 ]; then
+              echo "discovery_status=NO_DUE_POLICIES_NOOP"
+              echo "discovery_outcome_requirement=NOT_APPLICABLE"
+            else
+              echo "discovery_status=GOVERNED_RUN_COMPLETED"
+              echo "discovery_outcome_recorded=YES"
+            fi
+            echo "canonical_mutations=NONE"
+            echo "automatic_approval=NONE"
+            echo "automatic_promotion=NONE"
+            echo "automatic_publication=NONE"
+ "$artifact" &&
+            grep -Eq '^deployment_attempt=[1-9][0-9]*
+
+  resolve-target:
+    needs: deployment-handoff
+    if: ${{ always() && (github.event_name != 'workflow_run' || needs.deployment-handoff.outputs.verified == 'true') }}
+    name: Resolve approved application-code revision
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      target_revision: ${{ steps.revision.outputs.target_revision }}
+    steps:
+      - name: Checkout main with full history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Resolve latest application-code revision
+        id: revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          test -n "$revision"
+          if grep -Eq "['\"]use_ai['\"][[:space:]]*=>[[:space:]]*true" config/institute_agent.php; then
+            echo "::error::At least one configured discovery profile enables AI; scheduled zero-cost execution is blocked."
+            exit 12
+          fi
+          echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "expected_application_revision=$revision"
+          echo "scheduled_ai_extraction=disabled"
+
+  discover:
+    name: Run governed discovery and source monitoring
+    needs: resolve-target
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Run guarded discovery on Hostinger
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
+          TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,TARGET_REVISION
+          command_timeout: 12m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: invalid project path"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: invalid project path"; exit 2 ;; esac
+            test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan not found"; exit 3; }
+            test -f "$PROJECT_PATH/config/institute_agent.php" || { echo "ERROR: discovery config not found"; exit 3; }
+            cd "$PROJECT_PATH"
+            git rev-parse --is-inside-work-tree >/dev/null
+            if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
+              echo "ERROR: tracked working-tree changes found; refusing scheduled execution"
+              exit 4
+            fi
+
+            DEPLOYED_REVISION="$(git rev-parse HEAD)"
+            echo "deployed_git_revision=$DEPLOYED_REVISION"
+            echo "expected_application_revision=$TARGET_REVISION"
+
+            # Always unshallow a shallow checkout before deriving/validating ancestry.
+            # A path-filtered git-log commit ID is not an application-code identity:
+            # shallow boundaries can make a docs/workflow-only tip appear to touch all paths.
+            if [ -f .git/shallow ]; then
+              git fetch --quiet --no-tags --unshallow origin main || {
+                echo "ERROR: could not obtain full origin/main history for parity verification"
+                echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+                exit 9
+              }
+            else
+              git fetch --quiet --no-tags origin main || {
+                echo "ERROR: could not fetch origin/main for parity verification"
+                echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+                exit 9
+              }
+            fi
+            if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
+              git fetch --quiet --no-tags origin "$TARGET_REVISION" || {
+                echo "ERROR: could not fetch approved application target"
+                echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+                exit 9
+              }
+            fi
+            git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || {
+              echo "ERROR: approved application target commit is unavailable"
+              echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+              exit 9
+            }
+            git fetch --quiet --no-tags origin main || {
+              echo "ERROR: unable to verify the approved target against origin/main"
+              echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+              exit 9
+            }
+            git merge-base --is-ancestor "$TARGET_REVISION" FETCH_HEAD || {
+              echo "ERROR: approved application target is not reachable from origin/main"
+              echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_UNVERIFIABLE"
+              exit 9
+            }
+            APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
+            if git diff --quiet "$TARGET_REVISION" "$DEPLOYED_REVISION" -- $APP_CODE_PATHS &&
+               git diff --quiet HEAD -- $APP_CODE_PATHS &&
+               git diff --cached --quiet HEAD -- $APP_CODE_PATHS; then
+              echo "application_code_parity=match"
+              echo "application_code_parity_method=git_diff_target_vs_deployed_paths"
+            else
+              echo "application_code_parity=mismatch_or_unverifiable"
+              echo "discovery_status=BLOCKED_APPLICATION_CODE_REVISION_MISMATCH"
+              echo "No source retrieval or database writes were run."
+              exit 10
+            fi
+
+            if grep -Eq "['\"]use_ai['\"][[:space:]]*=>[[:space:]]*true" config/institute_agent.php; then
+              echo "ERROR: AI extraction is enabled in a discovery profile; refusing scheduled zero-cost run"
+              exit 11
+            fi
+
+            canonical_counts() {
+              php artisan institutes:data-integrity-report --no-ansi | php -r '
+                $report = json_decode(stream_get_contents(STDIN), true);
+                if (!is_array($report)
+                    || ($report["mutation_performed"] ?? true) !== false
+                    || !is_array($report["canonical_counts"] ?? null)
+                    || in_array(null, $report["canonical_counts"], true)) {
+                    fwrite(STDERR, "ERROR: unable to verify canonical counts safely\n");
+                    exit(2);
+                }
+                echo json_encode($report["canonical_counts"], JSON_UNESCAPED_SLASHES);
+              '
+            }
+
+            discovery_outcome_count() {
+              php -r '
+                require "vendor/autoload.php";
+                $app = require "bootstrap/app.php";
+                $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+                $schema = \Illuminate\Support\Facades\Schema::class;
+                $db = \Illuminate\Support\Facades\DB::class;
+                if (!$schema::hasTable("institute_discovery_run_outcomes")) {
+                    fwrite(STDERR, "ERROR: discovery outcome table is missing\n");
+                    exit(2);
+                }
+                echo $db::table("institute_discovery_run_outcomes")->count();
+              '
+            }
+
+            due_policy_count() {
+              php -r '
+                require "vendor/autoload.php";
+                $app = require "bootstrap/app.php";
+                $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+                $schema = \Illuminate\Support\Facades\Schema::class;
+                $db = \Illuminate\Support\Facades\DB::class;
+                if (!$schema::hasTable("source_monitoring_policies")) {
+                    fwrite(STDERR, "ERROR: source monitoring policy table is missing\n");
+                    exit(2);
+                }
+                echo $db::table("source_monitoring_policies")
+                    ->where("status", "active")
+                    ->where(function ($query) {
+                        $query->whereNull("next_run_at")->orWhere("next_run_at", "<=", now());
+                    })
+                    ->count();
+              '
+            }
+
+            BEFORE_COUNTS="$(canonical_counts)" || { echo "ERROR: read-only preflight failed"; exit 12; }
+            BEFORE_OUTCOME_COUNT="$(discovery_outcome_count)" || { echo "ERROR: discovery outcome ledger preflight failed"; exit 14; }
+            echo "canonical_counts_before=$BEFORE_COUNTS"
+            echo "discovery_outcome_count_before=$BEFORE_OUTCOME_COUNT"
+            echo "database_migrations=NOT_RUN"
+            echo "canonical_promotion=NOT_RUN"
+            echo "publications=NOT_RUN"
+            echo "paid_ai_calls=DISABLED"
+
+            set +e
+            php artisan institutes:bootstrap-agent --no-ansi
+            BOOTSTRAP_EXIT=$?
+            set -e
+
+            DUE_POLICY_COUNT="$(due_policy_count)" || { echo "ERROR: unable to inspect due monitoring policies"; exit 16; }
+            echo "due_monitoring_policies=$DUE_POLICY_COUNT"
+
+            set +e
+            php artisan institutes:monitor-changes --no-ansi
+            MONITOR_EXIT=$?
+            set -e
+
+            AFTER_COUNTS="$(canonical_counts)" || { echo "ERROR: post-run canonical count check failed"; exit 13; }
+            AFTER_OUTCOME_COUNT="$(discovery_outcome_count)" || { echo "ERROR: post-run discovery outcome ledger check failed"; exit 15; }
+            echo "canonical_counts_after=$AFTER_COUNTS"
+            echo "discovery_outcome_count_after=$AFTER_OUTCOME_COUNT"
+            echo "bootstrap_agent_exit_code=$BOOTSTRAP_EXIT"
+            echo "monitor_changes_exit_code=$MONITOR_EXIT"
+
+            if [ "$BEFORE_COUNTS" != "$AFTER_COUNTS" ]; then
+              echo "ERROR: canonical counts changed during governed discovery; stop and investigate"
+              exit 20
+            fi
+            if [ "$BOOTSTRAP_EXIT" -ne 0 ] || [ "$MONITOR_EXIT" -ne 0 ]; then
+              echo "discovery_status=PARTIAL_OR_FAILED_REVIEW_PIPELINE"
+              exit 21
+            fi
+
+            if [ "$DUE_POLICY_COUNT" -gt 0 ] && [ "$AFTER_OUTCOME_COUNT" -le "$BEFORE_OUTCOME_COUNT" ]; then
+              echo "ERROR: due source-monitoring policies ran without recording a discovery outcome"
+              exit 22
+            fi
+
+            if [ "$DUE_POLICY_COUNT" -eq 0 ]; then
+              echo "discovery_status=NO_DUE_POLICIES_NOOP"
+              echo "discovery_outcome_requirement=NOT_APPLICABLE"
+            else
+              echo "discovery_status=GOVERNED_RUN_COMPLETED"
+              echo "discovery_outcome_recorded=YES"
+            fi
+            echo "canonical_mutations=NONE"
+            echo "automatic_approval=NONE"
+            echo "automatic_promotion=NONE"
+            echo "automatic_publication=NONE"
+ "$artifact"; then
             echo "verified=true" >> "$GITHUB_OUTPUT"
-            echo "deployment_handoff=verified"
+            echo "target_revision=$target_revision" >> "$GITHUB_OUTPUT"
+            echo "deployment_handoff=verified_and_bound_to_triggering_run"
           else
             echo "verified=false" >> "$GITHUB_OUTPUT"
-            echo "deployment_handoff=absent_or_unverified; governed discovery will not run"
+            echo "deployment_handoff=absent_or_incomplete_or_mismatched; governed discovery will not run"
           fi
 
   resolve-target:
