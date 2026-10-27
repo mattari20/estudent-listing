@@ -58,4 +58,30 @@ class InstituteDiscoveryCandidateExtractorTest extends TestCase
             array_column($programs, 'name')
         );
     }
+
+    public function test_institution_identity_is_staged_only_when_the_official_page_corroborates_the_configured_identity(): void
+    {
+        $identity = [
+            'name' => 'Government College University Lahore',
+            'official_name' => 'Government College University, Lahore',
+            'short_name' => 'GCU',
+            'slug' => 'government-college-university-lahore',
+            'institution_type' => 'public university',
+            'identity_terms' => ['Government College University Lahore', 'GC University Lahore'],
+        ];
+        $html = '<html><head><title>GC University Lahore</title></head><body>'
+            .'<p>Government College University Lahore is a public university.</p>'
+            .'</body></html>';
+
+        $candidates = (new InstituteDiscoveryCandidateExtractor())->extract('institution', $html, $identity);
+
+        $this->assertCount(1, $candidates);
+        $this->assertSame('Government College University Lahore', $candidates[0]['name']);
+        $this->assertSame('government-college-university-lahore', $candidates[0]['slug']);
+        $this->assertStringContainsString('Government College University Lahore', $candidates[0]['evidence_excerpt']);
+
+        $unrelated = '<html><body><h1>Example Technical Academy</h1><p>Other institute</p></body></html>';
+        $this->assertSame([], (new InstituteDiscoveryCandidateExtractor())->extract('institution', $unrelated, $identity));
+        $this->assertSame([], (new InstituteDiscoveryCandidateExtractor())->extract('institution', $html, []));
+    }
 }
