@@ -34,6 +34,7 @@ class BootstrapInstituteAgent extends Command
         $bootstrapped = 0;
         $discovered = 0;
         $skipped = 0;
+        $sourceFailures = [];
 
         foreach ($profiles as $profile) {
             $definition = config("institute_agent.profiles.{$profile}");
@@ -133,9 +134,16 @@ class BootstrapInstituteAgent extends Command
                     .($summary['candidate_rows'] ?? 0).' candidate row(s).'.$details
                 );
             } catch (\Throwable $e) {
-                $this->error($profile.' bootstrap discovery failed: '.$e->getMessage());
+                $sourceUrl = is_string($sourceDefinition['url'] ?? null) ? $sourceDefinition['url'] : 'unconfigured';
+                $sourceFailures[] = [
+                    'profile' => $profile,
+                    'source_url' => $sourceUrl,
+                    'reason' => $e->getMessage(),
+                ];
+                $this->error($profile.' source-specific discovery failure at '.$sourceUrl.': '.$e->getMessage());
+                $this->warn('This retrieval/parser failure is not evidence that the institution or program does not exist; continuing with independent profiles.');
 
-                return self::FAILURE;
+                continue;
             }
         }
 
@@ -145,9 +153,10 @@ class BootstrapInstituteAgent extends Command
                 ['profiles_bootstrapped', $bootstrapped],
                 ['initial_discoveries', $discovered],
                 ['skipped', $skipped],
+                ['source_failures', count($sourceFailures)],
             ]
         );
 
-        return self::SUCCESS;
+        return $sourceFailures === [] ? self::SUCCESS : self::FAILURE;
     }
 }
