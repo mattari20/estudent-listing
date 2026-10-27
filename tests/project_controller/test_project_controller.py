@@ -19,7 +19,7 @@ class ProjectControllerTests(unittest.TestCase):
                 encoding="utf-8",
             )
             (root / "docs/AUTONOMOUS_STEP_EXECUTION_PROTOCOL.md").write_text(
-                "mandatory test Do not report 100% Do not start the next Step",
+                "mandatory test Never report 100% Do not start the next Step",
                 encoding="utf-8",
             )
             report = controller.local_governance(root)
@@ -49,7 +49,7 @@ class ProjectControllerTests(unittest.TestCase):
                 encoding="utf-8",
             )
             (root / "docs/AUTONOMOUS_STEP_EXECUTION_PROTOCOL.md").write_text(
-                "mandatory test Do not report 100% Do not start the next Step",
+                "mandatory test Never report 100% Do not start the next Step",
                 encoding="utf-8",
             )
             with patch.dict(os.environ, {"GITHUB_REPOSITORY": "owner/repo"}, clear=False):
