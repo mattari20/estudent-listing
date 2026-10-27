@@ -73,6 +73,10 @@ class ProjectControllerTests(unittest.TestCase):
             self.assertTrue(report["step1_closure_candidate"])
             self.assertEqual(report["status"], "REVIEW_REQUIRED")
             self.assertEqual(report["safety"]["workflow_dispatch"], "not performed")
+            self.assertEqual(report["step_progress"]["tasks_total"], 5)
+            self.assertEqual(report["step_progress"]["tasks_passed"], 3)
+            self.assertEqual(report["resume_point"], "open_pull_request_review_and_ci")
+            self.assertIn("rerun that check", report["failure_repair_retest_policy"])
 
 
 if __name__ == "__main__":
