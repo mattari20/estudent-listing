@@ -50,6 +50,10 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Validate orchestration and public-monitor workflow syntax
+        run: |
+          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/project-command-orchestrator.yml .github/workflows/institutes-public-monitor.yml
+
       - name: Test controller offline against isolated fixtures
         run: |
           python -m unittest discover -s tests/project_controller -v

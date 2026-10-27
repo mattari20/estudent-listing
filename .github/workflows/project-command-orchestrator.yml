@@ -15,6 +15,12 @@ on:
     types: [created]
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/project-command-orchestrator.yml"
+      - "scripts/project_command_orchestrator.py"
+      - "tests/project_controller/**"
 permissions:
   contents: read
   actions: read
@@ -47,18 +53,20 @@ jobs:
               Continue|continue|Resume|resume|"Move to Step 2"|"move to step 2"|"Move to Step 3"|"move to step 3") ;;
               *) accepted=false ;;
             esac
-          elif [[ "$EVENT" == push ]]; then
+          elif [[ "$EVENT" == push || "$EVENT" == pull_request ]]; then
             c="Continue"; i=""
           else
             c="$INPUT_COMMAND"; i="$INPUT_ISSUE"
           fi
-          echo "value=$c" >> "$GITHUB_OUTPUT"
-          echo "issue=$i" >> "$GITHUB_OUTPUT"
-          echo "accepted=$accepted" >> "$GITHUB_OUTPUT"
+          {
+            echo "value=$c"
+            echo "issue=$i"
+            echo "accepted=$accepted"
+          } >> "$GITHUB_OUTPUT"
           if [[ "$accepted" != true ]]; then echo "Ignoring unrelated issue comment; no project command was requested."; fi
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'issue_comment' && github.event.repository.default_branch || github.ref_name }}
+          ref: ${{ github.event_name == 'issue_comment' && github.event.repository.default_branch || (github.event_name == 'pull_request' && github.event.pull_request.head.sha) || github.ref_name }}
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
       - name: Restore persistent state from issue/PR comment
@@ -107,7 +115,8 @@ jobs:
       - name: Enforce current step gate
         if: steps.cmd.outputs.accepted == 'true'
         id: gate
-        env: {COMMAND: ${{ steps.cmd.outputs.value }}}
+        env:
+          COMMAND: ${{ steps.cmd.outputs.value }}
         run: |
           set -euo pipefail
           mkdir -p controller-report
@@ -124,7 +133,9 @@ jobs:
           python scripts/project_controller.py --offline --output-dir controller-report/offline-smoke
       - name: Run read-only GitHub inventory
         if: steps.gate.outputs.exit_code == '0'
-        env: {GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}, GITHUB_REPOSITORY: ${{ github.repository }}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: python scripts/project_controller.py --output-dir controller-report/live
       - name: Persist resume point in issue/PR comment
         if: always() && steps.cmd.outputs.accepted == 'true' && steps.cmd.outputs.issue != ''
