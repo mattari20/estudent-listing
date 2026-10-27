@@ -25,18 +25,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   command:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'push' ||
-      (github.event_name == 'issue_comment' &&
-       (github.event.comment.body == 'Continue' ||
-        github.event.comment.body == 'continue' ||
-        github.event.comment.body == 'Resume' ||
-        github.event.comment.body == 'resume' ||
-        github.event.comment.body == 'Move to Step 2' ||
-        github.event.comment.body == 'move to step 2' ||
-        github.event.comment.body == 'Move to Step 3' ||
-        github.event.comment.body == 'move to step 3'))
+    # Keep the job-level condition simple and supported. Command allow-listing
+    # is enforced in the first shell step, which exits early for unrelated comments.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -50,21 +40,29 @@ jobs:
           COMMENT_ISSUE: ${{ github.event.issue.number }}
         run: |
           set -euo pipefail
+          accepted=true
           if [[ "$EVENT" == issue_comment ]]; then
             c="$(printf '%s' "$COMMENT" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"; i="$COMMENT_ISSUE"
+            case "$c" in
+              Continue|continue|Resume|resume|"Move to Step 2"|"move to step 2"|"Move to Step 3"|"move to step 3") ;;
+              *) accepted=false ;;
+            esac
           elif [[ "$EVENT" == push ]]; then
             c="Continue"; i=""
           else
             c="$INPUT_COMMAND"; i="$INPUT_ISSUE"
           fi
-          echo "value=$c" >> "$GITHUB_OUTPUT"; echo "issue=$i" >> "$GITHUB_OUTPUT"
+          echo "value=$c" >> "$GITHUB_OUTPUT"
+          echo "issue=$i" >> "$GITHUB_OUTPUT"
+          echo "accepted=$accepted" >> "$GITHUB_OUTPUT"
+          if [[ "$accepted" != true ]]; then echo "Ignoring unrelated issue comment; no project command was requested."; fi
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'issue_comment' && github.event.repository.default_branch || github.ref_name }}
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
       - name: Restore persistent state from issue/PR comment
-        if: steps.cmd.outputs.issue != ''
+        if: steps.cmd.outputs.accepted == 'true' && steps.cmd.outputs.issue != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
@@ -92,7 +90,7 @@ jobs:
           Path("controller-state.json").write_text(json.dumps(state, indent=2) + "\n")
           PY
       - name: Initialize empty state
-        if: steps.cmd.outputs.issue == ''
+        if: steps.cmd.outputs.accepted == 'true' && steps.cmd.outputs.issue == ''
         run: echo '{}' > controller-state.json
       - name: Verify restored resume state
         if: steps.cmd.outputs.issue != ''
@@ -118,7 +116,7 @@ jobs:
           [[ "$rc" == 3 ]] && exit 0
           exit "$rc"
       - name: Run supported controller tests and smoke checks
-        if: steps.gate.outputs.exit_code == '0'
+        if: steps.cmd.outputs.accepted == 'true' && steps.gate.outputs.exit_code == '0'
         run: |
           python -m unittest discover -s tests/project_controller -v
           python -m unittest discover -s tests/project_controller -p 'test_project_command_orchestrator.py' -v
@@ -128,7 +126,7 @@ jobs:
         env: {GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}, GITHUB_REPOSITORY: ${{ github.repository }}}
         run: python scripts/project_controller.py --output-dir controller-report/live
       - name: Persist resume point in issue/PR comment
-        if: always() && steps.cmd.outputs.issue != ''
+        if: always() && steps.cmd.outputs.accepted == 'true' && steps.cmd.outputs.issue != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
@@ -154,7 +152,7 @@ jobs:
           id="$(gh api "repos/$GH_REPO/issues/$ISSUE/comments?per_page=100" --paginate --jq '[.[] | select(.body | contains("<!-- institutes-project-controller-state -->"))] | sort_by(.created_at, .id) | last | .id // empty')"
           if [[ -n "$id" ]]; then gh api --method PATCH "repos/$GH_REPO/issues/comments/$id" -f body="$body" >/dev/null; else gh api --method POST "repos/$GH_REPO/issues/$ISSUE/comments" -f body="$body" >/dev/null; fi
       - name: Upload report and resume state
-        if: always()
+        if: always() && steps.cmd.outputs.accepted == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: institutes-command-orchestration-${{ github.run_id }}
