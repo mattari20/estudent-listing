@@ -94,9 +94,9 @@ jobs:
             exit 12
           fi
           if [ "$GITHUB_EVENT_NAME" = "workflow_run" ] &&
-            [ "$revision" != "$DEPLOYMENT_HANDOFF_TARGET_REVISION" ]; then
+            [ "$revision" != "$SCHEMA_HANDOFF_TARGET_REVISION" ]; then
             echo "::error::Verified schema-handoff target does not match current main application revision."
-            echo "schema_handoff_target_revision=$DEPLOYMENT_HANDOFF_TARGET_REVISION"
+            echo "schema_handoff_target_revision=$SCHEMA_HANDOFF_TARGET_REVISION"
             echo "current_expected_application_revision=$revision"
             exit 13
           fi
@@ -189,6 +189,79 @@ jobs:
               echo "No source retrieval or database writes were run."
               exit 10
             fi
+
+            echo "=== Official-source refresh schema gate (read-only) ==="
+            if ! php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+            $schema = \Illuminate\Support\Facades\Schema::class;
+            $db = \Illuminate\Support\Facades\DB::class;
+            $table = 'official_source_refresh_events';
+            $migration = '2026_10_25_000002_create_official_source_refresh_events_table';
+            $requiredColumns = [
+                'id', 'source_id', 'source_change_observation_id', 'canonical_type',
+                'canonical_id', 'field_name', 'before_value', 'after_value',
+                'evidence_url', 'evidence_excerpt', 'content_fingerprint',
+                'observed_at', 'occurred_at', 'created_at', 'updated_at',
+            ];
+            $requiredIndexes = [
+                'official_refresh_source_idx' => ['source_id'],
+                'official_refresh_observation_idx' => ['source_change_observation_id'],
+                'official_refresh_canonical_field_idx' => ['canonical_type', 'canonical_id', 'field_name'],
+            ];
+            $tableExists = $schema::hasTable($table);
+            $migrationsTableExists = $schema::hasTable('migrations');
+            $missingColumns = [];
+            $missingIndexes = [];
+            if ($tableExists) {
+                foreach ($requiredColumns as $column) {
+                    if (! $schema::hasColumn($table, $column)) {
+                        $missingColumns[] = $column;
+                    }
+                }
+                $existingIndexes = [];
+                foreach ($schema::getIndexes($table) as $index) {
+                    $name = $index['name'] ?? null;
+                    if (is_string($name) && $name !== '') {
+                        $existingIndexes[$name] = array_values($index['columns'] ?? []);
+                    }
+                }
+                foreach ($requiredIndexes as $name => $columns) {
+                    if (($existingIndexes[$name] ?? null) !== $columns) {
+                        $missingIndexes[$name] = $columns;
+                    }
+                }
+            } else {
+                $missingColumns = $requiredColumns;
+                $missingIndexes = $requiredIndexes;
+            }
+            $migrationApplied = $migrationsTableExists
+                && $db::table('migrations')->where('migration', $migration)->exists();
+            $ready = $tableExists && $migrationsTableExists
+                && $migrationApplied && $missingColumns === [] && $missingIndexes === [];
+            echo json_encode([
+                'check' => 'official_source_refresh_schema_gate',
+                'mutation_performed' => false,
+                'table_exists' => $tableExists,
+                'migrations_table_exists' => $migrationsTableExists,
+                'migration_applied' => $migrationApplied,
+                'missing_columns' => $missingColumns,
+                'missing_indexes' => $missingIndexes,
+                'schema_ready' => $ready,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            if (! $ready) {
+                exit(1);
+            }
+            PHP
+            then
+              echo "discovery_status=BLOCKED_OFFICIAL_SOURCE_REFRESH_SCHEMA_NOT_READY"
+              echo "No source retrieval, import staging, or database mutation was run."
+              exit 12
+            fi
+            echo "official_source_refresh_schema_status=READY"
 
             if grep -Eq "['\"]use_ai['\"][[:space:]]*=>[[:space:]]*true" config/institute_agent.php; then
               echo "ERROR: AI extraction is enabled in a discovery profile; refusing scheduled zero-cost run"
