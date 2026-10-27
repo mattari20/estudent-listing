@@ -79,8 +79,20 @@ jobs:
             DEPLOYED_REVISION="$(git rev-parse HEAD)"
             echo "deployed_revision=$DEPLOYED_REVISION"
             echo "expected_application_revision=$TARGET_REVISION"
+            # Hostinger can have an incomplete Git object database even when HEAD is
+            # correct. Fetch remote main objects without changing the deployed worktree.
+            if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
+              git remote get-url origin >/dev/null 2>&1 || {
+                echo "ERROR: target commit is absent and no origin remote is configured; cannot verify safely"
+                exit 5
+              }
+              git fetch --no-tags origin main || {
+                echo "ERROR: unable to fetch origin/main to verify the approved application revision"
+                exit 5
+              }
+            fi
             git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || {
-              echo "ERROR: expected application revision is unavailable in Hostinger Git metadata"
+              echo "ERROR: approved application revision is still unavailable after fetching origin/main"
               exit 5
             }
             if ! git diff --quiet "$TARGET_REVISION" "$DEPLOYED_REVISION" -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
