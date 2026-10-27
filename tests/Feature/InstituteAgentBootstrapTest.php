@@ -26,8 +26,10 @@ class InstituteAgentBootstrapTest extends TestCase
         ]);
 
         Http::fake([
-            'https://gcu.edu.pk/' => Http::response(
-                '<html><head><title>GC University Lahore</title></head><body><p>Government College University Lahore is a public university.</p></body></html>',
+            'https://www.hec.gov.pk/english/universities/Pages/Punjab/Government-College-University%2C-Lahore.aspx' => Http::response(
+                '<html><head><title>Government College University, Lahore — HEC</title></head><body>'
+                .'<h1>Government College University, Lahore</h1><p>Sector: Public</p><p>Recognised University: Yes</p><p>City: Lahore</p>'
+                .'</body></html>',
                 200,
                 ['Content-Type' => 'text/html']
             ),
@@ -121,11 +123,32 @@ class InstituteAgentBootstrapTest extends TestCase
 
     public function test_bootstrap_stages_official_institution_identity_for_review_without_creating_canonical_data(): void
     {
+        Source::create([
+            'source_type' => 'official',
+            'name' => 'Government College University Lahore — Unreachable Former Source',
+            'url' => 'https://gcu.edu.pk/',
+            'authority_scope' => 'legacy official homepage',
+            'status' => 'active',
+        ]);
+        $oldSource = Source::query()->where('url', 'https://gcu.edu.pk/')->firstOrFail();
+        SourceMonitoringPolicy::create([
+            'source_id' => $oldSource->id,
+            'name' => 'Automated discovery — gcu-lahore-institution-identity',
+            'subject_type' => 'institution',
+            'attribute' => 'automated_discovery',
+            'fresh_after_days' => 7,
+            'stale_after_days' => 30,
+            'priority' => 'normal',
+            'status' => 'active',
+            'cadence' => 'weekly',
+        ]);
+
         Storage::fake('local');
         Http::fake([
-            'https://gcu.edu.pk/' => Http::response(
-                '<html><head><title>GC University Lahore</title></head><body>'
-                .'<main><p>Government College University Lahore is a public university committed to quality education.</p></main>'
+            'https://www.hec.gov.pk/english/universities/Pages/Punjab/Government-College-University%2C-Lahore.aspx' => Http::response(
+                '<html><head><title>Government College University, Lahore — HEC</title></head><body>'
+                .'<main><h1>Government College University, Lahore</h1><p>Sector: Public</p>'
+                .'<p>Recognised University: Yes</p><p>City: Lahore</p><p>Province: Punjab</p></main>'
                 .'</body></html>',
                 200,
                 ['Content-Type' => 'text/html']
@@ -136,7 +159,12 @@ class InstituteAgentBootstrapTest extends TestCase
             '--profile' => ['gcu-lahore-institution-identity'],
         ])->assertExitCode(0);
 
-        $source = Source::query()->where('url', 'https://gcu.edu.pk/')->firstOrFail();
+        $this->assertSame('disabled', SourceMonitoringPolicy::query()
+            ->where('source_id', $oldSource->id)
+            ->where('name', 'Automated discovery — gcu-lahore-institution-identity')
+            ->value('status'));
+
+        $source = Source::query()->where('url', 'https://www.hec.gov.pk/english/universities/Pages/Punjab/Government-College-University%2C-Lahore.aspx')->firstOrFail();
         $batch = ImportBatch::query()->where('source_id', $source->id)->firstOrFail();
         $row = ImportRow::query()->where('import_batch_id', $batch->id)->firstOrFail();
 
@@ -178,4 +206,38 @@ class InstituteAgentBootstrapTest extends TestCase
         $this->assertSame(false, $manifest['canonical_mutations_performed']);
         $this->assertSame(false, $manifest['automatic_approval_performed']);
     }
+
+    public function test_bootstrap_disables_a_stale_policy_when_its_required_parent_is_missing(): void
+    {
+        $source = Source::create([
+            'source_type' => 'official',
+            'name' => 'Government College University Lahore — Official BS Programs',
+            'url' => 'https://gcu.edu.pk/admissions.php?pg=bs-program',
+            'authority_scope' => 'official undergraduate admissions/program listing',
+            'status' => 'active',
+        ]);
+        SourceMonitoringPolicy::create([
+            'source_id' => $source->id,
+            'name' => 'Automated discovery — gcu-lahore-programs',
+            'subject_type' => 'program',
+            'attribute' => 'automated_discovery',
+            'fresh_after_days' => 7,
+            'stale_after_days' => 30,
+            'priority' => 'normal',
+            'status' => 'active',
+            'cadence' => 'weekly',
+        ]);
+
+        $this->artisan('institutes:bootstrap-agent', [
+            '--profile' => ['gcu-lahore-programs'],
+        ])->assertExitCode(0);
+
+        $this->assertSame('disabled', SourceMonitoringPolicy::query()
+            ->where('source_id', $source->id)
+            ->where('name', 'Automated discovery — gcu-lahore-programs')
+            ->value('status'));
+        $this->assertSame(0, SourceSnapshot::query()->where('source_id', $source->id)->count());
+        $this->assertSame(0, ImportBatch::query()->where('source_id', $source->id)->count());
+    }
+
 }

@@ -1,11 +1,6 @@
 name: Controlled Official-Source Refresh Migration
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/controlled-official-source-refresh-migration.yml
   workflow_dispatch:
     inputs:
       confirm_migration:
@@ -121,38 +116,88 @@ jobs:
                 exit(21);
             }
 
+            $requiredIndexes = [
+                'official_refresh_source_idx' => ['source_id'],
+                'official_refresh_observation_idx' => ['source_change_observation_id'],
+                'official_refresh_canonical_field_idx' => ['canonical_type', 'canonical_id', 'field_name'],
+            ];
             $tableExists = $schema::hasTable($table);
             $migrationApplied = $db::table('migrations')->where('migration', $migration)->exists();
             $missingColumns = [];
-            if ($tableExists) {
+            $missingIndexes = [];
+            $inspectSchema = static function () use ($schema, $table, $requiredColumns, $requiredIndexes): array {
+                $missingColumns = [];
                 foreach ($requiredColumns as $column) {
                     if (! $schema::hasColumn($table, $column)) {
                         $missingColumns[] = $column;
                     }
                 }
-            }
 
-            if ($tableExists && $migrationApplied && $missingColumns === []) {
+                $existingIndexes = [];
+                foreach ($schema::getIndexes($table) as $index) {
+                    $name = $index['name'] ?? null;
+                    if (is_string($name) && $name !== '') {
+                        $existingIndexes[$name] = array_values($index['columns'] ?? []);
+                    }
+                }
+
+                $missingIndexes = [];
+                foreach ($requiredIndexes as $name => $columns) {
+                    if (($existingIndexes[$name] ?? null) !== $columns) {
+                        $missingIndexes[$name] = $columns;
+                    }
+                }
+
+                return [$missingColumns, $missingIndexes];
+            };
+
+            if ($tableExists) {
+                [$missingColumns, $missingIndexes] = $inspectSchema();
+            }
+            $schemaMatches = $tableExists && $missingColumns === [] && $missingIndexes === [];
+
+            if ($schemaMatches && $migrationApplied) {
                 echo json_encode([
                     'migration_status' => 'ALREADY_READY',
                     'table_exists' => true,
                     'migration_applied' => true,
                     'missing_columns' => [],
+                    'missing_indexes' => [],
                     'migration_executed_this_run' => false,
                     'production_data_mutations' => 'NONE',
                 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
                 exit(0);
             }
 
-            if ($tableExists || $migrationApplied) {
+            // Existing-but-untracked schema is recoverable only when the physical
+            // columns and named indexes exactly match the migration. The migration's
+            // idempotent up() verifies that same contract and makes no schema changes;
+            // Laravel records the missing migration ledger row only after it returns.
+            if (($tableExists && ! $schemaMatches) || ($migrationApplied && ! $tableExists)) {
                 fwrite(STDERR, json_encode([
                     'migration_status' => 'BLOCKED_INCONSISTENT_SCHEMA',
                     'table_exists' => $tableExists,
                     'migration_applied' => $migrationApplied,
                     'missing_columns' => $missingColumns,
+                    'missing_indexes' => $missingIndexes,
                     'migration_executed_this_run' => false,
                 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL);
                 exit(22);
+            }
+
+            if ($schemaMatches && ! $migrationApplied && getenv('CONFIRM_MIGRATION') !== 'true') {
+                echo json_encode([
+                    'migration_status' => 'SCHEMA_PRESENT_LEDGER_RECONCILIATION_AVAILABLE',
+                    'table_exists' => true,
+                    'migration_applied' => false,
+                    'missing_columns' => [],
+                    'missing_indexes' => [],
+                    'migration_would_run' => true,
+                    'migration_executed_this_run' => false,
+                    'production_data_mutations' => 'NONE',
+                    'next_action' => 'rerun_with_confirm_migration_true_after reviewing verified schema and missing ledger row',
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+                exit(0);
             }
 
             if (getenv('CONFIRM_MIGRATION') !== 'true') {
@@ -187,19 +232,17 @@ jobs:
             $tableExists = $schema::hasTable($table);
             $migrationApplied = $db::table('migrations')->where('migration', $migration)->exists();
             $missingColumns = [];
+            $missingIndexes = [];
             if ($tableExists) {
-                foreach ($requiredColumns as $column) {
-                    if (! $schema::hasColumn($table, $column)) {
-                        $missingColumns[] = $column;
-                    }
-                }
+                [$missingColumns, $missingIndexes] = $inspectSchema();
             }
-            $ready = $tableExists && $migrationApplied && $missingColumns === [];
+            $ready = $tableExists && $migrationApplied && $missingColumns === [] && $missingIndexes === [];
             echo json_encode([
                 'migration_status' => $ready ? 'APPLIED_AND_VERIFIED' : 'POST_MIGRATION_VERIFICATION_FAILED',
                 'table_exists' => $tableExists,
                 'migration_applied' => $migrationApplied,
                 'missing_columns' => $missingColumns,
+                'missing_indexes' => $missingIndexes,
                 'migration_executed_this_run' => true,
                 'production_data_mutations' => 'NO_CANONICAL_RECORDS_CHANGED',
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
@@ -208,3 +251,31 @@ jobs:
             }
             PHP
             echo "production_canonical_records_changed=NO"
+
+      - name: Prepare verified source-refresh schema handoff
+        if: ${{ inputs.confirm_migration }}
+        env:
+          TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p source-refresh-handoff
+          {
+            echo "verified=true"
+            echo "schema_ready=true"
+            echo "migration_confirmation=true"
+            echo "target_revision=$TARGET_REVISION"
+            echo "migration_run_id=$GITHUB_RUN_ID"
+            echo "workflow_run_head_sha=$GITHUB_SHA"
+            echo "workflow_run_name=Controlled Official-Source Refresh Migration"
+            echo "workflow_attempt=$GITHUB_RUN_ATTEMPT"
+          } > source-refresh-handoff/schema-verification.txt
+
+      - name: Publish verified source-refresh schema handoff
+        if: ${{ inputs.confirm_migration }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-source-refresh-verified-handoff
+          path: source-refresh-handoff/schema-verification.txt
+          if-no-files-found: error
+          retention-days: 2

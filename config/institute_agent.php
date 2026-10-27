@@ -27,10 +27,10 @@ return [
         // a canonical parent and never promotes/publishes the resulting import row.
         'gcu-lahore-institution-identity' => [
             'source' => [
-                'name' => 'Government College University Lahore — Official Institutional Identity',
+                'name' => 'Higher Education Commission — Government College University, Lahore',
                 'type' => 'official',
-                'url' => 'https://gcu.edu.pk/',
-                'authority_scope' => 'official institutional identity, history, and public-university status',
+                'url' => 'https://www.hec.gov.pk/english/universities/Pages/Punjab/Government-College-University%2C-Lahore.aspx',
+                'authority_scope' => 'official HEC university identity, recognition status, sector, and Lahore location',
             ],
             'entity_type' => 'institution',
             'institution_identity' => [
@@ -40,8 +40,8 @@ return [
                 'slug' => 'government-college-university-lahore',
                 'institution_type' => 'public university',
                 'identity_terms' => [
+                    'Government College University, Lahore',
                     'Government College University Lahore',
-                    'GC University Lahore',
                 ],
             ],
             'monitoring' => [
