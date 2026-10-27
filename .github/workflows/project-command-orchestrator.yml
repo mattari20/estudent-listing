@@ -96,7 +96,7 @@ jobs:
           r.update(last_command=os.environ["COMMAND"],workflow_run=os.environ["RUN_URL"])
           Path("persisted-state.json").write_text(json.dumps(r,indent=2))
           PY
-          body="$(printf '<!-- institutes-project-controller-state -->\\n%s\\n<!-- end-state -->\\n\\nLast command: %s\\nWorkflow: %s' "$(cat persisted-state.json)" "$COMMAND" "$RUN_URL")"
+          body="$(printf '<!-- institutes-project-controller-state -->\n%s\n<!-- end-state -->\n\nLast command: %s\nWorkflow: %s' "$(cat persisted-state.json)" "$COMMAND" "$RUN_URL")"
           comments="$(gh api "repos/$GH_REPO/issues/$ISSUE/comments?per_page=100" --paginate)"
           id="$(printf '%s' "$comments" | python -c 'import json,sys; a=json.load(sys.stdin); x=[c for c in a if "<!-- institutes-project-controller-state -->" in c.get("body","")]; print(x[-1]["id"] if x else "")')"
           if [[ -n "$id" ]]; then gh api --method PATCH "repos/$GH_REPO/issues/comments/$id" -f body="$body" >/dev/null; else gh api --method POST "repos/$GH_REPO/issues/$ISSUE/comments" -f body="$body" >/dev/null; fi
