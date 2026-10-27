@@ -22,7 +22,11 @@ class Tests(unittest.TestCase):
   with d:
    p=r/"docs/PROJECT_MASTER_TRACKER.md"
    t=p.read_text().replace("**Completion gate:** NOT YET","**Completion gate:** PASS",1)
-   t=t.replace("### Step 1 — Foundation, Access & Automation Readiness\\n**Completion gate:** PASS","### Step 1 — Foundation, Access & Automation Readiness\\n**Completion gate:** PASS\\n**Step 1 closeout status: PASS**",1)
+   t=t.replace(
+    "### Step 1 — Foundation, Access & Automation Readiness\n**Completion gate:** PASS",
+    "### Step 1 — Foundation, Access & Automation Readiness\n**Completion gate:** PASS\n**Step 1 closeout status: PASS**",
+    1,
+   )
    p.write_text(t)
    x=o.evaluate(r,"Move to Step 2")
    self.assertEqual(x["decision"],"RUN_SUPPORTED_CHECKS")
@@ -31,7 +35,11 @@ class Tests(unittest.TestCase):
   d,r=self.fixture()
   with d:
    p=r/"docs/PROJECT_MASTER_TRACKER.md"; t=p.read_text()
-   t=t.replace("### Step 2 — Deployment, Database Schema & Migration Integrity\\n**Completion gate:** NOT YET","### Step 2 — Deployment, Database Schema & Migration Integrity\\n**Completion gate:** PASS\\n**Step 2 closeout status: PASS**")
+   t=t.replace(
+    "### Step 2 — Deployment, Database Schema & Migration Integrity\n**Completion gate:** NOT YET",
+    "### Step 2 — Deployment, Database Schema & Migration Integrity\n**Completion gate:** PASS\n**Step 2 closeout status: PASS",
+    1,
+   )
    p.write_text(t)
    x=o.evaluate(r,"Move to Step 3")
    self.assertEqual(x["decision"],"STOP")
