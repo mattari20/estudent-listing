@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deployment-handoff:
+  source-refresh-handoff:
     if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -27,7 +27,7 @@ jobs:
       verified: ${{ steps.check.outputs.verified }}
       target_revision: ${{ steps.check.outputs.target_revision }}
     steps:
-      - name: Download the deployment verification handoff
+      - name: Download the verified source-refresh schema handoff
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
@@ -35,8 +35,8 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: deployment-handoff
-      - name: Validate verified-deployment handoff
+          path: source-refresh-handoff
+      - name: Validate confirmed schema handoff
         id: check
         env:
           EXPECTED_MIGRATION_RUN_ID: ${{ github.event.workflow_run.id }}
@@ -44,21 +44,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          artifact="deployment-handoff/schema-verification.txt"
+          artifact="source-refresh-handoff/schema-verification.txt"
           target_revision=""
           if [ -f "$artifact" ]; then
             target_revision="$(sed -n 's/^target_revision=//p' "$artifact")"
           fi
           if [ -f "$artifact" ] \
             && grep -Fqx "verified=true" "$artifact" \
-            && grep -Fqx "application_code_parity=VERIFIED" "$artifact" \
-            && grep -Fqx "application_code_parity_method=git_diff_target_vs_deployed_paths" "$artifact" \
-            && grep -Fqx "read_only_preflight=COMPLETED" "$artifact" \
-            && grep -Fqx "deployment_run_id=$EXPECTED_DEPLOYMENT_RUN_ID" "$artifact" \
+            && grep -Fqx "schema_ready=true" "$artifact" \
+            && grep -Fqx "migration_confirmation=true" "$artifact" \
+            && grep -Fqx "migration_run_id=$EXPECTED_MIGRATION_RUN_ID" "$artifact" \
             && grep -Fqx "workflow_run_head_sha=$EXPECTED_WORKFLOW_HEAD_SHA" "$artifact" \
-            && grep -Fqx "workflow_run_name=Controlled Hostinger Code Deployment" "$artifact" \
+            && grep -Fqx "workflow_run_name=Controlled Official-Source Refresh Migration" "$artifact" \
             && grep -Eq '^target_revision=[0-9a-f]{40}$' "$artifact" \
-            && grep -Eq '^deployment_attempt=[1-9][0-9]*$' "$artifact"; then
+            && grep -Eq '^workflow_attempt=[1-9][0-9]*$' "$artifact"; then
             echo "verified=true" >> "$GITHUB_OUTPUT"
             echo "target_revision=$target_revision" >> "$GITHUB_OUTPUT"
             echo "schema_handoff=verified_and_bound_to_confirmed_migration_run"
@@ -68,8 +67,8 @@ jobs:
           fi
 
   resolve-target:
-    needs: deployment-handoff
-    if: ${{ always() && (github.event_name != 'workflow_run' || needs.deployment-handoff.outputs.verified == 'true') }}
+    needs: source-refresh-handoff
+    if: ${{ always() && (github.event_name != 'workflow_run' || needs.source-refresh-handoff.outputs.verified == 'true') }}
     name: Resolve approved application-code revision
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -84,7 +83,7 @@ jobs:
       - name: Resolve latest application-code revision
         id: revision
         env:
-          DEPLOYMENT_HANDOFF_TARGET_REVISION: ${{ needs.deployment-handoff.outputs.target_revision }}
+          SCHEMA_HANDOFF_TARGET_REVISION: ${{ needs.source-refresh-handoff.outputs.target_revision }}
         shell: bash
         run: |
           set -euo pipefail
@@ -96,8 +95,8 @@ jobs:
           fi
           if [ "$GITHUB_EVENT_NAME" = "workflow_run" ] &&
             [ "$revision" != "$DEPLOYMENT_HANDOFF_TARGET_REVISION" ]; then
-            echo "::error::Verified deployment target does not match current main application revision."
-            echo "deployment_handoff_target_revision=$DEPLOYMENT_HANDOFF_TARGET_REVISION"
+            echo "::error::Verified schema-handoff target does not match current main application revision."
+            echo "schema_handoff_target_revision=$DEPLOYMENT_HANDOFF_TARGET_REVISION"
             echo "current_expected_application_revision=$revision"
             exit 13
           fi
