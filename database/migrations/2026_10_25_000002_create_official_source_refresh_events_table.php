@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use RuntimeException;
 
 return new class extends Migration
 {
@@ -48,7 +47,7 @@ return new class extends Migration
             $missingIndexes = $this->missingIndexes();
 
             if ($missingColumns !== [] || $missingIndexes !== []) {
-                throw new RuntimeException(
+                throw new \RuntimeException(
                     'Existing '.self::TABLE.' schema is inconsistent; refusing migration-ledger reconciliation. '
                     .'Missing columns: '.implode(', ', $missingColumns).'; '
                     .'missing or mismatched indexes: '.implode(', ', array_keys($missingIndexes)).'.'
