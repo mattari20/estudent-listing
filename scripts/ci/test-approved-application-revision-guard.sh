@@ -23,6 +23,8 @@ make_origin() {
  git -C "$ROOT/$name-work" commit -m "fixture: initial approved app" >/dev/null
  git -C "$ROOT/$name-work" remote add origin "$ROOT/$name.git"
  git -C "$ROOT/$name-work" push -u origin main >/dev/null 2>&1
+ # The bare remote must advertise main as its default HEAD for clean clones.
+ git --git-dir="$ROOT/$name.git" symbolic-ref HEAD refs/heads/main
  printf '%s' "$(git -C "$ROOT/$name-work" rev-parse HEAD)" > "$ROOT/$name-target"
  printf 'documentation-only\n' >> "$ROOT/$name-work/docs/readme.md"
  git -C "$ROOT/$name-work" add docs/readme.md
