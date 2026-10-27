@@ -251,3 +251,31 @@ jobs:
             }
             PHP
             echo "production_canonical_records_changed=NO"
+
+      - name: Prepare verified source-refresh schema handoff
+        if: ${{ inputs.confirm_migration }}
+        env:
+          TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p source-refresh-handoff
+          {
+            echo "verified=true"
+            echo "schema_ready=true"
+            echo "migration_confirmation=true"
+            echo "target_revision=$TARGET_REVISION"
+            echo "migration_run_id=$GITHUB_RUN_ID"
+            echo "workflow_run_head_sha=$GITHUB_SHA"
+            echo "workflow_run_name=Controlled Official-Source Refresh Migration"
+            echo "workflow_attempt=$GITHUB_RUN_ATTEMPT"
+          } > source-refresh-handoff/schema-verification.txt
+
+      - name: Publish verified source-refresh schema handoff
+        if: ${{ inputs.confirm_migration }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-source-refresh-verified-handoff
+          path: source-refresh-handoff/schema-verification.txt
+          if-no-files-found: error
+          retention-days: 2
