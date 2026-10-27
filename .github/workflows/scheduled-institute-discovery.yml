@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   workflow_run:
     workflows:
-      - "Controlled Hostinger Code Deployment"
+      - "Controlled Official-Source Refresh Migration"
     types: [completed]
     branches: [main]
 
@@ -31,7 +31,7 @@ jobs:
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: deployment-verified-handoff
+          name: official-source-refresh-verified-handoff
           repository: ${{ github.repository }}
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -39,12 +39,12 @@ jobs:
       - name: Validate verified-deployment handoff
         id: check
         env:
-          EXPECTED_DEPLOYMENT_RUN_ID: ${{ github.event.workflow_run.id }}
+          EXPECTED_MIGRATION_RUN_ID: ${{ github.event.workflow_run.id }}
           EXPECTED_WORKFLOW_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: |
           set -euo pipefail
-          artifact="deployment-handoff/deployment-verification.txt"
+          artifact="deployment-handoff/schema-verification.txt"
           target_revision=""
           if [ -f "$artifact" ]; then
             target_revision="$(sed -n 's/^target_revision=//p' "$artifact")"
@@ -61,10 +61,10 @@ jobs:
             && grep -Eq '^deployment_attempt=[1-9][0-9]*$' "$artifact"; then
             echo "verified=true" >> "$GITHUB_OUTPUT"
             echo "target_revision=$target_revision" >> "$GITHUB_OUTPUT"
-            echo "deployment_handoff=verified_and_bound_to_triggering_run"
+            echo "schema_handoff=verified_and_bound_to_confirmed_migration_run"
           else
             echo "verified=false" >> "$GITHUB_OUTPUT"
-            echo "deployment_handoff=absent_or_incomplete_or_mismatched; governed discovery will not run"
+            echo "schema_handoff=absent_or_incomplete_or_mismatched; governed discovery will not run"
           fi
 
   resolve-target:
