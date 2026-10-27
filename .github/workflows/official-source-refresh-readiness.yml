@@ -151,11 +151,15 @@ jobs:
                 foreach ($schema::getIndexes($table) as $index) {
                     $name = $index['name'] ?? null;
                     if (is_string($name) && $name !== '') {
-                        $existingIndexes[$name] = array_values($index['columns'] ?? []);
+                        $existingIndexes[$name] = [
+                            'columns' => array_values($index['columns'] ?? []),
+                            'unique' => (bool) ($index['unique'] ?? false),
+                        ];
                     }
                 }
                 foreach ($requiredIndexes as $name => $columns) {
-                    if (($existingIndexes[$name] ?? null) !== $columns) {
+                    $actual = $existingIndexes[$name] ?? null;
+                    if ($actual === null || $actual['columns'] !== $columns || $actual['unique'] !== false) {
                         $missingIndexes[$name] = $columns;
                     }
                 }
