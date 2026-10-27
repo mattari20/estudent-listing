@@ -225,6 +225,13 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines += ["", "## Latest monitored workflow runs"]
     for key, run in report["latest_workflow_runs"].items():
         lines.append(f"- **{key}**: `{run.get('status', 'unknown')}` / `{run.get('conclusion', 'unknown')}` — {run.get('html_url', run.get('path', 'no link'))}")
+    if report.get("step_progress"):
+        progress = report["step_progress"]
+        lines += ["", "## Step progress and resume point", f"- Step: {progress['step']}", f"- Status: {progress['status']}", f"- Tasks passed: {progress['tasks_passed']} / {progress['tasks_total']}"]
+        for task in progress["tasks"]:
+            lines.append(f"- **{task['task']}**: {task['status']} — {task['evidence']}")
+        lines.append(f"- Resume at: **{report.get('resume_point', 'not specified')}**")
+        lines.append(f"- Repair/retest policy: {report.get('failure_repair_retest_policy', 'not specified')}")
     lines += ["", "## Open pull requests"]
     if report["open_pull_requests"]:
         for pr in report["open_pull_requests"]:
