@@ -79,17 +79,17 @@ jobs:
           detail_path=""
           if [[ "$listing_status" == "200" && -s "$listing_html" ]]; then
             detail_path="$(python - "$listing_html" <<'PY'
-import re, sys
-from html import unescape
-from pathlib import Path
-html = unescape(Path(sys.argv[1]).read_text(errors="replace"))
-for href in re.findall(r'''href=["']([^"']+)["']''', html, flags=re.I):
-    match = re.fullmatch(r'(?:https://estudent\.pk)?(/institutes/([a-z0-9-]+))/?', href, flags=re.I)
-    if match and match.group(2).lower() not in {"search", "login", "setup", "automation", "sitemap", "robots"}:
-        print(match.group(1))
-        break
-PY
-)"
+          import re, sys
+          from html import unescape
+          from pathlib import Path
+          html = unescape(Path(sys.argv[1]).read_text(errors="replace"))
+          for href in re.findall(r'''href=["']([^"']+)["']''', html, flags=re.I):
+              match = re.fullmatch(r'(?:https://estudent\.pk)?(/institutes/([a-z0-9-]+))/?', href, flags=re.I)
+              if match and match.group(2).lower() not in {"search", "login", "setup", "automation", "sitemap", "robots"}:
+                  print(match.group(1))
+                  break
+          PY
+          )"
           fi
           if [[ -n "$detail_path" ]]; then
             check_url "https://estudent.pk${detail_path}"

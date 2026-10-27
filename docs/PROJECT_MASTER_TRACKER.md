@@ -101,6 +101,13 @@ Production safety: read-only diagnostics first. No destructive data operation or
 - Ruleset 25936221 remains active on main and requires exactly context `test` (strict policy false), with deletion/non-fast-forward rules and no bypass actors. Legacy branch-protection API read remains 403 for this GitHub App.
 - Step 1 remains BLOCKED / NOT CLOSED. Merge only after the consolidated branch passes controller/Laravel/Test checks, then inspect the actual post-merge orchestration job/report/artifact and public-monitor output. Verify or document the issue-comment state round-trip and Hostinger access/runtime discrepancy. Do not start Step 2.
 
+**Workflow YAML indentation repair (2026-10-27):**
+- Public monitor runs such as 40466691722 and 40466326121 failed with zero jobs. Inspection of the committed workflow revealed the embedded Python heredoc had lines beginning at column zero inside the YAML `run: |` block, which prematurely terminated the YAML block and made the workflow invalid. Branch `fix/step1-workflow-yaml-indentation` re-indents the entire embedded Python block and its heredoc terminator so it remains inside the shell block. This must be verified by a post-merge public-monitor run that exposes an actual job and report.
+- Main-push orchestration runs still fail with zero jobs despite removal of unsupported expression functions and then the job-level condition. The workflow now uses a simple job and shell-level command allow-listing, but the failure remains unresolved until a post-merge run provides logs. Do not claim the orchestrator fixed yet.
+- Latest Hostinger read-only diagnostic 40465829478 found deployed revision drift, zero canonical institutions, missing/unreadable scheduler cron, and missing app/Providers/AppServiceProvider.php in the deployed application tree. No production mutation occurred. This remains a genuine deployment/runtime blocker requiring a separately reviewed and authorized remediation plan.
+- Active main ruleset 25936221 remains confirmed with required context `test` and strict policy false; deletion and non-fast-forward protections are active. Legacy branch protection remains inaccessible to the GitHub App.
+- Step 1 remains BLOCKED / NOT CLOSED. Verify exact-head controller/Laravel/Test checks, then post-merge public monitor and orchestrator runs with actual jobs, artifacts and gate output. Do not start Step 2.
+
 ### Step 2 — Deployment, Database Schema & Migration Integrity
 **Target:** Prove which revision is deployed and document the live schema/migration state without risking data.
 
