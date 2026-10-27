@@ -5,7 +5,7 @@ import project_command_orchestrator as o
 class Tests(unittest.TestCase):
  def fixture(self,gate="NOT YET"):
   d=tempfile.TemporaryDirectory(); r=Path(d.name); (r/"docs").mkdir()
-  (r/"docs/PROJECT_MASTER_TRACKER.md").write_text("\\n\\n".join(h+"\\n**Completion gate:** "+gate for h in o.STEPS.values()))
+  (r/"docs/PROJECT_MASTER_TRACKER.md").write_text("\n\n".join(h+"\n**Completion gate:** "+gate for h in o.STEPS.values()))
   (r/"docs/AUTONOMOUS_STEP_EXECUTION_PROTOCOL.md").write_text("Do not start the next Step until current gate passes.")
   return d,r
  def test_short_commands(self):
