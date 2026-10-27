@@ -237,7 +237,7 @@ jobs:
 
                 $applied = [];
                 foreach ($repairable as $name => $columns) {
-                    $schema::table($table, static function (\\Illuminate\\Database\\Schema\\Blueprint $blueprint) use ($name, $columns): void {
+                    $schema::table($table, static function (\Illuminate\Database\Schema\Blueprint $blueprint) use ($name, $columns): void {
                         $blueprint->index($columns, $name);
                     });
                     $applied[] = $name;
