@@ -23,6 +23,37 @@ return [
                 'priority' => 'normal',
             ],
         ],
+        // Initial, source-corroborated identity candidate. This profile does not require
+        // a canonical parent and never promotes/publishes the resulting import row.
+        'gcu-lahore-institution-identity' => [
+            'source' => [
+                'name' => 'Government College University Lahore — Official Institutional Identity',
+                'type' => 'official',
+                'url' => 'https://gcu.edu.pk/',
+                'authority_scope' => 'official institutional identity, history, and public-university status',
+            ],
+            'entity_type' => 'institution',
+            'institution_identity' => [
+                'name' => 'Government College University Lahore',
+                'official_name' => 'Government College University, Lahore',
+                'short_name' => 'GCU',
+                'slug' => 'government-college-university-lahore',
+                'institution_type' => 'public university',
+                'identity_terms' => [
+                    'Government College University Lahore',
+                    'GC University Lahore',
+                ],
+            ],
+            'monitoring' => [
+                'enabled' => true,
+                'auto_discovery' => true,
+                'use_ai' => false,
+                'cadence' => 'weekly',
+                'fresh_after_days' => 7,
+                'stale_after_days' => 30,
+                'priority' => 'normal',
+            ],
+        ],
         // Safe pilot profile: the parent is an existing standalone canonical institution,
         // and the source is the university's current official BS admissions page.
         'gcu-lahore-programs' => [
