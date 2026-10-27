@@ -42,9 +42,9 @@ class InstituteDiscoveryCandidateExtractor
         }
 
         libxml_use_internal_errors(true);
-        $dom = new \\DOMDocument();
+        $dom = new \DOMDocument();
         $dom->loadHTML($html);
-        $xpath = new \\DOMXPath($dom);
+        $xpath = new \DOMXPath($dom);
         $parts = [$this->normalize($dom->textContent ?? '')];
 
         foreach ($xpath->query('//title | //meta[@property="og:site_name"] | //meta[@name="application-name"]') as $node) {
