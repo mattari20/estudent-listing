@@ -3,8 +3,13 @@ name: Controlled Official-Source Refresh Migration
 on:
   workflow_dispatch:
     inputs:
+      confirm_index_repair:
+        description: "Set true only to add the two specifically missing non-unique refresh indexes after reviewing read-only schema diagnostics. Does not reconcile the migration ledger."
+        required: true
+        type: boolean
+        default: false
       confirm_migration:
-        description: "Set true to apply only the official-source refresh audit-table migration after deployed code and schema checks pass. False is read-only."
+        description: "Set true only after readiness proves the complete schema matches and the only discrepancy is the missing migration-ledger row."
         required: true
         type: boolean
         default: false
@@ -230,11 +235,6 @@ jobs:
                     exit(0);
                 }
 
-                $repairPlan = [
-                    'official_refresh_source_idx' => ['source_id'],
-                    'official_refresh_observation_idx' => ['source_change_observation_id'],
-                    'official_refresh_canonical_field_idx' => ['canonical_type', 'canonical_id', 'field_name'],
-                ];
                 $applied = [];
                 foreach ($repairable as $name => $columns) {
                     $schema::table($table, static function (\\Illuminate\\Database\\Schema\\Blueprint $blueprint) use ($name, $columns): void {
