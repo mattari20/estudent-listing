@@ -65,6 +65,16 @@ Production safety: read-only diagnostics first. No destructive data operation or
   9. [ ] Update this tracker and persistent resume comment with exact commit/run IDs; keep Step 1 blocked until all applicable criteria are verified.
 - No production database writes, canonical-data changes, deletion, migration, or deployment performed. **Step 1 remains BLOCKED / NOT CLOSED; Step 2 must not begin.**
 
+
+**Post-merge Step 1 resume reliability follow-up (2026-10-27):**
+- PR #834 merged successfully at `1eb564a35b078f1a44f110c01d8ae1369db7f669`. Exact-head Laravel CI #1692, Test #1924, and Project Controller run #29 passed: [Laravel CI](https://github.com/mattari20/estudent-listing/actions/runs/40465473581), [Test](https://github.com/mattari20/estudent-listing/actions/runs/40465473309), [Controller](https://github.com/mattari20/estudent-listing/actions/runs/40465473249). Post-merge Laravel CI, Hostinger read-only diagnostics, controller, and frontend build also passed on the merge commit: runs #40465583719, #40465583671, #40465583664, and #40465583657.
+- PR #827 was closed as superseded after #834 integrated the current tracker/checklist. No force merge was used.
+- PR #833 exposed additional, related reliability work for paginated issue-comment state restoration, JSON-object validation/round-trip, and fail-closed handling of non-text commands. Its controller/Laravel/Test checks passed on its own head, but its command-orchestrator push workflow failed because that branch did not yet contain the report-directory fix from #834. To avoid merging a stale conflicting branch, these code/test changes are being consolidated onto current `main` in branch `fix/step1-resume-state-reliability`; the merged workflow's `mkdir -p controller-report` fix is retained, and the condition uses the existing supported exact command matching (no unsupported expression function). This consolidated follow-up must pass all applicable checks before merge.
+- The safe `Continue` comment was posted to merged PR #834 (comment ID `6435976092`). The connector's recent-run listing has not yet exposed a new `issue_comment` run or state-marker response; trigger/state round-trip is not yet verified.
+- Current main commit is `1eb564a35b078f1a44f110c01d8ae1369db7f669`. Main ruleset `25936221` remains confirmed active with required context exactly `test`, strict policy false, deletion/non-fast-forward protections, and no bypass actors. Legacy branch-protection endpoint remains inaccessible to the GitHub App (403).
+- Public monitor changes are deployed to `main` as part of #834, but a post-merge public monitor result must still be inspected. If no verified detail link is available from the live listing, the monitor must explicitly report the missing-data blocker; canonical records must not be fabricated.
+- **Step 1 remains BLOCKED / NOT CLOSED.** Next: run exact-head CI on the consolidated resume-reliability follow-up, merge only after checks pass, issue a safe comment to trigger the merged orchestrator, verify state persistence/artifact/gate output, inspect the post-merge public monitor, and update this tracker with exact run evidence. Do not start Step 2.
+
 ### Step 2 — Deployment, Database Schema & Migration Integrity
 **Target:** Prove which revision is deployed and document the live schema/migration state without risking data.
 
