@@ -69,7 +69,7 @@ def local_governance(root: Path) -> dict[str, Any]:
         "tracker_step1_blocker_text_present": stale_blocker,
         "protocol_requires_verified_completion": (
             "mandatory test" in protocol.lower()
-            and "Do not report 100%" in protocol
+            and "Never report 100%" in protocol
             and "Do not start the next Step" in protocol
         ),
     }
