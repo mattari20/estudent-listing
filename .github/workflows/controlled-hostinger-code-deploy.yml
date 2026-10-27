@@ -68,56 +68,93 @@ jobs:
             PREVIOUS_REVISION="$(git rev-parse HEAD)"
             echo "current_revision=$PREVIOUS_REVISION"
             echo "target_revision=$TARGET_REVISION"
-            if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+            if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
               echo "ERROR: tracked working-tree changes found; refusing deployment"
               exit 4
             fi
-            # If the deployed checkout already equals the target SHA resolved from origin/main,
-            # skip the unnecessary network fetch. Otherwise validate/fetch the target below.
-            if [ "$PREVIOUS_REVISION" != "$TARGET_REVISION" ]; then
-            # Hostinger checkouts may have a shallow object database. Fetch full main
-            # history before validating the target; never checkout an unverified SHA.
+            # Git commit IDs are not application-code identities: main may advance via
+            # workflow/docs-only commits. Compare deployed application-path content to target.
             if [ -f .git/shallow ]; then
-              git fetch --quiet --no-tags --unshallow origin main
+              git fetch --quiet --no-tags --unshallow origin main || {
+                echo "ERROR: unable to obtain history for application-code verification"
+                exit 4
+              }
             else
-              git fetch --quiet --no-tags origin main
-            fi
-            if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
-              # Explicitly fetch the approved target if it is still absent. This is
-              # read-only; actual checkout remains behind confirm_deployment=true.
-              git fetch --quiet --no-tags origin "$TARGET_REVISION" || {
-                echo "ERROR: target revision could not be fetched from origin"
+              git fetch --quiet --no-tags origin main || {
+                echo "ERROR: unable to fetch origin/main for application-code verification"
                 exit 4
               }
             fi
-            git cat-file -e "$TARGET_REVISION^{commit}" || { echo "ERROR: target revision object is unavailable after fetch"; exit 4; }
-            git fetch --quiet --no-tags origin main
-            git merge-base --is-ancestor "$TARGET_REVISION" FETCH_HEAD || { echo "ERROR: target revision is not reachable from origin/main"; exit 4; }
+            if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
+              git fetch --quiet --no-tags origin "$TARGET_REVISION" || {
+                echo "ERROR: target application revision could not be fetched"
+                exit 4
+              }
             fi
+            git cat-file -e "$TARGET_REVISION^{commit}" || { echo "ERROR: approved target commit unavailable"; exit 4; }
+            git fetch --quiet --no-tags origin main || { echo "ERROR: unable to refresh origin/main"; exit 4; }
+            git merge-base --is-ancestor "$TARGET_REVISION" FETCH_HEAD || {
+              echo "ERROR: approved target is not reachable from origin/main"
+              exit 4
+            }
+            APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
+            if ! git diff --quiet HEAD -- $APP_CODE_PATHS ||
+               ! git diff --cached --quiet HEAD -- $APP_CODE_PATHS; then
+              echo "ERROR: tracked application-code modifications exist in the Hostinger working tree/index"
+              exit 4
+            fi
+            APPLICATION_CODE_MATCH=false
+            if git diff --quiet "$TARGET_REVISION" "$PREVIOUS_REVISION" -- $APP_CODE_PATHS; then
+              APPLICATION_CODE_MATCH=true
+            fi
+            DID_DEPLOY=false
+            echo "current_git_revision=$PREVIOUS_REVISION"
+            echo "target_application_revision=$TARGET_REVISION"
+            echo "application_code_parity=$APPLICATION_CODE_MATCH"
+
             if [ "$CONFIRM_DEPLOYMENT" != "true" ]; then
-              echo "deployment_status=DRY_RUN_PREFLIGHT_PASSED"
-              echo "No application files were changed. Rerun manually with confirm_deployment=true to deploy."
+              echo "deployment_status=NOT_DEPLOYED_DRY_RUN"
+              if [ "$APPLICATION_CODE_MATCH" = true ]; then
+                echo "dry_run_result=APPLICATION_CODE_ALREADY_ALIGNED"
+              else
+                echo "dry_run_result=APPLICATION_CODE_DEPLOYMENT_REQUIRED"
+              fi
+              echo "No application files were changed."
               exit 0
             fi
-            echo "deployment_status=DEPLOYMENT_CONFIRMED"
-            if ! git checkout --detach "$TARGET_REVISION"; then
-              git checkout --detach "$PREVIOUS_REVISION" >/dev/null 2>&1 || true
-              echo "ERROR: checkout failed; attempted to restore previous revision"
-              exit 5
+            if [ "$APPLICATION_CODE_MATCH" = false ]; then
+              echo "deployment_status=DEPLOYMENT_CONFIRMED"
+              if ! git checkout --detach "$TARGET_REVISION"; then
+                git checkout --detach "$PREVIOUS_REVISION" >/dev/null 2>&1 || true
+                echo "ERROR: checkout failed; attempted to restore previous revision"
+                exit 5
+              fi
+              DID_DEPLOY=true
+            else
+              echo "No checkout required: application-code content already matches target."
             fi
+
             if ! php artisan --version; then
               git checkout --detach "$PREVIOUS_REVISION" >/dev/null 2>&1 || true
               echo "ERROR: Laravel bootstrap smoke test failed; attempted rollback"
               exit 6
             fi
             DEPLOYED_REVISION="$(git rev-parse HEAD)"
-            if [ "$DEPLOYED_REVISION" != "$TARGET_REVISION" ]; then
+            if ! git diff --quiet "$TARGET_REVISION" "$DEPLOYED_REVISION" -- $APP_CODE_PATHS ||
+               ! git diff --quiet HEAD -- $APP_CODE_PATHS ||
+               ! git diff --cached --quiet HEAD -- $APP_CODE_PATHS; then
               git checkout --detach "$PREVIOUS_REVISION" >/dev/null 2>&1 || true
-              echo "ERROR: deployed revision did not match target; attempted rollback"
+              echo "ERROR: deployed application code failed independent content-parity verification; attempted rollback"
               exit 7
             fi
-            echo "deployment_status=CODE_DEPLOYED"
-            echo "deployed_revision=$DEPLOYED_REVISION"
+            echo "application_code_parity=VERIFIED"
+            if [ "$DID_DEPLOY" = true ]; then
+              echo "deployment_status=CODE_DEPLOYED_AND_VERIFIED"
+            else
+              echo "deployment_status=APPLICATION_CODE_ALREADY_ALIGNED_AND_VERIFIED"
+            fi
+            echo "deployed_git_revision=$DEPLOYED_REVISION"
+            echo "verified_target_application_revision=$TARGET_REVISION"
             echo "=== Run read-only Step 3 live offering preflight ==="
             if ! php artisan institutes:offering-gap-preflight --json --no-ansi; then
               git checkout --detach "$PREVIOUS_REVISION" >/dev/null 2>&1 || true

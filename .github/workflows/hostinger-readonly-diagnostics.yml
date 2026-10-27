@@ -179,17 +179,31 @@ jobs:
               echo "expected_application_revision=$EXPECTED_REVISION"
               # Compare deployed application paths, not full commit IDs. Documentation-only
               # commits can advance main without requiring an application deployment.
-              # Some Hostinger checkouts retain only the deployed commit. Fetch the
-              # expected public Git commit into local Git metadata before comparing.
-              if ! git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
-                git fetch --quiet --no-tags origin "$EXPECTED_REVISION" || true
+              # Use the same fail-closed content comparison as discovery/deployment.
+              # A shallow checkout can make a docs-only tip look like an application revision.
+              if [ -f .git/shallow ]; then
+                git fetch --quiet --no-tags --unshallow origin main || DEPLOYMENT_DRIFT=1
+              else
+                git fetch --quiet --no-tags origin main || DEPLOYMENT_DRIFT=1
               fi
-              if git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null &&
-                git diff --quiet "$EXPECTED_REVISION" "$DEPLOYED_REVISION" -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
+              if ! git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
+                git fetch --quiet --no-tags origin "$EXPECTED_REVISION" || DEPLOYMENT_DRIFT=1
+              fi
+              git fetch --quiet --no-tags origin main || DEPLOYMENT_DRIFT=1
+              APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
+              if [ "$DEPLOYMENT_DRIFT" -eq 0 ] &&
+                git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null &&
+                git merge-base --is-ancestor "$EXPECTED_REVISION" FETCH_HEAD &&
+                git diff --quiet "$EXPECTED_REVISION" "$DEPLOYED_REVISION" -- $APP_CODE_PATHS &&
+                git diff --quiet HEAD -- $APP_CODE_PATHS &&
+                git diff --cached --quiet HEAD -- $APP_CODE_PATHS; then
                 echo "deployment_revision_status=APPLICATION_CODE_MATCH"
+                echo "application_code_parity=match"
+                echo "application_code_parity_method=git_diff_target_vs_deployed_paths"
                 DEPLOYMENT_DRIFT=0
               else
                 echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
+                echo "application_code_parity=mismatch_or_unverifiable"
                 DEPLOYMENT_DRIFT=1
               fi
             else
