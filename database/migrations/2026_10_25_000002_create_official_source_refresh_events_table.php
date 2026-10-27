@@ -93,13 +93,16 @@ return new class extends Migration
         foreach (Schema::getIndexes(self::TABLE) as $index) {
             $name = $index['name'] ?? null;
             if (is_string($name) && $name !== '') {
-                $existingIndexes[$name] = array_values($index['columns'] ?? []);
+                $existingIndexes[$name] = [
+                    'columns' => array_values($index['columns'] ?? []),
+                    'unique' => (bool) ($index['unique'] ?? false),
+                ];
             }
         }
 
         $missing = [];
         foreach (self::REQUIRED_INDEXES as $name => $columns) {
-            if (($existingIndexes[$name] ?? null) !== $columns) {
+            if (($existingIndexes[$name] ?? null) !== ['columns' => $columns, 'unique' => false]) {
                 $missing[$name] = $columns;
             }
         }

@@ -18,6 +18,38 @@ class InstituteAgentBootstrapTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_one_official_source_http_403_does_not_prevent_independent_profile_discovery(): void
+    {
+        Institution::create([
+            'name' => 'Government College University Lahore',
+            'slug' => 'government-college-university-lahore',
+        ]);
+
+        Http::fake([
+            'https://www.hec.gov.pk/english/universities/Pages/Punjab/Government-College-University%2C-Lahore.aspx' => Http::response('Forbidden', 403),
+            'https://gcu.edu.pk/admissions.php?pg=bs-program' => Http::response(
+                '<html><body><main><h2>Academic Programs</h2><a href="/biology">Biology</a></main></body></html>',
+                200,
+                ['Content-Type' => 'text/html']
+            ),
+        ]);
+
+        $this->artisan('institutes:bootstrap-agent')
+            ->expectsOutputToContain('not evidence that the institution or program does not exist')
+            ->assertExitCode(1);
+
+        $failedSource = Source::query()
+            ->where('url', 'https://www.hec.gov.pk/english/universities/Pages/Punjab/Government-College-University%2C-Lahore.aspx')
+            ->firstOrFail();
+        $successfulSource = Source::query()
+            ->where('url', 'https://gcu.edu.pk/admissions.php?pg=bs-program')
+            ->firstOrFail();
+
+        $this->assertSame(0, SourceSnapshot::query()->where('source_id', $failedSource->id)->count());
+        $this->assertSame(1, SourceSnapshot::query()->where('source_id', $successfulSource->id)->count());
+        $this->assertSame(1, ImportBatch::query()->where('source_id', $successfulSource->id)->count());
+    }
+
     public function test_bootstrap_registers_source_policy_and_performs_initial_discovery_once(): void
     {
         Institution::create([
