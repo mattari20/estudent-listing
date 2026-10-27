@@ -26,6 +26,11 @@ class InstituteAgentBootstrapTest extends TestCase
         ]);
 
         Http::fake([
+            'https://gcu.edu.pk/' => Http::response(
+                '<html><head><title>GC University Lahore</title></head><body><p>Government College University Lahore is a public university.</p></body></html>',
+                200,
+                ['Content-Type' => 'text/html']
+            ),
             'https://gcu.edu.pk/admissions.php?pg=bs-program' => Http::response(
                 '<html><body><a href="/x">Bachelor of Computer Science</a><a href="/y">Bachelor of Artificial Intelligence</a></body></html>',
                 200,
@@ -84,7 +89,7 @@ class InstituteAgentBootstrapTest extends TestCase
         $this->artisan('institutes:bootstrap-agent', ['--profile' => ['gcu-lahore-programs']])->assertExitCode(0);
         $latest = ImportBatch::query()->where('source_id', $source->id)->latest('id')->firstOrFail();
         $this->assertSame(2, (int) $latest->total_rows);
-        $this->assertStringContainsString('discovery_extractor_version=4', $latest->notes);
+        $this->assertStringContainsString('discovery_extractor_version=5', $latest->notes);
     }
 
     public function test_bootstrap_does_not_repeat_a_current_version_empty_discovery(): void
