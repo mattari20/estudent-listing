@@ -79,20 +79,36 @@ jobs:
             DEPLOYED_REVISION="$(git rev-parse HEAD)"
             echo "deployed_revision=$DEPLOYED_REVISION"
             echo "expected_application_revision=$TARGET_REVISION"
-            # Hostinger can have an incomplete Git object database even when HEAD is
-            # correct. Fetch remote main objects without changing the deployed worktree.
+            # Hostinger's Git metadata may contain a HEAD commit without the target
+            # commit's full object graph. First try the configured remote's main branch;
+            # then request the exact approved commit by SHA. Fetching only adds Git objects
+            # and does not checkout, reset, or overwrite deployed application files.
             if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
               git remote get-url origin >/dev/null 2>&1 || {
                 echo "ERROR: target commit is absent and no origin remote is configured; cannot verify safely"
                 exit 5
               }
-              git fetch --no-tags origin main || {
-                echo "ERROR: unable to fetch origin/main to verify the approved application revision"
+              if ! git fetch --no-tags origin main 2>&1; then
+                echo "WARNING: fetch of origin/main failed; attempting exact approved commit fetch"
+              fi
+            fi
+            if ! git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null; then
+              if ! git fetch --no-tags origin "$TARGET_REVISION" 2>&1; then
+                echo "ERROR: exact approved commit fetch failed; cannot verify deployed application safely"
                 exit 5
-              }
+              fi
             fi
             git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || {
-              echo "ERROR: approved application revision is still unavailable after fetching origin/main"
+              echo "ERROR: approved application commit object remains unavailable after branch and exact-SHA fetches"
+              exit 5
+            }
+            # Confirm the fetched commit is reachable from the approved main history.
+            git fetch --no-tags origin main 2>&1 || {
+              echo "ERROR: unable to refresh origin/main for approved-target reachability verification"
+              exit 5
+            }
+            git merge-base --is-ancestor "$TARGET_REVISION" FETCH_HEAD || {
+              echo "ERROR: approved target commit is not reachable from origin/main; migration blocked"
               exit 5
             }
             if ! git diff --quiet "$TARGET_REVISION" "$DEPLOYED_REVISION" -- app bootstrap config database resources routes composer.json composer.lock public artisan; then
