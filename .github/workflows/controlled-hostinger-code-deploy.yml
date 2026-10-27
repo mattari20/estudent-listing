@@ -68,7 +68,7 @@ jobs:
             PREVIOUS_REVISION="$(git rev-parse HEAD)"
             echo "current_revision=$PREVIOUS_REVISION"
             echo "target_revision=$TARGET_REVISION"
-            if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+            if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
               echo "ERROR: tracked working-tree changes found; refusing deployment"
               exit 4
             fi
@@ -107,6 +107,7 @@ jobs:
             if git diff --quiet "$TARGET_REVISION" "$PREVIOUS_REVISION" -- $APP_CODE_PATHS; then
               APPLICATION_CODE_MATCH=true
             fi
+            DID_DEPLOY=false
             echo "current_git_revision=$PREVIOUS_REVISION"
             echo "target_application_revision=$TARGET_REVISION"
             echo "application_code_parity=$APPLICATION_CODE_MATCH"
@@ -128,6 +129,7 @@ jobs:
                 echo "ERROR: checkout failed; attempted to restore previous revision"
                 exit 5
               fi
+              DID_DEPLOY=true
             else
               echo "No checkout required: application-code content already matches target."
             fi
@@ -146,7 +148,11 @@ jobs:
               exit 7
             fi
             echo "application_code_parity=VERIFIED"
-            echo "deployment_status=CODE_DEPLOYED_AND_VERIFIED"
+            if [ "$DID_DEPLOY" = true ]; then
+              echo "deployment_status=CODE_DEPLOYED_AND_VERIFIED"
+            else
+              echo "deployment_status=APPLICATION_CODE_ALREADY_ALIGNED_AND_VERIFIED"
+            fi
             echo "deployed_git_revision=$DEPLOYED_REVISION"
             echo "verified_target_application_revision=$TARGET_REVISION"
             echo "=== Run read-only Step 3 live offering preflight ==="
