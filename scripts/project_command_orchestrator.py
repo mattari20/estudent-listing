@@ -11,9 +11,12 @@ STEPS = {
 }
 ALLOWED={"continue","resume","move to step 2","move to step 3"}
 def parse_command(value):
+ if not isinstance(value, str):
+  return {"valid":False,"command":"","error":"Command must be plain text."}
  c=re.sub(r"\s+"," ",value.strip().lower())
  if c not in ALLOWED: return {"valid":False,"command":c,"error":"Use Continue, Resume, Move to Step 2, or Move to Step 3."}
  return {"valid":True,"command":c,"requested_step":int(c[-1]) if c.startswith("move to step ") else None}
+
 def evaluate(root, command, previous=None):
  p=parse_command(command)
  if not p["valid"]: return {**p,"decision":"STOP","reason":p["error"]}
