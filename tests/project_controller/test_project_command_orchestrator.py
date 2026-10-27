@@ -20,8 +20,8 @@ class Tests(unittest.TestCase):
   with d:
    p=r/"docs/PROJECT_MASTER_TRACKER.md"
    t=p.read_text()
-   t=t.replace("### Step 3 — Data Integrity, Verification & Duplicate Audit\\n**Completion gate:** NOT YET",
-               "### Step 3 — Data Integrity, Verification & Duplicate Audit\\n**Completion gate:** PASS\\n**Step 3 closeout status: PASS",1)
+   t=t.replace("### Step 3 — Data Integrity, Verification & Duplicate Audit\n**Completion gate:** NOT YET",
+               "### Step 3 — Data Integrity, Verification & Duplicate Audit\n**Completion gate:** PASS\n**Step 3 closeout status: PASS",1)
    p.write_text(t)
    result=o.evaluate(r,"Move to Step 3")
    self.assertEqual(result["decision"],"STOP")
@@ -30,8 +30,8 @@ class Tests(unittest.TestCase):
   d,r=self.fixture()
   with d:
    p=r/"docs/PROJECT_MASTER_TRACKER.md"
-   t=p.read_text().replace("### Step 1 — Foundation, Access & Automation Readiness\\n**Completion gate:** NOT YET",
-                           "### Step 1 — Foundation, Access & Automation Readiness\\n**Completion gate:** PASS\\n**Step 1 closeout status: PASS WITH BLOCKED ITEMS",1)
+   t=p.read_text().replace("### Step 1 — Foundation, Access & Automation Readiness\n**Completion gate:** NOT YET",
+                           "### Step 1 — Foundation, Access & Automation Readiness\n**Completion gate:** PASS\n**Step 1 closeout status: PASS WITH BLOCKED ITEMS",1)
    p.write_text(t)
    result=o.evaluate(r,"Move to Step 2")
    self.assertEqual(result["decision"],"STOP")
