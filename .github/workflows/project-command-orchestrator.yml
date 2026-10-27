@@ -1,0 +1,110 @@
+name: Institutes Directory Command Orchestrator
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "Continue, Resume, Move to Step 2, or Move to Step 3"
+        required: true
+        type: choice
+        options: [Continue, Resume, Move to Step 2, Move to Step 3]
+      issue_number:
+        description: "Optional issue/PR number for persistent resume state"
+        required: false
+        type: string
+  issue_comment:
+    types: [created]
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+  issues: write
+concurrency:
+  group: institutes-directory-command-orchestrator
+  cancel-in-progress: false
+jobs:
+  command:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' &&
+       contains(fromJSON('["Continue","continue","Resume","resume","Move to Step 2","move to step 2","Move to Step 3","move to step 3"]'), github.event.comment.body))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Resolve command and state target
+        id: cmd
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_COMMAND: ${{ inputs.command }}
+          INPUT_ISSUE: ${{ inputs.issue_number }}
+          COMMENT: ${{ github.event.comment.body }}
+          COMMENT_ISSUE: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT" == issue_comment ]]; then c="$(printf '%s' "$COMMENT" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"; i="$COMMENT_ISSUE"; else c="$INPUT_COMMAND"; i="$INPUT_ISSUE"; fi
+          echo "value=$c" >> "$GITHUB_OUTPUT"; echo "issue=$i" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'issue_comment' && github.event.repository.default_branch || github.ref_name }}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - name: Restore persistent state from issue/PR comment
+        if: steps.cmd.outputs.issue != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE: ${{ steps.cmd.outputs.issue }}
+        run: |
+          gh api "repos/$GH_REPO/issues/$ISSUE/comments?per_page=100" --paginate |
+            python -c 'import json,sys; a=json.load(sys.stdin); x=[c for c in a if "<!-- institutes-project-controller-state -->" in c.get("body","")]; print(x[-1]["body"].split("<!-- institutes-project-controller-state -->",1)[1].split("<!-- end-state -->",1)[0].strip() if x else "{}")' > controller-state.json
+          python -c 'import json; json.load(open("controller-state.json"))'
+      - name: Initialize empty state
+        if: steps.cmd.outputs.issue == ''
+        run: echo '{}' > controller-state.json
+      - name: Enforce current step gate
+        id: gate
+        env: {COMMAND: ${{ steps.cmd.outputs.value }}}
+        run: |
+          set +e
+          python scripts/project_command_orchestrator.py --command "$COMMAND" --state-file controller-state.json --output controller-report/command-state.json > controller-report/command-state.stdout.json
+          rc=$?; set -e; echo "exit_code=$rc" >> "$GITHUB_OUTPUT"; cat controller-report/command-state.stdout.json
+          [[ "$rc" == 3 ]] && exit 0
+          exit "$rc"
+      - name: Run supported controller tests and smoke checks
+        if: steps.gate.outputs.exit_code == '0'
+        run: |
+          python -m unittest discover -s tests/project_controller -v
+          python -m unittest discover -s tests/project_controller -p 'test_project_command_orchestrator.py' -v
+          python scripts/project_controller.py --offline --output-dir controller-report/offline-smoke
+      - name: Run read-only GitHub inventory
+        if: steps.gate.outputs.exit_code == '0'
+        env: {GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}, GITHUB_REPOSITORY: ${{ github.repository }}}
+        run: python scripts/project_controller.py --output-dir controller-report/live
+      - name: Persist resume point in issue/PR comment
+        if: always() && steps.cmd.outputs.issue != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE: ${{ steps.cmd.outputs.issue }}
+          COMMAND: ${{ steps.cmd.outputs.value }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path("controller-report/command-state.json")
+          r=json.loads(p.read_text()) if p.exists() else {"decision":"STOP","resume_point":"Inspect workflow logs","reason":"No command report was produced."}
+          r.update(last_command=os.environ["COMMAND"],workflow_run=os.environ["RUN_URL"])
+          Path("persisted-state.json").write_text(json.dumps(r,indent=2))
+          PY
+          body="$(printf '<!-- institutes-project-controller-state -->\\n%s\\n<!-- end-state -->\\n\\nLast command: %s\\nWorkflow: %s' "$(cat persisted-state.json)" "$COMMAND" "$RUN_URL")"
+          comments="$(gh api "repos/$GH_REPO/issues/$ISSUE/comments?per_page=100" --paginate)"
+          id="$(printf '%s' "$comments" | python -c 'import json,sys; a=json.load(sys.stdin); x=[c for c in a if "<!-- institutes-project-controller-state -->" in c.get("body","")]; print(x[-1]["id"] if x else "")')"
+          if [[ -n "$id" ]]; then gh api --method PATCH "repos/$GH_REPO/issues/comments/$id" -f body="$body" >/dev/null; else gh api --method POST "repos/$GH_REPO/issues/$ISSUE/comments" -f body="$body" >/dev/null; fi
+      - name: Upload report and resume state
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: institutes-command-orchestration-${{ github.run_id }}
+          path: controller-report/
+          if-no-files-found: warn
+          retention-days: 90
