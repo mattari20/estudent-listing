@@ -58,8 +58,13 @@ class SourceChangeDiscoveryService
 
             $useAi = (bool) ($definition['monitoring']['use_ai'] ?? false);
             try {
-                $summary = app(InstituteDiscoveryAgentService::class)
-                    ->runFromSnapshot($profileKey, $snapshot, $useAi);
+                if (($definition['entity_type'] ?? 'program') === 'institution') {
+                    $summary = app(InstituteIdentityDiscoveryService::class)
+                        ->runFromSnapshot($profileKey, $snapshot, $definition);
+                } else {
+                    $summary = app(InstituteDiscoveryAgentService::class)
+                        ->runFromSnapshot($profileKey, $snapshot, $useAi);
+                }
             } catch (Throwable $exception) {
                 $this->record($base + [
                     'profile_key' => $profileKey,
