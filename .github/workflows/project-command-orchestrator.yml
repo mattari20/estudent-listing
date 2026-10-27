@@ -13,6 +13,8 @@ on:
         type: string
   issue_comment:
     types: [created]
+  push:
+    branches: [main]
 permissions:
   contents: read
   actions: read
@@ -25,6 +27,7 @@ jobs:
   command:
     if: >-
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
       (github.event_name == 'issue_comment' &&
        (github.event.comment.body == 'Continue' || github.event.comment.body == 'continue' || github.event.comment.body == 'Resume' || github.event.comment.body == 'resume' || github.event.comment.body == 'Move to Step 2' || github.event.comment.body == 'move to step 2' || github.event.comment.body == 'Move to Step 3' || github.event.comment.body == 'move to step 3'))
     runs-on: ubuntu-latest
@@ -40,7 +43,13 @@ jobs:
           COMMENT_ISSUE: ${{ github.event.issue.number }}
         run: |
           set -euo pipefail
-          if [[ "$EVENT" == issue_comment ]]; then c="$(printf '%s' "$COMMENT" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"; i="$COMMENT_ISSUE"; else c="$INPUT_COMMAND"; i="$INPUT_ISSUE"; fi
+          if [[ "$EVENT" == issue_comment ]]; then
+            c="$(printf '%s' "$COMMENT" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"; i="$COMMENT_ISSUE"
+          elif [[ "$EVENT" == push ]]; then
+            c="Continue"; i=""
+          else
+            c="$INPUT_COMMAND"; i="$INPUT_ISSUE"
+          fi
           echo "value=$c" >> "$GITHUB_OUTPUT"; echo "issue=$i" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
