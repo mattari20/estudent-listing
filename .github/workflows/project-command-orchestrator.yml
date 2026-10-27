@@ -105,6 +105,7 @@ jobs:
           print(json.dumps({"restored_state_valid": True, "has_resume_point": isinstance(state.get("resume_point"), str)}))
           PY
       - name: Enforce current step gate
+        if: steps.cmd.outputs.accepted == 'true'
         id: gate
         env: {COMMAND: ${{ steps.cmd.outputs.value }}}
         run: |
