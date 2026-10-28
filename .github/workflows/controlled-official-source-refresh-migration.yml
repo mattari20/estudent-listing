@@ -103,14 +103,16 @@ jobs:
               exit 5
             fi
             echo "git_shallow_path=$SHALLOW_PATH"
-            if [ -n "$SHALLOW_PATH" ] && [ -f "$SHALLOW_PATH" ]; then SHALLOW_FILE_PRESENT=true; else SHALLOW_FILE_PRESENT=false; fi
-            echo "git_shallow_file_present=$SHALLOW_FILE_PRESENT"
             BOOTSTRAP_REF=refs/remotes/origin/step1-bootstrap-main
-            if [ "$SHALLOW_FILE_PRESENT" = true ]; then
+            # Keep file detection and fetch selection in one explicit conditional.
+            # This avoids relying on a boolean string to control strict-mode shell flow.
+            if [ -n "$SHALLOW_PATH" ] && [ -f "$SHALLOW_PATH" ]; then
+              echo "git_shallow_file_present=true"
               echo "hostinger_git_shallow=true"
               echo "diagnostic_checkpoint=before_unshallow_fetch"
               if git fetch --unshallow --no-tags origin "main:$BOOTSTRAP_REF"; then BOOTSTRAP_FETCH_STATUS=0; else BOOTSTRAP_FETCH_STATUS=$?; fi
             else
+              echo "git_shallow_file_present=false"
               echo "hostinger_git_shallow=false"
               echo "diagnostic_checkpoint=before_main_fetch"
               if git fetch --no-tags origin "main:$BOOTSTRAP_REF"; then BOOTSTRAP_FETCH_STATUS=0; else BOOTSTRAP_FETCH_STATUS=$?; fi
