@@ -137,6 +137,32 @@ jobs:
 
 
             export CONFIRM_MIGRATION
+            export PROJECT_PATH
+            echo "diagnostic_checkpoint=php_runtime_preflight"
+            if PHP_VERSION_OUTPUT="$(php -r 'fwrite(STDOUT, PHP_VERSION);' 2>/dev/null)"; then
+              echo "php_cli_preflight_status=0"
+              echo "php_cli_version=$PHP_VERSION_OUTPUT"
+            else
+              PHP_PREFLIGHT_STATUS=$?
+              echo "php_cli_preflight_status=$PHP_PREFLIGHT_STATUS"
+              echo "ERROR: remote PHP CLI preflight failed; schema inspection blocked"
+              exit 30
+            fi
+            if php -r 'fwrite(STDOUT, "php_minimal_execution=ok".PHP_EOL);' 2>/dev/null; then
+              echo "php_minimal_execution_status=0"
+            else
+              PHP_PREFLIGHT_STATUS=$?
+              echo "php_minimal_execution_status=$PHP_PREFLIGHT_STATUS"
+              echo "ERROR: remote PHP CLI cannot execute a minimal script; schema inspection blocked"
+              exit 30
+            fi
+            if [ -f "$PROJECT_PATH/vendor/autoload.php" ] && [ -f "$PROJECT_PATH/bootstrap/app.php" ]; then
+              echo "laravel_bootstrap_files_present=true"
+            else
+              echo "laravel_bootstrap_files_present=false"
+              echo "ERROR: required Laravel bootstrap files are missing; schema inspection blocked"
+              exit 31
+            fi
             echo "diagnostic_checkpoint=before_php_program"
             if php <<'PHP'
             <?php
@@ -156,10 +182,15 @@ jobs:
             fwrite(STDERR, "diagnostic_checkpoint=php_program_started".PHP_EOL);
             $diagnosticStage = 'composer_autoload';
             fwrite(STDERR, "diagnostic_checkpoint=composer_autoload".PHP_EOL);
-            require __DIR__.'/vendor/autoload.php';
+            $projectPath = getenv('PROJECT_PATH');
+            if (! is_string($projectPath) || $projectPath === '') {
+                fwrite(STDERR, "ERROR: project path unavailable to PHP diagnostic.".PHP_EOL);
+                exit(32);
+            }
+            require rtrim($projectPath, '/').'/vendor/autoload.php';
             $diagnosticStage = 'laravel_bootstrap';
             fwrite(STDERR, "diagnostic_checkpoint=laravel_bootstrap".PHP_EOL);
-            $app = require __DIR__.'/bootstrap/app.php';
+            $app = require rtrim($projectPath, '/').'/bootstrap/app.php';
             $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
             fwrite(STDERR, "diagnostic_checkpoint=laravel_bootstrap_complete".PHP_EOL);
             $diagnosticStage = 'schema_preflight';
