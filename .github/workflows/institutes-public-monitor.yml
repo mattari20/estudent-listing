@@ -23,6 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
+      - name: Checkout repository for smoke-test helper
+        uses: actions/checkout@v4
+
       - name: Check public directory pages
         shell: bash
         run: |
@@ -72,31 +75,29 @@ jobs:
 
           # Check the result summary and confirm 24 per page is the selected default.
           check_url "https://estudent.pk/institutes/" 'Showing.*of.*institutions|No institutions to display' 'value="24"[^>]*selected|selected[^>]*value="24"'
-          # Resolve a detail URL from the live listing instead of assuming a
-          # particular canonical institution exists. Empty listings are a clear blocker.
+          # Resolve a detail URL from the live listing. A genuinely empty listing is
+          # a data-coverage state, not evidence that the detail route is broken.
           listing_html="$RUNNER_TEMP/institutes-listing-for-detail.html"
           listing_status="$(curl --location --silent --show-error --max-time 20 --output "$listing_html" --write-out '%{http_code}' "https://estudent.pk/institutes/" 2>"$RUNNER_TEMP/listing-curl-error.txt" || true)"
+          detail_state="MISSING_DETAIL_LINK"
           detail_path=""
           if [[ "$listing_status" == "200" && -s "$listing_html" ]]; then
-            detail_path="$(python - "$listing_html" <<'PY'
-          import re, sys
-          from html import unescape
-          from pathlib import Path
-          html = unescape(Path(sys.argv[1]).read_text(errors="replace"))
-          for href in re.findall(r'''href=["']([^"']+)["']''', html, flags=re.I):
-              match = re.fullmatch(r'(?:https://estudent\.pk)?(/institutes/([a-z0-9-]+))/?', href, flags=re.I)
-              if match and match.group(2).lower() not in {"search", "login", "setup", "automation", "sitemap", "robots"}:
-                  print(match.group(1))
-                  break
-          PY
-          )"
+            detail_result="$(python3 scripts/ci/resolve-institute-detail-link.py "$listing_html")"
+            detail_state="$(printf '%s\n' "$detail_result" | sed -n '1p')"
+            detail_path="$(printf '%s\n' "$detail_result" | sed -n '2p')"
           fi
-          if [[ -n "$detail_path" ]]; then
-            check_url "https://estudent.pk${detail_path}"
-          else
-            printf 'BLOCKED | no institution detail URL found in live listing | HTTP %s | canonical record availability must be verified; no record was created\n' "$listing_status" | tee -a "$report"
-            failures=$((failures + 1))
-          fi
+          case "$detail_state" in
+            FOUND)
+              check_url "https://estudent.pk${detail_path}"
+              ;;
+            EMPTY_DATA)
+              printf 'EMPTY_DATA | HTTP %s | listing reports no published institutions; detail route is not testable until a verified record exists\n' "$listing_status" | tee -a "$report"
+              ;;
+            *)
+              printf 'FAIL | no institution detail URL found in a non-empty or unverified listing | HTTP %s | investigate listing markup/data; no record was created\n' "$listing_status" | tee -a "$report"
+              failures=$((failures + 1))
+              ;;
+          esac
 
           {
             echo "## Institutes public-site health check"
