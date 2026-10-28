@@ -327,6 +327,92 @@ jobs:
             PHP
             echo "=== Data-gap report (read-only) ==="
             php artisan institutes:data-gap-report --json
+            echo "=== Official-source refresh schema/index/migration-ledger readiness (read-only) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+
+            $schema = \\Illuminate\\Support\\Facades\\Schema::class;
+            $db = \\Illuminate\\Support\\Facades\\DB::class;
+            $table = 'official_source_refresh_events';
+            $migration = '2026_10_25_000002_create_official_source_refresh_events_table';
+            $migrationFile = base_path('database/migrations/'.$migration.'.php');
+            $requiredColumns = [
+                'id', 'source_id', 'source_change_observation_id', 'canonical_type',
+                'canonical_id', 'field_name', 'before_value', 'after_value',
+                'evidence_url', 'evidence_excerpt', 'content_fingerprint',
+                'observed_at', 'occurred_at', 'created_at', 'updated_at',
+            ];
+            $requiredIndexes = [
+                'official_refresh_source_idx' => ['source_id'],
+                'official_refresh_observation_idx' => ['source_change_observation_id'],
+                'official_refresh_canonical_field_idx' => ['canonical_type', 'canonical_id', 'field_name'],
+            ];
+            $tableExists = $schema::hasTable($table);
+            $columnsPresent = [];
+            $missingColumns = [];
+            $indexes = [];
+            $missingIndexes = $requiredIndexes;
+            $satisfiedBy = [];
+            if ($tableExists) {
+                foreach ($requiredColumns as $column) {
+                    if ($schema::hasColumn($table, $column)) {
+                        $columnsPresent[] = $column;
+                    } else {
+                        $missingColumns[] = $column;
+                    }
+                }
+                foreach ($schema::getIndexes($table) as $index) {
+                    $name = $index['name'] ?? null;
+                    $columns = array_values($index['columns'] ?? []);
+                    $unique = (bool) ($index['unique'] ?? false);
+                    $indexes[] = ['name' => $name, 'columns' => $columns, 'unique' => $unique];
+                    if (!$unique) {
+                        foreach ($requiredIndexes as $requiredName => $requiredIndexColumns) {
+                            if ($columns === $requiredIndexColumns) {
+                                $satisfiedBy[$requiredName] = $name;
+                                unset($missingIndexes[$requiredName]);
+                            }
+                        }
+                    }
+                }
+            }
+            $ledgerTableExists = $schema::hasTable('migrations');
+            $ledgerRows = [];
+            if ($ledgerTableExists) {
+                $ledgerRows = $db::table('migrations')->where('migration', $migration)
+                    ->get(['migration', 'batch'])
+                    ->map(fn ($row) => ['migration' => $row->migration, 'batch' => (int) $row->batch])->all();
+            }
+            $schemaReady = $tableExists && $missingColumns === [] && $missingIndexes === [];
+            echo json_encode([
+                'check' => 'official_source_refresh_schema_readiness',
+                'checked_at' => now()->toIso8601String(),
+                'mutation_performed' => false,
+                'table' => $table,
+                'table_exists' => $tableExists,
+                'required_columns_present' => $columnsPresent,
+                'missing_columns' => $missingColumns,
+                'existing_indexes' => $indexes,
+                'required_non_unique_indexes' => $requiredIndexes,
+                'missing_required_indexes' => $missingIndexes,
+                'equivalent_index_satisfied_by' => $satisfiedBy,
+                'migration_file_exists' => is_file($migrationFile),
+                'migration_ledger_table_exists' => $ledgerTableExists,
+                'matching_migration_ledger_rows' => $ledgerRows,
+                'schema_ready' => $schemaReady,
+                'ledger_ready' => count($ledgerRows) > 0,
+                'next_action' => !$tableExists || $missingColumns !== []
+                    ? 'review_missing_table_or_columns_before_any_write'
+                    : ($missingIndexes !== []
+                        ? 'review_additive_index_repair_separately'
+                        : (count($ledgerRows) === 0
+                            ? 'review_ledger_only_reconciliation_separately'
+                            : 'schema_and_ledger_ready')),
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
             echo "=== Discovery profile parent validation (read-only) ==="
             php <<'PHP'
             <?php
