@@ -96,15 +96,17 @@ jobs:
             echo "diagnostic_checkpoint=after_unset_remote_url"
 
             echo "diagnostic_checkpoint=before_git_shallow_path"
-            if SHALLOW_PATH="$(git rev-parse --git-path shallow 2>&1)"; then SHALLOW_PATH_STATUS=0; else SHALLOW_PATH_STATUS=$?; SHALLOW_PATH=""; fi
+            if SHALLOW_PATH="$(git rev-parse --path-format=absolute --git-path shallow 2>&1)"; then SHALLOW_PATH_STATUS=0; else SHALLOW_PATH_STATUS=$?; SHALLOW_PATH=""; fi
             echo "git_shallow_path_status=$SHALLOW_PATH_STATUS"
             if [ "$SHALLOW_PATH_STATUS" -ne 0 ]; then
-              echo "ERROR: git rev-parse --git-path shallow failed"
+              echo "ERROR: git rev-parse --path-format=absolute --git-path shallow failed"
               exit 5
             fi
             echo "git_shallow_path=$SHALLOW_PATH"
+            if [ -n "$SHALLOW_PATH" ] && [ -f "$SHALLOW_PATH" ]; then SHALLOW_FILE_PRESENT=true; else SHALLOW_FILE_PRESENT=false; fi
+            echo "git_shallow_file_present=$SHALLOW_FILE_PRESENT"
             BOOTSTRAP_REF=refs/remotes/origin/step1-bootstrap-main
-            if [ -n "$SHALLOW_PATH" ] && [ -f "$SHALLOW_PATH" ]; then
+            if [ "$SHALLOW_FILE_PRESENT" = true ]; then
               echo "hostinger_git_shallow=true"
               echo "diagnostic_checkpoint=before_unshallow_fetch"
               if git fetch --unshallow --no-tags origin "main:$BOOTSTRAP_REF"; then BOOTSTRAP_FETCH_STATUS=0; else BOOTSTRAP_FETCH_STATUS=$?; fi
