@@ -67,5 +67,8 @@ jobs:
       - name: Validate controlled migration rendered remote script
         run: ruby scripts/ci/test-controlled-migration-workflow.rb
 
+      - name: Lint guarded production schema diagnostic
+        run: php -l scripts/ops/official-source-refresh-diagnostic.php
+
       - name: Run tests
         run: composer test
