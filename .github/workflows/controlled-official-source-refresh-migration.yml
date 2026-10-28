@@ -180,7 +180,9 @@ jobs:
               exit 31
             fi
             echo "diagnostic_checkpoint=before_php_program"
-            if php <<'PHP'
+            PHP_DIAGNOSTIC_FILE="$(mktemp "${TMPDIR:-/tmp}/estudent-schema-diagnostic.XXXXXX.php")"
+            trap 'rm -f "$VERIFY_HELPER" "$PHP_DIAGNOSTIC_FILE"' EXIT HUP INT TERM
+            if cat > "$PHP_DIAGNOSTIC_FILE" <<'PHP'
             <?php
             $diagnosticStage = 'php_program_started';
             register_shutdown_function(static function () use (&$diagnosticStage): void {
@@ -491,6 +493,26 @@ jobs:
             }
             PHP
             then
+              PHP_SOURCE_WRITE_STATUS=0
+            else
+              PHP_SOURCE_WRITE_STATUS=$?
+            fi
+            echo "php_diagnostic_source_write_status=$PHP_SOURCE_WRITE_STATUS"
+            if [ "$PHP_SOURCE_WRITE_STATUS" -ne 0 ]; then
+              echo "ERROR: unable to prepare the guarded PHP diagnostic file"
+              exit 32
+            fi
+            echo "diagnostic_checkpoint=php_source_syntax_check"
+            if php -l "$PHP_DIAGNOSTIC_FILE" >/dev/null 2>&1; then
+              echo "php_diagnostic_syntax_status=0"
+            else
+              PHP_SYNTAX_STATUS=$?
+              echo "php_diagnostic_syntax_status=$PHP_SYNTAX_STATUS"
+              echo "ERROR: guarded PHP diagnostic has a syntax error; schema inspection blocked"
+              exit 33
+            fi
+            echo "diagnostic_checkpoint=php_program_execution"
+            if php "$PHP_DIAGNOSTIC_FILE"; then
               PHP_EXIT_STATUS=0
             else
               PHP_EXIT_STATUS=$?
