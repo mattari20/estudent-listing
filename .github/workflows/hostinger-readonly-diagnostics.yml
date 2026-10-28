@@ -332,10 +332,10 @@ jobs:
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
-            $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+            $app->make(\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
 
-            $schema = \\Illuminate\\Support\\Facades\\Schema::class;
-            $db = \\Illuminate\\Support\\Facades\\DB::class;
+            $schema = \Illuminate\\Support\\Facades\\Schema::class;
+            $db = \Illuminate\\Support\\Facades\\DB::class;
             $table = 'official_source_refresh_events';
             $migration = '2026_10_25_000002_create_official_source_refresh_events_table';
             $migrationFile = base_path('database/migrations/'.$migration.'.php');
