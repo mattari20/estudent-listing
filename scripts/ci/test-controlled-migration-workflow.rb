@@ -87,7 +87,7 @@ abort 'ERROR: exception messages must never be written to workflow logs' if
   script.match?(/getPrevious\s*\(/) && script.match?(/exception.*message/i)
 abort 'ERROR: migration exception handler must suppress exception details' unless
   script.include?('ERROR: targeted migration threw an exception (details suppressed).') &&
-  script.include?('diagnostic_exception_type=')
+  !script.include?('diagnostic_exception_type=')
 
 abort 'ERROR: PHP failure-stage diagnostics are missing' unless
   script.include?('php_shutdown_fatal=true stage=') &&
