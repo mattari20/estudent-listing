@@ -81,7 +81,13 @@ abort 'ERROR: PHP failure-stage diagnostics are missing' unless
   script.include?('diagnostic_checkpoint=target_table_check') &&
   script.include?('diagnostic_checkpoint=migration_ledger_lookup') &&
   script.include?('diagnostic_checkpoint=required_column_introspection') &&
-  script.include?('diagnostic_checkpoint=required_index_introspection')
+  script.include?('diagnostic_checkpoint=required_index_introspection') &&
+  script.include?('diagnostic_checkpoint=index_repair_preconditions') &&
+  script.include?('diagnostic_checkpoint=index_repair_index_inventory') &&
+  script.include?('diagnostic_checkpoint=index_repair_mutation') &&
+  script.include?('diagnostic_checkpoint=migration_command') &&
+  script.include?('diagnostic_checkpoint=post_migration_table_verification') &&
+  script.include?('diagnostic_checkpoint=post_migration_ledger_verification')
 
 puts 'PASS: parsed workflow uses workflow_dispatch with both confirmations default false'
 puts 'PASS: rendered remote script has a column-zero PHP heredoc terminator'
