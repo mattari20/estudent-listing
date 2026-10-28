@@ -61,5 +61,8 @@ jobs:
       - name: Test controlled migration revision guard scenarios
         run: sh scripts/ci/test-approved-application-revision-guard.sh
 
+      - name: Validate controlled migration rendered remote script
+        run: ruby scripts/ci/test-controlled-migration-workflow.rb
+
       - name: Run tests
         run: composer test
