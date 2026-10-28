@@ -68,6 +68,20 @@ abort 'ERROR: combined confirmations must be explicitly rejected' unless
 abort 'ERROR: schema repair and migration-ledger operations must remain separate' unless
   script.include?("'migration_ledger_changed' => false") &&
   script.include?("'migration_executed_this_run' => false")
+abort 'ERROR: PHP execution must preserve and report its exit status' unless
+  script.include?('if php <<\'PHP\'') &&
+  script.include?('php_program_exit_status=$PHP_EXIT_STATUS') &&
+  script.include?('guarded PHP schema diagnostic failed')
+abort 'ERROR: PHP failure-stage diagnostics are missing' unless
+  script.include?('php_shutdown_fatal=true stage=') &&
+  script.include?('diagnostic_checkpoint=before_php_program') &&
+  script.include?('diagnostic_checkpoint=composer_autoload') &&
+  script.include?('diagnostic_checkpoint=laravel_bootstrap') &&
+  script.include?('diagnostic_checkpoint=migrations_table_check') &&
+  script.include?('diagnostic_checkpoint=target_table_check') &&
+  script.include?('diagnostic_checkpoint=migration_ledger_lookup') &&
+  script.include?('diagnostic_checkpoint=required_column_introspection') &&
+  script.include?('diagnostic_checkpoint=required_index_introspection')
 
 puts 'PASS: parsed workflow uses workflow_dispatch with both confirmations default false'
 puts 'PASS: rendered remote script has a column-zero PHP heredoc terminator'
