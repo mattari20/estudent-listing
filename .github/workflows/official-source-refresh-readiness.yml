@@ -159,7 +159,24 @@ jobs:
                 }
                 foreach ($requiredIndexes as $name => $columns) {
                     $actual = $existingIndexes[$name] ?? null;
-                    if ($actual === null || $actual['columns'] !== $columns || $actual['unique'] !== false) {
+                    if ($actual !== null
+                        && $actual['columns'] === $columns
+                        && $actual['unique'] === false) {
+                        continue;
+                    }
+
+                    // A same-column, non-unique index under another name satisfies
+                    // the schema contract; do not require a duplicate index solely
+                    // to match Laravel's preferred name.
+                    $equivalentExists = false;
+                    foreach ($existingIndexes as $existing) {
+                        if ($existing['columns'] === $columns && $existing['unique'] === false) {
+                            $equivalentExists = true;
+                            break;
+                        }
+                    }
+
+                    if (! $equivalentExists) {
                         $missingIndexes[$name] = $columns;
                     }
                 }
