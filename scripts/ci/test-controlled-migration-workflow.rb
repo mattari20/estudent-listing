@@ -82,6 +82,13 @@ abort 'ERROR: PHP execution must preserve and report its exit status' unless
   script.include?('if php <<\'PHP\'') &&
   script.include?('php_program_exit_status=$PHP_EXIT_STATUS') &&
   script.include?('guarded PHP schema diagnostic failed')
+abort 'ERROR: exception messages must never be written to workflow logs' if
+  script.match?(/exception->getMessage\s*\(/) ||
+  script.match?(/getPrevious\s*\(/) && script.match?(/exception.*message/i)
+abort 'ERROR: migration exception handler must suppress exception details' unless
+  script.include?('ERROR: targeted migration threw an exception (details suppressed).') &&
+  script.include?('diagnostic_exception_type=')
+
 abort 'ERROR: PHP failure-stage diagnostics are missing' unless
   script.include?('php_shutdown_fatal=true stage=') &&
   script.include?('diagnostic_checkpoint=before_php_program') &&
