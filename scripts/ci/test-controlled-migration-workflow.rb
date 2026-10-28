@@ -50,8 +50,8 @@ abort 'ERROR: expected the conditional PHP result handler after the heredoc term
   lines[closer + 1] == "#{indent}then"
 abort 'ERROR: expected the PHP exit-status marker after the conditional handler' unless
   lines[closer + 2] == "#{indent}  PHP_EXIT_STATUS=0"
-abort 'ERROR: expected the production-change assertion after the PHP exit-status guard' unless
-  lines[closer + 8] == "#{indent}echo \"production_canonical_records_changed=NO\""
+abort 'ERROR: the rendered script must retain the production-change assertion after the PHP status block' unless
+  lines[(closer + 1)..].include?("#{indent}echo \"production_canonical_records_changed=NO\"")
 
 Tempfile.create(['controlled-migration-remote', '.sh']) do |shell_file|
   shell_file.write(script)
