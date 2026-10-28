@@ -50,8 +50,14 @@ abort 'ERROR: PHP heredoc body must begin with <?php at the script indentation' 
 abort 'ERROR: expected conditional source-write result handler after PHP heredoc' unless
   lines[closer + 1] == "#{indent}then" &&
   lines[closer + 2] == "#{indent}  PHP_SOURCE_WRITE_STATUS=0"
+abort 'ERROR: PHP diagnostic syntax validation must capture output to a temporary file without command substitution' unless
+  script.include?('PHP_SYNTAX_OUTPUT_FILE="$(mktemp') &&
+  script.include?('if php -l "$PHP_DIAGNOSTIC_FILE" > "$PHP_SYNTAX_OUTPUT_FILE" 2>&1; then') &&
+  script.include?('cat "$PHP_SYNTAX_OUTPUT_FILE"')
+
 abort 'ERROR: PHP diagnostic syntax validation and file execution are missing' unless
   lines[(closer + 1)..].include?("#{indent}echo \"diagnostic_checkpoint=php_source_syntax_check\"") &&
+  lines[(closer + 1)..].include?("#{indent}if php -l \"$PHP_DIAGNOSTIC_FILE\" > \"$PHP_SYNTAX_OUTPUT_FILE\" 2>&1; then") &&
   lines[(closer + 1)..].include?("#{indent}if php \"$PHP_DIAGNOSTIC_FILE\"; then")
 abort 'ERROR: the rendered script must retain the production-change assertion after the PHP status block' unless
   lines[(closer + 1)..].include?("#{indent}echo \"production_canonical_records_changed=NO\"")
