@@ -181,7 +181,8 @@ jobs:
             fi
             echo "diagnostic_checkpoint=before_php_program"
             PHP_DIAGNOSTIC_FILE="$(mktemp "${TMPDIR:-/tmp}/estudent-schema-diagnostic.XXXXXX.php")"
-            trap 'rm -f "$VERIFY_HELPER" "$PHP_DIAGNOSTIC_FILE"' EXIT HUP INT TERM
+            PHP_SYNTAX_OUTPUT_FILE="$(mktemp "${TMPDIR:-/tmp}/estudent-schema-diagnostic-lint.XXXXXX")"
+            trap 'rm -f "$VERIFY_HELPER" "$PHP_DIAGNOSTIC_FILE" "$PHP_SYNTAX_OUTPUT_FILE"' EXIT HUP INT TERM
             if cat > "$PHP_DIAGNOSTIC_FILE" <<'PHP'
             <?php
             $diagnosticStage = 'php_program_started';
@@ -503,17 +504,14 @@ jobs:
               exit 32
             fi
             echo "diagnostic_checkpoint=php_source_syntax_check"
-            PHP_SYNTAX_OUTPUT=""
-            set +e
-            PHP_SYNTAX_OUTPUT="$(php -l "$PHP_DIAGNOSTIC_FILE" 2>&1)"
-            PHP_SYNTAX_STATUS=$?
-            set -e
-            if [ "$PHP_SYNTAX_STATUS" -eq 0 ]; then
+            if php -l "$PHP_DIAGNOSTIC_FILE" > "$PHP_SYNTAX_OUTPUT_FILE" 2>&1; then
               echo "php_diagnostic_syntax_status=0"
+              cat "$PHP_SYNTAX_OUTPUT_FILE"
             else
+              PHP_SYNTAX_STATUS=$?
               echo "php_diagnostic_syntax_status=$PHP_SYNTAX_STATUS"
               echo "php_diagnostic_syntax_output_begin"
-              printf '%s\\n' "$PHP_SYNTAX_OUTPUT"
+              cat "$PHP_SYNTAX_OUTPUT_FILE"
               echo "php_diagnostic_syntax_output_end"
               echo "ERROR: guarded PHP diagnostic syntax validation failed; schema inspection blocked"
               exit 33
