@@ -56,8 +56,10 @@ abort 'ERROR: the rendered script must retain the production-change assertion af
 Tempfile.create(['controlled-migration-remote', '.sh']) do |shell_file|
   shell_file.write(script)
   shell_file.flush
-  output, status = Open3.capture2e('sh', '-n', shell_file.path)
-  abort "ERROR: rendered remote shell script fails sh -n:\n#{output}" unless status.success?
+  %w[bash sh].each do |shell|
+    output, status = Open3.capture2e(shell, '-n', shell_file.path)
+    abort "ERROR: rendered remote shell script fails #{shell} -n:\n#{output}" unless status.success?
+  end
 end
 
 php_source = lines[(opener + 1)...closer].map { |line| line.delete_prefix(indent) }.join("\n") + "\n"
@@ -93,11 +95,14 @@ abort 'ERROR: shallow repository state must be queried explicitly' unless
   script.include?('git rev-parse --is-shallow-repository') &&
   script.include?('echo "git_is_shallow_repository=$SHALLOW_REPOSITORY"')
 
-abort 'ERROR: shallow-file detection and fetch selection must share explicit branches' unless
+abort 'ERROR: shallow-file detection and fetch selection must use explicit portable branches' unless
+  script.include?('if [ "$SHALLOW_REPOSITORY" = "true" ]; then') &&
+  script.include?('elif [ "$SHALLOW_REPOSITORY" = "false" ]; then') &&
   script.include?('echo "git_shallow_file_present=true"') &&
   script.include?('echo "git_shallow_file_present=false"') &&
   script.include?('diagnostic_checkpoint=before_main_fetch') &&
-  script.include?('diagnostic_checkpoint=before_unshallow_fetch')
+  script.include?('diagnostic_checkpoint=before_unshallow_fetch') &&
+  !script.include?('case "$SHALLOW_REPOSITORY" in')
 
 abort 'ERROR: PHP failure-stage diagnostics are missing' unless
   script.include?('php_shutdown_fatal=true stage=') &&
