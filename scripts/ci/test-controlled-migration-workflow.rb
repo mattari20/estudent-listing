@@ -46,8 +46,12 @@ closers = ((opener + 1)...lines.length).select { |index| lines[index] == "#{inde
 abort "ERROR: expected one correctly positioned PHP heredoc terminator after the opener, found #{closers.length}" unless closers.length == 1
 closer = closers.first
 abort 'ERROR: PHP heredoc body must begin with <?php at the script indentation' unless lines[opener + 1] == "#{indent}<?php"
-abort 'ERROR: expected shell statement after the PHP heredoc terminator' unless
-  lines[closer + 1] == "#{indent}echo \"production_canonical_records_changed=NO\""
+abort 'ERROR: expected the conditional PHP result handler after the heredoc terminator' unless
+  lines[closer + 1] == "#{indent}then"
+abort 'ERROR: expected the PHP exit-status marker after the conditional handler' unless
+  lines[closer + 2] == "#{indent}  PHP_EXIT_STATUS=0"
+abort 'ERROR: expected the production-change assertion after the PHP exit-status guard' unless
+  lines[closer + 8] == "#{indent}echo \"production_canonical_records_changed=NO\""
 
 Tempfile.create(['controlled-migration-remote', '.sh']) do |shell_file|
   shell_file.write(script)
