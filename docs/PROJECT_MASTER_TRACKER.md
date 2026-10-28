@@ -512,3 +512,43 @@ These authoritative pages were checked through current web retrieval to refine s
 - [ ] All Step 1 gates reconciled and independently verified.
 
 **Next required action:** use GitHub's Actions UI or an authorized dispatch client to run Hostinger Read-only Diagnostics on current main, with no write inputs (or their false defaults), then review the sanitized report and deployed revision before considering any separate production write authorization. Until that evidence and the other unchecked criteria are complete, Step 1 remains blocked and Step 2 must not begin.
+
+
+## Step 1 — schema/index and Hostinger scheduler re-verification (2026-10-28; latest main e2cc1d6452cd8d698bf590a3c2cee742e38c4f25)
+
+**Status: BLOCKED / NOT CLOSED. Step 2 has not started.** This checkpoint supersedes older statements in this tracker that the latest read-only schema report had not yet been obtained.
+
+### Current production read-only evidence
+- [Hostinger Read-only Diagnostics run #40680474323](https://github.com/mattari20/estudent-listing/actions/runs/40680474323) completed successfully on 2026-10-28. Its SSH diagnostic reported `mutation_performed: false`; no production migration, index repair, ledger update, canonical record import, approval, deletion, or publication was performed.
+- Deployed Git revision: `e34b901abeb8f48a5e151cb8f917179a217af969`. Expected application-code revision: `6cb68ce1ebc0b92629720221882f5dea229eef4e`. The workflow reported `APPLICATION_CODE_MATCH`; this is application-path parity, not equality of the overall Git SHAs.
+- `official_source_refresh_events` exists. All 15 expected column names are present; `missing_columns=[]`.
+- Existing non-unique indexes include `official_refresh_canonical_field_idx` on `(canonical_type, canonical_id, field_name)` and `official_source_refresh_events_source_id_index` on `(source_id)`. The latter satisfies the source-index contract by equivalent ordered columns despite its different name.
+- The required non-unique index on `source_change_observation_id` is absent. `missing_required_indexes` contains `official_refresh_observation_idx`; `schema_ready=false`.
+- The migration file `database/migrations/2026_10_25_000002_create_official_source_refresh_events_table.php` exists, but `matching_migration_ledger_rows=[]`; `ledger_ready=false`.
+- **Ledger reconciliation remains prohibited at this point.** The current diagnostic reports column-name presence and index inventory, but does not prove compatible data types, nullability, defaults, primary-key/constraint definitions, or every migration side effect. The migration's existing-table guard also checks column presence and required indexes rather than the complete column-definition contract. Do not run the migration or add a ledger row until that verification gap is closed and the full physical schema is shown equivalent.
+
+### Scheduler evidence and blocker
+- `bootstrap/app.php` registers both `institutes:bootstrap-agent` and `institutes:monitor-changes` hourly with `withoutOverlapping(55)`. The live `php artisan schedule:list --no-ansi` output showed both entries and their next due times.
+- The read-only workflow reported `hostinger_scheduler_cron=unreadable`, exit code `127`, and `crontab_command_failed_or_access_denied`. This does **not** prove that a cron job is missing; it only means the SSH environment could not run/read `crontab`.
+- The two tasks were not executed as tests. Code inspection shows `institutes:bootstrap-agent` can upsert source/policy rows and trigger initial discovery, while `institutes:monitor-changes` invokes source monitoring/change processing. A task execution could therefore mutate operational data. The scheduler's actual Hostinger hPanel invocation and recent execution history remain unverified; hPanel needs to be checked through an authorized interface.
+
+### Acceptance matrix
+- [x] Fresh read-only diagnostic obtained; it completed successfully.
+- [x] Deployed application-code parity reported as `APPLICATION_CODE_MATCH`.
+- [x] Refresh-events table exists and all 15 expected column names are present.
+- [x] Equivalent source and canonical-field indexes identified.
+- [ ] Missing observation index repaired and post-repair schema verified.
+- [ ] Full column definitions, constraints, and all migration side effects verified before any ledger reconciliation.
+- [ ] Migration ledger reconciled only if independently justified and explicitly authorized by existing controls.
+- [x] Both Laravel scheduled tasks registered hourly with overlap protection.
+- [ ] Actual Hostinger scheduler mechanism/invocation verified via hPanel or equivalent authorized evidence.
+- [ ] Recent scheduler execution demonstrated without invoking a mutating task manually.
+- [x] No production schema/data mutation or canonical data change occurred in this diagnostic cycle.
+- [ ] All remaining Step 1 criteria and end-to-end acceptance evidence satisfied.
+
+### Required continuation
+1. Harden/add regression coverage for full schema-equivalence checking so a migration ledger row cannot be recorded based only on column names and index names/columns.
+2. After code review and CI, use the existing controlled workflow's explicit index-repair input only when the exact additive operation is verified; the available connector has no workflow-dispatch operation, so no run has been dispatched from this session.
+3. Rerun read-only diagnostics after any authorized index repair. Leave the migration ledger unchanged until full schema/side-effect equivalence, duplicate-row absence, batch semantics, and concurrency safety are all evidenced.
+4. Inspect Hostinger hPanel Cron Jobs using an authorized UI/integration. Confirm the actual scheduler command, cadence, project path and PHP/Artisan path, plus recent execution history; do not infer absence from `crontab -l` exit 127.
+5. Keep Step 1 open and do not start Step 2 or verified-source data import until all mandatory acceptance criteria are supported by evidence.
