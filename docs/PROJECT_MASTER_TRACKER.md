@@ -480,3 +480,35 @@ These authoritative pages were checked through current web retrieval to refine s
 - **Production DB state:** physical schema, required columns/index inventory, and migration ledger have not been obtained from a successful post-fix run. No production index repair, migration-ledger write, or canonical data mutation is evidenced for the failed run. Do not assume previously noted missing indexes/ledger state are current until fresh diagnostics.
 - **Remaining Step 1 gates:** execute corrected workflow read-only with both confirmations false; verify complete schema/index/ledger report and application parity; only after evidence and separate approval consider additive non-unique index repair; rerun readiness; perform ledger-only reconciliation only if schema is fully ready and the ledger row alone is missing; then verify governed nationwide source discovery and coverage, review/identity controls, legitimate public detail navigation, and actual Hostinger scheduler invocation. Step 1 remains blocked; Step 2 must not start.
 
+## Step 1 — autonomous execution checkpoint (2026-10-28; main 37ab868ae07cd683acd775f7d001e4d16a281891)
+
+**Status: BLOCKED / NOT CLOSED. Step 2 was not started. No production database write or migration was performed.**
+
+### Verified repository changes
+- Current main was verified at 37ab868ae07cd683acd775f7d001e4d16a281891, merged from PR [#880](https://github.com/mattari20/estudent-listing/pull/880).
+- PR #880 changes the public-site monitor so a genuine HTTP 200 empty listing is recorded as EMPTY_DATA; it does not incorrectly claim that a detail route is broken when no published institution exists. A non-empty or unrecognized listing with no detail link still fails.
+- Added scripts/ci/resolve-institute-detail-link.py and four regression cases covering a real detail link, a healthy empty state, a missing link on a non-empty/unknown page, and excluded utility/external links. The Test workflow runs these cases.
+- Exact PR-head checks passed on 3a0d24abe84825151d7db40f10fef242e5bc562d: [Laravel CI #40675535306](https://github.com/mattari20/estudent-listing/actions/runs/40675535306) and [Test #40675535401](https://github.com/mattari20/estudent-listing/actions/runs/40675535401). Both check jobs completed successfully before PR #880 was squash-merged. These are PR-head checks, not a claim of post-merge live-site success.
+- PR [#870](https://github.com/mattari20/estudent-listing/pull/870) was closed as superseded, not merged, after current-main inspection confirmed its stage diagnostics and safety assertions are present in the maintained workflow/test implementation.
+- Current controlled migration workflow inspection confirms workflow_dispatch, both confirmation inputs defaulting to false, mandatory approved-revision verification, explicit rejection when both confirmations are true, stage checkpoints, PHP exit-status reporting, and a regression guard against exception-message logging.
+
+### Still unverified / external blockers
+- **Read-only Hostinger schema report:** not obtained in this execution. The available GitHub connector exposes no workflow-dispatch operation; the workflow was not falsely reported as triggered. No physical table/index/column or migration-ledger state is claimed as current.
+- **Live public behavior and deployed revision:** not reverified. Direct HTTP access from the execution environment failed at DNS resolution, and the connected GitHub tool does not expose the push-triggered public-monitor run listing. The merge does not prove that Hostinger deployed this commit or that detail pages work against live data.
+- **Data coverage and end-to-end directory behavior:** no new institution/campus/program data was fabricated or imported. Official-source evidence, approved canonical record counts, listing-to-detail navigation against a real published record, pagination/search/filter behavior, and approval workflow remain unverified in this cycle.
+- **Automation/scheduler invocation:** workflow YAML and triggers were inspected, but no fresh Hostinger diagnostic or scheduler invocation was executed or evidenced.
+- **Production revision parity:** latest live deployed revision remains unknown from fresh evidence; do not assume it equals main.
+
+### Acceptance gate
+- [x] Current repository main SHA checked.
+- [x] Focused smoke-test correction merged after exact-head Laravel CI and Test checks passed.
+- [x] Controlled migration workflow safety controls statically inspected.
+- [x] Superseded PR #870 closed after confirming equivalent maintained implementation.
+- [ ] Fresh read-only Hostinger schema/index/migration-ledger report.
+- [ ] Fresh deployed-code revision parity verification.
+- [ ] Current public-monitor result and real detail-page verification when a verified record exists.
+- [ ] Source-verified data coverage and full Step 1 end-to-end acceptance evidence.
+- [ ] Fresh scheduler/automation invocation evidence.
+- [ ] All Step 1 gates reconciled and independently verified.
+
+**Next required action:** use GitHub's Actions UI or an authorized dispatch client to run Hostinger Read-only Diagnostics on current main, with no write inputs (or their false defaults), then review the sanitized report and deployed revision before considering any separate production write authorization. Until that evidence and the other unchecked criteria are complete, Step 1 remains blocked and Step 2 must not begin.
