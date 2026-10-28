@@ -89,23 +89,38 @@ jobs:
             if REMOTE_URL="$(git remote get-url origin 2>/dev/null)"; then REMOTE_STATUS=0; else REMOTE_STATUS=$?; REMOTE_URL=""; fi
             echo "origin_remote_present=$([ "$REMOTE_STATUS" -eq 0 ] && [ -n "$REMOTE_URL" ] && echo true || echo false)"
             if [ "$REMOTE_STATUS" -ne 0 ] || [ -z "$REMOTE_URL" ]; then echo "ERROR: origin remote absent or unreadable; cannot verify code"; exit 5; fi
-            unset REMOTE_URL
+            echo "diagnostic_checkpoint=before_unset_remote_url"
+            if unset REMOTE_URL; then UNSET_REMOTE_URL_STATUS=0; else UNSET_REMOTE_URL_STATUS=$?; fi
+            echo "unset_remote_url_status=$UNSET_REMOTE_URL_STATUS"
+            if [ "$UNSET_REMOTE_URL_STATUS" -ne 0 ]; then echo "ERROR: unable to clear temporary remote URL variable"; exit 5; fi
+            echo "diagnostic_checkpoint=after_unset_remote_url"
 
-            SHALLOW_PATH="$(git rev-parse --git-path shallow 2>/dev/null || true)"
+            echo "diagnostic_checkpoint=before_git_shallow_path"
+            if SHALLOW_PATH="$(git rev-parse --git-path shallow 2>&1)"; then SHALLOW_PATH_STATUS=0; else SHALLOW_PATH_STATUS=$?; SHALLOW_PATH=""; fi
+            echo "git_shallow_path_status=$SHALLOW_PATH_STATUS"
+            if [ "$SHALLOW_PATH_STATUS" -ne 0 ]; then
+              echo "ERROR: git rev-parse --git-path shallow failed"
+              exit 5
+            fi
+            echo "git_shallow_path=$SHALLOW_PATH"
             BOOTSTRAP_REF=refs/remotes/origin/step1-bootstrap-main
             if [ -n "$SHALLOW_PATH" ] && [ -f "$SHALLOW_PATH" ]; then
               echo "hostinger_git_shallow=true"
+              echo "diagnostic_checkpoint=before_unshallow_fetch"
               if git fetch --unshallow --no-tags origin "main:$BOOTSTRAP_REF"; then BOOTSTRAP_FETCH_STATUS=0; else BOOTSTRAP_FETCH_STATUS=$?; fi
             else
               echo "hostinger_git_shallow=false"
+              echo "diagnostic_checkpoint=before_main_fetch"
               if git fetch --no-tags origin "main:$BOOTSTRAP_REF"; then BOOTSTRAP_FETCH_STATUS=0; else BOOTSTRAP_FETCH_STATUS=$?; fi
             fi
             echo "bootstrap_main_fetch_status=$BOOTSTRAP_FETCH_STATUS"
             if [ "$BOOTSTRAP_FETCH_STATUS" -ne 0 ]; then echo "ERROR: cannot fetch approved main history; schema inspection blocked"; exit 5; fi
+            echo "diagnostic_checkpoint=after_main_fetch"
             if VERIFIED_MAIN_REVISION="$(git rev-parse "$BOOTSTRAP_REF" 2>&1)"; then BOOTSTRAP_REF_STATUS=0; else BOOTSTRAP_REF_STATUS=$?; VERIFIED_MAIN_REVISION=UNAVAILABLE; fi
             echo "bootstrap_main_revision_status=$BOOTSTRAP_REF_STATUS"
             echo "bootstrap_main_revision=$VERIFIED_MAIN_REVISION"
             if [ "$BOOTSTRAP_REF_STATUS" -ne 0 ]; then echo "ERROR: fetched main ref cannot be resolved"; exit 5; fi
+            echo "diagnostic_checkpoint=after_main_ref_resolution"
 
             VERIFY_HELPER="$(mktemp "${TMPDIR:-/tmp}/estudent-approved-revision-guard.XXXXXX")"
             trap 'rm -f "$VERIFY_HELPER"' EXIT HUP INT TERM
