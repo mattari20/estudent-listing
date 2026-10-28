@@ -66,6 +66,8 @@ jobs:
 
       - name: Validate controlled migration rendered remote script
         run: ruby scripts/ci/test-controlled-migration-workflow.rb
+      - name: Validate scheduled discovery dependency conditions
+        run: ruby scripts/ci/test-scheduled-discovery-workflow.rb
 
       - name: Lint guarded production schema diagnostic
         run: php -l scripts/ops/official-source-refresh-diagnostic.php
