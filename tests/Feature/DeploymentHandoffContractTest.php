@@ -12,11 +12,13 @@ class DeploymentHandoffContractTest extends TestCase
         $migrationWorkflow = file_get_contents(base_path('.github/workflows/controlled-official-source-refresh-migration.yml'));
         $discoveryWorkflow = file_get_contents(base_path('.github/workflows/scheduled-institute-discovery.yml'));
         $readinessWorkflow = file_get_contents(base_path('.github/workflows/official-source-refresh-readiness.yml'));
+        $migrationDiagnostic = file_get_contents(base_path('scripts/ops/official-source-refresh-diagnostic.php'));
 
         $this->assertIsString($deployWorkflow);
         $this->assertIsString($migrationWorkflow);
         $this->assertIsString($discoveryWorkflow);
         $this->assertIsString($readinessWorkflow);
+        $this->assertIsString($migrationDiagnostic);
 
         // Deployment reports success only after independent application-path parity
         // verification and the read-only Laravel smoke/offering preflight.
@@ -32,8 +34,9 @@ class DeploymentHandoffContractTest extends TestCase
         // Production migration is manual/confirmed only. It emits the discovery handoff
         // only when the SSH-side schema/ledger checks complete successfully.
         $this->assertStringContainsString('confirm_migration', $migrationWorkflow);
-        $this->assertStringContainsString('migration_status', $migrationWorkflow);
-        $this->assertStringContainsString('missing_indexes', $migrationWorkflow);
+        $this->assertStringContainsString('migration_status', $migrationDiagnostic);
+        $this->assertStringContainsString('missing_indexes', $migrationDiagnostic);
+        $this->assertStringContainsString('scripts/ops/official-source-refresh-diagnostic.php', $migrationWorkflow);
         $this->assertStringContainsString('Prepare verified source-refresh schema handoff', $migrationWorkflow);
         $this->assertStringContainsString('schema_ready=true', $migrationWorkflow);
         $this->assertStringContainsString('migration_confirmation=true', $migrationWorkflow);
