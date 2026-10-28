@@ -407,7 +407,9 @@ jobs:
                 ]);
                 echo $artisan::output();
             } catch (\Throwable $exception) {
-                fwrite(STDERR, "ERROR: targeted migration threw an exception: ".$exception->getMessage().PHP_EOL);
+                // Never emit exception messages: they may contain SQL or connection details.
+                fwrite(STDERR, "ERROR: targeted migration threw an exception (details suppressed).".PHP_EOL);
+                fwrite(STDERR, "diagnostic_exception_type=".get_class($exception).PHP_EOL);
                 exit(23);
             }
             if ($exitCode !== 0) {
