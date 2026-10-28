@@ -396,7 +396,7 @@ jobs:
             if (! $ready) {
                 exit(24);
             }
-          PHP
+            PHP
             echo "production_canonical_records_changed=NO"
 
       - name: Prepare verified source-refresh schema handoff
