@@ -135,11 +135,32 @@ jobs:
 
 
             export CONFIRM_MIGRATION
-            php <<'PHP'
+            echo "diagnostic_checkpoint=before_php_program"
+            if php <<'PHP'
             <?php
+            $diagnosticStage = 'php_program_started';
+            register_shutdown_function(static function () use (&$diagnosticStage): void {
+                $lastError = error_get_last();
+                if (! is_array($lastError)) {
+                    return;
+                }
+                $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR];
+                if (in_array($lastError['type'] ?? null, $fatalTypes, true)) {
+                    fwrite(STDERR, 'php_shutdown_fatal=true stage='.$diagnosticStage
+                        .' type='.(int) $lastError['type']
+                        .' line='.(int) ($lastError['line'] ?? 0).PHP_EOL);
+                }
+            });
+            fwrite(STDERR, "diagnostic_checkpoint=php_program_started".PHP_EOL);
+            $diagnosticStage = 'composer_autoload';
+            fwrite(STDERR, "diagnostic_checkpoint=composer_autoload".PHP_EOL);
             require __DIR__.'/vendor/autoload.php';
+            $diagnosticStage = 'laravel_bootstrap';
+            fwrite(STDERR, "diagnostic_checkpoint=laravel_bootstrap".PHP_EOL);
             $app = require __DIR__.'/bootstrap/app.php';
             $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            fwrite(STDERR, "diagnostic_checkpoint=laravel_bootstrap_complete".PHP_EOL);
+            $diagnosticStage = 'schema_preflight';
 
             $schema = \Illuminate\Support\Facades\Schema::class;
             $db = \Illuminate\Support\Facades\DB::class;
@@ -158,6 +179,8 @@ jobs:
                 fwrite(STDERR, "ERROR: required migration file is missing.".PHP_EOL);
                 exit(20);
             }
+            $diagnosticStage = 'migrations_table_check';
+            fwrite(STDERR, "diagnostic_checkpoint=migrations_table_check".PHP_EOL);
             if (! $schema::hasTable('migrations')) {
                 fwrite(STDERR, "ERROR: migrations table is missing; manual schema review is required.".PHP_EOL);
                 exit(21);
@@ -211,11 +234,17 @@ jobs:
 
                 return [$missing, $satisfiedBy, $existing];
             };
+            $diagnosticStage = 'target_table_check';
+            fwrite(STDERR, "diagnostic_checkpoint=target_table_check".PHP_EOL);
             $tableExists = $schema::hasTable($table);
+            $diagnosticStage = 'migration_ledger_lookup';
+            fwrite(STDERR, "diagnostic_checkpoint=migration_ledger_lookup".PHP_EOL);
             $migrationApplied = $db::table('migrations')->where('migration', $migration)->exists();
             $missingColumns = [];
             $missingIndexes = [];
-            $inspectSchema = static function () use ($schema, $table, $requiredColumns, $indexSatisfaction): array {
+            $inspectSchema = static function () use ($schema, $table, $requiredColumns, $indexSatisfaction, &$diagnosticStage): array {
+                $diagnosticStage = 'required_column_introspection';
+                fwrite(STDERR, "diagnostic_checkpoint=required_column_introspection".PHP_EOL);
                 $missingColumns = [];
                 foreach ($requiredColumns as $column) {
                     if (! $schema::hasColumn($table, $column)) {
@@ -223,6 +252,8 @@ jobs:
                     }
                 }
 
+                $diagnosticStage = 'required_index_introspection';
+                fwrite(STDERR, "diagnostic_checkpoint=required_index_introspection".PHP_EOL);
                 [$missingIndexes] = $indexSatisfaction($schema::getIndexes($table));
 
                 return [$missingColumns, $missingIndexes];
@@ -236,6 +267,8 @@ jobs:
             // Explicit, separate, additive index repair. Never infer approval from
             // confirm_migration; the latter is reserved for ledger-only reconciliation.
             if (getenv('CONFIRM_INDEX_REPAIR') === 'true') {
+                $diagnosticStage = 'index_repair_preconditions';
+                fwrite(STDERR, "diagnostic_checkpoint=index_repair_preconditions".PHP_EOL);
                 if (! $tableExists || $missingColumns !== []) {
                     fwrite(STDERR, json_encode([
                         'migration_status' => 'BLOCKED_INDEX_REPAIR_SCHEMA_COLUMNS_NOT_READY',
@@ -246,6 +279,8 @@ jobs:
                     exit(25);
                 }
 
+                $diagnosticStage = 'index_repair_index_inventory';
+                fwrite(STDERR, "diagnostic_checkpoint=index_repair_index_inventory".PHP_EOL);
                 $allIndexes = $schema::getIndexes($table);
                 [$missing, $satisfiedBy, $existingByName] = $indexSatisfaction($allIndexes);
                 foreach ($requiredIndexes as $name => $columns) {
@@ -274,6 +309,8 @@ jobs:
 
                 $applied = [];
                 foreach ($repairable as $name => $columns) {
+                    $diagnosticStage = 'index_repair_mutation';
+                    fwrite(STDERR, "diagnostic_checkpoint=index_repair_mutation".PHP_EOL);
                     $schema::table($table, static function (\Illuminate\Database\Schema\Blueprint $blueprint) use ($name, $columns): void {
                         $blueprint->index($columns, $name);
                     });
@@ -361,6 +398,8 @@ jobs:
                 exit(0);
             }
 
+            $diagnosticStage = 'migration_command';
+            fwrite(STDERR, "diagnostic_checkpoint=migration_command".PHP_EOL);
             try {
                 $exitCode = $artisan::call('migrate', [
                     '--force' => true,
@@ -368,7 +407,8 @@ jobs:
                 ]);
                 echo $artisan::output();
             } catch (\Throwable $exception) {
-                fwrite(STDERR, "ERROR: targeted migration threw an exception: ".$exception->getMessage().PHP_EOL);
+                // Never emit exception messages: they may contain SQL or connection details.
+                fwrite(STDERR, "ERROR: targeted migration threw an exception (details suppressed).".PHP_EOL);
                 exit(23);
             }
             if ($exitCode !== 0) {
@@ -376,7 +416,11 @@ jobs:
                 exit(23);
             }
 
+            $diagnosticStage = 'post_migration_table_verification';
+            fwrite(STDERR, "diagnostic_checkpoint=post_migration_table_verification".PHP_EOL);
             $tableExists = $schema::hasTable($table);
+            $diagnosticStage = 'post_migration_ledger_verification';
+            fwrite(STDERR, "diagnostic_checkpoint=post_migration_ledger_verification".PHP_EOL);
             $migrationApplied = $db::table('migrations')->where('migration', $migration)->exists();
             $missingColumns = [];
             $missingIndexes = [];
@@ -397,6 +441,16 @@ jobs:
                 exit(24);
             }
             PHP
+            then
+              PHP_EXIT_STATUS=0
+            else
+              PHP_EXIT_STATUS=$?
+            fi
+            echo "php_program_exit_status=$PHP_EXIT_STATUS"
+            if [ "$PHP_EXIT_STATUS" -ne 0 ]; then
+              echo "ERROR: guarded PHP schema diagnostic failed; no successful schema report was emitted"
+              exit "$PHP_EXIT_STATUS"
+            fi
             echo "production_canonical_records_changed=NO"
 
       - name: Prepare verified source-refresh schema handoff
