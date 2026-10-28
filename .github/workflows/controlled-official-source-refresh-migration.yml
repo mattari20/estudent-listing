@@ -267,6 +267,8 @@ jobs:
             // Explicit, separate, additive index repair. Never infer approval from
             // confirm_migration; the latter is reserved for ledger-only reconciliation.
             if (getenv('CONFIRM_INDEX_REPAIR') === 'true') {
+                $diagnosticStage = 'index_repair_preconditions';
+                fwrite(STDERR, "diagnostic_checkpoint=index_repair_preconditions".PHP_EOL);
                 if (! $tableExists || $missingColumns !== []) {
                     fwrite(STDERR, json_encode([
                         'migration_status' => 'BLOCKED_INDEX_REPAIR_SCHEMA_COLUMNS_NOT_READY',
@@ -277,6 +279,8 @@ jobs:
                     exit(25);
                 }
 
+                $diagnosticStage = 'index_repair_index_inventory';
+                fwrite(STDERR, "diagnostic_checkpoint=index_repair_index_inventory".PHP_EOL);
                 $allIndexes = $schema::getIndexes($table);
                 [$missing, $satisfiedBy, $existingByName] = $indexSatisfaction($allIndexes);
                 foreach ($requiredIndexes as $name => $columns) {
@@ -305,6 +309,8 @@ jobs:
 
                 $applied = [];
                 foreach ($repairable as $name => $columns) {
+                    $diagnosticStage = 'index_repair_mutation';
+                    fwrite(STDERR, "diagnostic_checkpoint=index_repair_mutation".PHP_EOL);
                     $schema::table($table, static function (\Illuminate\Database\Schema\Blueprint $blueprint) use ($name, $columns): void {
                         $blueprint->index($columns, $name);
                     });
@@ -392,6 +398,8 @@ jobs:
                 exit(0);
             }
 
+            $diagnosticStage = 'migration_command';
+            fwrite(STDERR, "diagnostic_checkpoint=migration_command".PHP_EOL);
             try {
                 $exitCode = $artisan::call('migrate', [
                     '--force' => true,
@@ -407,7 +415,11 @@ jobs:
                 exit(23);
             }
 
+            $diagnosticStage = 'post_migration_table_verification';
+            fwrite(STDERR, "diagnostic_checkpoint=post_migration_table_verification".PHP_EOL);
             $tableExists = $schema::hasTable($table);
+            $diagnosticStage = 'post_migration_ledger_verification';
+            fwrite(STDERR, "diagnostic_checkpoint=post_migration_ledger_verification".PHP_EOL);
             $migrationApplied = $db::table('migrations')->where('migration', $migration)->exists();
             $missingColumns = [];
             $missingIndexes = [];
