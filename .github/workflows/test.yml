@@ -55,6 +55,9 @@ jobs:
       - name: Prepare test database
         run: php artisan migrate:fresh --force
 
+      - name: Test public listing detail-link state classification
+        run: python3 scripts/ci/test-resolve-institute-detail-link.py
+
       - name: Verify application-code revision parity edge cases
         run: bash scripts/ci/test-application-code-parity.sh
 
