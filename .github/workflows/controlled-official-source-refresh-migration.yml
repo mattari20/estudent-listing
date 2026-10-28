@@ -107,24 +107,30 @@ jobs:
             echo "git_shallow_detection_status=$SHALLOW_DETECTION_STATUS"
             echo "git_is_shallow_repository=$SHALLOW_REPOSITORY"
             BOOTSTRAP_REF=refs/remotes/origin/step1-bootstrap-main
-            case "$SHALLOW_REPOSITORY" in
-              true)
-                echo "git_shallow_file_present=true"
-                echo "hostinger_git_shallow=true"
-                echo "diagnostic_checkpoint=before_unshallow_fetch"
-                if git fetch --unshallow --no-tags origin "main:$BOOTSTRAP_REF"; then BOOTSTRAP_FETCH_STATUS=0; else BOOTSTRAP_FETCH_STATUS=$?; fi
-                ;;
-              false)
-                echo "git_shallow_file_present=false"
-                echo "hostinger_git_shallow=false"
-                echo "diagnostic_checkpoint=before_main_fetch"
-                if git fetch --no-tags origin "main:$BOOTSTRAP_REF"; then BOOTSTRAP_FETCH_STATUS=0; else BOOTSTRAP_FETCH_STATUS=$?; fi
-                ;;
-              *)
-                echo "ERROR: Git returned an unrecognized shallow-repository status"
-                exit 5
-                ;;
-            esac
+            if [ "$SHALLOW_REPOSITORY" = "true" ]; then
+              echo "git_shallow_file_present=true"
+              echo "hostinger_git_shallow=true"
+              echo "diagnostic_checkpoint=before_unshallow_fetch"
+              if git fetch --unshallow --no-tags origin "main:$BOOTSTRAP_REF"
+              then
+                BOOTSTRAP_FETCH_STATUS=0
+              else
+                BOOTSTRAP_FETCH_STATUS=$?
+              fi
+            elif [ "$SHALLOW_REPOSITORY" = "false" ]; then
+              echo "git_shallow_file_present=false"
+              echo "hostinger_git_shallow=false"
+              echo "diagnostic_checkpoint=before_main_fetch"
+              if git fetch --no-tags origin "main:$BOOTSTRAP_REF"
+              then
+                BOOTSTRAP_FETCH_STATUS=0
+              else
+                BOOTSTRAP_FETCH_STATUS=$?
+              fi
+            else
+              echo "ERROR: Git returned an unrecognized shallow-repository status"
+              exit 5
+            fi
             echo "bootstrap_main_fetch_status=$BOOTSTRAP_FETCH_STATUS"
             if [ "$BOOTSTRAP_FETCH_STATUS" -ne 0 ]; then echo "ERROR: cannot fetch approved main history; schema inspection blocked"; exit 5; fi
             echo "diagnostic_checkpoint=after_main_fetch"
