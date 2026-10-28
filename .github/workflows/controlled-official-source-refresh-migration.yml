@@ -95,28 +95,36 @@ jobs:
             if [ "$UNSET_REMOTE_URL_STATUS" -ne 0 ]; then echo "ERROR: unable to clear temporary remote URL variable"; exit 5; fi
             echo "diagnostic_checkpoint=after_unset_remote_url"
 
-            echo "diagnostic_checkpoint=before_git_shallow_path"
-            if SHALLOW_PATH="$(git rev-parse --path-format=absolute --git-path shallow 2>&1)"; then SHALLOW_PATH_STATUS=0; else SHALLOW_PATH_STATUS=$?; SHALLOW_PATH=""; fi
-            echo "git_shallow_path_status=$SHALLOW_PATH_STATUS"
-            if [ "$SHALLOW_PATH_STATUS" -ne 0 ]; then
-              echo "ERROR: git rev-parse --path-format=absolute --git-path shallow failed"
+            echo "diagnostic_checkpoint=before_git_shallow_detection"
+            if SHALLOW_REPOSITORY="$(git rev-parse --is-shallow-repository 2>&1)"; then
+              SHALLOW_DETECTION_STATUS=0
+            else
+              SHALLOW_DETECTION_STATUS=$?
+              echo "git_shallow_detection_status=$SHALLOW_DETECTION_STATUS"
+              echo "ERROR: unable to determine whether the Hostinger repository is shallow"
               exit 5
             fi
-            echo "git_shallow_path=$SHALLOW_PATH"
+            echo "git_shallow_detection_status=$SHALLOW_DETECTION_STATUS"
+            echo "git_is_shallow_repository=$SHALLOW_REPOSITORY"
             BOOTSTRAP_REF=refs/remotes/origin/step1-bootstrap-main
-            # Keep file detection and fetch selection in one explicit conditional.
-            # This avoids relying on a boolean string to control strict-mode shell flow.
-            if [ -n "$SHALLOW_PATH" ] && [ -f "$SHALLOW_PATH" ]; then
-              echo "git_shallow_file_present=true"
-              echo "hostinger_git_shallow=true"
-              echo "diagnostic_checkpoint=before_unshallow_fetch"
-              if git fetch --unshallow --no-tags origin "main:$BOOTSTRAP_REF"; then BOOTSTRAP_FETCH_STATUS=0; else BOOTSTRAP_FETCH_STATUS=$?; fi
-            else
-              echo "git_shallow_file_present=false"
-              echo "hostinger_git_shallow=false"
-              echo "diagnostic_checkpoint=before_main_fetch"
-              if git fetch --no-tags origin "main:$BOOTSTRAP_REF"; then BOOTSTRAP_FETCH_STATUS=0; else BOOTSTRAP_FETCH_STATUS=$?; fi
-            fi
+            case "$SHALLOW_REPOSITORY" in
+              true)
+                echo "git_shallow_file_present=true"
+                echo "hostinger_git_shallow=true"
+                echo "diagnostic_checkpoint=before_unshallow_fetch"
+                if git fetch --unshallow --no-tags origin "main:$BOOTSTRAP_REF"; then BOOTSTRAP_FETCH_STATUS=0; else BOOTSTRAP_FETCH_STATUS=$?; fi
+                ;;
+              false)
+                echo "git_shallow_file_present=false"
+                echo "hostinger_git_shallow=false"
+                echo "diagnostic_checkpoint=before_main_fetch"
+                if git fetch --no-tags origin "main:$BOOTSTRAP_REF"; then BOOTSTRAP_FETCH_STATUS=0; else BOOTSTRAP_FETCH_STATUS=$?; fi
+                ;;
+              *)
+                echo "ERROR: Git returned an unrecognized shallow-repository status"
+                exit 5
+                ;;
+            esac
             echo "bootstrap_main_fetch_status=$BOOTSTRAP_FETCH_STATUS"
             if [ "$BOOTSTRAP_FETCH_STATUS" -ne 0 ]; then echo "ERROR: cannot fetch approved main history; schema inspection blocked"; exit 5; fi
             echo "diagnostic_checkpoint=after_main_fetch"
