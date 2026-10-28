@@ -193,15 +193,6 @@ jobs:
               echo "ERROR: approved PHP diagnostic source could not be loaded; schema inspection blocked"
               exit 32
             fi
-              PHP_SOURCE_WRITE_STATUS=0
-            else
-              PHP_SOURCE_WRITE_STATUS=$?
-            fi
-            echo "php_diagnostic_source_write_status=$PHP_SOURCE_WRITE_STATUS"
-            if [ "$PHP_SOURCE_WRITE_STATUS" -ne 0 ]; then
-              echo "ERROR: unable to prepare the guarded PHP diagnostic file"
-              exit 32
-            fi
             # The approved PHP diagnostic is a checked-in source file validated by CI.
             # Avoid remote php -l on a temporary file: on this Hostinger runner it terminates
             # the SSH command with status 255 before returning diagnostics.
