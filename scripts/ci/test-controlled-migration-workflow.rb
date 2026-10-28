@@ -89,10 +89,9 @@ abort 'ERROR: migration exception handler must suppress exception details' unles
   script.include?('ERROR: targeted migration threw an exception (details suppressed).') &&
   !script.include?('diagnostic_exception_type=')
 
-abort 'ERROR: Git shallow metadata path must be resolved absolutely before checking it' unless
-  script.include?('git rev-parse --path-format=absolute --git-path shallow') &&
-  script.include?('echo "git_shallow_file_present=true"') &&
-  script.include?('echo "git_shallow_file_present=false"')
+abort 'ERROR: shallow repository state must be queried explicitly' unless
+  script.include?('git rev-parse --is-shallow-repository') &&
+  script.include?('echo "git_is_shallow_repository=$SHALLOW_REPOSITORY"')
 
 abort 'ERROR: shallow-file detection and fetch selection must share explicit branches' unless
   script.include?('echo "git_shallow_file_present=true"') &&
