@@ -33,15 +33,21 @@ abort 'ERROR: guarded migration SSH step was not found' unless step
 script = step.fetch('with').fetch('script')
 lines = script.lines.map(&:chomp)
 
-openers = lines.each_index.select { |index| lines[index] == "php <<'PHP'" }
+openers = lines.each_index.select { |index| lines[index].match?(/\A\s*if php <<'PHP'\s*\z/) }
 abort "ERROR: expected exactly one PHP heredoc opener, found #{openers.length}" unless openers.length == 1
 opener = openers.first
-closers = ((opener + 1)...lines.length).select { |index| lines[index] == 'PHP' }
-abort "ERROR: expected one column-zero PHP heredoc terminator after the opener, found #{closers.length}" unless closers.length == 1
+
+# Validate the parsed YAML block scalar rather than assuming its visual source
+# indentation survives parsing unchanged. The if-wrapper's indentation is the
+# shell block's common prefix; PHP body/terminator checks use that exact prefix.
+indent = lines[opener][0...lines[opener].index('if php')]
+abort 'ERROR: PHP heredoc opener has unexpected indentation' unless indent.match?(/\A\s*\z/)
+closers = ((opener + 1)...lines.length).select { |index| lines[index] == "#{indent}PHP" }
+abort "ERROR: expected one correctly positioned PHP heredoc terminator after the opener, found #{closers.length}" unless closers.length == 1
 closer = closers.first
-abort 'ERROR: PHP heredoc body must begin with <?php' unless lines[opener + 1] == '<?php'
+abort 'ERROR: PHP heredoc body must begin with <?php at the script indentation' unless lines[opener + 1] == "#{indent}<?php"
 abort 'ERROR: expected shell statement after the PHP heredoc terminator' unless
-  lines[closer + 1] == 'echo "production_canonical_records_changed=NO"'
+  lines[closer + 1] == "#{indent}echo \"production_canonical_records_changed=NO\""
 
 Tempfile.create(['controlled-migration-remote', '.sh']) do |shell_file|
   shell_file.write(script)
@@ -50,7 +56,7 @@ Tempfile.create(['controlled-migration-remote', '.sh']) do |shell_file|
   abort "ERROR: rendered remote shell script fails sh -n:\n#{output}" unless status.success?
 end
 
-php_source = lines[(opener + 1)...closer].join("\n") + "\n"
+php_source = lines[(opener + 1)...closer].map { |line| line.delete_prefix(indent) }.join("\n") + "\n"
 Tempfile.create(['controlled-migration-php', '.php']) do |php_file|
   php_file.write(php_source)
   php_file.flush
