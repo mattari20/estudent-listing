@@ -503,12 +503,19 @@ jobs:
               exit 32
             fi
             echo "diagnostic_checkpoint=php_source_syntax_check"
-            if php -l "$PHP_DIAGNOSTIC_FILE" >/dev/null 2>&1; then
+            PHP_SYNTAX_OUTPUT=""
+            set +e
+            PHP_SYNTAX_OUTPUT="$(php -l "$PHP_DIAGNOSTIC_FILE" 2>&1)"
+            PHP_SYNTAX_STATUS=$?
+            set -e
+            if [ "$PHP_SYNTAX_STATUS" -eq 0 ]; then
               echo "php_diagnostic_syntax_status=0"
             else
-              PHP_SYNTAX_STATUS=$?
               echo "php_diagnostic_syntax_status=$PHP_SYNTAX_STATUS"
-              echo "ERROR: guarded PHP diagnostic has a syntax error; schema inspection blocked"
+              echo "php_diagnostic_syntax_output_begin"
+              printf '%s\\n' "$PHP_SYNTAX_OUTPUT"
+              echo "php_diagnostic_syntax_output_end"
+              echo "ERROR: guarded PHP diagnostic syntax validation failed; schema inspection blocked"
               exit 33
             fi
             echo "diagnostic_checkpoint=php_program_execution"
