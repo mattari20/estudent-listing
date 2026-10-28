@@ -89,6 +89,10 @@ abort 'ERROR: migration exception handler must suppress exception details' unles
   script.include?('ERROR: targeted migration threw an exception (details suppressed).') &&
   !script.include?('diagnostic_exception_type=')
 
+abort 'ERROR: Git shallow metadata path must be resolved absolutely before checking it' unless
+  script.include?('git rev-parse --path-format=absolute --git-path shallow') &&
+  script.include?('git_shallow_file_present=$SHALLOW_FILE_PRESENT')
+
 abort 'ERROR: PHP failure-stage diagnostics are missing' unless
   script.include?('php_shutdown_fatal=true stage=') &&
   script.include?('diagnostic_checkpoint=before_php_program') &&
