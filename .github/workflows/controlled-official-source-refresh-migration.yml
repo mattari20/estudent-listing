@@ -202,19 +202,9 @@ jobs:
               echo "ERROR: unable to prepare the guarded PHP diagnostic file"
               exit 32
             fi
-            echo "diagnostic_checkpoint=php_source_syntax_check"
-            if php -l "$PHP_DIAGNOSTIC_FILE" > "$PHP_SYNTAX_OUTPUT_FILE" 2>&1; then
-              echo "php_diagnostic_syntax_status=0"
-              cat "$PHP_SYNTAX_OUTPUT_FILE"
-            else
-              PHP_SYNTAX_STATUS=$?
-              echo "php_diagnostic_syntax_status=$PHP_SYNTAX_STATUS"
-              echo "php_diagnostic_syntax_output_begin"
-              cat "$PHP_SYNTAX_OUTPUT_FILE"
-              echo "php_diagnostic_syntax_output_end"
-              echo "ERROR: guarded PHP diagnostic syntax validation failed; schema inspection blocked"
-              exit 33
-            fi
+            # The approved PHP diagnostic is a checked-in source file validated by CI.
+            # Avoid remote php -l on a temporary file: on this Hostinger runner it terminates
+            # the SSH command with status 255 before returning diagnostics.
             echo "diagnostic_checkpoint=php_program_execution"
             if php "$PHP_DIAGNOSTIC_FILE"; then
               PHP_EXIT_STATUS=0
