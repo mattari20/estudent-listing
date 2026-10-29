@@ -12,6 +12,11 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
 
         $this->assertIsString($workflow);
         $this->assertStringContainsString('canonical_directory_visibility_counts', $workflow);
+        $this->assertStringContainsString('candidate_import_source_evidence_lineage', $workflow);
+        $this->assertStringContainsString('active_evidence', $workflow);
+        $this->assertStringContainsString('identity_decisions', $workflow);
+        $this->assertStringContainsString('promotion_decisions', $workflow);
+        $this->assertStringContainsString('promotion_events', $workflow);
         $this->assertStringContainsString("'institutions', 'campuses', 'programs', 'program_offerings'", $workflow);
         $this->assertStringContainsString("'campuses_missing_institution'", $workflow);
         $this->assertStringContainsString("'programs_missing_institution'", $workflow);
