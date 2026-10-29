@@ -7,18 +7,18 @@ Repository baseline: `main` at `d606c1fb9747167e354c5c82d26a08e8616465f0`
 
 - Discovery idempotency repair: implemented in this PR; CI must pass before merge.
 - Historical production candidate rows: untouched. No production row was changed by this work.
-- Exact six-row production audit: **BLOCKED** pending retrieval of the protected record-level diagnostics. The available successful Hostinger diagnostics run exposed aggregate/schema/API results, not the six rows' IDs, batch keys, source/snapshot IDs, content hashes, evidence IDs, or identity-decision events.
-- Raw response comparison: **UNVERIFIED**. The six production snapshot bodies/hashes and stored evidence excerpts were not available in the retrieved diagnostic output, so it would be unsafe to assert that the differences are only analytics/footer/timestamp content.
-- Private review package for an existing production GCU row: **BLOCKED** pending authorized invocation of the existing review-package service against the selected production batch and retrieval of its private manifest/CSV. This PR does not fabricate a package or copy production data into Git.
+- Six-row production trace: **PARTIALLY VERIFIED** from successful read-only Hostinger Diagnostics run #40866751798. All six row IDs, batch IDs, source ID, identity fields, statuses, and decision-history state are available; the bounded evidence-lineage section exposed snapshot/evidence/hash details for five rows only.
+- Raw response comparison: **UNVERIFIED**. The five exposed SHA-256 content hashes differ, proving bytewise differences, but the raw snapshot bodies and stored evidence excerpts were not returned, and row 353's detailed lineage was omitted by the bounded report. The differences cannot be classified as substantive or non-substantive from hashes alone.
+- Private review package for an existing production GCU row: **BLOCKED** pending authorized retrieval of its private manifest/CSV. The existing review-package service and protected download route were identified, but no production package was generated or downloaded in this phase.
 - Pilot of 5–10 institutions: **BLOCKED**. The GCU identity profile is enabled, but its six existing candidate rows have no approved identity/promotion decisions. Other HEC identity profiles remain disabled/unqualified for live retrieval and are not to be enabled to meet a count.
 
 ## Code-level root cause established
 
 The discovery service's existing-batch reuse key is exact source content hash plus profile/source type and extractor version. Any changed response bytes therefore miss exact-snapshot reuse and enter candidate persistence again.
 
-The previous top-level institution duplicate detector checked only exact equality against `normalized_payload->slug`. It did not compare conservative normalized keys derived from candidate name and official name, so legacy slug variants could evade deduplication. Candidate persistence also lacked a per-source transaction/row lock around the check-and-create sequence, allowing concurrent runs to race past a check before either candidate row became visible.
+The previous top-level institution duplicate detector checked a JSON-path equality on `normalized_payload->slug`, without normalized name/official-name fallback. The six trace rows all have the same slug, so a functioning exact-slug lookup should have caught sequential repeats; slug variants alone do **not** explain this particular history. Exact-content-hash batch reuse explains why changed source bytes create new batches, but the production-specific reason the duplicate check failed to classify these rows remains **UNVERIFIED** (for example, an older deployed detector path, database JSON-path behavior, or a concurrency race must be distinguished with deployed-file and query-level evidence). Candidate persistence also lacked a per-source transaction/row lock, so concurrent runs were not serialized.
 
-These are confirmed code paths that can permit repeated candidate rows; they are not proof of which path produced each of the six live rows. A per-row audit is required to attribute the production history conclusively.
+The repair replaces the fragile JSON-path-only check with conservative normalized identity keys read from existing staged payloads, and serializes check-and-create per source. This closes the identified code gaps; it does not retrospectively prove which execution path produced each historical row.
 
 ## Repair
 
@@ -31,27 +31,30 @@ These are confirmed code paths that can permit repeated candidate rows; they are
 
 No schema migration or database constraint is added. Historical batches, rows, snapshots, evidence, and decision history are not deleted or rewritten.
 
-## Production six-row audit — required evidence
+## Production six-row audit — read-only evidence
 
-For each of the six reported rows, retrieve the private record-level diagnostic fields without mutating production:
+Run #40866751798 completed successfully on 2026-10-29. The private record-level trace confirms six candidate rows across six validated batches, all from source ID 27, with the same normalized institution slug. Each row had zero validation errors, no open conflicts, active source evidence, no identity decisions, no promotion decisions, and no approved promotion decision. The canonical institution count remains zero. The rows were not modified.
 
-- row ID/status/match state; batch ID/key/source type/entity type/created time;
-- source ID and official URL;
-- snapshot ID, SHA-256 content hash, captured timestamp, HTTP status/content type if recorded;
-- evidence ID, evidence content hash, excerpt, and source-to-snapshot lineage;
-- payload and normalized identity fields (name, official name, short name, slug);
-- identity decision history and promotion event history;
-- any links between batches/rows indicating explicit refresh/supersession.
+| Row ID | Batch ID | Batch key (as returned) | Source ID | Snapshot ID | Evidence ID | Evidence SHA-256 / content hash (as returned) | Observed at (server local) |
+|---:|---:|---|---:|---:|---:|---|---|
+| 348 | 19 | `agent-gcu-lahore-institution-identity-pcxaxbmtceketifx` | 27 | 8 | 15 | `f7d3388f9c9c6d80e90743517f8200f660481f49cc8c051602da1360683460b4` | 2026-10-28 18:44:56 |
+| 349 | 20 | `agent-gcu-lahore-institution-identity-ylupgij5zfcx3nw7` | 27 | 9 | 16 | `1c11facffabac7a933b8d5e7f9ddcbfe8d940e32fc6c7f6d49088d449de419cd` | 2026-10-28 18:44:58 |
+| 350 | 21 | `agent-gcu-lahore-institution-identity-sr7ev8rad2ej8d2l` | 27 | 10 | 17 | `dee0b43bb287eed0f67695675e1ca8515c16e2d4950ad302d6a611074e8e0be4` | 2026-10-28 20:59:50 |
+| 351 | 22 | `agent-gcu-lahore-institution-identity-4kezyzrhczwzbpye` | 27 | 11 | 18 | `f1da6faa17074fb276601e842741ce7c644d76ab298377e8c9759ca6856d3501` | 2026-10-29 02:01:54 |
+| 352 | 23 | `agent-gcu-lahore-institution-identity-wnxxgrmeqxhiuqrp` | 27 | 12 | 19 | `b0fe0c3b76450169da669eeb8883d1dac5700fda29c9644853dd66398503e101` | 2026-10-29 05:53:37 |
+| 353 | 24 | Not included in bounded lineage section | 27 | Not included | Not included | Not included | Not included |
 
-Then compare the six raw snapshot bodies or an approved normalized-text diff. A hash difference alone proves byte differences, not substantive identity changes. Keep raw bodies and row-level output private.
+The trace confirms row IDs 348–353 all have payload identity `Government College University Lahore`, slug `government-college-university-lahore`, status `candidate`, match state `new_candidate`, batch status `validated`, no validation errors, no identity/promotion decisions, and zero open conflicts. The row-level trace confirms active source evidence for all six; the bounded lineage section only returned detailed evidence linkage for rows 348–352. Do not infer row 353's missing identifiers from the sequence.
+
+The source is the active official HEC page `https://www.hec.gov.pk/english/universities/Pages/Punjab/Government-College-University%2C-Lahore.aspx`. Five distinct hashes are available, so those five recorded responses were bytewise different. The production report does not expose raw snapshot bodies or evidence excerpts; compare those through the existing protected operator workflow before deciding whether the changes are only non-substantive page content. Keep raw bodies and row-level output private.
 
 ## Existing review-package and identity-decision workflow
 
-Use the existing `InstituteDiscoveryReviewPackageService::create($batch, $snapshot, $evidenceId)` for the selected existing GCU candidate batch. Verify the private manifest's batch/snapshot/evidence IDs, raw snapshot hash, CSV checksum, official URL, candidate identity, excerpt, and the flags `canonical_mutations_performed=false` and `automatic_approval_performed=false`. Do not copy the package or raw response into a public repository.
+Use the existing protected download route `GET /institutes/operations/discovery-packages/{importBatch}/manifest` and `/csv` (authenticated operator) to retrieve the private package, or use the existing `InstituteDiscoveryReviewPackageService::create($batch, $snapshot, $evidenceId)` through the already-authorized operations workflow. For a first review, row 348 / batch 19 is a candidate with known snapshot 8 and evidence 15; the package still must be checked against current private storage. Verify manifest batch/snapshot/evidence IDs, raw snapshot hash, CSV checksum, official URL, candidate identity, excerpt, and `canonical_mutations_performed=false` / `automatic_approval_performed=false`. Do not copy the package or raw response into a public repository.
 
-The package was **not generated/retrieved in this phase** because the available connected GitHub operations did not provide an authorized way to invoke the protected production command and fetch its private-storage result. The selected row/batch ID also remains unverified here; selecting one by guess would be unsafe.
+The package was **not generated/retrieved in this phase** because no authorized authenticated production-session or private-storage retrieval operation was available through the connected tools. No guessed package path was used.
 
-Record identity decisions through the existing import-row identity review workflow, using an explicit `approved_new` or `approved_match` decision with reviewer/reason and resolved canonical identity as applicable. A duplicate finding is not itself an identity decision. Run the existing verification, source-readiness, provenance-readiness, promotion-readiness, final-readiness, deployment-readiness, readiness-contract, and end-to-end gates before any separately authorized promotion.
+Record an explicit identity decision through `POST /institutes/operations/rows/{importRow}/decision`, with `decision=approved_new` or `approved_match`, a required reason, and `institution_id` for `approved_match`. Then separately evaluate `POST /institutes/operations/rows/{importRow}/promote`; publishing is a separate action at `/institutes/operations/rows/{importRow}/publish`. None of these write actions was invoked. A duplicate finding is not itself an identity decision. Run the existing verification, source-readiness, provenance-readiness, promotion-readiness, final-readiness, deployment-readiness, readiness-contract, and end-to-end gates before any separately authorized promotion.
 
 ## Pilot source qualification
 
@@ -77,8 +80,8 @@ Record identity decisions through the existing import-row identity review workfl
 |---|---|
 | Code-level duplicate mechanism documented | PASS |
 | Safe idempotency repair and regression tests | Awaiting PR CI |
-| Six production rows and decision history enumerated | BLOCKED — protected record-level report not retrieved |
-| Substantive vs non-substantive response diff | UNVERIFIED |
+| Six production rows and decision history enumerated | PARTIAL PASS — all row IDs/statuses/decisions traced; row 353 lineage details omitted by bounded report |
+| Substantive vs non-substantive response diff | UNVERIFIED — five hashes differ, raw bodies/excerpts unavailable |
 | Existing private GCU review package verified | BLOCKED — protected package retrieval not available |
 | Explicit identity decision | PENDING human review |
 | Pilot qualification for 5–10 sources | BLOCKED |
