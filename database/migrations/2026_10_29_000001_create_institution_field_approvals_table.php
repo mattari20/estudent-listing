@@ -21,8 +21,8 @@ return new class extends Migration
             $table->text('evidence_url');
             $table->longText('evidence_excerpt');
             $table->string('content_fingerprint', 128);
-            $table->timestamp('source_observed_at');
-            $table->timestamp('evidence_observed_at')->nullable();
+            $table->string('source_observed_at', 40);
+            $table->string('evidence_observed_at', 40)->nullable();
             $table->char('proposal_hash', 64)->unique();
             $table->string('status', 24)->default('pending');
             $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
