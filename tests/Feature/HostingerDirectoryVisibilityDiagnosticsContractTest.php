@@ -28,10 +28,11 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
 
         $this->assertIsString($workflow);
         $this->assertStringContainsString('Verify public directory and API response contracts', $workflow);
-        $this->assertStringContainsString('https://estudent.pk/institutes/', $workflow);
-        $this->assertStringContainsString('https://estudent.pk/api/v1/institutions?per_page=2', $workflow);
-        $this->assertStringContainsString('https://estudent.pk/api/v1/institutions?q=COMSATS&per_page=2', $workflow);
-        $this->assertStringContainsString('https://estudent.pk/api/v1/institutions?per_page=2&page=2', $workflow);
+        $this->assertStringContainsString('BASE_URL="https://estudent.pk"', $workflow);
+        $this->assertStringContainsString('directory_page "$BASE_URL/institutes/" false', $workflow);
+        $this->assertStringContainsString('institutions_api_page_1 "$BASE_URL/api/v1/institutions?per_page=2" true', $workflow);
+        $this->assertStringContainsString('institutions_api_search "$BASE_URL/api/v1/institutions?q=COMSATS&per_page=2" true', $workflow);
+        $this->assertStringContainsString('institutions_api_page_2 "$BASE_URL/api/v1/institutions?per_page=2&page=2" true', $workflow);
         $this->assertStringContainsString('http_status=$status', $workflow);
         $this->assertStringContainsString('content_type=$content_type', $workflow);
         $this->assertStringContainsString('json_contract=PASS', $workflow);
