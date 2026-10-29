@@ -345,7 +345,7 @@ jobs:
             if ($matchingMigrationCount === 1 && ! $columnExists) { fwrite(STDERR, "ERROR: migration recorded but column absent; schema drift requires separate review.\\n"); exit(13); }
             if ($matchingMigrationCount === 1 && $columnExists) {
                 if (! $columnAndPositionMatch) { fwrite(STDERR, "ERROR: migration is recorded but target column contract is not verified.\\n"); exit(16); }
-                echo "decision=ALREADY_APPLIED_AND_VERIFIED\\n";
+                echo "decision=ALREADY_APPLIED_TARGET_COLUMN_CONTRACT_VERIFIED\\n";
                 exit(0);
             }
             if ($columnExists && $matchingMigrationCount === 0) {
@@ -368,7 +368,7 @@ jobs:
             fi
             echo "php_preflight_stage=completed"
             PREFLIGHT_OUTPUT="$(cat "$PREFLIGHT_OUTPUT_FILE")"
-            if printf '%s\n' "$PREFLIGHT_OUTPUT" | grep -q 'decision=ALREADY_APPLIED_AND_VERIFIED'; then
+            if printf '%s\n' "$PREFLIGHT_OUTPUT" | grep -q 'decision=ALREADY_APPLIED_TARGET_COLUMN_CONTRACT_VERIFIED'; then
               echo "migration_status=ALREADY_APPLIED_NO_CHANGE"
               exit 0
             fi
