@@ -135,8 +135,11 @@ class OfficialSourceCanonicalRefreshService
                     || str_starts_with($exception->getMessage(), 'Official source identity is not verified:')
                     || str_starts_with($exception->getMessage(), 'Source observation, snapshot, and evidence relationships are invalid.')
                     || str_starts_with($exception->getMessage(), 'Evidence fingerprint does not match the captured source snapshot.')
+                    || str_starts_with($exception->getMessage(), 'Captured snapshot content fingerprint is invalid')
+                    || str_starts_with($exception->getMessage(), 'Evidence URL is not a safe public HTTP destination.')
+                    || str_starts_with($exception->getMessage(), 'Evidence URL host does not match the verified official source.')
                     || str_starts_with($exception->getMessage(), 'A valid evidence URL, excerpt, and source observation timestamp are required.')
-                    || str_starts_with($exception->getMessage(), 'Evidence or source revision changed after review.')
+                    || str_starts_with($exception->getMessage(), 'Evidence or source revision changed after review:')
                     || str_starts_with($exception->getMessage(), 'Conflicting active verified evidence exists');
 
                 if (! $knownValidationFailure) {
