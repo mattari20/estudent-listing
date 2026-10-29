@@ -40,12 +40,12 @@ class ControlledImportBatchDuplicateRowsMigrationWorkflowContractTest extends Te
         $workflow = file_get_contents(base_path('.github/workflows/controlled-import-batch-duplicate-rows-migration.yml'));
 
         $this->assertIsString($workflow);
-        $partialSchemaGuard = strpos($workflow, 'if ($columnExists && !$migrationRecorded)');
+        $partialSchemaGuard = strpos($workflow, 'if ($columnExists && $matchingMigrationCount === 0)');
         $readyDecision = strpos($workflow, 'echo "decision=READY_FOR_SINGLE_MIGRATION');
         $this->assertNotFalse($partialSchemaGuard);
         $this->assertNotFalse($readyDecision);
         $this->assertLessThan($readyDecision, $partialSchemaGuard);
-        $this->assertStringContainsString('partial schema requires separate review', $workflow);
+        $this->assertStringContainsString('partial schema requires separate review', $workflow);\n        $this->assertStringContainsString('matchingMigrationCount > 1', $workflow);
         $this->assertStringContainsString('exit(14);', $workflow);
     }
 
@@ -59,6 +59,13 @@ class ControlledImportBatchDuplicateRowsMigrationWorkflowContractTest extends Te
         $this->assertStringContainsString("'type_name' => \$column['type_name'] ?? null", $workflow);
         $this->assertStringContainsString("'nullable' => \$column['nullable'] ?? null", $workflow);
         $this->assertStringContainsString("'default' => \$column['default'] ?? null", $workflow);
+        $this->assertStringContainsString("'ordinal_position' => \$duplicatePosition + 1", $workflow);
+        $this->assertStringContainsString("'candidate_rows_precedes_duplicate_rows' => \$candidateRowsPrecedes", $workflow);
+        $this->assertStringContainsString("'related_migration_files' => \$relatedMigrationFiles", $workflow);
+        $this->assertStringContainsString("'schema_equivalence' => \$schemaEquivalence", $workflow);
+        $this->assertStringContainsString("'migration_origin' => 'UNKNOWN'", $workflow);
+        $this->assertStringContainsString("'mutation_performed' => false", $workflow);
+
     }
 
     public function test_post_migration_verification_uses_explicit_script_file_and_cleans_up(): void
