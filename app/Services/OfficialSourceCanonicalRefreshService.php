@@ -130,6 +130,19 @@ class OfficialSourceCanonicalRefreshService
                 $values = $approvals->validatedEvidenceForProposal($proposal);
                 $approvals->assertNoConflictingVerifiedAssertions($proposal);
             } catch (RuntimeException $exception) {
+                $knownValidationFailure = $exception instanceof \\Illuminate\\Database\\Eloquent\\ModelNotFoundException
+                    || str_starts_with($exception->getMessage(), 'The persisted proposal binding has changed.')
+                    || str_starts_with($exception->getMessage(), 'Official source identity is not verified:')
+                    || str_starts_with($exception->getMessage(), 'Source observation, snapshot, and evidence relationships are invalid.')
+                    || str_starts_with($exception->getMessage(), 'Evidence fingerprint does not match the captured source snapshot.')
+                    || str_starts_with($exception->getMessage(), 'A valid evidence URL, excerpt, and source observation timestamp are required.')
+                    || str_starts_with($exception->getMessage(), 'Evidence or source revision changed after review.')
+                    || str_starts_with($exception->getMessage(), 'Conflicting active verified evidence exists');
+
+                if (! $knownValidationFailure) {
+                    throw $exception;
+                }
+
                 $proposal->status = 'stale';
                 $proposal->application_outcome = 'evidence_invalid';
                 $proposal->applied_at = now();
