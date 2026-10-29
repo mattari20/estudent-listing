@@ -402,6 +402,85 @@ jobs:
                 $db = \Illuminate\Support\Facades\DB::connection();
                 $schema = \Illuminate\Support\Facades\Schema::class;
                 $driver = $db->getDriverName();
+                $migrationPrivilegeReadiness = [
+                    'check' => 'institution_field_approvals_migration_privilege_readiness',
+                    'status' => 'UNVERIFIED',
+                    'database_driver' => $driver,
+                    'database_scope_grant_found' => false,
+                    'required_privileges' => [
+                        'CREATE' => null,
+                        'ALTER' => null,
+                        'INDEX' => null,
+                        'REFERENCES_all_parent_tables' => null,
+                    ],
+                    'introspection_succeeded' => false,
+                    'raw_grants_emitted' => false,
+                    'mutation_performed' => false,
+                ];
+
+                // SHOW GRANTS is read-only. Never print grant strings or account names.
+                if ($driver === 'mysql') {
+                    try {
+                        $grantRows = $db->select('SHOW GRANTS FOR CURRENT_USER()');
+                        $databaseName = strtolower((string) $db->getDatabaseName());
+                        $parentTables = array_keys($foreignKeyPrerequisites);
+                        $schemaGrantFound = false;
+                        $globalGrantFound = false;
+                        $referencesTables = [];
+                        $privileges = ['CREATE' => false, 'ALTER' => false, 'INDEX' => false];
+                        foreach ($grantRows as $grantRow) {
+                            $grant = (string) (array_values((array) $grantRow)[0] ?? '');
+                            if (! preg_match('/^GRANT\\s+(.+?)\\s+ON\\s+(.+?)\\s+TO\\s+/i', $grant, $matches)) {
+                                continue;
+                            }
+                            $granted = strtoupper(trim($matches[1]));
+                            $scope = strtolower(str_replace('`', '', trim($matches[2])));
+                            $isGlobal = $scope === '*.*';
+                            $isDatabase = $scope === $databaseName.'.*';
+                            $scopeGrant = $isGlobal || $isDatabase;
+                            if ($scopeGrant) {
+                                $globalGrantFound = $globalGrantFound || $isGlobal;
+                                $schemaGrantFound = $schemaGrantFound || $isDatabase;
+                                foreach (array_keys($privileges) as $requiredPrivilege) {
+                                    if ($granted === 'ALL PRIVILEGES' || preg_match('/(?:^|,\\s*)'.preg_quote($requiredPrivilege, '/').'(?:\\s*,|$)/', $granted)) {
+                                        $privileges[$requiredPrivilege] = true;
+                                    }
+                                }
+                                if ($granted === 'ALL PRIVILEGES' || preg_match('/(?:^|,\\s*)REFERENCES(?:\\s*,|$)/', $granted)) {
+                                    $referencesTables = array_fill_keys($parentTables, true);
+                                }
+                                continue;
+                            }
+
+                            $normalizedScope = preg_replace('/\\s+/', '', $scope);
+                            if (preg_match('/^'.preg_quote($databaseName, '/'). '\\.('.implode('|', array_map(static fn ($name) => preg_quote(strtolower($name), '/'), $parentTables)).')$/i', $normalizedScope, $scopeMatches)) {
+                                if ($granted === 'ALL PRIVILEGES' || preg_match('/(?:^|,\\s*)REFERENCES(?:\\s*,|$)/', $granted)) {
+                                    $referencesTables[strtolower($scopeMatches[1])] = true;
+                                }
+                            }
+                        }
+
+                        $referencesComplete = count(array_intersect(array_map('strtolower', $parentTables), array_keys($referencesTables))) === count($parentTables);
+                        $migrationPrivilegeReadiness['database_scope_grant_found'] = $globalGrantFound || $schemaGrantFound;
+                        $migrationPrivilegeReadiness['required_privileges'] = [
+                            'CREATE' => $privileges['CREATE'],
+                            'ALTER' => $privileges['ALTER'],
+                            'INDEX' => $privileges['INDEX'],
+                            'REFERENCES_all_parent_tables' => $referencesComplete,
+                        ];
+                        $migrationPrivilegeReadiness['introspection_succeeded'] = true;
+                        $migrationPrivilegeReadiness['status'] = ! in_array(false, $migrationPrivilegeReadiness['required_privileges'], true)
+                            ? 'PASS'
+                            : 'INSUFFICIENT_OR_UNVERIFIED_GRANTS';
+                    } catch (\\Throwable $privilegeError) {
+                        // Keep the diagnostic useful without exposing credentials, grants, or exception text.
+                        $migrationPrivilegeReadiness['status'] = 'UNVERIFIED_GRANT_INTROSPECTION_FAILED';
+                    }
+                } else {
+                    $migrationPrivilegeReadiness['status'] = 'UNSUPPORTED_DATABASE_DRIVER';
+                }
+
+                echo json_encode($migrationPrivilegeReadiness, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
                 $tableExists = $schema::hasTable($table);
                 $ledgerExists = $schema::hasTable('migrations');
                 if ($ledgerExists) {
