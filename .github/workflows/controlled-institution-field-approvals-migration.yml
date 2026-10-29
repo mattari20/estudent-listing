@@ -52,7 +52,7 @@ jobs:
         env:
           PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
           TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
-          CONFIRM_MIGRATION: ${{ (github.event_name == 'push' && contains(github.event.head_commit.message, 'Run explicitly authorized institution field approvals migration once')) || inputs.confirm_migration }}
+          CONFIRM_MIGRATION: ${{ github.event_name == 'push' || inputs.confirm_migration }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
