@@ -14,7 +14,12 @@ class ControlledImportBatchDuplicateRowsMigrationWorkflowContractTest extends Te
         $this->assertStringContainsString('PREFLIGHT_SCRIPT_FILE="$(mktemp)"', $workflow);
         $this->assertStringContainsString('php_preflight_stage=starting', $workflow);
         $this->assertStringContainsString('php_preflight_exit_code=$PREFLIGHT_PHP_EXIT', $workflow);
-        $this->assertStringContainsString('php -d display_errors=1 -d log_errors=0 "$PREFLIGHT_SCRIPT_FILE"', $workflow);
+        $this->assertStringContainsString('php_cli_probe_stage=starting', $workflow);
+        $this->assertStringContainsString('php_cli_version_exit_code=$PHP_VERSION_EXIT', $workflow);
+        $this->assertStringContainsString('php_cli_probe=ok', $workflow);
+        $this->assertStringContainsString('"$PHP_BIN" -d display_errors=1 -d log_errors=0 "$PREFLIGHT_SCRIPT_FILE"', $workflow);
+        $this->assertStringNotContainsString('script_stop: true', $workflow);
+        $this->assertStringContainsString('set -eu', $workflow);
         $this->assertStringNotContainsString('if php >"$PREFLIGHT_OUTPUT_FILE" 2>&1 <<\'PHP\'', $workflow);
     }
 

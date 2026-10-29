@@ -164,3 +164,24 @@ This session used repository and previously captured read-only diagnostics. No p
 
 The scoped code/documentation work has passing CI evidence, and the audit now records exact IDs for four promotion-failure rows. **The full system audit and Phase 2 closure are not complete** because batch-level failure reasons, duplicate canonical links, official evidence for missing offerings, and the remaining route/security/schema/workflow audits are outstanding. This is the honest completion boundary for this checkpoint.
 
+
+
+## Master audit execution update — 2026-10-29
+
+### Current blocker: guarded migration preflight execution
+
+- [ ] **OPS/DB incident:** guarded duplicate_rows migration workflow #6 failed after `php_preflight_stage=starting` with remote status 255. The run was dry-run (`confirm_migration=false`) and did not reach the migration command.
+- [x] **General main checks:** Test, Laravel CI, frontend build, command orchestrator, Hostinger read-only diagnostics, and public-site monitor passed on commit `c0f7bb9aa15e9b994fa3a4787c29399e570567bf`.
+- [x] **Independent SSH diagnostics:** Hostinger read-only diagnostics #40819347203 passed and ran PHP/Laravel diagnostics. This is useful contrast evidence, not proof the migration preflight works.
+- [ ] **Root-cause isolation:** remove the legacy SSH action `script_stop: true` setting in favor of explicit shell-level `set -eu`, and add PHP CLI version/inline-execution probes before Laravel bootstrap. Upstream documents this option as legacy and reports compound-command problems; treat it as a hypothesis until a new live run proves the outcome.
+- [ ] **Live preflight:** rerun on `main` with `confirm_migration=false`, capture the actual table/column/migration-ledger state, and only then decide whether schema reconciliation is needed.
+- [ ] **Step 1 gate:** keep Step 1 open until the live diagnostic path and trigger limitations are evidenced and the required acceptance criteria are satisfied.
+
+### Audit discipline
+
+Continue the existing full-system audit in dependency order. For every finding, record exact file/workflow/run evidence, severity, confidence, owner/status, correction, regression tests, and live verification. Distinguish a confirmed defect from an unverified audit gap. Do not delete, promote, mutate canonical data, write migration-ledger rows, or apply production migrations without an exact-scope reviewed plan and separate authorization. The current migration incident does not replace the outstanding audit areas already listed above.
+
+
+### Additional workflow inventory finding — legacy SSH option
+
+A targeted read of the eight highest-risk migration/deployment/diagnostic workflows found `.github/workflows/controlled-official-source-refresh-migration.yml` also still sets `script_stop: true` while using shell compound commands. This is an **audit item, not yet a confirmed defect**: its own PHP diagnostic path has different behavior and must be checked against its live evidence before changing it. Add it to the workflow-hardening review and do not bulk-remove the option from unrelated workflows without reviewing each contract test and run history.
