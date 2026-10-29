@@ -52,4 +52,46 @@ class ImportDuplicateDetectorService
 
         return null;
     }
+
+    /**
+     * Resolve a top-level institution identity without assuming a canonical parent.
+     * Existing canonical or staged identities are reported for review, never overwritten.
+     */
+    public function findInstitution(string $slug, ?int $currentBatchId = null, array $ignoredBatchIds = []): ?array
+    {
+        if ($slug === '') {
+            return null;
+        }
+
+        $canonical = Institution::query()->where('slug', $slug)->first();
+        if ($canonical) {
+            return [
+                'kind' => 'canonical',
+                'label' => 'Institution',
+                'id' => $canonical->id,
+                'message' => 'This institution already exists in canonical data. Review the existing record instead of creating another copy.',
+            ];
+        }
+
+        $previous = ImportRow::query()
+            ->where('normalized_payload->slug', $slug)
+            ->whereIn('status', ['candidate', 'promoted', 'duplicate'])
+            ->whereHas('batch', fn ($query) => $query->where('entity_type', 'institution'))
+            ->when($currentBatchId, fn ($query) => $query->where('import_batch_id', '!=', $currentBatchId))
+            ->when($ignoredBatchIds !== [], fn ($query) => $query->whereNotIn('import_batch_id', $ignoredBatchIds))
+            ->latest('id')
+            ->first();
+
+        if ($previous) {
+            return [
+                'kind' => 'import',
+                'label' => 'Import Row',
+                'id' => $previous->id,
+                'message' => 'The same institution identity was already staged. Review the existing import row instead of creating another copy.',
+            ];
+        }
+
+        return null;
+    }
+
 }
