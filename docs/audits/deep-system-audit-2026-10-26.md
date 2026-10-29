@@ -185,3 +185,16 @@ Continue the existing full-system audit in dependency order. For every finding, 
 ### Additional workflow inventory finding — legacy SSH option
 
 A targeted read of the eight highest-risk migration/deployment/diagnostic workflows found `.github/workflows/controlled-official-source-refresh-migration.yml` also still sets `script_stop: true` while using shell compound commands. This is an **audit item, not yet a confirmed defect**: its own PHP diagnostic path has different behavior and must be checked against its live evidence before changing it. Add it to the workflow-hardening review and do not bulk-remove the option from unrelated workflows without reviewing each contract test and run history.
+
+
+## Master audit execution checkpoint — 2026-10-29 (main `a6239509d1183ad54e3f062d572876e377e5743d`)
+
+### OPS/DB incident status
+- PR [#893](https://github.com/mattari20/estudent-listing/pull/893) merged at `a6239509d1183ad54e3f062d572876e377e5743d`; PR-head Test [#40819995295](https://github.com/mattari20/estudent-listing/actions/runs/40819995295) and Laravel CI [#40819995286](https://github.com/mattari20/estudent-listing/actions/runs/40819995286) passed.
+- The live guarded workflow still requires a new manual read-only dispatch with `confirm_migration=false`. The available GitHub connector cannot dispatch workflows; no run is claimed. Existing failed run #40819601765 used the old workflow source and remains non-diagnostic for the merged change.
+- Confirmed code-review finding: the duplicate_rows preflight did not reject the partial state where the column exists but its migration ledger row is absent. A focused fail-closed fix and regression test are now being prepared. This is a code-path finding; the live database's actual state is unknown.
+
+### Current audit boundary
+- **Verified:** main SHA, PR #893 merge, PR CI results, prior failed-run stage evidence, and source-level preflight state-handling gap.
+- **Audit gaps:** live schema/ledger report, current deployment parity after merge, route and SEO checks against current deployed data, importer row-level behavior, source-provenance/duplicate disposition, authorization matrix, and real Hostinger scheduler execution remain unverified in this execution.
+- **Safety:** no production migration, schema repair, migration-ledger write, data import, canonical promotion, deletion, or scheduled command execution was performed. Keep the incident and Step 1 open; do not begin Step 2.
