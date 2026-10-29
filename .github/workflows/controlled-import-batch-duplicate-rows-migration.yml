@@ -58,7 +58,6 @@ jobs:
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
           envs: PROJECT_PATH,TARGET_REVISION,CONFIRM_MIGRATION
           command_timeout: 6m
-          script_stop: true
           script: |
             set -eu
             case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: project path must be absolute"; exit 2 ;; esac
@@ -113,6 +112,37 @@ jobs:
             git diff --cached --quiet HEAD -- $APP_CODE_PATHS || { echo "ERROR: application index has modifications"; exit 5; }
             echo "application_code_parity=VERIFIED"
 
+            # Use shell-level set -eu for failure handling. The upstream SSH action's
+            # legacy script_stop option is known to mishandle some compound commands.
+            echo "php_cli_probe_stage=starting"
+            PHP_BIN="$(command -v php || true)"
+            if [ -z "$PHP_BIN" ]; then
+              echo "ERROR: PHP CLI executable not found in non-interactive SSH PATH"
+              exit 6
+            fi
+            echo "php_cli_binary=$PHP_BIN"
+            PHP_PROBE_OUTPUT_FILE="$(mktemp)"
+            trap 'rm -f "$PHP_PROBE_OUTPUT_FILE"' EXIT
+            if "$PHP_BIN" -v >"$PHP_PROBE_OUTPUT_FILE" 2>&1; then
+              PHP_VERSION_EXIT=0
+            else
+              PHP_VERSION_EXIT=$?
+            fi
+            cat "$PHP_PROBE_OUTPUT_FILE"
+            echo "php_cli_version_exit_code=$PHP_VERSION_EXIT"
+            if [ "$PHP_VERSION_EXIT" -ne 0 ]; then
+              echo "ERROR: PHP CLI version probe failed"
+              exit 6
+            fi
+            if "$PHP_BIN" -r 'echo "php_cli_probe=ok\\n";'; then
+              echo "php_cli_probe_stage=completed"
+            else
+              PHP_EVAL_EXIT=$?
+              echo "ERROR: PHP CLI inline execution failed with exit code $PHP_EVAL_EXIT"
+              exit "$PHP_EVAL_EXIT"
+            fi
+            rm -f "$PHP_PROBE_OUTPUT_FILE"
+
             PREFLIGHT_OUTPUT_FILE="$(mktemp)"
             PREFLIGHT_SCRIPT_FILE="$(mktemp)"
             trap 'rm -f "$PREFLIGHT_OUTPUT_FILE" "$PREFLIGHT_SCRIPT_FILE"' EXIT
@@ -151,7 +181,7 @@ jobs:
             echo "decision=READY_FOR_SINGLE_MIGRATION\n";
             PHP
             echo "php_preflight_stage=starting"
-            if php -d display_errors=1 -d log_errors=0 "$PREFLIGHT_SCRIPT_FILE" >"$PREFLIGHT_OUTPUT_FILE" 2>&1; then
+            if "$PHP_BIN" -d display_errors=1 -d log_errors=0 "$PREFLIGHT_SCRIPT_FILE" >"$PREFLIGHT_OUTPUT_FILE" 2>&1; then
               PREFLIGHT_PHP_EXIT=0
             else
               PREFLIGHT_PHP_EXIT=$?
@@ -202,7 +232,7 @@ jobs:
             if (!$columnExists || !$migrationRecorded) { fwrite(STDERR, "ERROR: post-migration verification failed.\n"); exit(20); }
             PHP
             echo "post_migration_verification_stage=starting"
-            if php -d display_errors=1 -d log_errors=0 "$POSTCHECK_SCRIPT_FILE" >"$POSTCHECK_OUTPUT_FILE" 2>&1; then
+            if "$PHP_BIN" -d display_errors=1 -d log_errors=0 "$POSTCHECK_SCRIPT_FILE" >"$POSTCHECK_OUTPUT_FILE" 2>&1; then
               POSTCHECK_PHP_EXIT=0
             else
               POSTCHECK_PHP_EXIT=$?
