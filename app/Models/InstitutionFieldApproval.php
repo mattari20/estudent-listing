@@ -17,8 +17,6 @@ class InstitutionFieldApproval extends Model
     ];
 
     protected $casts = [
-        'source_observed_at' => 'datetime',
-        'evidence_observed_at' => 'datetime',
         'decision_at' => 'datetime',
         'applied_at' => 'datetime',
     ];
