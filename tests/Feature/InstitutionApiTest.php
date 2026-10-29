@@ -17,6 +17,9 @@ class InstitutionApiTest extends TestCase
 
     public function test_subfolder_api_returns_a_valid_empty_paginator_when_no_institutions_exist(): void
     {
+        // Some test configurations load shared fixtures; explicitly clear publication eligibility.
+        Institution::query()->update(['status' => 'inactive']);
+
         $this->getJson('/institutes/api/v1/institutions?per_page=2')
             ->assertOk()
             ->assertHeader('content-type', 'application/json')
