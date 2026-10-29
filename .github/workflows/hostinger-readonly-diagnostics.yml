@@ -75,6 +75,54 @@ jobs:
             php artisan env
             echo "=== Laravel scheduled task definitions (read-only) ==="
             php artisan schedule:list --no-ansi
+            echo "=== Import-batch duplicate_rows schema/migration verification (read-only) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+            $schema = \Illuminate\Support\Facades\Schema::class;
+            $db = \Illuminate\Support\Facades\DB::class;
+            $table = 'import_batches';
+            $migration = '2026_10_23_000001_add_duplicate_rows_to_import_batches_table';
+            $tableExists = $schema::hasTable($table);
+            $columnExists = $tableExists && $schema::hasColumn($table, 'duplicate_rows');
+            $migrationFileExists = is_file(base_path('database/migrations/'.$migration.'.php'));
+            $migrationLedgerExists = $schema::hasTable('migrations');
+            $migrationRows = [];
+            if ($migrationLedgerExists) {
+                $migrationRows = $db::table('migrations')
+                    ->where('migration', $migration)
+                    ->orderBy('batch')
+                    ->get(['migration', 'batch'])
+                    ->map(fn ($row) => ['migration' => $row->migration, 'batch' => (int) $row->batch])
+                    ->all();
+            }
+            $migrationApplied = count($migrationRows) > 0;
+            $diagnosis = match (true) {
+                ! $tableExists => 'IMPORT_BATCHES_TABLE_MISSING',
+                ! $columnExists && ! $migrationApplied => 'COLUMN_MISSING_MIGRATION_NOT_RECORDED',
+                ! $columnExists && $migrationApplied => 'SCHEMA_DRIFT_MIGRATION_RECORDED_COLUMN_MISSING',
+                $columnExists && ! $migrationApplied => 'COLUMN_PRESENT_MIGRATION_NOT_RECORDED',
+                default => 'COLUMN_AND_MIGRATION_LEDGER_CONSISTENT',
+            };
+            echo json_encode([
+                'check' => 'import_batches_duplicate_rows_schema_verification',
+                'checked_at' => now()->toIso8601String(),
+                'mutation_performed' => false,
+                'table' => $table,
+                'table_exists' => $tableExists,
+                'duplicate_rows_column_exists' => $columnExists,
+                'migration_name' => $migration,
+                'migration_file_exists' => $migrationFileExists,
+                'migration_ledger_exists' => $migrationLedgerExists,
+                'migration_applied' => $migrationApplied,
+                'matching_migration_rows' => $migrationRows,
+                'diagnosis' => $diagnosis,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
+
             echo "=== Discovery outcome schema/migration verification (read-only) ==="
             php <<'PHP'
             <?php
