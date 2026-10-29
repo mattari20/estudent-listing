@@ -553,3 +553,12 @@ Source: [Hostinger Read-only Diagnostics #40820996249](https://github.com/mattar
 - The official-source refresh schema now reports `schema_ready=true` and a matching ledger row; the October 27 index-repair instruction is superseded unless fresh evidence changes.
 - The active main ruleset requires the `test` status context and blocks branch deletion/non-fast-forward. Legacy branch-protection details were inaccessible (403), so any additional legacy protections remain unverified.
 - Route-source review found the operations route group protected by authentication and operator middleware, with user management additionally admin-gated. Automated diagnostics uses a strong configured bearer token, rate limit, no-store response, and fail-closed report validation. Full route authorization and other security tests remain an audit gap.
+
+
+## Execution update — 2026-10-29: duplicate_rows schema/ledger reconciliation
+
+- Current reviewed main at the start of this work: `08b74fa2dcac036fc02fcc6abd431f8a1eb27950` (PR #895 merge). PRs #892–#895 were re-fetched and confirmed merged.
+- Latest guarded live run [#40822324545](https://github.com/mattari20/estudent-listing/actions/runs/40822324545) passed SSH/Git/PHP startup and emitted structured preflight evidence: `import_batches` and `duplicate_rows` exist; target migration and ledger table exist; exact migration-ledger count is zero; `write_requested=false`; `mutation_performed=false`; exit code 14 correctly blocks the partial state.
+- Review branch `fix/duplicate-rows-full-readonly-diagnostics-20261029` adds physical column definition and position, candidate_rows adjacency, table/index/foreign-key metadata, related migration ledger entries, and source-file inventory; it also adds a Test workflow contract test. Awaiting PR review and CI. This is not yet a production or live diagnostic result.
+- Incident status: **OPEN / BLOCKED pending enhanced diagnostic CI and fresh read-only live verification**. Full table schema equivalence and column origin remain unknown. No ledger write, migration, column alteration, or canonical-data mutation has been performed.
+- Step 1 remains open. Step 2 remains not started. Other master-audit work remains active, including record-level import integrity, public empty-data/detail-route acceptance, authorization matrix, Hostinger cron execution evidence, and deployment parity.
