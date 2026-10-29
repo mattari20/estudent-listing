@@ -45,7 +45,7 @@ class ControlledImportBatchDuplicateRowsMigrationWorkflowContractTest extends Te
         $this->assertNotFalse($partialSchemaGuard);
         $this->assertNotFalse($readyDecision);
         $this->assertLessThan($readyDecision, $partialSchemaGuard);
-        $this->assertStringContainsString('partial schema requires separate review', $workflow );
+        $this->assertStringContainsString('partial schema requires separate review', $workflow);
         $this->assertStringContainsString('matchingMigrationCount > 1', $workflow);
         $this->assertStringContainsString('exit(14);', $workflow);
     }
