@@ -305,7 +305,7 @@ jobs:
                     ->get(['migration', 'batch'])
                     ->map(fn ($row) => ['migration' => $row->migration, 'batch' => (int) $row->batch])
                     ->all();
-                $migrationApplied = count($migrationRows) > 0;
+                $migrationApplied = $migrationCount > 0;
             }
             echo json_encode([
                 'check' => 'discovery_outcome_schema_verification',
@@ -332,6 +332,7 @@ jobs:
             $tableExists = false;
             $ledgerExists = false;
             $migrationRows = [];
+            $migrationCount = null;
             $actualColumns = [];
             $missingColumns = [];
             $columnDefinitionMismatches = [];
@@ -404,8 +405,11 @@ jobs:
                 $tableExists = $schema::hasTable($table);
                 $ledgerExists = $schema::hasTable('migrations');
                 if ($ledgerExists) {
-                    $migrationRows = $db->table('migrations')->where('migration', $migration)
-                        ->orderBy('batch')->get(['migration', 'batch'])
+                    $migrationQuery = $db->table('migrations')->where('migration', $migration);
+                    $migrationCount = (int) (clone $migrationQuery)->count();
+                    // Keep sample ledger detail bounded while reporting the full count separately.
+                    $migrationRows = $migrationQuery->orderBy('batch')->limit(3)
+                        ->get(['migration', 'batch'])
                         ->map(static fn ($row) => ['migration' => (string) $row->migration, 'batch' => (int) $row->batch])->all();
                 }
 
@@ -575,11 +579,15 @@ jobs:
             }
 
             $migrationFileExists = is_file(base_path('database/migrations/'.$migration.'.php'));
+            $targetEngineCompatible = $driver === 'mysql'
+                ? strtolower((string) $tableEngine) === 'innodb'
+                : null;
             $structureMatches = $tableExists
                 && $missingColumns === []
                 && $columnDefinitionMismatches === []
                 && $missingIndexes === []
-                && $missingForeignKeys === [];
+                && $missingForeignKeys === []
+                && ($driver !== 'mysql' || $targetEngineCompatible === true);
             $prerequisitesCompatible = count($prerequisites) === count($foreignKeyPrerequisites);
             foreach ($prerequisites as $entry) {
                 if (($entry['blockers'] ?? []) !== []) $prerequisitesCompatible = false;
@@ -587,15 +595,15 @@ jobs:
 
             if ($metadataError) {
                 $classification = 'AMBIGUOUS_UNVERIFIED';
-            } elseif (!$tableExists && count($migrationRows) === 0 && $ledgerExists && $migrationFileExists) {
+            } elseif (!$tableExists && $migrationCount === 0 && $ledgerExists && $migrationFileExists) {
                 $classification = 'ABSENT';
             } elseif ($tableExists && !$structureMatches) {
                 $classification = 'PARTIALLY_APPLIED';
-            } elseif ($tableExists && $structureMatches && $ledgerExists && count($migrationRows) === 1 && $migrationFileExists) {
+            } elseif ($tableExists && $structureMatches && $ledgerExists && $migrationCount === 1 && $migrationFileExists) {
                 $classification = 'PRESENT_AND_VERIFIED_EQUIVALENT';
-            } elseif (!$tableExists && count($migrationRows) > 0) {
+            } elseif (!$tableExists && $migrationCount > 0) {
                 $classification = 'TABLE_ABSENT_LEDGER_PRESENT';
-            } elseif ($tableExists && count($migrationRows) !== 1) {
+            } elseif ($tableExists && $migrationCount !== 1) {
                 $classification = 'TABLE_PRESENT_LEDGER_COUNT_MISMATCH';
             } else {
                 $classification = 'AMBIGUOUS_UNVERIFIED';
@@ -613,7 +621,7 @@ jobs:
                 'table_exists' => $tableExists,
                 'migration_ledger_table_exists' => $ledgerExists,
                 'matching_migration_ledger_rows' => $migrationRows,
-                'matching_migration_ledger_count' => count($migrationRows),
+                'matching_migration_ledger_count' => $migrationCount,
                 'actual_columns' => $actualColumns,
                 'missing_columns' => $missingColumns,
                 'column_definition_mismatches' => array_values(array_unique($columnDefinitionMismatches)),
@@ -623,7 +631,7 @@ jobs:
                 'prerequisite_blockers' => $prerequisiteBlockers,
                 'prerequisites_compatible' => $prerequisitesCompatible,
                 'target_table_engine' => $tableEngine,
-                'target_engine_foreign_key_compatible' => $driver === 'mysql' ? strtolower((string) $tableEngine) === 'innodb' : null,
+                'target_engine_foreign_key_compatible' => $targetEngineCompatible,
                 'structure_matches_expected_migration' => $structureMatches,
                 'metadata_introspection_succeeded' => !$metadataError,
                 'metadata_errors' => array_values(array_unique($metadataErrors)),
