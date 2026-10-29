@@ -276,21 +276,20 @@ jobs:
             $migrationFileExists = is_file($migrationPath);
             $columnAndPositionMatch = $columnExists && $columnDefinitionMatches
                 && $columnPositionVerified && $candidateRowsPrecedes === true;
+            $columnDefinitionEquivalence = $metadataError ? 'UNVERIFIED' : ($columnAndPositionMatch ? 'MATCH' : ($columnExists ? 'MISMATCH' : 'NOT_APPLICABLE'));
+            // Full table-schema equivalence cannot be asserted until the original creation migration is identified and compared.
+            $schemaEquivalence = 'UNVERIFIED';
             if ($matchingMigrationCount > 1) {
-                $schemaEquivalence = $columnAndPositionMatch ? 'TARGET_COLUMN_DEFINITION_AND_POSITION_MATCH_ORIGIN_UNKNOWN' : 'UNVERIFIED';
                 $diagnosis = 'DUPLICATE_MIGRATION_LEDGER_ENTRIES';
-            } elseif ($metadataError || ($columnExists && ! $columnAndPositionMatch)) {
-                $schemaEquivalence = 'UNVERIFIED';
-                $diagnosis = $metadataError ? 'SCHEMA_EQUIVALENCE_UNVERIFIED' : 'COLUMN_DEFINITION_MISMATCH';
+            } elseif ($metadataError) {
+                $diagnosis = 'SCHEMA_EQUIVALENCE_UNVERIFIED';
+            } elseif ($columnExists && ! $columnAndPositionMatch) {
+                $diagnosis = 'COLUMN_DEFINITION_MISMATCH';
             } elseif ($columnExists && $columnAndPositionMatch) {
-                // Target column equivalence is not proof of the column's historical origin.
-                $schemaEquivalence = 'TARGET_COLUMN_DEFINITION_AND_POSITION_MATCH_ORIGIN_UNKNOWN';
                 $diagnosis = $matchingMigrationCount === 0 ? 'COLUMN_PRESENT_LEDGER_ABSENT' : 'COLUMN_AND_LEDGER_CONSISTENT';
             } elseif (! $columnExists && $matchingMigrationCount > 0) {
-                $schemaEquivalence = 'MISMATCH';
                 $diagnosis = 'COLUMN_ABSENT_LEDGER_PRESENT';
             } else {
-                $schemaEquivalence = 'UNVERIFIED';
                 $diagnosis = 'SCHEMA_EQUIVALENCE_UNVERIFIED';
             }
 
@@ -304,6 +303,7 @@ jobs:
                 'duplicate_rows_column_exists' => $columnExists,
                 'column_definition' => $columnDefinition,
                 'column_definition_matches_migration' => $columnDefinitionMatches,
+                'column_definition_equivalence' => $columnDefinitionEquivalence,
                 'column_position_verified' => $columnPositionVerified,
                 'candidate_rows_precedes_duplicate_rows' => $candidateRowsPrecedes,
                 'table_definition' => $tableDefinition,
