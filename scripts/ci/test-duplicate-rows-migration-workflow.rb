@@ -47,8 +47,20 @@ abort 'ERROR: preflight must not auto-reconcile the migration ledger' if script.
 abort 'ERROR: preflight must not drop or recreate the column' if script.match?(/dropColumn|drop\s+column|add\s+column/i)
 abort 'ERROR: the workflow must remain restricted to the exact target migration' unless script.include?('2026_10_23_000001_add_duplicate_rows_to_import_batches_table.php') && script.include?('--path="$MIGRATION_FILE"')
 
+
+php_preflight = script.match(/cat > "\\$PREFLIGHT_SCRIPT_FILE" <<'PHP'\\n(.*?)\\nPHP/m)
+abort 'ERROR: embedded PHP preflight could not be extracted for syntax validation' unless php_preflight
+require 'tempfile'
+require 'open3'
+Tempfile.create(['duplicate-rows-preflight', '.php']) do |file|
+  file.write(php_preflight[1])
+  file.flush
+  output, status = Open3.capture2e('php', '-l', file.path)
+  abort "ERROR: embedded PHP preflight fails php -l:\\n#{output}" unless status.success?
+end
+
 puts 'PASS: dry-run default, least-privilege permissions, and concurrency guard'
 puts 'PASS: JSON output includes column, position, table, index, foreign-key, and ledger evidence'
 puts 'PASS: explicit unsafe-state diagnoses and fail-closed guards'
 puts 'PASS: migration origin is not inferred from basic column attributes'
-puts 'PASS: read-only path contains no migration-ledger or schema-repair write'
+puts 'PASS: embedded PHP preflight passes php -l'\nputs 'PASS: read-only path contains no migration-ledger or schema-repair write'
