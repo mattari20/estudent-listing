@@ -211,6 +211,14 @@ class InstitutionFieldApprovalService
             || $evidence->status !== 'active') {
             throw new RuntimeException('Source observation, snapshot, and evidence relationships are invalid.');
         }
+        $latestSnapshotId = SourceSnapshot::query()
+            ->where('source_id', $source->id)
+            ->orderByDesc('captured_at')
+            ->orderByDesc('id')
+            ->value('id');
+        if ((int) $latestSnapshotId !== (int) $snapshot->id) {
+            throw new RuntimeException('Source snapshot has been superseded.');
+        }
         if (! is_string($snapshot->content_hash) || trim($snapshot->content_hash) === ''
             || ! is_string($snapshot->content) || ! hash_equals($snapshot->content_hash, hash('sha256', $snapshot->content))
             || ! is_string($evidence->content_hash) || ! hash_equals($snapshot->content_hash, $evidence->content_hash)) {
