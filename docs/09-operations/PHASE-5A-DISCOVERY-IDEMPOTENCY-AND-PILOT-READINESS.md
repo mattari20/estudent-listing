@@ -5,7 +5,7 @@ Repository baseline: `main` at `d606c1fb9747167e354c5c82d26a08e8616465f0`
 
 ## Decision summary
 
-- Discovery idempotency repair: implemented in this PR; CI must pass before merge.
+- Discovery idempotency repair: implemented and regression-tested. Latest head CI passes: Test run #40879271972 (736 tests, 3,312 assertions) and Laravel CI run #40879271993.
 - Historical production candidate rows: untouched. No production row was changed by this work.
 - Six-row production trace: **PARTIALLY VERIFIED** from successful read-only Hostinger Diagnostics run #40866751798. All six row IDs, batch IDs, source ID, identity fields, statuses, and decision-history state are available; the bounded evidence-lineage section exposed snapshot/evidence/hash details for five rows only.
 - Raw response comparison: **UNVERIFIED**. The five exposed SHA-256 content hashes differ, proving bytewise differences, but the raw snapshot bodies and stored evidence excerpts were not returned, and row 353's detailed lineage was omitted by the bounded report. The differences cannot be classified as substantive or non-substantive from hashes alone.
@@ -79,7 +79,7 @@ Record an explicit identity decision through `POST /institutes/operations/rows/{
 | Criterion | Status |
 |---|---|
 | Code-level duplicate mechanism documented | PASS |
-| Safe idempotency repair and regression tests | Awaiting PR CI |
+| Safe idempotency repair and regression tests | PASS — Test run #40879271972; 736 tests, 3,312 assertions; Laravel CI #40879271993 PASS |
 | Six production rows and decision history enumerated | PARTIAL PASS — all row IDs/statuses/decisions traced; row 353 lineage details omitted by bounded report |
 | Substantive vs non-substantive response diff | UNVERIFIED — five hashes differ, raw bodies/excerpts unavailable |
 | Existing private GCU review package verified | BLOCKED — protected package retrieval not available |
