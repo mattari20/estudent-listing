@@ -34,7 +34,12 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('Verify public directory and API response contracts', $workflow);
         $this->assertStringContainsString('BASE_URL="https://estudent.pk"', $workflow);
         $this->assertStringContainsString('directory_page "$BASE_URL/institutes/" false', $workflow);
-        $this->assertStringContainsString('for candidate in "$BASE_URL/api/v1/institutions" "$BASE_URL/institutes/api/v1/institutions"; do', $workflow);
+        $this->assertStringContainsString('declare -a api_candidates=(', $workflow);
+        $this->assertStringContainsString('"$BASE_URL/institutes/api/v1/institutions"', $workflow);
+        $this->assertStringContainsString('"$BASE_URL/institutes/v1/institutions"', $workflow);
+        $this->assertStringContainsString('"$BASE_URL/api/v1/institutions"', $workflow);
+        $this->assertStringContainsString('--max-redirs 0', $workflow);
+        $this->assertStringContainsString('institutions_api_candidate_redirect=', $workflow);
         $this->assertStringContainsString('institutions_api_base_path=PASS', $workflow);
         $this->assertStringContainsString('institutions_api_base_path=FAIL_NO_VALID_JSON_ENDPOINT', $workflow);
         $this->assertStringContainsString('inspect_response institutions_api_page_1 "${api_base}?per_page=2" true', $workflow);
