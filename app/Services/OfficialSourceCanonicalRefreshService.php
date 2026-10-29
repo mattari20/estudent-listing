@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Campus;
 use App\Models\Institution;
+use App\Models\InstitutionFieldApproval;
 use App\Models\OfficialSourceRefreshEvent;
 use App\Models\Program;
 use App\Models\ProgramOffering;
@@ -48,13 +49,11 @@ class OfficialSourceCanonicalRefreshService
             throw new RuntimeException('Canonical field is not allowlisted for official refresh.');
         }
 
-        // SourceChangeObservation currently records detection/actionability, not a
-        // persisted human approval of this exact field proposal. Import promotion
-        // decisions are tied to import-row promotion and cannot authorize a field
-        // overwrite. Do not trust caller-supplied booleans as an approval substitute.
+        // Institution writes must use the persisted proposal ID path below. The generic
+        // evidence-array path is intentionally never an authorization mechanism.
         if ($class === Institution::class) {
             throw new RuntimeException(
-                'Institution official refresh is blocked: persisted field-level approval integration is unavailable.'
+                'Institution official refresh requires a persisted approved proposal ID.'
             );
         }
 
@@ -129,7 +128,7 @@ class OfficialSourceCanonicalRefreshService
             try {
                 $approvals->assertProposalIntegrity($proposal);
                 $values = $approvals->validatedEvidenceForProposal($proposal);
-            } catch (RuntimeException | ModelNotFoundException $exception) {
+            } catch (RuntimeException $exception) {
                 $proposal->status = 'stale';
                 $proposal->application_outcome = 'evidence_invalid';
                 $proposal->applied_at = now();
