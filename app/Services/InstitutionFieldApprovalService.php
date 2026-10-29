@@ -231,6 +231,9 @@ class InstitutionFieldApprovalService
 
     private function proposalHash(array $attributes): string
     {
+        foreach (['institution_id', 'source_id', 'source_change_observation_id', 'source_snapshot_id', 'evidence_id'] as $field) {
+            $attributes[$field] = (int) $attributes[$field];
+        }
         foreach (['source_observed_at', 'evidence_observed_at'] as $field) {
             $attributes[$field] = $attributes[$field] === null ? null : $this->timestamp($attributes[$field]);
         }
