@@ -1,88 +1,104 @@
 # Phase 5A — Discovery Idempotency and First Pilot Readiness
 
-Date: 2026-10-29
-Repository baseline: `main` at `d606c1fb9747167e354c5c82d26a08e8616465f0`
+Last reconciled: 2026-10-29  
+Verified `main` baseline at continuation start: `90fc06164da925ac5ef5d0cfad31ec7f734ae78c`  
+Merged repair: [PR #926](https://github.com/mattari20/estudent-listing/pull/926) — merge commit `90fc06164da925ac5ef5d0cfad31ec7f734ae78c`
 
-## Decision summary
+## Post-merge repository verification
 
-- Discovery idempotency repair: implemented and regression-tested. Latest head CI passes: Test run #40879271972 (736 tests, 3,312 assertions) and Laravel CI run #40879271993.
-- Historical production candidate rows: untouched. No production row was changed by this work.
-- Six-row production trace: **PARTIALLY VERIFIED** from successful read-only Hostinger Diagnostics run #40866751798. All six row IDs, batch IDs, source ID, identity fields, statuses, and decision-history state are available; the bounded evidence-lineage section exposed snapshot/evidence/hash details for five rows only.
-- Raw response comparison: **UNVERIFIED**. The five exposed SHA-256 content hashes differ, proving bytewise differences, but the raw snapshot bodies and stored evidence excerpts were not returned, and row 353's detailed lineage was omitted by the bounded report. The differences cannot be classified as substantive or non-substantive from hashes alone.
-- Private review package for an existing production GCU row: **BLOCKED** pending authorized retrieval of its private manifest/CSV. The existing review-package service and protected download route were identified, but no production package was generated or downloaded in this phase.
-- Pilot of 5–10 institutions: **BLOCKED**. The GCU identity profile is enabled, but its six existing candidate rows have no approved identity/promotion decisions. Other HEC identity profiles remain disabled/unqualified for live retrieval and are not to be enabled to meet a count.
+The live `main` ref was read from GitHub and equals PR #926's merge commit. PR #926 is closed and merged. The merged commit's parent is the pre-merge `main` commit `1b5202c35346c017de1c1dfb8d889d4b7ef6e15d`.
 
-## Code-level root cause established
+Post-merge checks for the merged SHA:
 
-The discovery service's existing-batch reuse key is exact source content hash plus profile/source type and extractor version. Any changed response bytes therefore miss exact-snapshot reuse and enter candidate persistence again.
+| Check | Result | Evidence |
+|---|---|---|
+| Full Test workflow | PASS — 736 tests, 3,312 assertions | [Run #40880064515](https://github.com/mattari20/estudent-listing/actions/runs/40880064515) |
+| Laravel CI and formatting verification | PASS — same test total; formatting verification passed | [Run #40880064375](https://github.com/mattari20/estudent-listing/actions/runs/40880064375) |
+| Frontend build | PASS | [Run #40880064409](https://github.com/mattari20/estudent-listing/actions/runs/40880064409) |
+| Public site monitor | PASS | [Run #40880064345](https://github.com/mattari20/estudent-listing/actions/runs/40880064345) |
+| Directory command orchestrator | PASS | [Run #40880064337](https://github.com/mattari20/estudent-listing/actions/runs/40880064337) |
+| Hostinger Read-only Diagnostics | BLOCKED — deployed application checkout is behind expected revision | [Run #40880064429](https://github.com/mattari20/estudent-listing/actions/runs/40880064429) |
+| Automated Live Data Integrity Audit | BLOCKED before database audit due to deployed revision mismatch | [Run #40880064420](https://github.com/mattari20/estudent-listing/actions/runs/40880064420) |
 
-The previous top-level institution duplicate detector checked a JSON-path equality on `normalized_payload->slug`, without normalized name/official-name fallback. The six trace rows all have the same slug, so a functioning exact-slug lookup should have caught sequential repeats; slug variants alone do **not** explain this particular history. Exact-content-hash batch reuse explains why changed source bytes create new batches, but the production-specific reason the duplicate check failed to classify these rows remains **UNVERIFIED** (for example, an older deployed detector path, database JSON-path behavior, or a concurrency race must be distinguished with deployed-file and query-level evidence). Candidate persistence also lacked a per-source transaction/row lock, so concurrent runs were not serialized.
+The two production failures are deployment-parity gates, not failures in the isolated regression suite. The deployed Hostinger checkout was `1b5202c35346c017de1c1dfb8d889d4b7ef6e15d`; the expected application-code revision for that run was `90fc06164da925ac5ef5d0cfad31ec7f734ae78c`. The diagnostics workflow completed its bounded read-only checks but exited with status 10 on the revision mismatch. The integrity audit explicitly stopped before issuing its database query. No production data was changed.
 
-The repair replaces the fragile JSON-path-only check with conservative normalized identity keys read from existing staged payloads, and serializes check-and-create per source. This closes the identified code gaps; it does not retrospectively prove which execution path produced each historical row.
+Do **not** infer that the code has been deployed. A deployment must use the existing Controlled Hostinger Code Deployment workflow with its explicit confirmation input and a separate authorized decision. No deployment was requested or performed as part of this continuation.
 
-## Repair
+## Root cause and implemented repair
 
-1. Serialize the discovery check-and-persist path inside a transaction while locking the existing source row. The HTTP retrieval remains outside the transaction.
-2. Compare top-level institution candidates against canonical and staged records using conservative normalized slugs derived from configured slug, name, and official name.
-3. Deliberately exclude short-name-only matching to avoid collisions between unrelated institutions/campuses.
-4. Treat a match as a duplicate requiring review; do not merge, overwrite, approve, promote, or publish.
-5. Preserve a new source snapshot, evidence, batch, and duplicate row for materially changed response content. Exact unchanged snapshots continue to reuse the existing batch/package.
-6. Add regression tests for three changed response bodies yielding one candidate plus duplicate observations, and for a legacy slug variant matching by normalized institution name.
+Exact content-hash reuse explains why changed response bytes create new discovery batches. Before PR #926, top-level institution duplicate detection depended on JSON-path equality for `normalized_payload->slug`, and persistence wasn't serialized per source. The six historical rows all carry the same normalized GCU Lahore slug, so slug variants alone do not establish the historical production root cause; the precise prior failure path remains unverified.
 
-No schema migration or database constraint is added. Historical batches, rows, snapshots, evidence, and decision history are not deleted or rewritten.
+PR #926 implemented source-row locking around the check-and-persist path and normalized identity checks for staged records. It retains snapshots, batches, evidence and duplicate observations for changed content and does not merge or approve rows. Regression tests cover repeated changed snapshots and different official identities with shared generic names.
 
-## Production six-row audit — read-only evidence
+The post-merge review identified one additional correctness defect worth fixing: the merged matcher returned a slug match before checking whether both known official names conflicted. That could misclassify two institution identities as the same staged or canonical identity. The follow-up PR for this continuation moves known official-name comparison ahead of slug fallback and adds a regression test for a shared slug with conflicting official names. It also broadens the existing read-only evidence-lineage target list to include row 353, which the current diagnostic script had omitted.
 
-Run #40866751798 completed successfully on 2026-10-29. The private record-level trace confirms six candidate rows across six validated batches, all from source ID 27, with the same normalized institution slug. Each row had zero validation errors, no open conflicts, active source evidence, no identity decisions, no promotion decisions, and no approved promotion decision. The canonical institution count remains zero. The rows were not modified.
+## Production GCU trace — limited private evidence
 
-| Row ID | Batch ID | Batch key (as returned) | Source ID | Snapshot ID | Evidence ID | Evidence SHA-256 / content hash (as returned) | Observed at (server local) |
-|---:|---:|---|---:|---:|---:|---|---|
-| 348 | 19 | `agent-gcu-lahore-institution-identity-pcxaxbmtceketifx` | 27 | 8 | 15 | `f7d3388f9c9c6d80e90743517f8200f660481f49cc8c051602da1360683460b4` | 2026-10-28 18:44:56 |
-| 349 | 20 | `agent-gcu-lahore-institution-identity-ylupgij5zfcx3nw7` | 27 | 9 | 16 | `1c11facffabac7a933b8d5e7f9ddcbfe8d940e32fc6c7f6d49088d449de419cd` | 2026-10-28 18:44:58 |
-| 350 | 21 | `agent-gcu-lahore-institution-identity-sr7ev8rad2ej8d2l` | 27 | 10 | 17 | `dee0b43bb287eed0f67695675e1ca8515c16e2d4950ad302d6a611074e8e0be4` | 2026-10-28 20:59:50 |
-| 351 | 22 | `agent-gcu-lahore-institution-identity-4kezyzrhczwzbpye` | 27 | 11 | 18 | `f1da6faa17074fb276601e842741ce7c644d76ab298377e8c9759ca6856d3501` | 2026-10-29 02:01:54 |
-| 352 | 23 | `agent-gcu-lahore-institution-identity-wnxxgrmeqxhiuqrp` | 27 | 12 | 19 | `b0fe0c3b76450169da669eeb8883d1dac5700fda29c9644853dd66398503e101` | 2026-10-29 05:53:37 |
-| 353 | 24 | Not included in bounded lineage section | 27 | Not included | Not included | Not included | Not included |
+The latest post-merge read-only diagnostic log confirms six GCU Lahore candidate rows (IDs 348–353) across batches 19–24, all associated with official source ID 27 for the HEC university identity page. Every row is still a candidate in a validated batch, with active source evidence, no identity decision, no promotion decision, no open conflicts and no validation errors. The canonical institution table remains empty. No row was modified.
 
-The trace confirms row IDs 348–353 all have payload identity `Government College University Lahore`, slug `government-college-university-lahore`, status `candidate`, match state `new_candidate`, batch status `validated`, no validation errors, no identity/promotion decisions, and zero open conflicts. The row-level trace confirms active source evidence for all six; the bounded lineage section only returned detailed evidence linkage for rows 348–352. Do not infer row 353's missing identifiers from the sequence.
+The current diagnostic script's source/evidence lineage query is explicitly hard-coded to rows 348–352, while a later summary row trace includes row 353. That explains why row 353's snapshot/evidence identifiers were absent from the detailed lineage section; it was an audit coverage defect, not proof that the row lacks provenance. The follow-up changes the existing read-only target list to include 353. After this PR merges, the already-existing Hostinger Read-only Diagnostics workflow should emit row 353's actual lineage in its next run; it may still finish with a nonzero conclusion until the production application revision is separately aligned.
 
-The source is the active official HEC page `https://www.hec.gov.pk/english/universities/Pages/Punjab/Government-College-University%2C-Lahore.aspx`. Five distinct hashes are available, so those five recorded responses were bytewise different. The production report does not expose raw snapshot bodies or evidence excerpts; compare those through the existing protected operator workflow before deciding whether the changes are only non-substantive page content. Keep raw bodies and row-level output private.
+Sensitive row-level production IDs beyond those needed to identify this review scope, raw response content, evidence excerpts, package manifests and content hashes should remain in the private diagnostics/log view, not be copied into public documentation or pull requests.
 
-## Existing review-package and identity-decision workflow
+### Source-response comparison
 
-Use the existing protected download route `GET /institutes/operations/discovery-packages/{importBatch}/manifest` and `/csv` (authenticated operator) to retrieve the private package, or use the existing `InstituteDiscoveryReviewPackageService::create($batch, $snapshot, $evidenceId)` through the already-authorized operations workflow. For a first review, row 348 / batch 19 is a candidate with known snapshot 8 and evidence 15; the package still must be checked against current private storage. Verify manifest batch/snapshot/evidence IDs, raw snapshot hash, CSV checksum, official URL, candidate identity, excerpt, and `canonical_mutations_performed=false` / `automatic_approval_performed=false`. Do not copy the package or raw response into a public repository.
+The diagnostic shows distinct recorded content hashes for the five rows whose detailed lineage was returned, proving only that the captured bytes differ. The actual source bodies and evidence excerpts are not present in the sanitized output. Therefore, no evidence-based determination can yet classify those response differences as substantive institution identity changes or incidental page content. Keep this classification **UNVERIFIED** until an authorized operator compares the private snapshots/evidence.
 
-The package was **not generated/retrieved in this phase** because no authorized authenticated production-session or private-storage retrieval operation was available through the connected tools. No guessed package path was used.
+## First GCU review package and human decision
 
-Record an explicit identity decision through `POST /institutes/operations/rows/{importRow}/decision`, with `decision=approved_new` or `approved_match`, a required reason, and `institution_id` for `approved_match`. Then separately evaluate `POST /institutes/operations/rows/{importRow}/promote`; publishing is a separate action at `/institutes/operations/rows/{importRow}/publish`. None of these write actions was invoked. A duplicate finding is not itself an identity decision. Run the existing verification, source-readiness, provenance-readiness, promotion-readiness, final-readiness, deployment-readiness, readiness-contract, and end-to-end gates before any separately authorized promotion.
+Candidate for initial review: row 348, batch 19, snapshot 8, evidence 15 (lineage verified in the earlier bounded report). The official source reference recorded for this candidate is the HEC GCU Lahore identity page.
+
+The existing protected package download endpoint is:
+
+- `GET /institutes/operations/discovery-packages/19/manifest`
+- `GET /institutes/operations/discovery-packages/19/csv`
+
+These are authenticated operator routes. They only download an existing private package and validate the batch/snapshot association plus CSV checksum; a 404 may mean the package is not present or its provenance cannot be resolved. The existing `InstituteDiscoveryReviewPackageService::create($batch, $snapshot, $evidenceId)` can build a package in private local storage when invoked through an authorized operator/console path.
+
+The connected GitHub interface provided no authenticated production operator session or direct private-storage retrieval action. The package was not generated, downloaded or validated in this continuation. This is the exact blocker; no package path, credential, checksum, excerpt or evidence ID has been inferred.
+
+An authorized operator must sign in through the existing operations UI and retrieve the manifest and CSV above. Validate the manifest's batch, snapshot and evidence IDs; official source URL; raw snapshot hash; CSV SHA-256; candidate identity; evidence excerpt; and `canonical_mutations_performed=false` plus `automatic_approval_performed=false`. If the package isn't already present, the authorized operator must use the existing service through the established protected console/admin workflow to create it, then retrieve and validate it. Do not commit the private package or raw snapshots to Git.
+
+### Preliminary human-review position
+
+**Identity decision: UNRESOLVED — no decision recorded.** There are zero canonical institutions at present, and the candidate payload names GCU Lahore. That is consistent with a possible new canonical institution but is not, by itself, sufficient to approve `approved_new`. The private package and source excerpt still need review. No identity decision, promotion or publication has been made or attempted.
+
+Record an explicit `approved_new` or `approved_match` only after an authorized human reviews validated source evidence, identity lineage and campus/institution ambiguity. Promotion and publication are separate actions and remain blocked by all applicable verification, source-readiness, provenance, promotion, final-readiness, deployment-readiness, readiness-contract and end-to-end gates.
 
 ## Pilot source qualification
 
-| Source/profile | Current posture | Phase 5A decision |
+| Source/profile | Current posture | Decision |
 |---|---|---|
-| `gcu-lahore-institution-identity` — HEC Government College University, Lahore | Enabled; existing candidates need record-level review and explicit identity decision | Eligible only for review/package preparation; not ready for promotion |
-| Other HEC identity profiles | Disabled; comments/configuration require isolated qualification and live response checks | Keep disabled; do not activate to reach 5–10 |
-| Other enabled, qualified official identity sources | No verified list of 5–10 sources was available from the current evidence | Do not assume qualification; collect independent source evidence first |
+| `gcu-lahore-institution-identity` | Enabled official HEC identity profile; six historical candidates remain unreviewed | Review/package preparation only; not cleared for promotion |
+| Other HEC identity profiles | Disabled or not independently qualified in this evidence | Keep disabled; do not activate to meet the 5–10 target |
+| Wider pilot | No verified set of 5–10 independently qualified enabled official identity sources | BLOCKED pending source qualification and explicit human decisions |
 
-**Pilot count: 0 of the requested 5–10 institutions is currently cleared for promotion.** The GCU row is a review candidate, not a promoted institution. Before any broader pilot, independently qualify each source by checking official ownership/authority, successful response status and content type, stable identity terms, fresh snapshot hash, evidence lineage, extraction quality, duplicate/campus ambiguity, and all readiness gates. Source enablement or schedule changes require separate authorization.
+The pilot count remains **0 institutions cleared for promotion**. The first GCU review remains unresolved pending package retrieval and human review.
 
-## Safety / production state
+## Safety state
 
-- No production migration, SQL repair, schema change, import, identity decision, promotion, publication, cron/schedule change, or profile activation was performed.
+- No production discovery was invoked to test the merged repair.
+- No production migration, SQL repair, schema change, import, identity decision, promotion, publication, source activation, cron change or scheduled-discovery change was performed.
 - No canonical institution was created or published.
-- No AI API call was made.
-- The six historical candidate rows and their provenance remain untouched by this PR.
-- The historical `import_batches.duplicate_rows` ledger inconsistency remains untouched.
+- No paid AI API call was made.
+- The six historic candidate rows, batches, snapshots, evidence and decisions were not modified.
+- The historical `import_batches.duplicate_rows` migration-ledger inconsistency was not touched.
 
-## Acceptance status
+## Acceptance matrix
 
-| Criterion | Status |
-|---|---|
-| Code-level duplicate mechanism documented | PASS |
-| Safe idempotency repair and regression tests | PASS — Test run #40879271972; 736 tests, 3,312 assertions; Laravel CI #40879271993 PASS |
-| Six production rows and decision history enumerated | PARTIAL PASS — all row IDs/statuses/decisions traced; row 353 lineage details omitted by bounded report |
-| Substantive vs non-substantive response diff | UNVERIFIED — five hashes differ, raw bodies/excerpts unavailable |
-| Existing private GCU review package verified | BLOCKED — protected package retrieval not available |
-| Explicit identity decision | PENDING human review |
-| Pilot qualification for 5–10 sources | BLOCKED |
-| No canonical promotion/publication | PASS |
+| Criterion | Status | Evidence / remaining action |
+|---|---|---|
+| 1. Current `main` and merged PR #926 verified | PASS | `main` equals merge commit `90fc06164da925ac5ef5d0cfad31ec7f734ae78c`; PR #926 is merged |
+| 2. Post-merge CI/regression status verified | PASS for code CI; BLOCKED for production parity | Test #40880064515 and Laravel CI #40880064375 pass; operations runs #40880064429 / #40880064420 show deployed revision mismatch |
+| 3. Duplicate prevention / identity collision tests pass | PASS on merged head; FOLLOW-UP REPAIR OPEN | 736 tests / 3,312 assertions passed. Follow-up addresses the verified official-name-versus-slug collision defect and adds a targeted regression case |
+| 4. Six production rows have complete lineage or a documented gap | PARTIAL | Row-level status and decision state verified for all six; detailed evidence section omitted row 353 due hard-coded target list. Follow-up includes row 353 in that read-only query; next diagnostic must confirm the actual IDs |
+| 5. Source-response differences classified from actual content | BLOCKED | Sanitized diagnostics do not expose bodies/excerpts; hashes alone cannot classify changes. Authorized private source comparison required |
+| 6. Private review package validated or blocker documented | BLOCKED | Exact blocker: no authorized production operator session/private-storage access through connected tools. Operator must retrieve batch 19 manifest/CSV and verify checksum, provenance and safety flags |
+| 7. First GCU review prepared without invented decision | PARTIAL | Review target and official source reference identified; preliminary identity remains unresolved pending package verification and human review |
+| 8. No unauthorized production mutation, decision, promotion, publication or activation | PASS | All accessed production checks were read-only; no write action or deployment was invoked |
+
+## Handoff
+
+Follow-up PR for the confirmed official-name/slug collision and row-353 lineage coverage is being prepared against the verified `main` SHA. Its required checks must pass before merge. Then inspect the next existing read-only diagnostics run for row 353's actual evidence/snapshot lineage. Production deployment remains a separate explicit decision. The first human identity decision must wait for authorized private package retrieval and review.
+
+Phase 5A is **not complete** until deployment parity is addressed through an explicitly authorized path, row 353's actual lineage is confirmed, the private GCU package/source excerpts are reviewed, and the human identity decision (or explicit rejection/unresolved disposition) is recorded through the governed workflow.

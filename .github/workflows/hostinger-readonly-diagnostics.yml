@@ -868,7 +868,7 @@ jobs:
             $db = \Illuminate\Support\Facades\DB::connection();
             $schema = \Illuminate\Support\Facades\Schema::connection($db->getName());
             $report = ['check' => 'candidate_import_source_evidence_lineage', 'mutation_performed' => false, 'rows' => [], 'sources' => []];
-            $targets = [348, 349, 350, 351, 352];
+            $targets = [348, 349, 350, 351, 352, 353];
             if (!$schema->hasTable('import_rows') || !$schema->hasTable('import_batches')) {
                 $report['status'] = 'blocked_required_import_tables_missing';
             } else {
