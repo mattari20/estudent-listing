@@ -49,6 +49,7 @@ class Phase4InstitutionDiscoveryPilotTest extends TestCase
             }
         }
 
+        $canonicalCountBefore = Institution::query()->count();
         $responses = [];
         $expected = [];
         foreach (array_values($profiles) as $index => $definition) {
@@ -115,12 +116,13 @@ class Phase4InstitutionDiscoveryPilotTest extends TestCase
         $this->assertSame(21, Evidence::query()->count());
         $this->assertSame(21, ImportBatch::query()->where('entity_type', 'institution')->count());
         $this->assertSame(21, ImportRow::query()->whereHas('batch', fn ($query) => $query->where('entity_type', 'institution'))->count());
-        $this->assertSame(0, Institution::query()->count());
+        $this->assertSame($canonicalCountBefore, Institution::query()->count());
         $this->assertSame(0, ImportBatch::query()->whereIn('status', ['promoted', 'published'])->count());
     }
 
     public function test_source_retrieval_http_failure_is_persisted_with_status_and_content_type_without_a_snapshot(): void
     {
+        $canonicalCountBefore = Institution::query()->count();
         $source = Source::create([
             'source_type' => 'official',
             'name' => 'Synthetic HEC-style source',
@@ -155,6 +157,6 @@ class Phase4InstitutionDiscoveryPilotTest extends TestCase
         $this->assertSame(0, SourceSnapshot::query()->count());
         $this->assertSame(0, Evidence::query()->count());
         $this->assertSame(0, ImportBatch::query()->count());
-        $this->assertSame(0, Institution::query()->count());
+        $this->assertSame($canonicalCountBefore, Institution::query()->count());
     }
 }
