@@ -328,6 +328,7 @@ jobs:
             $table = 'institution_field_approvals';
             $migration = '2026_10_29_000001_create_institution_field_approvals_table';
             $metadataError = false;
+            $metadataErrors = [];
             $tableExists = false;
             $ledgerExists = false;
             $migrationRows = [];
@@ -339,48 +340,35 @@ jobs:
             $foreignKeys = [];
             $missingForeignKeys = [];
             $driver = null;
-
-            // These names and definitions mirror the committed migration. This block
-            // only introspects metadata; it never runs a migration or writes rows.
-            $expectedTypes = [
-                'id' => '/bigint.*unsigned/',
-                'institution_id' => '/bigint.*unsigned/',
-                'field_name' => '/varchar\\(100\\)/',
-                'expected_current_value' => '/longtext/',
-                'proposed_value' => '/longtext/',
-                'source_id' => '/bigint.*unsigned/',
-                'source_change_observation_id' => '/bigint.*unsigned/',
-                'source_snapshot_id' => '/bigint.*unsigned/',
-                'evidence_id' => '/bigint.*unsigned/',
-                'evidence_url' => '/\\btext\\b/',
-                'evidence_excerpt' => '/longtext/',
-                'content_fingerprint' => '/varchar\\(128\\)/',
-                'source_observed_at' => '/varchar\\(40\\)/',
-                'evidence_observed_at' => '/varchar\\(40\\)/',
-                'proposal_hash' => '/char\\(64\\)/',
-                'status' => '/varchar\\(24\\)/',
-                'created_by' => '/bigint.*unsigned/',
-                'reviewer_id' => '/bigint.*unsigned/',
-                'decision_at' => '/timestamp/',
-                'decision_reason' => '/\\btext\\b/',
-                'applied_at' => '/timestamp/',
-                'application_outcome' => '/varchar\\(40\\)/',
-                'applied_refresh_event_id' => '/bigint.*unsigned/',
-                'created_at' => '/timestamp/',
-                'updated_at' => '/timestamp/',
-            ];
-            $expectedNullable = [
-                'id' => false, 'institution_id' => false, 'field_name' => false,
-                'expected_current_value' => true, 'proposed_value' => false,
-                'source_id' => false, 'source_change_observation_id' => false,
-                'source_snapshot_id' => false, 'evidence_id' => false,
-                'evidence_url' => false, 'evidence_excerpt' => false,
-                'content_fingerprint' => false, 'source_observed_at' => false,
-                'evidence_observed_at' => true, 'proposal_hash' => false,
-                'status' => false, 'created_by' => false, 'reviewer_id' => true,
-                'decision_at' => true, 'decision_reason' => true, 'applied_at' => true,
-                'application_outcome' => true, 'applied_refresh_event_id' => true,
-                'created_at' => true, 'updated_at' => true,
+            $tableEngine = null;
+            $prerequisites = [];
+            $prerequisiteBlockers = [];
+            $expectedColumns = [
+                'id' => ['pattern' => '/bigint.*unsigned/', 'nullable' => false, 'auto_increment' => true],
+                'institution_id' => ['pattern' => '/bigint.*unsigned/', 'nullable' => false],
+                'field_name' => ['pattern' => '/varchar\(100\)/', 'nullable' => false],
+                'expected_current_value' => ['pattern' => '/longtext/', 'nullable' => true],
+                'proposed_value' => ['pattern' => '/longtext/', 'nullable' => false],
+                'source_id' => ['pattern' => '/bigint.*unsigned/', 'nullable' => false],
+                'source_change_observation_id' => ['pattern' => '/bigint.*unsigned/', 'nullable' => false],
+                'source_snapshot_id' => ['pattern' => '/bigint.*unsigned/', 'nullable' => false],
+                'evidence_id' => ['pattern' => '/bigint.*unsigned/', 'nullable' => false],
+                'evidence_url' => ['pattern' => '/\btext\b/', 'nullable' => false],
+                'evidence_excerpt' => ['pattern' => '/longtext/', 'nullable' => false],
+                'content_fingerprint' => ['pattern' => '/varchar\(128\)/', 'nullable' => false],
+                'source_observed_at' => ['pattern' => '/varchar\(40\)/', 'nullable' => false],
+                'evidence_observed_at' => ['pattern' => '/varchar\(40\)/', 'nullable' => true],
+                'proposal_hash' => ['pattern' => '/char\(64\)/', 'nullable' => false],
+                'status' => ['pattern' => '/varchar\(24\)/', 'nullable' => false, 'default' => 'pending'],
+                'created_by' => ['pattern' => '/bigint.*unsigned/', 'nullable' => false],
+                'reviewer_id' => ['pattern' => '/bigint.*unsigned/', 'nullable' => true],
+                'decision_at' => ['pattern' => '/timestamp/', 'nullable' => true],
+                'decision_reason' => ['pattern' => '/\btext\b/', 'nullable' => true],
+                'applied_at' => ['pattern' => '/timestamp/', 'nullable' => true],
+                'application_outcome' => ['pattern' => '/varchar\(40\)/', 'nullable' => true],
+                'applied_refresh_event_id' => ['pattern' => '/bigint.*unsigned/', 'nullable' => true],
+                'created_at' => ['pattern' => '/timestamp/', 'nullable' => true],
+                'updated_at' => ['pattern' => '/timestamp/', 'nullable' => true],
             ];
             $expectedIndexes = [
                 'institution_field_approvals_proposal_hash_unique' => ['columns' => ['proposal_hash'], 'unique' => true],
@@ -398,7 +386,17 @@ jobs:
                 'reviewer_id' => ['users', 'id'],
                 'applied_refresh_event_id' => ['official_source_refresh_events', 'id'],
             ];
+            $foreignKeyPrerequisites = [
+                'institutions' => 'institution_id',
+                'sources' => 'source_id',
+                'source_change_observations' => 'source_change_observation_id',
+                'source_snapshots' => 'source_snapshot_id',
+                'evidence' => 'evidence_id',
+                'users' => 'created_by/reviewer_id',
+                'official_source_refresh_events' => 'applied_refresh_event_id',
+            ];
 
+            // Read-only schema inspection only; no migration, DDL, DML, or ledger repair.
             try {
                 $db = \Illuminate\Support\Facades\DB::connection();
                 $schema = \Illuminate\Support\Facades\Schema::class;
@@ -410,24 +408,120 @@ jobs:
                         ->orderBy('batch')->get(['migration', 'batch'])
                         ->map(static fn ($row) => ['migration' => (string) $row->migration, 'batch' => (int) $row->batch])->all();
                 }
+
+                if ($driver === 'mysql') {
+                    $tableRows = $db->select(
+                        'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
+                        [$table]
+                    );
+                    $tableEngine = isset($tableRows[0]) ? (string) ($tableRows[0]->ENGINE ?? '') : null;
+                }
+
+                foreach ($foreignKeyPrerequisites as $parentTable => $childColumn) {
+                    $entry = [
+                        'table' => $parentTable,
+                        'required_by_columns' => $childColumn,
+                        'table_exists' => false,
+                        'id_exists' => false,
+                        'id_type' => null,
+                        'id_nullable' => null,
+                        'id_is_primary_or_unique' => false,
+                        'primary_key_columns' => [],
+                        'unique_reference_verified' => false,
+                        'storage_engine' => null,
+                        'storage_engine_foreign_key_compatible' => null,
+                        'metadata_introspection_succeeded' => false,
+                        'blockers' => [],
+                    ];
+                    try {
+                        $entry['table_exists'] = $schema::hasTable($parentTable);
+                        if ($entry['table_exists']) {
+                            foreach ($schema::getColumns($parentTable) as $column) {
+                                if (($column['name'] ?? null) === 'id') {
+                                    $entry['id_exists'] = true;
+                                    $entry['id_type'] = strtolower(trim((string) ($column['type'] ?? '').' '.(string) ($column['type_name'] ?? '')));
+                                    $entry['id_nullable'] = $column['nullable'] ?? null;
+                                    break;
+                                }
+                            }
+
+                            foreach ($schema::getIndexes($parentTable) as $index) {
+                                $indexColumns = array_values($index['columns'] ?? []);
+                                if (($index['primary'] ?? false) === true || strtolower((string) ($index['name'] ?? '')) === 'primary') {
+                                    $entry['primary_key_columns'] = $indexColumns;
+                                    if ($indexColumns === ['id']) {
+                                        $entry['id_is_primary_or_unique'] = true;
+                                    }
+                                }
+                                if ((bool) ($index['unique'] ?? false) && $indexColumns === ['id']) {
+                                    $entry['id_is_primary_or_unique'] = true;
+                                    $entry['unique_reference_verified'] = true;
+                                }
+                            }
+
+                            if ($driver === 'mysql') {
+                                $engineRows = $db->select(
+                                    'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
+                                    [$parentTable]
+                                );
+                                $entry['storage_engine'] = isset($engineRows[0]) ? (string) ($engineRows[0]->ENGINE ?? '') : null;
+                                $entry['storage_engine_foreign_key_compatible'] = in_array(strtolower((string) $entry['storage_engine']), ['innodb'], true);
+                            } else {
+                                $entry['storage_engine_foreign_key_compatible'] = null;
+                            }
+                        }
+
+                        if (!$entry['table_exists']) {
+                            $entry['blockers'][] = 'referenced_table_missing';
+                        } elseif (!$entry['id_exists']) {
+                            $entry['blockers'][] = 'referenced_id_column_missing';
+                        } else {
+                            if (!preg_match('/^bigint\b.*\bunsigned\b/', (string) $entry['id_type'])) {
+                                $entry['blockers'][] = 'referenced_id_type_not_compatible_with_unsigned_bigint_foreignId';
+                            }
+                            if ($entry['id_nullable'] !== false) {
+                                $entry['blockers'][] = 'referenced_id_nullability_not_verified_non_null';
+                            }
+                            if (!$entry['id_is_primary_or_unique']) {
+                                $entry['blockers'][] = 'referenced_id_not_primary_or_unique';
+                            }
+                            if ($driver === 'mysql' && $entry['storage_engine_foreign_key_compatible'] !== true) {
+                                $entry['blockers'][] = 'referenced_table_engine_not_verified_innodb';
+                            }
+                        }
+                        $entry['metadata_introspection_succeeded'] = true;
+                    } catch (\Throwable $exception) {
+                        $metadataError = true;
+                        $entry['blockers'][] = 'metadata_introspection_failed';
+                    }
+                    if ($entry['blockers'] !== []) {
+                        $prerequisiteBlockers[$parentTable] = $entry['blockers'];
+                    }
+                    $prerequisites[$parentTable] = $entry;
+                }
+
                 if ($tableExists) {
                     foreach ($schema::getColumns($table) as $column) {
                         $name = (string) ($column['name'] ?? '');
-                        $type = strtolower((string) ($column['type'] ?? '').' '.(string) ($column['type_name'] ?? ''));
+                        $type = strtolower(trim((string) ($column['type'] ?? '').' '.(string) ($column['type_name'] ?? '')));
                         $nullable = $column['nullable'] ?? null;
                         $actualColumns[$name] = [
-                            'type' => trim($type),
+                            'type' => $type,
                             'nullable' => $nullable,
                             'default' => $column['default'] ?? null,
                             'auto_increment' => $column['auto_increment'] ?? null,
                         ];
-                        if (isset($expectedTypes[$name])) {
-                            if (! preg_match($expectedTypes[$name], $type) || $nullable !== $expectedNullable[$name]) {
+                        if (isset($expectedColumns[$name])) {
+                            $expected = $expectedColumns[$name];
+                            if (!preg_match($expected['pattern'], $type)
+                                || $nullable !== $expected['nullable']
+                                || (array_key_exists('default', $expected) && (string) ($column['default'] ?? '') !== (string) $expected['default']
+                                || (array_key_exists('auto_increment', $expected) && (bool) ($column['auto_increment'] ?? false) !== $expected['auto_increment'])) {
                                 $columnDefinitionMismatches[] = $name;
                             }
                         }
                     }
-                    $missingColumns = array_values(array_diff(array_keys($expectedTypes), array_keys($actualColumns)));
+                    $missingColumns = array_values(array_diff(array_keys($expectedColumns), array_keys($actualColumns)));
                     $indexes = $schema::getIndexes($table);
                     $indexByName = [];
                     foreach ($indexes as $index) {
@@ -435,7 +529,7 @@ jobs:
                     }
                     foreach ($expectedIndexes as $name => $expectedIndex) {
                         $index = $indexByName[$name] ?? null;
-                        if (! is_array($index)
+                        if (!is_array($index)
                             || array_values($index['columns'] ?? []) !== $expectedIndex['columns']
                             || (bool) ($index['unique'] ?? false) !== $expectedIndex['unique']) {
                             $missingIndexes[] = $name;
@@ -448,27 +542,36 @@ jobs:
                             break;
                         }
                     }
-                    if (! is_array($primaryIndex) || array_values($primaryIndex['columns'] ?? []) !== ['id']) {
+                    if (!is_array($primaryIndex) || array_values($primaryIndex['columns'] ?? []) !== ['id']) {
                         $missingIndexes[] = 'PRIMARY(id)';
                     }
+
                     $foreignKeys = $schema::getForeignKeys($table);
                     $actualForeignKeys = [];
                     foreach ($foreignKeys as $foreignKey) {
                         $columns = array_values($foreignKey['columns'] ?? []);
                         $referencedColumns = array_values($foreignKey['foreign_columns'] ?? []);
                         if (count($columns) === 1 && count($referencedColumns) === 1) {
-                            $actualForeignKeys[$columns[0]] = [(string) ($foreignKey['foreign_table'] ?? ''), $referencedColumns[0]];
+                            $actualForeignKeys[$columns[0]] = [
+                                'table' => (string) ($foreignKey['foreign_table'] ?? ''),
+                                'column' => (string) $referencedColumns[0],
+                                'on_delete' => strtolower((string) ($foreignKey['on_delete'] ?? '')),
+                            ];
                         }
                     }
                     foreach ($expectedForeignKeys as $column => $target) {
-                        if (($actualForeignKeys[$column] ?? null) !== $target) {
+                        $actual = $actualForeignKeys[$column] ?? null;
+                        if (!is_array($actual)
+                            || $actual['table'] !== $target[0]
+                            || $actual['column'] !== $target[1]
+                            || !in_array($actual['on_delete'], ['restrict', 'no action'], true)) {
                             $missingForeignKeys[] = $column.'->'.$target[0].'.'.$target[1];
                         }
                     }
                 }
             } catch (\Throwable $exception) {
-                // Do not expose connection details or SQL; uncertainty remains explicit.
                 $metadataError = true;
+                $metadataErrors[] = 'schema_or_ledger_introspection_failed';
             }
 
             $migrationFileExists = is_file(base_path('database/migrations/'.$migration.'.php'));
@@ -477,16 +580,25 @@ jobs:
                 && $columnDefinitionMismatches === []
                 && $missingIndexes === []
                 && $missingForeignKeys === [];
+            $prerequisitesCompatible = count($prerequisites) === count($foreignKeyPrerequisites);
+            foreach ($prerequisites as $entry) {
+                if (($entry['blockers'] ?? []) !== []) $prerequisitesCompatible = false;
+            }
+
             if ($metadataError) {
                 $classification = 'AMBIGUOUS_UNVERIFIED';
-            } elseif (! $tableExists) {
+            } elseif (!$tableExists && count($migrationRows) === 0 && $ledgerExists && $migrationFileExists) {
                 $classification = 'ABSENT';
-            } elseif (! $structureMatches) {
+            } elseif ($tableExists && !$structureMatches) {
                 $classification = 'PARTIALLY_APPLIED';
-            } elseif (! $ledgerExists || count($migrationRows) !== 1 || ! $migrationFileExists) {
-                $classification = 'AMBIGUOUS_UNVERIFIED';
-            } else {
+            } elseif ($tableExists && $structureMatches && $ledgerExists && count($migrationRows) === 1 && $migrationFileExists) {
                 $classification = 'PRESENT_AND_VERIFIED_EQUIVALENT';
+            } elseif (!$tableExists && count($migrationRows) > 0) {
+                $classification = 'TABLE_ABSENT_LEDGER_PRESENT';
+            } elseif ($tableExists && count($migrationRows) !== 1) {
+                $classification = 'TABLE_PRESENT_LEDGER_COUNT_MISMATCH';
+            } else {
+                $classification = 'AMBIGUOUS_UNVERIFIED';
             }
 
             echo json_encode([
@@ -504,11 +616,17 @@ jobs:
                 'matching_migration_ledger_count' => count($migrationRows),
                 'actual_columns' => $actualColumns,
                 'missing_columns' => $missingColumns,
-                'column_definition_mismatches' => $columnDefinitionMismatches,
+                'column_definition_mismatches' => array_values(array_unique($columnDefinitionMismatches)),
                 'missing_indexes' => array_values(array_unique($missingIndexes)),
                 'missing_foreign_keys' => $missingForeignKeys,
+                'foreign_key_prerequisites' => $prerequisites,
+                'prerequisite_blockers' => $prerequisiteBlockers,
+                'prerequisites_compatible' => $prerequisitesCompatible,
+                'target_table_engine' => $tableEngine,
+                'target_engine_foreign_key_compatible' => $driver === 'mysql' ? strtolower((string) $tableEngine) === 'innodb' : null,
                 'structure_matches_expected_migration' => $structureMatches,
-                'metadata_introspection_succeeded' => ! $metadataError,
+                'metadata_introspection_succeeded' => !$metadataError,
+                'metadata_errors' => array_values(array_unique($metadataErrors)),
                 'classification' => $classification,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP
