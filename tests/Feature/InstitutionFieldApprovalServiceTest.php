@@ -186,7 +186,7 @@ class InstitutionFieldApprovalServiceTest extends TestCase
                 'source_id' => Source::create([
                     'source_type' => 'official',
                     'name' => 'Other official source '.$this->fixtureNumber,
-                    'url' => 'https://university.example.edu/official',
+                    'url' => 'https://8.8.8.8/official',
                     'authority_scope' => 'official',
                     'status' => 'active',
                 ])->id,
@@ -283,7 +283,7 @@ class InstitutionFieldApprovalServiceTest extends TestCase
     {
         $this->fixtureNumber++;
         config(['institute_agent.profiles' => [
-            'test-official' => ['source' => ['url' => 'https://university.example.edu/official']],
+            'test-official' => ['source' => ['url' => 'https://8.8.8.8/official']],
         ]]);
 
         $institution = Institution::create([
@@ -295,13 +295,13 @@ class InstitutionFieldApprovalServiceTest extends TestCase
         $source = Source::create([
             'source_type' => 'official',
             'name' => 'Official University Source',
-            'url' => 'https://university.example.edu/official',
+            'url' => 'https://8.8.8.8/official',
             'authority_scope' => 'official',
             'status' => 'active',
         ]);
         $snapshot = SourceSnapshot::create([
             'source_id' => $source->id,
-            'reference' => 'https://university.example.edu/official',
+            'reference' => 'https://8.8.8.8/official',
             'content_hash' => hash('sha256', 'official source content '.$this->fixtureNumber),
             'content_length' => 120,
             'content_type' => 'text/html',
@@ -323,7 +323,7 @@ class InstitutionFieldApprovalServiceTest extends TestCase
         $evidence = Evidence::create([
             'source_id' => $source->id,
             'snapshot_id' => $snapshot->id,
-            'reference' => 'https://university.example.edu/about',
+            'reference' => 'https://8.8.8.8/about',
             'excerpt' => 'The official institution description supports the reviewed change.',
             'content_hash' => $snapshot->content_hash,
             'observed_at' => now(),
