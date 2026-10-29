@@ -34,8 +34,8 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('isolated_expected_tree_vs_deployed_file_content', $workflow);
         $this->assertStringContainsString('git -C "$PARITY_REPO" log --all --format=', $workflow);
         $this->assertStringNotContainsString('git fetch --quiet --no-tags --depth=200 origin main || DEPLOYMENT_DRIFT=1', $workflow);
-        $this->assertStringContainsString('git fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION"', $workflow);
-        $this->assertStringContainsString('git fetch --quiet --no-tags --depth=200 origin main', $workflow);
+        $this->assertStringContainsString('git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION"', $workflow);
+        $this->assertStringContainsString('git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin main', $workflow);
         $this->assertStringNotContainsString('git fetch --quiet --no-tags --unshallow origin main', $workflow);
         $this->assertStringContainsString('Deployed API route registration (read-only; bounded)', $workflow);
         $this->assertStringContainsString('php artisan route:list --json --no-ansi', $workflow);
@@ -44,8 +44,8 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('institution_api_route_registration', $workflow);
         $this->assertStringContainsString('php artisan route:list --json --no-ansi', $workflow);
         $this->assertStringContainsString('artisan schedule:run', $workflow);
-        $this->assertStringContainsString("git log --all --format='%H %cs %s' -S'duplicate_rows' -- database/migrations", $workflow);
-        $this->assertStringContainsString("git log --all --format='%H %cs %s' -S'import_batches' -- database/migrations", $workflow);
+        $this->assertStringContainsString("git -C \"$PARITY_REPO\" log --all --format='%H %cs %s' -S'duplicate_rows' -- database/migrations", $workflow);
+        $this->assertStringContainsString("git -C \"$PARITY_REPO\" log --all --format='%H %cs %s' -S'import_batches' -- database/migrations", $workflow);
     }
 
     public function test_readonly_diagnostics_have_single_public_api_and_guest_access_checks(): void
