@@ -44,8 +44,8 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('institution_api_route_registration', $workflow);
         $this->assertStringContainsString('php artisan route:list --json --no-ansi', $workflow);
         $this->assertStringContainsString('artisan schedule:run', $workflow);
-        $this->assertStringContainsString("git -C \"$PARITY_REPO\" log --all --format='%H %cs %s' -S'duplicate_rows' -- database/migrations", $workflow);
-        $this->assertStringContainsString("git -C \"$PARITY_REPO\" log --all --format='%H %cs %s' -S'import_batches' -- database/migrations", $workflow);
+        $this->assertStringContainsString('git -C "$PARITY_REPO" log --all --format=\'%H %cs %s\' -S\'duplicate_rows\' -- database/migrations', $workflow);
+        $this->assertStringContainsString('git -C "$PARITY_REPO" log --all --format=\'%H %cs %s\' -S\'import_batches\' -- database/migrations', $workflow);
     }
 
     public function test_readonly_diagnostics_have_single_public_api_and_guest_access_checks(): void
