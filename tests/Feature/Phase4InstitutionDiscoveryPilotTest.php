@@ -50,9 +50,18 @@ class Phase4InstitutionDiscoveryPilotTest extends TestCase
         }
 
         $canonicalCountBefore = Institution::query()->count();
+        $dryRunManifest = json_decode(
+            file_get_contents(base_path('docs/09-data-enrichment/PHASE-4-INSTITUTION-IDENTITY-DRY-RUN-2026-10-29.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+        $manifestCandidates = array_column($dryRunManifest['candidates'], null, 'profile_key');
         $responses = [];
         $expected = [];
-        foreach (array_values($profiles) as $index => $definition) {
+        $fixtureIndex = 0;
+        foreach ($profiles as $profileKey => $definition) {
+            $index = $fixtureIndex++;
             $identity = $definition['institution_identity'];
             $term = $identity['identity_terms'][0];
             $escapedTerm = htmlspecialchars($term, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -67,6 +76,8 @@ class Phase4InstitutionDiscoveryPilotTest extends TestCase
             $url = $definition['source']['url'];
             $responses[$url] = Http::response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
             $expected[$url] = ['html' => $html, 'profile' => null];
+            $this->assertArrayHasKey($profileKey, $manifestCandidates);
+            $this->assertSame($manifestCandidates[$profileKey]['synthetic_fixture_sha256'], hash('sha256', $html), $profileKey);
         }
 
         Http::fake($responses);
