@@ -154,49 +154,63 @@ jobs:
             $app = require $projectPath.'/bootstrap/app.php';
             $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-            $db = \Illuminate\Support\Facades\DB::connection();
-            $schema = \Illuminate\Support\Facades\Schema::connection($db->getName());
             $table = 'import_batches';
             $migration = '2026_10_23_000001_add_duplicate_rows_to_import_batches_table';
             $migrationPath = base_path('database/migrations/'.$migration.'.php');
-            $tableExists = $schema->hasTable($table);
-            $columnExists = $tableExists && $schema->hasColumn($table, 'duplicate_rows');
-            $ledgerExists = $schema->hasTable('migrations');
+            $tableExists = null;
+            $columnExists = null;
+            $ledgerExists = null;
             $matchingMigrations = [];
-            $matchingMigrationCount = 0;
+            $matchingMigrationCount = null;
             $relatedMigrationEntries = [];
             $relatedMigrationFiles = [];
-            foreach (glob(base_path('database/migrations/*.php')) ?: [] as $candidatePath) {
-                $candidateSource = file_get_contents($candidatePath);
-                if (! is_string($candidateSource)) { continue; }
-                $mentionsDuplicateRows = str_contains($candidateSource, 'duplicate_rows');
-                $mentionsImportBatches = str_contains($candidateSource, 'import_batches');
-                if ($mentionsDuplicateRows || $mentionsImportBatches) {
-                    $relatedMigrationFiles[] = [
-                        'migration' => basename($candidatePath, '.php'),
-                        'mentions_duplicate_rows' => $mentionsDuplicateRows,
-                        'mentions_import_batches' => $mentionsImportBatches,
-                        'migration_ledger_count' => $ledgerExists ? (int) $db->table('migrations')->where('migration', basename($candidatePath, '.php'))->count() : null,
-                    ];
+            $metadataError = false;
+            $driver = null;
+            try {
+                $db = \Illuminate\Support\Facades\DB::connection();
+                $schema = \Illuminate\Support\Facades\Schema::connection($db->getName());
+                $driver = $db->getDriverName();
+                $tableExists = $schema->hasTable($table);
+                $columnExists = $tableExists && $schema->hasColumn($table, 'duplicate_rows');
+                $ledgerExists = $schema->hasTable('migrations');
+                if ($ledgerExists) {
+                    $matchingMigrationCount = (int) $db->table('migrations')->where('migration', $migration)->count();
+                    $matchingMigrations = $db->table('migrations')->where('migration', $migration)
+                        ->get(['migration', 'batch'])->map(static fn ($row) => [
+                            'migration' => (string) $row->migration,
+                            'batch' => (int) $row->batch,
+                        ])->all();
+                    $relatedMigrationEntries = $db->table('migrations')
+                        ->where(function ($query): void {
+                            $query->where('migration', 'like', '%duplicate_rows%')
+                                ->orWhere('migration', 'like', '%import_batches%');
+                        })->orderBy('batch')->orderBy('migration')
+                        ->get(['migration', 'batch'])->map(static fn ($row) => [
+                            'migration' => (string) $row->migration,
+                            'batch' => (int) $row->batch,
+                            'migration_file_exists' => is_file(base_path('database/migrations/'.$row->migration.'.php')),
+                        ])->all();
                 }
-            }
-            if ($ledgerExists) {
-                $matchingMigrationCount = (int) $db->table('migrations')->where('migration', $migration)->count();
-                $matchingMigrations = $db->table('migrations')->where('migration', $migration)
-                    ->get(['migration', 'batch'])->map(static fn ($row) => [
-                        'migration' => (string) $row->migration,
-                        'batch' => (int) $row->batch,
-                    ])->all();
-                $relatedMigrationEntries = $db->table('migrations')
-                    ->where(function ($query): void {
-                        $query->where('migration', 'like', '%duplicate_rows%')
-                            ->orWhere('migration', 'like', '%import_batches%');
-                    })->orderBy('batch')->orderBy('migration')
-                    ->get(['migration', 'batch'])->map(static fn ($row) => [
-                        'migration' => (string) $row->migration,
-                        'batch' => (int) $row->batch,
-                        'migration_file_exists' => is_file(base_path('database/migrations/'.$row->migration.'.php')),
-                    ])->all();
+                foreach (glob(base_path('database/migrations/*.php')) ?: [] as $candidatePath) {
+                    $candidateSource = file_get_contents($candidatePath);
+                    if (! is_string($candidateSource)) { continue; }
+                    $mentionsDuplicateRows = str_contains($candidateSource, 'duplicate_rows');
+                    $mentionsImportBatches = str_contains($candidateSource, 'import_batches');
+                    if ($mentionsDuplicateRows || $mentionsImportBatches) {
+                        $candidateName = basename($candidatePath, '.php');
+                        $relatedMigrationFiles[] = [
+                            'migration' => $candidateName,
+                            'mentions_duplicate_rows' => $mentionsDuplicateRows,
+                            'mentions_import_batches' => $mentionsImportBatches,
+                            'migration_ledger_count' => $ledgerExists
+                                ? (int) $db->table('migrations')->where('migration', $candidateName)->count()
+                                : null,
+                        ];
+                    }
+                }
+            } catch (\Throwable $exception) {
+                // Keep a structured, fail-closed result; never print exception text.
+                $metadataError = true;
             }
 
             $columnDefinition = null;
@@ -206,8 +220,6 @@ jobs:
             $tableDefinition = null;
             $indexes = [];
             $foreignKeys = [];
-            $metadataError = false;
-            $driver = $db->getDriverName();
             try {
                 if ($tableExists) {
                     $columns = $schema->getColumns($table);
@@ -320,6 +332,7 @@ jobs:
                 'diagnosis' => $diagnosis,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
 
+            if ($metadataError) { fwrite(STDERR, "ERROR: read-only schema/ledger introspection failed; details suppressed and no migration will run.\\n"); exit(17); }
             if (! $tableExists) { fwrite(STDERR, "ERROR: import_batches table is missing; refusing.\\n"); exit(10); }
             if (! $ledgerExists) { fwrite(STDERR, "ERROR: migrations ledger is missing; refusing.\\n"); exit(11); }
             if (! $migrationFileExists) { fwrite(STDERR, "ERROR: target migration file missing; refusing.\\n"); exit(12); }
