@@ -345,6 +345,18 @@ jobs:
                 exit(21);
             }
             PHP
+            echo "=== Hostinger scheduler command and PHP executable (read-only) ==="
+            PHP_EXECUTABLE="$(command -v php || true)"
+            if [ -n "$PHP_EXECUTABLE" ]; then
+              PHP_EXECUTABLE_REAL="$(readlink -f "$PHP_EXECUTABLE" 2>/dev/null || printf '%s' "$PHP_EXECUTABLE")"
+              echo "hostinger_php_executable=$PHP_EXECUTABLE_REAL"
+              "$PHP_EXECUTABLE_REAL" -r 'echo "hostinger_php_version=".PHP_VERSION.PHP_EOL;'
+              printf 'expected_hostinger_cron_command=* * * * * cd %s && %s artisan schedule:run >> /dev/null 2>&1\n' "$PROJECT_PATH" "$PHP_EXECUTABLE_REAL"
+            else
+              echo "hostinger_php_executable=UNVERIFIED"
+              echo "expected_hostinger_cron_command=UNVERIFIED"
+            fi
+
             echo "=== Hostinger scheduler cron presence (read-only; command contents suppressed) ==="
             # Distinguish an explicitly empty user crontab from an unreadable or
             # otherwise failing crontab command. Never print scheduler command contents.
@@ -408,6 +420,12 @@ jobs:
               echo "deployment_revision_status=UNVERIFIABLE"
               DEPLOYMENT_DRIFT=1
             fi
+            echo "=== Relevant migration history (read-only, bounded) ==="
+            git log --all --format='%H %cs %s' -S'duplicate_rows' -- database/migrations | head -n 20 || true
+            git log --all --format='%H %cs %s' -S'import_batches' -- database/migrations | head -n 30 || true
+            echo "=== Migration source inventory for import_batches/duplicate_rows (read-only) ==="
+            find database/migrations -maxdepth 1 -type f -name '*.php' -print0 | xargs -0 grep -lE 'duplicate_rows|import_batches' | sort || true
+
             echo "=== Canonical institution identity export (read-only; names and slugs only) ==="
             php <<'PHP'
             <?php
@@ -443,6 +461,63 @@ jobs:
                 'alias_record_count' => $aliases->flatten(1)->count(),
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP
+            echo "=== Canonical directory visibility and relationship counts (read-only) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $db = \Illuminate\Support\Facades\DB::connection();
+            $schema = \Illuminate\Support\Facades\Schema::connection($db->getName());
+            $report = [
+                'check' => 'canonical_directory_visibility_counts',
+                'checked_at' => now()->toIso8601String(),
+                'mutation_performed' => false,
+                'tables' => [],
+                'relationships' => [],
+            ];
+            foreach (['institutions', 'campuses', 'programs', 'program_offerings'] as $table) {
+                if (! $schema->hasTable($table)) {
+                    $report['tables'][$table] = ['table_exists' => false];
+                    continue;
+                }
+                $item = ['table_exists' => true, 'total_rows' => (int) $db->table($table)->count()];
+                if ($schema->hasColumn($table, 'status')) {
+                    $item['rows_by_status'] = $db->table($table)
+                        ->select('status', $db->raw('COUNT(*) AS row_count'))
+                        ->groupBy('status')->orderBy('status')
+                        ->get()->mapWithKeys(fn ($row) => [(string) ($row->status ?? '(null)') => (int) $row->row_count])->all();
+                    $item['active_rows'] = (int) $db->table($table)->where('status', 'active')->count();
+                }
+                if ($schema->hasColumn($table, 'deleted_at')) {
+                    $item['soft_deleted_rows'] = (int) $db->table($table)->whereNotNull('deleted_at')->count();
+                } else {
+                    $item['soft_delete_column_present'] = false;
+                }
+                $report['tables'][$table] = $item;
+            }
+            $relationshipChecks = [
+                'campuses_missing_institution' => ['campuses', 'institution_id', 'institutions'],
+                'programs_missing_institution' => ['programs', 'institution_id', 'institutions'],
+                'offerings_missing_program' => ['program_offerings', 'program_id', 'programs'],
+                'offerings_missing_campus' => ['program_offerings', 'campus_id', 'campuses'],
+            ];
+            foreach ($relationshipChecks as $label => [$child, $foreignKey, $parent]) {
+                if (! $schema->hasTable($child) || ! $schema->hasTable($parent) || ! $schema->hasColumn($child, $foreignKey)) {
+                    $report['relationships'][$label] = ['checkable' => false];
+                    continue;
+                }
+                $report['relationships'][$label] = [
+                    'checkable' => true,
+                    'count' => (int) $db->table($child)
+                        ->leftJoin($parent, $child.'.'.$foreignKey, '=', $parent.'.id')
+                        ->whereNotNull($child.'.'.$foreignKey)
+                        ->whereNull($parent.'.id')->count(),
+                ];
+            }
+            echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
+
             echo "=== Latest Laravel exception fingerprint (read-only; message and request data omitted) ==="
             php <<'PHP'
             <?php
@@ -1019,6 +1094,65 @@ jobs:
               echo "Diagnostics were read-only; no production records were changed."
               exit 10
             fi
+
+      - name: Verify public directory and API response contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://estudent.pk"
+          workdir="$(mktemp -d)"
+          trap 'rm -rf "$workdir"' EXIT
+
+          inspect_response() {
+            local label="$1"
+            local url="$2"
+            local expect_json="$3"
+            local body="$workdir/$label.body"
+            local headers="$workdir/$label.headers"
+            local status content_type
+            status="$(curl --silent --show-error --max-time 25 --dump-header "$headers" --output "$body" --write-out '%{http_code}' "$url")" || {
+              echo "$label request_transport=FAILED"
+              return 1
+            }
+            content_type="$(awk 'BEGIN{IGNORECASE=1} /^content-type:/ {sub(/^[^:]*:[[:space:]]*/, ""); sub(/\r$/, ""); value=$0} END{print value}' "$headers")"
+            if [[ -z "$content_type" ]]; then content_type="missing"; fi
+            echo "$label request_url=$url"
+            echo "$label http_status=$status"
+            echo "$label content_type=$content_type"
+            echo "$label response_bytes=$(wc -c < "$body" | tr -d ' ')"
+            if [[ "$expect_json" == "true" ]]; then
+              if jq -e 'type == "object" and (.data | type == "array") and (.total | type == "number") and (.current_page | type == "number") and (.last_page | type == "number")' "$body" >/dev/null 2>&1; then
+                jq -c '{json_valid:true,data_count:(.data|length),ids:(.data|map(.id)),total,current_page,last_page,from,to,per_page}' "$body" | sed "s/^/$label json_summary=/"
+                jq -c '{data:(.data|map({id,name,slug,status})),total,current_page,last_page,from,to,per_page} | tojson | .[0:500]' "$body" | sed "s/^/$label sanitized_response_body=/"
+                echo "$label json_contract=PASS"
+              else
+                echo "$label json_contract=FAIL_OR_UNEXPECTED_SHAPE"
+                head -c 400 "$body" | tr '\r\n\t' '   ' | sed "s/^/$label sanitized_body_prefix=/"
+                echo
+              fi
+              [[ "$status" == "200" && "$content_type" == application/json* ]] || return 1
+              jq -e 'type == "object" and (.data | type == "array") and (.total | type == "number") and (.current_page | type == "number") and (.last_page | type == "number")' "$body" >/dev/null
+            else
+              [[ "$status" == "200" && "$content_type" == text/html* ]] || return 1
+              echo "$label html_contract=PASS"
+            fi
+          }
+
+          inspect_response directory_page "$BASE_URL/institutes/" false
+          inspect_response institutions_api_page_1 "$BASE_URL/api/v1/institutions?per_page=2" true
+          inspect_response institutions_api_search "$BASE_URL/api/v1/institutions?q=COMSATS&per_page=2" true
+          inspect_response institutions_api_page_2 "$BASE_URL/api/v1/institutions?per_page=2&page=2" true
+          total="$(jq -r '.total' "$workdir/institutions_api_page_1.body")"
+          if [[ "$total" =~ ^[0-9]+$ ]] && (( total > 2 )); then
+            jq -en --slurpfile first "$workdir/institutions_api_page_1.body" --slurpfile second "$workdir/institutions_api_page_2.body" '
+              ($first[0].data | map(.id)) as $a |
+              ($second[0].data | map(.id)) as $b |
+              (($b | length) > 0) and ([ $a[] as $id | select($b | index($id)) ] | length == 0)
+            ' >/dev/null
+            echo "institutions_api_pagination=PASS"
+          else
+            echo "institutions_api_pagination=NOT_APPLICABLE_TOTAL_LE_2"
+          fi
 
       - name: Verify guest denial for operator-only discovery endpoints
         shell: bash
