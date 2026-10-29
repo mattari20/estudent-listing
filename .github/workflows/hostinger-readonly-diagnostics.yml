@@ -318,6 +318,200 @@ jobs:
                 'matching_migrations' => $migrationRows,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP
+            echo "=== Institution field approvals schema and migration-ledger readiness (read-only) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+            $table = 'institution_field_approvals';
+            $migration = '2026_10_29_000001_create_institution_field_approvals_table';
+            $metadataError = false;
+            $tableExists = false;
+            $ledgerExists = false;
+            $migrationRows = [];
+            $actualColumns = [];
+            $missingColumns = [];
+            $columnDefinitionMismatches = [];
+            $indexes = [];
+            $missingIndexes = [];
+            $foreignKeys = [];
+            $missingForeignKeys = [];
+            $driver = null;
+
+            // These names and definitions mirror the committed migration. This block
+            // only introspects metadata; it never runs a migration or writes rows.
+            $expectedTypes = [
+                'id' => '/bigint.*unsigned/',
+                'institution_id' => '/bigint.*unsigned/',
+                'field_name' => '/varchar\\(100\\)/',
+                'expected_current_value' => '/longtext/',
+                'proposed_value' => '/longtext/',
+                'source_id' => '/bigint.*unsigned/',
+                'source_change_observation_id' => '/bigint.*unsigned/',
+                'source_snapshot_id' => '/bigint.*unsigned/',
+                'evidence_id' => '/bigint.*unsigned/',
+                'evidence_url' => '/\\btext\\b/',
+                'evidence_excerpt' => '/longtext/',
+                'content_fingerprint' => '/varchar\\(128\\)/',
+                'source_observed_at' => '/varchar\\(40\\)/',
+                'evidence_observed_at' => '/varchar\\(40\\)/',
+                'proposal_hash' => '/char\\(64\\)/',
+                'status' => '/varchar\\(24\\)/',
+                'created_by' => '/bigint.*unsigned/',
+                'reviewer_id' => '/bigint.*unsigned/',
+                'decision_at' => '/timestamp/',
+                'decision_reason' => '/\\btext\\b/',
+                'applied_at' => '/timestamp/',
+                'application_outcome' => '/varchar\\(40\\)/',
+                'applied_refresh_event_id' => '/bigint.*unsigned/',
+                'created_at' => '/timestamp/',
+                'updated_at' => '/timestamp/',
+            ];
+            $expectedNullable = [
+                'id' => false, 'institution_id' => false, 'field_name' => false,
+                'expected_current_value' => true, 'proposed_value' => false,
+                'source_id' => false, 'source_change_observation_id' => false,
+                'source_snapshot_id' => false, 'evidence_id' => false,
+                'evidence_url' => false, 'evidence_excerpt' => false,
+                'content_fingerprint' => false, 'source_observed_at' => false,
+                'evidence_observed_at' => true, 'proposal_hash' => false,
+                'status' => false, 'created_by' => false, 'reviewer_id' => true,
+                'decision_at' => true, 'decision_reason' => true, 'applied_at' => true,
+                'application_outcome' => true, 'applied_refresh_event_id' => true,
+                'created_at' => true, 'updated_at' => true,
+            ];
+            $expectedIndexes = [
+                'institution_field_approvals_proposal_hash_unique' => ['columns' => ['proposal_hash'], 'unique' => true],
+                'inst_field_approval_state_idx' => ['columns' => ['institution_id', 'field_name', 'status'], 'unique' => false],
+                'inst_field_approval_source_idx' => ['columns' => ['source_id', 'source_change_observation_id'], 'unique' => false],
+                'inst_field_approval_decision_idx' => ['columns' => ['status', 'decision_at'], 'unique' => false],
+            ];
+            $expectedForeignKeys = [
+                'institution_id' => ['institutions', 'id'],
+                'source_id' => ['sources', 'id'],
+                'source_change_observation_id' => ['source_change_observations', 'id'],
+                'source_snapshot_id' => ['source_snapshots', 'id'],
+                'evidence_id' => ['evidence', 'id'],
+                'created_by' => ['users', 'id'],
+                'reviewer_id' => ['users', 'id'],
+                'applied_refresh_event_id' => ['official_source_refresh_events', 'id'],
+            ];
+
+            try {
+                $db = \Illuminate\Support\Facades\DB::connection();
+                $schema = \Illuminate\Support\Facades\Schema::class;
+                $driver = $db->getDriverName();
+                $tableExists = $schema::hasTable($table);
+                $ledgerExists = $schema::hasTable('migrations');
+                if ($ledgerExists) {
+                    $migrationRows = $db->table('migrations')->where('migration', $migration)
+                        ->orderBy('batch')->get(['migration', 'batch'])
+                        ->map(static fn ($row) => ['migration' => (string) $row->migration, 'batch' => (int) $row->batch])->all();
+                }
+                if ($tableExists) {
+                    foreach ($schema::getColumns($table) as $column) {
+                        $name = (string) ($column['name'] ?? '');
+                        $type = strtolower((string) ($column['type'] ?? '').' '.(string) ($column['type_name'] ?? ''));
+                        $nullable = $column['nullable'] ?? null;
+                        $actualColumns[$name] = [
+                            'type' => trim($type),
+                            'nullable' => $nullable,
+                            'default' => $column['default'] ?? null,
+                            'auto_increment' => $column['auto_increment'] ?? null,
+                        ];
+                        if (isset($expectedTypes[$name])) {
+                            if (! preg_match($expectedTypes[$name], $type) || $nullable !== $expectedNullable[$name]) {
+                                $columnDefinitionMismatches[] = $name;
+                            }
+                        }
+                    }
+                    $missingColumns = array_values(array_diff(array_keys($expectedTypes), array_keys($actualColumns)));
+                    $indexes = $schema::getIndexes($table);
+                    $indexByName = [];
+                    foreach ($indexes as $index) {
+                        $indexByName[(string) ($index['name'] ?? '')] = $index;
+                    }
+                    foreach ($expectedIndexes as $name => $expectedIndex) {
+                        $index = $indexByName[$name] ?? null;
+                        if (! is_array($index)
+                            || array_values($index['columns'] ?? []) !== $expectedIndex['columns']
+                            || (bool) ($index['unique'] ?? false) !== $expectedIndex['unique']) {
+                            $missingIndexes[] = $name;
+                        }
+                    }
+                    $primaryIndex = null;
+                    foreach ($indexes as $index) {
+                        if (($index['primary'] ?? false) === true || strtolower((string) ($index['name'] ?? '')) === 'primary') {
+                            $primaryIndex = $index;
+                            break;
+                        }
+                    }
+                    if (! is_array($primaryIndex) || array_values($primaryIndex['columns'] ?? []) !== ['id']) {
+                        $missingIndexes[] = 'PRIMARY(id)';
+                    }
+                    $foreignKeys = $schema::getForeignKeys($table);
+                    $actualForeignKeys = [];
+                    foreach ($foreignKeys as $foreignKey) {
+                        $columns = array_values($foreignKey['columns'] ?? []);
+                        $referencedColumns = array_values($foreignKey['foreign_columns'] ?? []);
+                        if (count($columns) === 1 && count($referencedColumns) === 1) {
+                            $actualForeignKeys[$columns[0]] = [(string) ($foreignKey['foreign_table'] ?? ''), $referencedColumns[0]];
+                        }
+                    }
+                    foreach ($expectedForeignKeys as $column => $target) {
+                        if (($actualForeignKeys[$column] ?? null) !== $target) {
+                            $missingForeignKeys[] = $column.'->'.$target[0].'.'.$target[1];
+                        }
+                    }
+                }
+            } catch (\Throwable $exception) {
+                // Do not expose connection details or SQL; uncertainty remains explicit.
+                $metadataError = true;
+            }
+
+            $migrationFileExists = is_file(base_path('database/migrations/'.$migration.'.php'));
+            $structureMatches = $tableExists
+                && $missingColumns === []
+                && $columnDefinitionMismatches === []
+                && $missingIndexes === []
+                && $missingForeignKeys === [];
+            if ($metadataError) {
+                $classification = 'AMBIGUOUS_UNVERIFIED';
+            } elseif (! $tableExists) {
+                $classification = 'ABSENT';
+            } elseif (! $structureMatches) {
+                $classification = 'PARTIALLY_APPLIED';
+            } elseif (! $ledgerExists || count($migrationRows) !== 1 || ! $migrationFileExists) {
+                $classification = 'AMBIGUOUS_UNVERIFIED';
+            } else {
+                $classification = 'PRESENT_AND_VERIFIED_EQUIVALENT';
+            }
+
+            echo json_encode([
+                'check' => 'institution_field_approvals_schema_readiness',
+                'checked_at' => now()->toIso8601String(),
+                'mutation_performed' => false,
+                'write_requested' => false,
+                'database_driver' => $driver,
+                'table' => $table,
+                'migration' => $migration,
+                'migration_file_exists' => $migrationFileExists,
+                'table_exists' => $tableExists,
+                'migration_ledger_table_exists' => $ledgerExists,
+                'matching_migration_ledger_rows' => $migrationRows,
+                'matching_migration_ledger_count' => count($migrationRows),
+                'actual_columns' => $actualColumns,
+                'missing_columns' => $missingColumns,
+                'column_definition_mismatches' => $columnDefinitionMismatches,
+                'missing_indexes' => array_values(array_unique($missingIndexes)),
+                'missing_foreign_keys' => $missingForeignKeys,
+                'structure_matches_expected_migration' => $structureMatches,
+                'metadata_introspection_succeeded' => ! $metadataError,
+                'classification' => $classification,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
             echo "=== Discovery review package storage boundary (read-only) ==="
             php <<'PHP'
             <?php

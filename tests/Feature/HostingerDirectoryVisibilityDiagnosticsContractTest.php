@@ -71,6 +71,27 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         ));
     }
 
+    public function test_institution_field_approvals_schema_readiness_is_read_only_and_checks_structure_and_ledger(): void
+    {
+        $workflow = file_get_contents(base_path('.github/workflows/hostinger-readonly-diagnostics.yml'));
+
+        $this->assertIsString($workflow);
+        $this->assertStringContainsString('Institution field approvals schema and migration-ledger readiness (read-only)', $workflow);
+        $this->assertStringContainsString('institution_field_approvals_schema_readiness', $workflow);
+        $this->assertStringContainsString('2026_10_29_000001_create_institution_field_approvals_table', $workflow);
+        $this->assertStringContainsString('getColumns($table)', $workflow);
+        $this->assertStringContainsString('getIndexes($table)', $workflow);
+        $this->assertStringContainsString('getForeignKeys($table)', $workflow);
+        $this->assertStringContainsString('->where(\'migration\', $migration)', $workflow);
+        $this->assertStringContainsString('PRESENT_AND_VERIFIED_EQUIVALENT', $workflow);
+        $this->assertStringContainsString('PARTIALLY_APPLIED', $workflow);
+        $this->assertStringContainsString('ABSENT', $workflow);
+        $this->assertStringContainsString('AMBIGUOUS_UNVERIFIED', $workflow);
+        $this->assertStringContainsString("'mutation_performed' => false", $workflow);
+        $this->assertStringContainsString("'write_requested' => false", $workflow);
+        $this->assertStringContainsString("base_path('database/migrations/'", $workflow);
+    }
+
     public function test_laravel_api_prefix_matches_the_public_institutes_subfolder(): void
     {
         $bootstrap = file_get_contents(base_path('bootstrap/app.php'));
