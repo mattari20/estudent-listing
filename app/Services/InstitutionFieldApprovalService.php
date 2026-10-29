@@ -36,7 +36,7 @@ class InstitutionFieldApprovalService
 
         return DB::transaction(function () use ($actor, $institutionId, $sourceId, $observationId, $snapshotId, $evidenceId, $expectedCurrentValue, $proposedValue): InstitutionFieldApproval {
             $institution = Institution::query()->lockForUpdate()->findOrFail($institutionId);
-            if ($this->normalize($institution->description) !== $this->normalize($expectedCurrentValue)) {
+            if ($institution->description !== $expectedCurrentValue) {
                 throw new RuntimeException('Expected Institution description is stale; create a fresh proposal.');
             }
 
@@ -105,7 +105,8 @@ class InstitutionFieldApprovalService
                     $proposal->evidence()->firstOrFail(),
                     $proposal
                 );
-                if ($this->normalize($proposal->institution()->firstOrFail()->description) !== $this->normalize($proposal->expected_current_value)) {
+                $this->assertNoConflictingVerifiedAssertions($proposal);
+                if ($proposal->institution()->firstOrFail()->description !== $proposal->expected_current_value) {
                     throw new RuntimeException('The canonical description changed; this proposal must be recreated.');
                 }
             }
@@ -149,6 +150,24 @@ class InstitutionFieldApprovalService
         ];
         if (! hash_equals((string) $proposal->proposal_hash, $this->proposalHash($attributes))) {
             throw new RuntimeException('The persisted proposal binding has changed.');
+        }
+    }
+
+    public function assertNoConflictingVerifiedAssertions(InstitutionFieldApproval $proposal): void
+    {
+        $conflicts = Assertion::query()
+            ->where('subject_id', $proposal->institution_id)
+            ->whereIn('subject_type', [Institution::class, 'institution'])
+            ->where('attribute', 'description')
+            ->whereIn('verification_state', ['verified', 'confirmed'])
+            ->where('value', '!=', $proposal->proposed_value)
+            ->whereHas('evidence', function ($query) use ($proposal): void {
+                $query->where('status', 'active')->where('id', '!=', $proposal->evidence_id);
+            })
+            ->exists();
+
+        if ($conflicts) {
+            throw new RuntimeException('Conflicting active verified evidence exists for the Institution description.');
         }
     }
 
