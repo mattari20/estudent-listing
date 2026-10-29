@@ -244,10 +244,10 @@ class InstitutionFieldApprovalService
         ];
 
         if ($proposal !== null && (
-            $proposal->source_id !== $source->id
-            || $proposal->source_change_observation_id !== $observation->id
-            || $proposal->source_snapshot_id !== $snapshot->id
-            || $proposal->evidence_id !== $evidence->id
+            (int) $proposal->source_id !== (int) $source->id
+            || (int) $proposal->source_change_observation_id !== (int) $observation->id
+            || (int) $proposal->source_snapshot_id !== (int) $snapshot->id
+            || (int) $proposal->evidence_id !== (int) $evidence->id
             || $proposal->evidence_url !== $values['evidence_url']
             || $proposal->evidence_excerpt !== $values['evidence_excerpt']
             || $proposal->content_fingerprint !== $values['fingerprint']
