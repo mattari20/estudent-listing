@@ -1,0 +1,331 @@
+name: Public Browser Runtime Diagnostics
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/public-browser-runtime-diagnostics.yml"
+      - "resources/**"
+      - "routes/**"
+      - "bootstrap/app.php"
+      - "tests/Feature/PublicBrowserRuntimeDiagnosticsContractTest.php"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/public-browser-runtime-diagnostics.yml"
+      - "resources/**"
+      - "routes/**"
+      - "bootstrap/app.php"
+      - "tests/Feature/PublicBrowserRuntimeDiagnosticsContractTest.php"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-browser-runtime-diagnostics
+  cancel-in-progress: false
+
+jobs:
+  chromium-runtime:
+    name: Inspect public page, search, pagination, and JSON errors
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install isolated Chromium runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          BROWSER_WORK="$RUNNER_TEMP/estudent-public-browser"
+          mkdir -p "$BROWSER_WORK"
+          cd "$BROWSER_WORK"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium
+          echo "BROWSER_WORK=$BROWSER_WORK" >> "$GITHUB_ENV"
+
+      - name: Run clean-browser diagnostics against production
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$BROWSER_WORK"
+          node <<'NODE'
+          const { chromium } = require('playwright');
+
+          const BASE = 'https://estudent.pk/institutes/';
+          const API = 'https://estudent.pk/institutes/api/v1/institutions?per_page=2';
+          const pageErrors = [];
+          const requestMap = new Map();
+
+          function emit(kind, data) {
+            process.stdout.write(JSON.stringify({ kind, timestamp: new Date().toISOString(), ...data }) + '\n');
+          }
+
+          function shortStack(stack) {
+            if (!stack) return [];
+            return String(stack).split('\n').slice(0, 8);
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({
+              viewport: { width: 1365, height: 900 },
+              locale: 'en-US',
+            });
+            const page = await context.newPage();
+            const cdp = await context.newCDPSession(page);
+
+            await cdp.send('Network.enable');
+            await cdp.send('Runtime.enable');
+
+            cdp.on('Network.requestWillBeSent', (event) => {
+              const url = event.request?.url || '';
+              const resourceType = event.type || 'unknown';
+              if (['Fetch', 'XHR'].includes(resourceType) || /\/api\/|\.json(?:\?|$)/i.test(url)) {
+                const initiator = event.initiator || {};
+                const frames = (initiator.stack?.callFrames || []).slice(0, 6).map((frame) => ({
+                  url: frame.url,
+                  lineNumber: frame.lineNumber,
+                  columnNumber: frame.columnNumber,
+                  functionName: frame.functionName,
+                }));
+                const item = {
+                  requestId: event.requestId,
+                  url,
+                  method: event.request?.method || 'GET',
+                  resourceType,
+                  initiatorType: initiator.type || null,
+                  initiatorUrl: initiator.url || null,
+                  initiatorLineNumber: initiator.lineNumber ?? null,
+                  initiatorFrames: frames,
+                };
+                requestMap.set(event.requestId, item);
+                emit('network_request', item);
+              }
+            });
+
+            cdp.on('Network.responseReceived', (event) => {
+              const item = requestMap.get(event.requestId);
+              if (!item) return;
+              const headers = event.response?.headers || {};
+              const contentType = Object.entries(headers).find(([key]) => key.toLowerCase() === 'content-type')?.[1] || event.response?.mimeType || 'missing';
+              item.status = event.response?.status ?? null;
+              item.contentType = contentType;
+              emit('network_response', {
+                url: item.url,
+                method: item.method,
+                resourceType: item.resourceType,
+                status: item.status,
+                contentType: item.contentType,
+                initiatorType: item.initiatorType,
+                initiatorUrl: item.initiatorUrl,
+                initiatorLineNumber: item.initiatorLineNumber,
+                initiatorFrames: item.initiatorFrames,
+              });
+            });
+
+            cdp.on('Network.loadingFinished', async (event) => {
+              const item = requestMap.get(event.requestId);
+              if (!item) return;
+              try {
+                const result = await cdp.send('Network.getResponseBody', { requestId: event.requestId });
+                const body = result.base64Encoded
+                  ? Buffer.from(result.body, 'base64').toString('utf8')
+                  : result.body;
+                const detail = {
+                  url: item.url,
+                  status: item.status ?? null,
+                  contentType: item.contentType || 'missing',
+                  responseBytes: Buffer.byteLength(body, 'utf8'),
+                };
+                if (/json/i.test(item.contentType || '') || /^[\s]*[\[{]/.test(body)) {
+                  try {
+                    const parsed = JSON.parse(body);
+                    detail.jsonValid = true;
+                    if (parsed && typeof parsed === 'object') {
+                      detail.topLevelKeys = Object.keys(parsed).slice(0, 20);
+                      if (Array.isArray(parsed.data)) detail.dataCount = parsed.data.length;
+                      for (const key of ['total', 'current_page', 'last_page', 'per_page']) {
+                        if (Object.prototype.hasOwnProperty.call(parsed, key)) detail[key] = parsed[key];
+                      }
+                    }
+                  } catch (error) {
+                    detail.jsonValid = false;
+                    detail.jsonParseError = String(error.message).slice(0, 180);
+                    detail.sanitizedBodyPrefix = body.slice(0, 180).replace(/[\r\n\t]+/g, ' ');
+                  }
+                }
+                emit('network_body_summary', detail);
+              } catch (error) {
+                emit('network_body_unavailable', {
+                  url: item.url,
+                  status: item.status ?? null,
+                  contentType: item.contentType || 'missing',
+                  reason: String(error.message).slice(0, 150),
+                });
+              }
+            });
+
+            cdp.on('Runtime.exceptionThrown', (event) => {
+              const details = event.exceptionDetails || {};
+              const exception = details.exception || {};
+              const frames = (details.stackTrace?.callFrames || []).slice(0, 8).map((frame) => ({
+                url: frame.url,
+                lineNumber: frame.lineNumber,
+                columnNumber: frame.columnNumber,
+                functionName: frame.functionName,
+              }));
+              const entry = {
+                message: String(exception.description || details.text || 'Unknown JavaScript exception').slice(0, 500),
+                url: details.url || null,
+                lineNumber: details.lineNumber ?? null,
+                columnNumber: details.columnNumber ?? null,
+                frames,
+              };
+              pageErrors.push(entry);
+              emit('runtime_exception', entry);
+            });
+
+            page.on('pageerror', (error) => {
+              const entry = {
+                message: String(error.message || error).slice(0, 500),
+                stack: shortStack(error.stack),
+              };
+              pageErrors.push(entry);
+              emit('page_error', entry);
+            });
+
+            page.on('console', (message) => {
+              if (message.type() !== 'error') return;
+              const location = message.location() || {};
+              emit('console_error', {
+                message: message.text().slice(0, 500),
+                url: location.url || null,
+                lineNumber: location.lineNumber ?? null,
+                columnNumber: location.columnNumber ?? null,
+              });
+            });
+
+            page.on('requestfailed', (request) => {
+              if (['fetch', 'xhr'].includes(request.resourceType()) || /\/api\/|\.json(?:\?|$)/i.test(request.url())) {
+                emit('network_request_failed', {
+                  url: request.url(),
+                  method: request.method(),
+                  resourceType: request.resourceType(),
+                  error: request.failure()?.errorText || 'unknown',
+                });
+              }
+            });
+
+            const response = await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 45000 });
+            await page.waitForTimeout(1800);
+
+            const pageSummary = async (label, status) => {
+              const summary = {
+                label,
+                url: page.url(),
+                httpStatus: status ?? null,
+                title: await page.title().catch(() => null),
+                directorySummary: await page.locator('.directory-results-summary').innerText().catch(() => null),
+                emptyStateHeading: await page.locator('.empty-state h3').innerText().catch(() => null),
+                institutionCardCount: await page.locator('.institute-card').count().catch(() => null),
+                searchFormPresent: (await page.locator('#directory-search').count()) > 0,
+                pageSizeSelectorPresent: (await page.locator('#directory-per-page').count()) > 0,
+              };
+              emit('page_summary', summary);
+              return summary;
+            };
+
+            const initial = await pageSummary('directory_initial', response?.status());
+
+            // Use a guarded text read and JSON parse so an invalid response produces evidence, not an unhandled exception.
+            const apiSummary = await page.evaluate(async (url) => {
+              try {
+                const response = await fetch(url, { headers: { Accept: 'application/json' } });
+                const text = await response.text();
+                let parsed = null;
+                let parseError = null;
+                try {
+                  parsed = JSON.parse(text);
+                } catch (error) {
+                  parseError = String(error.message).slice(0, 180);
+                }
+                const contentType = response.headers.get('content-type') || 'missing';
+                const result = {
+                  url,
+                  status: response.status,
+                  contentType,
+                  responseBytes: new TextEncoder().encode(text).length,
+                  jsonValid: parsed !== null,
+                  jsonParseError: parseError,
+                };
+                if (parsed && typeof parsed === 'object') {
+                  result.topLevelKeys = Object.keys(parsed).slice(0, 20);
+                  if (Array.isArray(parsed.data)) result.dataCount = parsed.data.length;
+                  for (const key of ['total', 'current_page', 'last_page', 'per_page']) {
+                    if (Object.prototype.hasOwnProperty.call(parsed, key)) result[key] = parsed[key];
+                  }
+                }
+                return result;
+              } catch (error) {
+                return { url, requestError: String(error.message).slice(0, 180) };
+              }
+            }, API);
+            emit('browser_api_fetch_summary', apiSummary);
+
+            // Exercise the GET search form.
+            if (await page.locator('#directory-search').count()) {
+              await page.locator('#directory-search').fill('COMSATS');
+              await Promise.all([
+                page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
+                page.locator('form.hero-search button[type="submit"]').click(),
+              ]);
+              await page.waitForTimeout(800);
+              await pageSummary('search_get', 200);
+            }
+
+            // Exercise the page-size selector with zero records.
+            await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 45000 });
+            if (await page.locator('#directory-per-page').count()) {
+              await Promise.all([
+                page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
+                page.locator('#directory-per-page').selectOption('12'),
+              ]);
+              await page.waitForTimeout(800);
+              await pageSummary('page_size_12', 200);
+            }
+
+            const targetErrors = pageErrors.filter((item) => /SyntaxError|Unexpected end of JSON input/i.test(item.message || ''));
+            const structuralFailures = [];
+            if ((response?.status() ?? 0) !== 200) structuralFailures.push('directory_html_not_http_200');
+            if (!String(initial.directorySummary || '').includes('No institutions to display')) structuralFailures.push('expected_empty_directory_summary_missing');
+            if (!String(initial.emptyStateHeading || '').includes('No institutions available')) structuralFailures.push('expected_empty_state_heading_missing');
+            if (apiSummary.requestError || apiSummary.status !== 200 || !/^application\/json\b/i.test(apiSummary.contentType || '') || apiSummary.jsonValid !== true) {
+              structuralFailures.push('browser_api_did_not_return_valid_json');
+            }
+            emit('browser_diagnostic_summary', {
+              pageErrorCount: pageErrors.length,
+              targetSyntaxErrorCount: targetErrors.length,
+              targetErrors,
+              structuralFailures,
+              requestCount: requestMap.size,
+              conclusion: targetErrors.length === 0 && structuralFailures.length === 0 ? 'PASS' : 'FAIL',
+            });
+
+            await browser.close();
+            if (targetErrors.length > 0 || structuralFailures.length > 0) process.exitCode = 1;
+          })().catch((error) => {
+            emit('fatal_browser_diagnostic_error', {
+              message: String(error.stack || error).slice(0, 1000),
+            });
+            process.exitCode = 1;
+          });
+          NODE
