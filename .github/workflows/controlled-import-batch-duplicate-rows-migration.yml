@@ -111,6 +111,10 @@ jobs:
             git diff --quiet HEAD -- $APP_CODE_PATHS || { echo "ERROR: application working tree has modifications"; exit 5; }
             git diff --cached --quiet HEAD -- $APP_CODE_PATHS || { echo "ERROR: application index has modifications"; exit 5; }
             echo "application_code_parity=VERIFIED"
+            echo "=== Migration history mentioning duplicate_rows (read-only) ==="
+            git log --all --format='%H %s' -S'duplicate_rows' -- database/migrations | head -n 20 || true
+            echo "=== Migration history mentioning import_batches (read-only) ==="
+            git log --all --format='%H %s' -S'import_batches' -- database/migrations | head -n 20 || true
 
             # Use shell-level set -eu for failure handling. The upstream SSH action's
             # legacy script_stop option is known to mishandle some compound commands.
