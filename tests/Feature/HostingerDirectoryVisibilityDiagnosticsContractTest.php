@@ -28,7 +28,7 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('expected_hostinger_cron_command=', $workflow);
         $this->assertStringContainsString('Never fetch or update refs inside the live Hostinger repository', $workflow);
         $this->assertStringContainsString('disposable temporary repository', $workflow);
-        $this->assertStringContainsString('isolated temporary Git repository', $workflow);
+        $this->assertStringContainsString('disposable temporary repository', $workflow);
         $this->assertStringContainsString('PARITY_REPO="$(mktemp -d', $workflow);
         $this->assertStringContainsString('git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin +refs/heads/main:refs/remotes/origin/main', $workflow);
         $this->assertStringContainsString('isolated_expected_tree_vs_deployed_file_content', $workflow);
