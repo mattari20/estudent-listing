@@ -279,6 +279,75 @@ class InstitutionFieldApprovalServiceTest extends TestCase
         $this->assertDatabaseCount('official_source_refresh_events', 0);
     }
 
+    public function test_unauthenticated_review_is_rejected(): void
+    {
+        [$institution, $source, $observation, $snapshot, $evidence] = $this->fixture();
+        $this->actingAs($this->user('operator'));
+        $proposal = $this->proposal($institution, $source, $observation, $snapshot, $evidence);
+        auth()->logout();
+
+        try {
+            app(InstitutionFieldApprovalService::class)->decide($proposal->id, 'approved');
+            $this->fail('Unauthenticated review must be rejected.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('authenticated institute admin', $exception->getMessage());
+        }
+        $this->assertSame('pending', $proposal->fresh()->status);
+    }
+
+    public function test_known_conflicting_verified_evidence_blocks_approval(): void
+    {
+        [$institution, $source, $observation, $snapshot, $evidence] = $this->fixture();
+        $conflictingEvidence = Evidence::create([
+            'source_id' => $source->id,
+            'snapshot_id' => $snapshot->id,
+            'reference' => 'https://8.8.8.8/conflicting-page',
+            'excerpt' => 'Conflicting official description.',
+            'content_hash' => $snapshot->content_hash,
+            'observed_at' => now(),
+            'status' => 'active',
+        ]);
+        Assertion::create([
+            'evidence_id' => $conflictingEvidence->id,
+            'subject_type' => Institution::class,
+            'subject_id' => $institution->id,
+            'attribute' => 'description',
+            'value' => 'A conflicting verified description',
+            'verification_state' => 'verified',
+        ]);
+
+        $this->actingAs($this->user('operator'));
+        $proposal = $this->proposal($institution, $source, $observation, $snapshot, $evidence);
+        $this->actingAs($this->user('admin'));
+        try {
+            app(InstitutionFieldApprovalService::class)->decide($proposal->id, 'approved');
+            $this->fail('Conflicting verified evidence must block approval.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('Conflicting active verified evidence', $exception->getMessage());
+        }
+
+        $this->assertSame('pending', $proposal->fresh()->status);
+        $this->assertDatabaseCount('official_source_refresh_events', 0);
+    }
+
+    public function test_source_becoming_inactive_after_approval_invalidates_the_proposal(): void
+    {
+        [$institution, $source, $observation, $snapshot, $evidence] = $this->fixture();
+        $this->actingAs($this->user('operator'));
+        $proposal = $this->proposal($institution, $source, $observation, $snapshot, $evidence);
+        $this->actingAs($this->user('admin'));
+        app(InstitutionFieldApprovalService::class)->decide($proposal->id, 'approved');
+        $source->status = 'inactive';
+        $source->save();
+
+        $result = app(OfficialSourceCanonicalRefreshService::class)->refreshApprovedInstitutionDescription($proposal->id);
+
+        $this->assertSame('stale', $result['outcome']);
+        $this->assertSame('evidence_invalid', $result['approval']->application_outcome);
+        $this->assertSame('Original description', $institution->fresh()->description);
+        $this->assertDatabaseCount('official_source_refresh_events', 0);
+    }
+
     private function fixture(bool $withCampus = false): array
     {
         $this->fixtureNumber++;
