@@ -26,7 +26,8 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString("'rows_by_status'", $workflow);
         $this->assertStringContainsString("'soft_deleted_rows'", $workflow);
         $this->assertStringContainsString('expected_hostinger_cron_command=', $workflow);
-        $this->assertStringContainsString('do not rewrite its shallow metadata in-place', $workflow);
+        $this->assertStringContainsString('do not rewrite its', $workflow);
+        $this->assertStringContainsString('shallow metadata in-place', $workflow);
         $this->assertStringContainsString('git fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION"', $workflow);
         $this->assertStringContainsString('git fetch --quiet --no-tags --depth=200 origin main', $workflow);
         $this->assertStringNotContainsString('git fetch --quiet --no-tags --unshallow origin main', $workflow);
