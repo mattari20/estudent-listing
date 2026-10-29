@@ -23,6 +23,14 @@ class PublicBrowserRuntimeDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('search_get', $workflow);
         $this->assertStringContainsString('expected_empty_state_heading_missing', $workflow);
         $this->assertStringContainsString('jsonValid', $workflow);
+        $this->assertStringContainsString('navigationStatuses', $workflow);
+        $this->assertStringContainsString('search_navigation_not_http_200', $workflow);
+        $this->assertStringContainsString('directory_reload_not_http_200', $workflow);
+        $this->assertStringContainsString('page_size_navigation_not_http_200', $workflow);
+        $this->assertStringContainsString('expected_empty_search_state_missing', $workflow);
+        $this->assertStringContainsString('expected_empty_page_size_state_missing', $workflow);
+        $this->assertStringNotContainsString("pageSummary('search_get', 200)", $workflow);
+        $this->assertStringNotContainsString("pageSummary('page_size_12', 200)", $workflow);
         $this->assertStringNotContainsString('confirm_deployment', $workflow);
         $this->assertStringNotContainsString('confirm_migration', $workflow);
     }
