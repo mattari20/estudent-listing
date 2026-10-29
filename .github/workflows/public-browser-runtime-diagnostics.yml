@@ -245,6 +245,12 @@ jobs:
             };
 
             const initial = await pageSummary('directory_initial', response?.status());
+            const navigationStatuses = {
+              directoryInitial: response?.status() ?? 0,
+              searchGet: null,
+              pageSize12: null,
+            };
+            const structuralFailures = [];
 
             // Use a guarded text read and JSON parse so an invalid response produces evidence, not an unhandled exception.
             const apiSummary = await page.evaluate(async (url) => {
@@ -281,29 +287,64 @@ jobs:
             }, API);
             emit('browser_api_fetch_summary', apiSummary);
 
-            // Exercise the GET search form.
+            const navigationStatuses = {
+              directoryInitial: response?.status() ?? 0,
+              searchGet: null,
+              pageSize12: null,
+            };
+
+            // Exercise the GET search form and preserve the actual navigation response.
             if (await page.locator('#directory-search').count()) {
               await page.locator('#directory-search').fill('COMSATS');
-              await Promise.all([
+              const [searchResponse] = await Promise.all([
                 page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
                 page.locator('form.hero-search button[type="submit"]').click(),
               ]);
+              navigationStatuses.searchGet = searchResponse?.status() ?? 0;
               await page.waitForTimeout(800);
-              await pageSummary('search_get', 200);
+              const searchSummary = await pageSummary('search_get', navigationStatuses.searchGet);
+              if (navigationStatuses.searchGet !== 200) structuralFailures.push('search_navigation_not_http_200');
+              if (!String(searchSummary.emptyStateHeading || '').includes('No matching institutes found')) {
+                structuralFailures.push('expected_empty_search_state_missing');
+              }
+              if (searchSummary.institutionCardCount !== 0) structuralFailures.push('unexpected_cards_in_empty_search');
+            } else {
+              structuralFailures.push('search_form_missing');
             }
 
-            // Exercise the page-size selector with zero records.
-            await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 45000 });
+            // Exercise the page-size selector with zero records and capture the actual status.
+            const secondInitialResponse = await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 45000 });
+            if (!secondInitialResponse || secondInitialResponse.status() !== 200) {
+              structuralFailures.push('directory_reload_not_http_200');
+            }
             if (await page.locator('#directory-per-page').count()) {
-              await Promise.all([
+              const [pageSizeResponse] = await Promise.all([
                 page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
                 page.locator('#directory-per-page').selectOption('12'),
               ]);
+              navigationStatuses.pageSize12 = pageSizeResponse?.status() ?? 0;
               await page.waitForTimeout(800);
-              await pageSummary('page_size_12', 200);
+              const pageSizeSummary = await pageSummary('page_size_12', navigationStatuses.pageSize12);
+              if (navigationStatuses.pageSize12 !== 200) structuralFailures.push('page_size_navigation_not_http_200');
+              if (!String(pageSizeSummary.directorySummary || '').includes('No institutions to display')) {
+                structuralFailures.push('expected_empty_page_size_summary_missing');
+              }
+              if (!String(pageSizeSummary.emptyStateHeading || '').includes('No institutions available')) {
+                structuralFailures.push('expected_empty_page_size_state_missing');
+              }
+              if (pageSizeSummary.institutionCardCount !== 0) structuralFailures.push('unexpected_cards_in_empty_page_size');
+            } else {
+              structuralFailures.push('page_size_selector_missing');
             }
 
             const targetErrors = pageErrors.filter((item) => /SyntaxError|Unexpected end of JSON input/i.test(item.message || ''));
+            if ((response?.status() ?? 0) !== 200) structuralFailures.push('directory_html_not_http_200');
+            if (!String(initial.directorySummary || '').includes('No institutions to display')) structuralFailures.push('expected_empty_directory_summary_missing');
+            if (!String(initial.emptyStateHeading || '').includes('No institutions available')) structuralFailures.push('expected_empty_state_heading_missing');
+            if (apiSummary.requestError || apiSummary.status !== 200 || !/^application\/json\b/i.test(apiSummary.contentType || '') || apiSummary.jsonValid !== true) {
+              structuralFailures.push('browser_api_did_not_return_valid_json');
+            }
+
             const structuralFailures = [];
             if ((response?.status() ?? 0) !== 200) structuralFailures.push('directory_html_not_http_200');
             if (!String(initial.directorySummary || '').includes('No institutions to display')) structuralFailures.push('expected_empty_directory_summary_missing');
