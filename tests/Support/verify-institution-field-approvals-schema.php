@@ -114,11 +114,18 @@ foreach ($expectedIndexes as $name => [$expectedIndexColumns, $unique]) {
     }
 }
 
-if (
-    $indexes->filter(fn (array $index): bool => (bool) ($index['primary'] ?? false))->count()
-    + count($expectedIndexes) !== count($indexes)
-) {
-    bad('unexpected index count');
+// Laravel's MySQL schema inspector may include implicit indexes needed
+// to support foreign keys. Verify the required named indexes and primary key
+// above, then reject unexpected *named secondary indexes* without counting
+// adapter-reported implicit indexes as migration-defined indexes.
+$namedIndexes = $indexes->filter(
+    fn (array $index): bool =>
+        !((bool) ($index['primary'] ?? false))
+        && in_array($index['name'] ?? null, array_keys($expectedIndexes), true)
+);
+
+if ($namedIndexes->count() !== count($expectedIndexes)) {
+    bad('unexpected or missing named secondary index count');
 }
 
 $foreignKeys = collect(Schema::getForeignKeys($table));
