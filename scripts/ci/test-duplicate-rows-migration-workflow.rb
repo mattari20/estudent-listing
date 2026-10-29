@@ -38,6 +38,7 @@ end
 
 abort 'ERROR: diagnostic must explicitly leave migration origin unknown unless established' unless script.include?("'migration_origin' => 'UNKNOWN'")
 abort 'ERROR: column position must be checked against candidate_rows' unless script.include?("$duplicatePosition === $candidatePosition + 1")
+abort 'ERROR: migration history must be reported from Git without writes' unless script.include?("git log --all --format='%H %s' -S'duplicate_rows' -- database/migrations") && script.include?("git log --all --format='%H %s' -S'import_batches' -- database/migrations")
 abort 'ERROR: index and foreign-key inventory must be read-only schema introspection' unless script.include?('$schema->getIndexes($table)') && script.include?('$schema->getForeignKeys($table)')
 abort 'ERROR: MySQL table metadata must be read-only' unless script.include?('information_schema.TABLES')
 abort 'ERROR: alternate related migration history must be inventoried' unless script.include?("like', '%duplicate_rows%'") && script.include?("like', '%import_batches%'") && script.include?("glob(base_path('database/migrations/*.php'))")
