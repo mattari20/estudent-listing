@@ -115,7 +115,7 @@ class InstituteDiscoveryAgentService
 
     private function persistCandidates(
         string $profile,
-        Institution $institution,
+        ?Institution $institution,
         Source $source,
         SourceSnapshot $snapshot,
         bool $useAi,
@@ -127,6 +127,10 @@ class InstituteDiscoveryAgentService
         }
 
         $entityType = $this->entityType($profile);
+
+        if ($entityType !== 'institution' && ! $institution) {
+            throw new \RuntimeException('Campus/program discovery requires a verified canonical parent institution.');
+        }
 
         if ($entityType !== 'program' && $useAi) {
             throw new \RuntimeException('AI extraction is currently enabled only for programme discovery profiles.');
@@ -154,7 +158,8 @@ class InstituteDiscoveryAgentService
             ? $this->extractWithAi($snapshot->content, $institution, $source->url)
             : app(InstituteDiscoveryCandidateExtractor::class)->extract(
                 $entityType,
-                $snapshot->content
+                $snapshot->content,
+                $entityType === 'institution' ? ($this->definition($profile)['institution_identity'] ?? []) : []
             );
 
         if ($candidates === []) {
@@ -230,13 +235,16 @@ class InstituteDiscoveryAgentService
                     'message' => 'A candidate with the same normalized slug already appears earlier in this source batch.',
                 ];
             } elseif ($blockers === []) {
-                $duplicate = app(ImportDuplicateDetectorService::class)->find(
-                    $entityType,
-                    $institution->id,
-                    $slug,
-                    $batch->id,
-                    $supersedesBatchId === null ? [] : [$supersedesBatchId]
-                );
+                $duplicateDetector = app(ImportDuplicateDetectorService::class);
+                $duplicate = $entityType === 'institution'
+                    ? $duplicateDetector->findInstitution($slug, $batch->id, $supersedesBatchId === null ? [] : [$supersedesBatchId])
+                    : $duplicateDetector->find(
+                        $entityType,
+                        (int) $institution?->id,
+                        $slug,
+                        $batch->id,
+                        $supersedesBatchId === null ? [] : [$supersedesBatchId]
+                    );
             }
 
             $status = $blockers !== [] ? 'invalid' : ($duplicate ? 'duplicate' : 'candidate');
@@ -244,13 +252,13 @@ class InstituteDiscoveryAgentService
                 ? $blockers
                 : ($duplicate ? [$duplicate['message']] : null);
 
-            ImportRow::create([
+            $row = ImportRow::create([
                 'import_batch_id' => $batch->id,
                 'row_number' => $index + 1,
                 'status' => $status,
                 'match_state' => $blockers !== [] ? 'unresolved' : ($duplicate ? 'duplicate' : 'unresolved'),
-                'parent_subject_type' => Institution::class,
-                'parent_subject_id' => $institution->id,
+                'parent_subject_type' => $entityType === 'institution' ? null : Institution::class,
+                'parent_subject_id' => $institution?->id,
                 'payload' => $payload,
                 'normalized_payload' => $payload,
                 'validation_errors' => $validationErrors,
@@ -259,8 +267,8 @@ class InstituteDiscoveryAgentService
 
             Assertion::create([
                 'evidence_id' => $evidence->id,
-                'subject_type' => Institution::class,
-                'subject_id' => $institution->id,
+                'subject_type' => $entityType === 'institution' ? ImportRow::class : Institution::class,
+                'subject_id' => $entityType === 'institution' ? $row->id : $institution->id,
                 'attribute' => 'candidate_'.$entityType,
                 'value' => (string) ($candidate['name'] ?? ''),
                 'verification_state' => $useAi ? 'ai_extracted' : 'discovered',
@@ -291,7 +299,7 @@ class InstituteDiscoveryAgentService
         return [
             'entity_type' => $entityType,
             'profile' => $profile,
-            'institution_id' => $institution->id,
+            'institution_id' => $institution?->id,
             'source_id' => $source->id,
             'snapshot_id' => $snapshot->id,
             'evidence_id' => $evidence->id,
@@ -345,7 +353,7 @@ class InstituteDiscoveryAgentService
     private function summaryForExistingBatch(
         string $profile,
         ImportBatch $batch,
-        Institution $institution,
+        ?Institution $institution,
         Source $source,
         SourceSnapshot $snapshot,
         bool $useAi,
@@ -390,7 +398,7 @@ class InstituteDiscoveryAgentService
 
     private function persistEmptyOutcome(
         string $profile,
-        Institution $institution,
+        ?Institution $institution,
         Source $source,
         SourceSnapshot $snapshot,
         string $entityType,
@@ -452,6 +460,22 @@ class InstituteDiscoveryAgentService
 
     private function candidatePayload(string $entityType, array $candidate, bool $useAi): array
     {
+        if ($entityType === 'institution') {
+            return [
+                'name' => $candidate['name'],
+                'official_name' => $candidate['official_name'],
+                'short_name' => $candidate['short_name'],
+                'slug' => $candidate['slug'] ?? Str::slug($candidate['name']),
+                'institution_type' => $candidate['institution_type'],
+                'status' => 'candidate',
+                '_provenance' => [
+                    'method' => 'deterministic',
+                    'confidence' => $candidate['confidence'] ?? 0.9800,
+                    'evidence_excerpt' => $candidate['evidence_excerpt'] ?? null,
+                ],
+            ];
+        }
+
         if ($entityType === 'campus') {
             return [
                 'name' => $candidate['name'],
@@ -495,10 +519,28 @@ class InstituteDiscoveryAgentService
         return $definition;
     }
 
-    private function institution(array $definition): Institution
+    private function institution(array $definition): ?Institution
     {
+        if (($definition['entity_type'] ?? null) === 'institution') {
+            $identity = is_array($definition['institution_identity'] ?? null) ? $definition['institution_identity'] : [];
+            $requiredFields = ['name', 'official_name', 'short_name', 'slug', 'institution_type'];
+            $missing = array_values(array_filter($requiredFields, fn (string $field): bool => ! is_string($identity[$field] ?? null) || trim($identity[$field]) === ''));
+            $terms = is_array($identity['identity_terms'] ?? null) ? array_values(array_filter($identity['identity_terms'], fn ($term) => is_string($term) && trim($term) !== '')) : [];
+            if ($missing !== [] || $terms === []) {
+                $detail = $missing !== [] ? 'missing or invalid fields: '.implode(', ', $missing) : 'identity_terms must contain at least one non-empty string';
+                throw new \InvalidArgumentException('Institution discovery profile requires valid institution_identity configuration; '.$detail.'.');
+            }
+
+            return null;
+        }
+
+        $parentSlug = $definition['institution_slug'] ?? null;
+        if (! is_string($parentSlug) || trim($parentSlug) === '') {
+            throw new \InvalidArgumentException('Discovery profile requires institution_slug for parent-scoped campus/program discovery.');
+        }
+
         $institution = Institution::query()
-            ->where('slug', $definition['institution_slug'])
+            ->where('slug', $parentSlug)
             ->first();
 
         if (! $institution) {
