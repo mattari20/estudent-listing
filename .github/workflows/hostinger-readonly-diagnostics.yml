@@ -80,10 +80,10 @@ jobs:
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
-            $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+            $app->make(\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
 
-            $schema = \\Illuminate\\Support\\Facades\\Schema::class;
-            $db = \\Illuminate\\Support\\Facades\\DB::class;
+            $schema = \Illuminate\\Support\\Facades\\Schema::class;
+            $db = \Illuminate\\Support\\Facades\\DB::class;
             $table = 'import_batches';
             $migration = '2026_10_23_000001_add_duplicate_rows_to_import_batches_table';
             $tableExists = $schema::hasTable($table);
