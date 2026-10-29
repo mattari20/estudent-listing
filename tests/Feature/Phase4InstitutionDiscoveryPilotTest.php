@@ -35,7 +35,7 @@ class Phase4InstitutionDiscoveryPilotTest extends TestCase
                 static fn (array $definition): array => $definition['institution_identity'],
                 $profiles
             ), 'slug'))
-        );
+        ));
         $sourceUrls = array_map(static fn (array $definition): string => $definition['source']['url'], $profiles);
         $this->assertSame(count($profiles), count(array_unique($sourceUrls)));
 
