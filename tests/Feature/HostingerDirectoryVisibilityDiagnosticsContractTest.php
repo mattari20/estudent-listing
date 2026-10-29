@@ -30,7 +30,7 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('disposable temporary repository', $workflow);
         $this->assertStringContainsString('isolated temporary Git repository', $workflow);
         $this->assertStringContainsString('PARITY_REPO="$(mktemp -d', $workflow);
-        $this->assertStringContainsString('git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin main', $workflow);
+        $this->assertStringContainsString('git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin +refs/heads/main:refs/remotes/origin/main', $workflow);
         $this->assertStringContainsString('isolated_expected_tree_vs_deployed_file_content', $workflow);
         $parityStart = strpos($workflow, '=== Deployed code revision and application-path parity (isolated, read-only) ===');
         $parityEnd = strpos($workflow, '=== Migration source inventory for import_batches/duplicate_rows (read-only) ===', $parityStart === false ? 0 : $parityStart);
