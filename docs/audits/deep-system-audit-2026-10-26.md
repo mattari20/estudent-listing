@@ -198,3 +198,24 @@ A targeted read of the eight highest-risk migration/deployment/diagnostic workfl
 - **Verified:** main SHA, PR #893 merge, PR CI results, prior failed-run stage evidence, and source-level preflight state-handling gap.
 - **Audit gaps:** live schema/ledger report, current deployment parity after merge, route and SEO checks against current deployed data, importer row-level behavior, source-provenance/duplicate disposition, authorization matrix, and real Hostinger scheduler execution remain unverified in this execution.
 - **Safety:** no production migration, schema repair, migration-ledger write, data import, canonical promotion, deletion, or scheduled command execution was performed. Keep the incident and Step 1 open; do not begin Step 2.
+
+
+## Fresh production read-only audit — 2026-10-29 10:01 +05
+
+Source: Hostinger Read-only Diagnostics [run #40820996249](https://github.com/mattari20/estudent-listing/actions/runs/40820996249), application-path parity reported `APPLICATION_CODE_MATCH`, all diagnostic checks marked `mutation_performed: false`.
+
+| Area | Latest evidence | Classification / next step |
+|---|---|---|
+| Duplicate-row migration | `import_batches` exists; `duplicate_rows` exists; migration file and migrations table exist; target migration ledger row absent; diagnosis `COLUMN_PRESENT_MIGRATION_NOT_RECORDED` | **Confirmed schema/ledger inconsistency.** Do not run migration. PR #894 fails closed for this state; separately inspect the actual column type, default, nullability, position, and constraints before proposing any ledger reconciliation. |
+| Official-source refresh migration | `official_source_refresh_events` exists; required columns and indexes present; matching migration ledger row exists; `schema_ready=true` | **Verified for the fields the diagnostic checks.** This is narrower than full schema fingerprint proof. |
+| Canonical directory data | Live diagnostic reports zero active institutions, campuses, programs, and offerings; related integrity gap counts are zero because the active canonical population is empty | **Confirmed empty canonical dataset at this snapshot**, not proof the national source universe is empty. Public directory has no genuine institution detail URL to smoke-test. |
+| Public listing | HTTP 200, expected listing/empty-state content; public monitor recorded `EMPTY_DATA` | **HTTP/empty-state pass; data-coverage gate blocked.** Do not create fake records to satisfy the smoke test. |
+| Operator access | Guest access to discovery run history and review-package download returned 302 to `/institutes/login` | **Verified for these two endpoints only**, not a complete authorization matrix. |
+| Hostinger scheduler | Laravel schedule list showed both hourly commands; `crontab -l` unavailable, exit 127 | **External verification gap**, not evidence that a cron job is missing. Confirm actual hPanel Cron Jobs and recent execution history. |
+| Application deployment | `deployment_revision_status=APPLICATION_CODE_MATCH` | **Application-path parity pass**, not exact overall Git SHA equality or proof every deployment asset/config matches. |
+
+### Workflow infrastructure snapshot
+- Active repository ruleset `main` applies to `refs/heads/main`, blocks deletion and non-fast-forward updates, and requires the `test` status context. Its strict status-check policy is false. Direct legacy branch-protection endpoint access returned 403 to the integration; that separate endpoint's configuration could not be inspected.
+- The five controlled-write workflows reviewed include duplicate_rows migration, official-source refresh migration, discovery-outcome migration, Pakistan geography seed, and Hostinger code deployment. Their confirmation controls are manual-dispatch inputs; duplicate_rows, discovery-outcome, and code-deploy defaults are false. The official-source refresh workflow still has `script_stop: true`; this remains an audit item, not a confirmed defect, pending workflow-specific live testing.
+- Main push checks after PR #893 merge passed: Test, Laravel CI, frontend build, command orchestrator, public monitor, and Hostinger read-only diagnostics. These checks do not run the manual duplicate_rows workflow.
+- Historical migration filenames with repeated table names were sampled; at least the duplicate institution_names, ranking_methodologies, and campuses files inspected were intentionally empty superseded migrations plus later active migrations. No duplicate-create defect is inferred from filename repetition alone.
