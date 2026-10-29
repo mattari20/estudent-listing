@@ -23,7 +23,7 @@ required_fields = %w[
   candidate_rows_precedes_duplicate_rows table_definition indexes foreign_keys
   migration_file_exists migration_ledger_exists matching_migration_count
   matching_migrations related_migration_ledger_entries related_migration_files schema_equivalence
-  migration_origin diagnosis
+  metadata_introspection_succeeded migration_origin diagnosis
 ]
 required_fields.each do |field|
   abort "ERROR: read-only preflight report is missing #{field}" unless script.include?("'#{field}'")
