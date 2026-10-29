@@ -82,7 +82,7 @@ Existing tests continue to cover missing identity terms, invalid identity config
 | HEC page opens timed out (search-index text only) | 3 |
 | Official HEC page identity text corroborated in browser/search output | 21 |
 | Direct application HTTP status/content-type/fingerprint tuples captured | 0 |
-| Synthetic candidate rows staged in isolated test (expected after CI) | 21 |
+| Synthetic candidate rows staged in isolated test (CI verified) | 21 |
 | Canonical Institutions created in isolated test | 0 |
 | Production candidates imported/staged by this phase | 0 |
 | Production approvals/promotions/publications | 0 |
