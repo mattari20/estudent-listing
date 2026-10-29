@@ -165,6 +165,21 @@ jobs:
             $matchingMigrations = [];
             $matchingMigrationCount = 0;
             $relatedMigrationEntries = [];
+            $relatedMigrationFiles = [];
+            foreach (glob(base_path('database/migrations/*.php')) ?: [] as $candidatePath) {
+                $candidateSource = file_get_contents($candidatePath);
+                if (! is_string($candidateSource)) { continue; }
+                $mentionsDuplicateRows = str_contains($candidateSource, 'duplicate_rows');
+                $mentionsImportBatches = str_contains($candidateSource, 'import_batches');
+                if ($mentionsDuplicateRows || $mentionsImportBatches) {
+                    $relatedMigrationFiles[] = [
+                        'migration' => basename($candidatePath, '.php'),
+                        'mentions_duplicate_rows' => $mentionsDuplicateRows,
+                        'mentions_import_batches' => $mentionsImportBatches,
+                        'migration_ledger_count' => $ledgerExists ? (int) $db->table('migrations')->where('migration', basename($candidatePath, '.php'))->count() : null,
+                    ];
+                }
+            }
             if ($ledgerExists) {
                 $matchingMigrationCount = (int) $db->table('migrations')->where('migration', $migration)->count();
                 $matchingMigrations = $db->table('migrations')->where('migration', $migration)
@@ -296,6 +311,7 @@ jobs:
                 'matching_migration_count' => $matchingMigrationCount,
                 'matching_migrations' => $matchingMigrations,
                 'related_migration_ledger_entries' => $relatedMigrationEntries,
+                'related_migration_files' => $relatedMigrationFiles,
                 'schema_equivalence' => $schemaEquivalence,
                 'migration_origin' => 'UNKNOWN',
                 'diagnosis' => $diagnosis,
