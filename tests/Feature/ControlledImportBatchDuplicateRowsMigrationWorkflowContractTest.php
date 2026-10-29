@@ -64,6 +64,8 @@ class ControlledImportBatchDuplicateRowsMigrationWorkflowContractTest extends Te
         $this->assertStringContainsString("'matching_migration_count' => \$matchingMigrationCount", $workflow);
         $this->assertStringContainsString("'related_migration_ledger_entries' => \$relatedMigrationEntries", $workflow);
         $this->assertStringContainsString("'ordinal_position' => \$duplicatePosition + 1", $workflow);
+        $this->assertStringContainsString("'column_definition_equivalence' => \$columnDefinitionEquivalence", $workflow);
+        $this->assertStringContainsString("'schema_equivalence' => 'UNVERIFIED'", $workflow);
         $this->assertStringContainsString("'candidate_rows_precedes_duplicate_rows' => \$candidateRowsPrecedes", $workflow);
         $this->assertStringContainsString("'related_migration_files' => \$relatedMigrationFiles", $workflow);
         $this->assertStringContainsString("'schema_equivalence' => \$schemaEquivalence", $workflow);
