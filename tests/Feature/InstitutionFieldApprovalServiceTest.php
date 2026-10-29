@@ -330,6 +330,35 @@ class InstitutionFieldApprovalServiceTest extends TestCase
         $this->assertDatabaseCount('official_source_refresh_events', 0);
     }
 
+    public function test_newer_source_snapshot_supersedes_an_approved_proposal(): void
+    {
+        [$institution, $source, $observation, $snapshot, $evidence] = $this->fixture();
+        $this->actingAs($this->user('operator'));
+        $proposal = $this->proposal($institution, $source, $observation, $snapshot, $evidence);
+        $this->actingAs($this->user('admin'));
+        app(InstitutionFieldApprovalService::class)->decide($proposal->id, 'approved');
+
+        $newContent = 'Newer official source revision';
+        SourceSnapshot::create([
+            'source_id' => $source->id,
+            'reference' => 'https://8.8.8.8/official',
+            'content_hash' => hash('sha256', $newContent),
+            'content_length' => strlen($newContent),
+            'content_type' => 'text/html',
+            'content' => $newContent,
+            'captured_at' => now()->addSecond(),
+            'status' => 'captured',
+            'metadata' => [],
+        ]);
+
+        $result = app(OfficialSourceCanonicalRefreshService::class)->refreshApprovedInstitutionDescription($proposal->id);
+
+        $this->assertSame('stale', $result['outcome']);
+        $this->assertSame('evidence_invalid', $result['approval']->application_outcome);
+        $this->assertSame('Original description', $institution->fresh()->description);
+        $this->assertDatabaseCount('official_source_refresh_events', 0);
+    }
+
     public function test_inactive_evidence_invalidates_approved_proposal(): void
     {
         [$institution, $source, $observation, $snapshot, $evidence] = $this->fixture();
