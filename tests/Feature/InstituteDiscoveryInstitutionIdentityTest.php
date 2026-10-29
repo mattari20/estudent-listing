@@ -165,8 +165,8 @@ class InstituteDiscoveryInstitutionIdentityTest extends TestCase
         $firstRow = ImportRow::where('import_batch_id', $first['batch_id'])->firstOrFail();
         $this->assertSame('candidate', $firstRow->status);
 
-        // The changed body creates a separate source snapshot and batch while retaining the earlier row.
-        $second = app(InstituteDiscoveryAgentService::class)->run($this->profileWithUniqueSourceUrl(self::URL.'?rev=2'));
+        // A changed response from the same configured source produces a separate immutable snapshot and batch.
+        $second = app(InstituteDiscoveryAgentService::class)->run(self::PROFILE);
         $secondRow = ImportRow::where('import_batch_id', $second['batch_id'])->firstOrFail();
         $this->assertSame('duplicate', $secondRow->status);
         $this->assertStringContainsString('already staged', implode(' ', $secondRow->validation_errors ?? []));
@@ -299,7 +299,7 @@ class InstituteDiscoveryInstitutionIdentityTest extends TestCase
         $this->assertDatabaseHas('source_snapshots', ['id' => $refresh['snapshot_id'], 'content_hash' => hash('sha256', $changedHtml)]);
         $this->assertDatabaseHas('evidence', ['id' => $first['evidence_id'], 'snapshot_id' => $first['snapshot_id']]);
         $this->assertDatabaseHas('evidence', ['id' => $refresh['evidence_id'], 'snapshot_id' => $refresh['snapshot_id']]);
-        $this->assertStringContainsString('refresh_of_batch_id='.$first['batch_id'], $refresh['review_package']['manifest_path'] ?? $this->batchNotes($refresh['batch_id']));
+        $this->assertStringContainsString('refresh_of_batch_id='.$first['batch_id'], $this->batchNotes($refresh['batch_id']));
         $this->assertSame(2, ImportBatch::where('entity_type', 'institution')->count());
         $this->assertSame(0, Institution::count());
     }
