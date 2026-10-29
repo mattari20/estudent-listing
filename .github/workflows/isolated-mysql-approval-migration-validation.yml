@@ -79,5 +79,8 @@ jobs:
           php artisan migrate --force --path=database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php
           after="$(mysql --host=127.0.0.1 --port=3306 --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e "SELECT COUNT(*) FROM migrations WHERE migration='2026_10_29_000001_create_institution_field_approvals_table';")"
           test "$after" = "1"
-      - name: Run approval-specific and Laravel test suite
+      - name: Run approval-specific and Laravel test suite in an independent SQLite process
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
         run: composer test
