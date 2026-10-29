@@ -39,6 +39,17 @@ class InstitutionFieldApprovalController
         return back()->with('status', 'Institution description proposal #'.$proposal->id.' created for review.');
     }
 
+    public function apply(InstitutionFieldApproval $proposal, OfficialSourceCanonicalRefreshService $refresh): RedirectResponse
+    {
+        try {
+            $result = $refresh->refreshApprovedInstitutionDescription($proposal->id);
+        } catch (RuntimeException $exception) {
+            return back()->withErrors(['application' => $exception->getMessage()]);
+        }
+
+        return back()->with('status', 'Institution description proposal #'.$proposal->id.' application outcome: '.$result['outcome'].'.');
+    }
+
     public function decide(Request $request, InstitutionFieldApproval $proposal, InstitutionFieldApprovalService $approvals): RedirectResponse
     {
         $data = $request->validate([
