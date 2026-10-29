@@ -180,3 +180,8 @@ The scoped code/documentation work has passing CI evidence, and the audit now re
 ### Audit discipline
 
 Continue the existing full-system audit in dependency order. For every finding, record exact file/workflow/run evidence, severity, confidence, owner/status, correction, regression tests, and live verification. Distinguish a confirmed defect from an unverified audit gap. Do not delete, promote, mutate canonical data, write migration-ledger rows, or apply production migrations without an exact-scope reviewed plan and separate authorization. The current migration incident does not replace the outstanding audit areas already listed above.
+
+
+### Additional workflow inventory finding — legacy SSH option
+
+A targeted read of the eight highest-risk migration/deployment/diagnostic workflows found `.github/workflows/controlled-official-source-refresh-migration.yml` also still sets `script_stop: true` while using shell compound commands. This is an **audit item, not yet a confirmed defect**: its own PHP diagnostic path has different behavior and must be checked against its live evidence before changing it. Add it to the workflow-hardening review and do not bulk-remove the option from unrelated workflows without reviewing each contract test and run history.
