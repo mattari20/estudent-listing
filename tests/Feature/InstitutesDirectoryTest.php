@@ -78,8 +78,8 @@ class InstitutesDirectoryTest extends TestCase
     public function test_readonly_diagnostic_contract_has_prerequisite_foreign_key_metadata_fields(): void
     {
         $workflow = file_get_contents(base_path('.github/workflows/hostinger-readonly-diagnostics.yml'));
-
         $this->assertIsString($workflow);
+
         $this->assertStringContainsString("'check' => 'institution_field_approvals_schema_readiness'", $workflow);
         $this->assertStringContainsString("'mutation_performed' => false", $workflow);
         $this->assertStringContainsString("'foreign_key_prerequisites' => $prerequisites", $workflow);
