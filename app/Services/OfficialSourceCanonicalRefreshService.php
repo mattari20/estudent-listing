@@ -130,7 +130,7 @@ class OfficialSourceCanonicalRefreshService
                 $values = $approvals->validatedEvidenceForProposal($proposal);
                 $approvals->assertNoConflictingVerifiedAssertions($proposal);
             } catch (RuntimeException $exception) {
-                $knownValidationFailure = $exception instanceof \\Illuminate\\Database\\Eloquent\\ModelNotFoundException
+                $knownValidationFailure = $exception instanceof \Illuminate\Database\Eloquent\ModelNotFoundException
                     || str_starts_with($exception->getMessage(), 'The persisted proposal binding has changed.')
                     || str_starts_with($exception->getMessage(), 'Official source identity is not verified:')
                     || str_starts_with($exception->getMessage(), 'Source observation, snapshot, and evidence relationships are invalid.')
