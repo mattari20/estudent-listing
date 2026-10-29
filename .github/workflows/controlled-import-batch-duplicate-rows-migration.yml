@@ -72,12 +72,16 @@ jobs:
             PREVIOUS_REVISION="$(git rev-parse HEAD)"
             echo "deployed_revision=$PREVIOUS_REVISION"
             echo "target_application_revision=$TARGET_REVISION"
+            echo "git_fetch_stage=starting"
+            export GIT_TERMINAL_PROMPT=0
             if [ -f .git/shallow ]; then
-              git fetch --quiet --no-tags --unshallow origin main || { echo "ERROR: unable to fetch main history"; exit 4; }
+              echo "git_fetch_mode=unshallow"
+              git fetch --no-tags --unshallow origin main || { fetch_status=$?; echo "ERROR: unable to fetch main history (git exit $fetch_status)"; exit 4; }
             else
-              git fetch --quiet --no-tags origin main || { echo "ERROR: unable to fetch main"; exit 4; }
+              echo "git_fetch_mode=normal"
+              git fetch --no-tags origin main || { fetch_status=$?; echo "ERROR: unable to fetch main (git exit $fetch_status)"; exit 4; }
             fi
-            git fetch --quiet --no-tags origin main || { echo "ERROR: unable to refresh main"; exit 4; }
+            echo "git_fetch_stage=completed"
             git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || { echo "ERROR: target commit unavailable"; exit 4; }
             git merge-base --is-ancestor "$TARGET_REVISION" FETCH_HEAD || { echo "ERROR: target commit is not reachable from origin/main"; exit 4; }
             APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
