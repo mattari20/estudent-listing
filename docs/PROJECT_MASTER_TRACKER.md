@@ -623,3 +623,6 @@ See [Step 1 recovery status report](docs/audits/step1-recovery-status-2026-10-29
 - Last clean Hostinger live acceptance remains run #40835662204: deployment app-path parity matched and the subfolder API returned HTTP 200, application/json, valid paginator `data=[]`, `total=0`. Keep latest parity verification BLOCKED until diagnostic revision handling is repaired in a focused PR.
 - The assessment in `docs/audits/step1-root-cause-quality-gates-rebuild-assessment-2026-10-29.md` was amended to record this failure. No production .git metadata rewrite, database/schema/ledger write, deployment, cron change, import, promotion or publication was performed.
 - Step 1 remains OPEN; Step 2 and feature phases remain HOLD. Recommendation remains focused repair, not rebuild.
+
+
+- Follow-up documentation PR #913 records the post-merge Hostinger revision-check failure without changing application code. Its branch is behind updated main due to concurrent post-merge commits; do not force-update main or merge stale-base content. Rebase/update the PR on current main, or recreate a small documentation-only PR, before merging. The only safe source-of-truth status is the last completed main SHA plus individual checks listed above.
