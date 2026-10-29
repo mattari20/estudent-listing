@@ -132,10 +132,9 @@ class InstitutionFieldApprovalServiceTest extends TestCase
         $this->assertSame($institution->id, $campus->fresh()->institution_id);
         $this->assertSame('applied', $result['approval']->status);
         $this->assertSame('applied', $result['approval']->application_outcome);
-        $this->assertSame(1, $result['approval']->applied_refresh_event_id);
-
         $this->assertDatabaseCount('official_source_refresh_events', 1);
         $event = OfficialSourceRefreshEvent::query()->firstOrFail();
+        $this->assertSame($event->id, $result['approval']->applied_refresh_event_id);
         $this->assertSame(Institution::class, $event->canonical_type);
         $this->assertSame($institution->id, $event->canonical_id);
         $this->assertSame('description', $event->field_name);
