@@ -216,7 +216,7 @@ jobs:
                     $duplicatePosition = array_search('duplicate_rows', $columnNames, true);
                     if ($duplicatePosition !== false) {
                         $column = $columns[$duplicatePosition];
-                        $typeLabel = strtolower((string) ($column['type_name'] ?? $column['type'] ?? ''));
+                        $typeLabel = strtolower((string) ($column['type_name'] ?? '').' '.(string) ($column['type'] ?? ''));
                         $nullable = $column['nullable'] ?? null;
                         $default = $column['default'] ?? null;
                         $autoIncrement = $column['auto_increment'] ?? null;
