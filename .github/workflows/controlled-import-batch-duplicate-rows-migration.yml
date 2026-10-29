@@ -332,6 +332,7 @@ jobs:
                 'related_migration_ledger_entries' => $relatedMigrationEntries,
                 'related_migration_files' => $relatedMigrationFiles,
                 'schema_equivalence' => $schemaEquivalence,
+                'metadata_introspection_succeeded' => ! $metadataError,
                 'migration_origin' => 'UNKNOWN',
                 'diagnosis' => $diagnosis,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
