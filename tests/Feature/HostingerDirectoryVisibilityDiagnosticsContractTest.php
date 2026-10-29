@@ -26,10 +26,10 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString("'rows_by_status'", $workflow);
         $this->assertStringContainsString("'soft_deleted_rows'", $workflow);
         $this->assertStringContainsString('expected_hostinger_cron_command=', $workflow);
-        $this->assertStringContainsString('do not rewrite its', $workflow);
-        $this->assertStringContainsString('shallow metadata in-place', $workflow);
-        $this->assertStringContainsString('git fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION"', $workflow);
-        $this->assertStringContainsString('git fetch --quiet --no-tags --depth=200 origin main', $workflow);
+        $this->assertStringContainsString('PARITY_ROOT="$(mktemp -d)"', $workflow);
+        $this->assertStringContainsString('git init --bare -q "$PARITY_REPO"', $workflow);
+        $this->assertStringContainsString('git --git-dir="$PARITY_REPO" fetch --quiet --no-tags origin main:refs/remotes/origin/main', $workflow);
+        $this->assertStringContainsString('git --git-dir="$PARITY_REPO" diff --quiet "$EXPECTED_REVISION" "$DEPLOYED_REVISION" -- $APP_CODE_PATHS', $workflow);
         $this->assertStringNotContainsString('git fetch --quiet --no-tags --unshallow origin main', $workflow);
         $this->assertStringContainsString('Deployed API route registration (read-only; bounded)', $workflow);
         $this->assertStringContainsString('php artisan route:list --json --no-ansi', $workflow);

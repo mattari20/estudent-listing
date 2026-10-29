@@ -399,29 +399,46 @@ jobs:
               DEPLOYED_REVISION="$(git rev-parse HEAD)"
               echo "deployed_revision=$DEPLOYED_REVISION"
               echo "expected_application_revision=$EXPECTED_REVISION"
-              # Compare deployed application paths, not full commit IDs. Documentation-only
-              # commits can advance main without requiring an application deployment.
-              # The Hostinger checkout may be intentionally shallow; do not rewrite its
-              # shallow metadata in-place. Fetch the bounded target commit and main ref,
-              # then let the content/ancestry checks below fail closed if history is incomplete.
-              if ! git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
-                git fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION" || DEPLOYMENT_DRIFT=1
+              APP_CODE_PATHS="app bootstrap config database resources routes composer.json composer.lock public artisan"
+              LOCAL_APP_CODE_CLEAN=1
+              if ! git diff --quiet HEAD -- $APP_CODE_PATHS || ! git diff --cached --quiet HEAD -- $APP_CODE_PATHS; then
+                LOCAL_APP_CODE_CLEAN=0
               fi
-              git fetch --quiet --no-tags --depth=200 origin main || DEPLOYMENT_DRIFT=1
-              if ! git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
+              # Do not fetch into the deployed checkout: other scheduled workflows may
+              # share its .git metadata. Compare the two commits inside an isolated bare
+              # repository so no operation rewrites the live checkout shallow file.
+              ORIGIN_URL="$(git remote get-url origin 2>/dev/null || true)"
+              if [ -z "$ORIGIN_URL" ]; then
                 DEPLOYMENT_DRIFT=1
+                echo "revision_parity_remote_status=missing"
+              else
+                PARITY_ROOT="$(mktemp -d)"
+                PARITY_REPO="$PARITY_ROOT/repository.git"
+                if ! git init --bare -q "$PARITY_REPO"; then
+                  DEPLOYMENT_DRIFT=1
+                elif ! git --git-dir="$PARITY_REPO" remote add origin "$ORIGIN_URL"; then
+                  DEPLOYMENT_DRIFT=1
+                elif ! git --git-dir="$PARITY_REPO" fetch --quiet --no-tags origin main:refs/remotes/origin/main; then
+                  DEPLOYMENT_DRIFT=1
+                  echo "revision_parity_fetch_status=failed"
+                elif ! git --git-dir="$PARITY_REPO" cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null ||
+                     ! git --git-dir="$PARITY_REPO" cat-file -e "$DEPLOYED_REVISION^{commit}" 2>/dev/null; then
+                  DEPLOYMENT_DRIFT=1
+                  echo "revision_parity_commit_availability=unverified"
+                elif ! git --git-dir="$PARITY_REPO" merge-base --is-ancestor "$EXPECTED_REVISION" refs/remotes/origin/main ||
+                     ! git --git-dir="$PARITY_REPO" merge-base --is-ancestor "$DEPLOYED_REVISION" refs/remotes/origin/main; then
+                  DEPLOYMENT_DRIFT=1
+                  echo "revision_parity_main_ancestry=unverified"
+                elif ! git --git-dir="$PARITY_REPO" diff --quiet "$EXPECTED_REVISION" "$DEPLOYED_REVISION" -- $APP_CODE_PATHS; then
+                  DEPLOYMENT_DRIFT=1
+                  echo "revision_parity_application_paths=mismatch"
+                fi
+                rm -rf "$PARITY_ROOT"
               fi
-              APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
-              if [ "$DEPLOYMENT_DRIFT" -eq 0 ] &&
-                git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null &&
-                git merge-base --is-ancestor "$EXPECTED_REVISION" FETCH_HEAD &&
-                git diff --quiet "$EXPECTED_REVISION" "$DEPLOYED_REVISION" -- $APP_CODE_PATHS &&
-                git diff --quiet HEAD -- $APP_CODE_PATHS &&
-                git diff --cached --quiet HEAD -- $APP_CODE_PATHS; then
+              if [ "$DEPLOYMENT_DRIFT" -eq 0 ] && [ "$LOCAL_APP_CODE_CLEAN" -eq 1 ]; then
                 echo "deployment_revision_status=APPLICATION_CODE_MATCH"
                 echo "application_code_parity=match"
-                echo "application_code_parity_method=git_diff_target_vs_deployed_paths"
-                DEPLOYMENT_DRIFT=0
+                echo "application_code_parity_method=isolated_git_diff_target_vs_deployed_paths"
               else
                 echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
                 echo "application_code_parity=mismatch_or_unverifiable"
@@ -433,6 +450,7 @@ jobs:
               echo "deployment_revision_status=UNVERIFIABLE"
               DEPLOYMENT_DRIFT=1
             fi
+
             echo "=== Relevant migration history (read-only, bounded) ==="
             git log --all --format='%H %cs %s' -S'duplicate_rows' -- database/migrations | head -n 20 || true
             git log --all --format='%H %cs %s' -S'import_batches' -- database/migrations | head -n 30 || true
