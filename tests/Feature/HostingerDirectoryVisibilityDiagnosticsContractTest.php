@@ -20,6 +20,10 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString("'mutation_performed' => false", $workflow);
         $this->assertStringContainsString("'rows_by_status'", $workflow);
         $this->assertStringContainsString("'soft_deleted_rows'", $workflow);
+        $this->assertStringContainsString('expected_hostinger_cron_command=', $workflow);
+        $this->assertStringContainsString('artisan schedule:run', $workflow);
+        $this->assertStringContainsString("git log --all --format='%H %cs %s' -S'duplicate_rows' -- database/migrations", $workflow);
+        $this->assertStringContainsString("git log --all --format='%H %cs %s' -S'import_batches' -- database/migrations", $workflow);
     }
 
     public function test_public_site_diagnostics_capture_status_content_type_and_json_pagination_contract(): void
@@ -37,6 +41,8 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('content_type=$content_type', $workflow);
         $this->assertStringContainsString('json_contract=PASS', $workflow);
         $this->assertStringContainsString('sanitized_body_prefix', $workflow);
+        $this->assertStringContainsString('sanitized_response_body', $workflow);
+        $this->assertStringContainsString('institutions_api_pagination=PASS', $workflow);
         $this->assertStringContainsString('(.data | type == "array")', $workflow);
         $this->assertStringContainsString('(.total | type == "number")', $workflow);
     }
