@@ -10,7 +10,9 @@ return new class extends Migration
     {
         Schema::create('structured_enrichment_promotion_events', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('enrichment_import_row_id')->constrained('enrichment_import_rows')->cascadeOnDelete();
+            $table->foreignId('enrichment_import_row_id')
+                ->constrained('enrichment_import_rows', indexName: 'struct_enrichment_row_fk')
+                ->cascadeOnDelete();
             $table->foreignId('import_batch_id')->constrained('import_batches')->cascadeOnDelete();
             $table->string('entity_type', 40);
             $table->string('event_type', 60);
