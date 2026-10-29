@@ -276,7 +276,10 @@ jobs:
             $migrationFileExists = is_file($migrationPath);
             $columnAndPositionMatch = $columnExists && $columnDefinitionMatches
                 && $columnPositionVerified && $candidateRowsPrecedes === true;
-            if ($metadataError || ($columnExists && ! $columnAndPositionMatch)) {
+            if ($matchingMigrationCount > 1) {
+                $schemaEquivalence = $columnAndPositionMatch ? 'TARGET_COLUMN_DEFINITION_AND_POSITION_MATCH_ORIGIN_UNKNOWN' : 'UNVERIFIED';
+                $diagnosis = 'DUPLICATE_MIGRATION_LEDGER_ENTRIES';
+            } elseif ($metadataError || ($columnExists && ! $columnAndPositionMatch)) {
                 $schemaEquivalence = 'UNVERIFIED';
                 $diagnosis = $metadataError ? 'SCHEMA_EQUIVALENCE_UNVERIFIED' : 'COLUMN_DEFINITION_MISMATCH';
             } elseif ($columnExists && $columnAndPositionMatch) {
