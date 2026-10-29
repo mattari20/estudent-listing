@@ -90,6 +90,10 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString("'mutation_performed' => false", $workflow);
         $this->assertStringContainsString("'write_requested' => false", $workflow);
         $this->assertStringContainsString("base_path('database/migrations/'", $workflow);
+        $this->assertStringContainsString('institution_field_approvals_migration_privilege_readiness', $workflow);
+        $this->assertStringContainsString('SHOW GRANTS FOR CURRENT_USER()', $workflow);
+        $this->assertStringContainsString("'raw_grants_emitted' => false", $workflow);
+        $this->assertStringContainsString("'mutation_performed' => false", $workflow);
     }
 
     public function test_laravel_api_prefix_matches_the_public_institutes_subfolder(): void
