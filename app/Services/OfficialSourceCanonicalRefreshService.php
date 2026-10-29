@@ -108,6 +108,107 @@ class OfficialSourceCanonicalRefreshService
         }, 3);
     }
 
+    /**
+     * Apply one approved, evidence-bound Institution description proposal.
+     *
+     * @return array{outcome:string,institution:?Institution,approval:InstitutionFieldApproval}
+     */
+    public function refreshApprovedInstitutionDescription(int $proposalId): array
+    {
+        return DB::transaction(function () use ($proposalId): array {
+            $proposal = InstitutionFieldApproval::query()->lockForUpdate()->findOrFail($proposalId);
+            if ($proposal->status !== 'approved' || $proposal->decision_at === null || $proposal->reviewer_id === null || $proposal->applied_at !== null) {
+                throw new RuntimeException('Only an approved, unapplied proposal can be applied.');
+            }
+            if ($proposal->field_name !== 'description') {
+                throw new RuntimeException('Only Institution description proposals may be applied.');
+            }
+
+            $institution = Institution::query()->lockForUpdate()->findOrFail($proposal->institution_id);
+            $approvals = app(InstitutionFieldApprovalService::class);
+            try {
+                $approvals->assertProposalIntegrity($proposal);
+                $values = $approvals->validatedEvidenceForProposal($proposal);
+            } catch (RuntimeException | ModelNotFoundException $exception) {
+                $proposal->status = 'stale';
+                $proposal->application_outcome = 'evidence_invalid';
+                $proposal->applied_at = now();
+                $proposal->save();
+
+                return ['outcome' => 'stale', 'institution' => null, 'approval' => $proposal->refresh()];
+            }
+
+            if ($this->normalize($institution->description) !== $this->normalize($proposal->expected_current_value)) {
+                $proposal->status = 'stale';
+                $proposal->application_outcome = 'expected_value_changed';
+                $proposal->applied_at = now();
+                $proposal->save();
+
+                return ['outcome' => 'stale', 'institution' => $institution, 'approval' => $proposal->refresh()];
+            }
+
+            $policy = app(OfficialSourceRefreshPolicyService::class)->evaluate([
+                'source_official' => true,
+                'source_identity_verified' => true,
+                'fetch_successful' => true,
+                'entity_match_confirmed' => true,
+                'evidence_url' => $values['evidence_url'],
+                'evidence_excerpt' => $values['evidence_excerpt'],
+                'observed_at' => $values['source_observed_at'],
+                'content_fingerprint' => $values['fingerprint'],
+                'previous_value' => $proposal->expected_current_value,
+                'proposed_value' => $proposal->proposed_value,
+                'allow_no_change' => true,
+                'entity_identity_ambiguous' => false,
+                'source_conflict' => false,
+            ]);
+            if (! $policy['eligible']) {
+                $proposal->status = 'stale';
+                $proposal->application_outcome = 'evidence_blocked';
+                $proposal->applied_at = now();
+                $proposal->save();
+
+                return ['outcome' => 'stale', 'institution' => $institution, 'approval' => $proposal->refresh()];
+            }
+
+            if ($this->normalize($institution->description) === $this->normalize($proposal->proposed_value)) {
+                $proposal->status = 'applied';
+                $proposal->application_outcome = 'no_change';
+                $proposal->applied_at = now();
+                $proposal->save();
+
+                return ['outcome' => 'no_change', 'institution' => $institution, 'approval' => $proposal->refresh()];
+            }
+
+            $before = $institution->description;
+            $institution->description = $proposal->proposed_value;
+            $institution->save();
+
+            $event = OfficialSourceRefreshEvent::query()->create([
+                'source_id' => $proposal->source_id,
+                'source_change_observation_id' => $proposal->source_change_observation_id,
+                'canonical_type' => Institution::class,
+                'canonical_id' => $institution->id,
+                'field_name' => 'description',
+                'before_value' => ['value' => $before],
+                'after_value' => ['value' => $proposal->proposed_value],
+                'evidence_url' => $values['evidence_url'],
+                'evidence_excerpt' => $values['evidence_excerpt'],
+                'content_fingerprint' => $values['fingerprint'],
+                'observed_at' => $values['source_observed_at'],
+                'occurred_at' => now(),
+            ]);
+
+            $proposal->status = 'applied';
+            $proposal->application_outcome = 'applied';
+            $proposal->applied_refresh_event_id = $event->id;
+            $proposal->applied_at = now();
+            $proposal->save();
+
+            return ['outcome' => 'applied', 'institution' => $institution->refresh(), 'approval' => $proposal->refresh()];
+        }, 3);
+    }
+
     private function normalize(mixed $value): string
     {
         if (is_array($value) || is_object($value)) {
