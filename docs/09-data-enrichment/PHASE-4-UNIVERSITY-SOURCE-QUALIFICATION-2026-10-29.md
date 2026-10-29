@@ -78,11 +78,16 @@ Existing tests continue to cover missing identity terms, invalid identity config
 
 | Metric | Result |
 |---|---:|
+| Candidates examined | 21 |
 | Identity profiles configured for the isolated test | 21 |
 | Unique normalized slugs | 21 |
 | HEC pages rendered in research browser | 18 |
 | HEC page opens timed out (search-index text only) | 3 |
 | Official HEC page identity text corroborated in browser/search output | 21 |
+| Synthetic duplicates detected | 0 |
+| Synthetic candidates rejected by extractor | 0 |
+| New profiles blocked from live activation | 20 |
+| Live-source rejection count | Not evaluated; direct app retrieval not performed |
 | Direct application HTTP status/content-type/fingerprint tuples captured | 0 |
 | Synthetic candidate rows staged in isolated test (CI verified) | 21 |
 | Canonical Institutions created in isolated test | 0 |
@@ -90,4 +95,4 @@ Existing tests continue to cover missing identity terms, invalid identity config
 | Production approvals/promotions/publications | 0 |
 | Full source qualifications meeting all live-retrieval requirements | 0 |
 
-**Disposition:** All 21 are preliminary source-backed profiles for isolated fixture validation only. Eighteen have a browser-rendered HEC page; three remain direct-retrieval-blocked. No profile is newly activated by this change.
+**Disposition:** The 20 new profiles are blocked from live activation. The existing GCU Lahore profile is unchanged. Eighteen sources were browser-rendered; three remain direct-page-open blocked. All 21 synthetic fixture candidates passed deterministic extraction with no duplicates/rejections in the isolated test, but this is not a live-source run. No production discovery was invoked by this change.
