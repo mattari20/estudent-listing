@@ -401,17 +401,16 @@ jobs:
               echo "expected_application_revision=$EXPECTED_REVISION"
               # Compare deployed application paths, not full commit IDs. Documentation-only
               # commits can advance main without requiring an application deployment.
-              # Use the same fail-closed content comparison as discovery/deployment.
-              # A shallow checkout can make a docs-only tip look like an application revision.
-              if [ -f .git/shallow ]; then
-                git fetch --quiet --no-tags --unshallow origin main || DEPLOYMENT_DRIFT=1
-              else
-                git fetch --quiet --no-tags origin main || DEPLOYMENT_DRIFT=1
-              fi
+              # The Hostinger checkout may be intentionally shallow; do not rewrite its
+              # shallow metadata in-place. Fetch the bounded target commit and main ref,
+              # then let the content/ancestry checks below fail closed if history is incomplete.
               if ! git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
-                git fetch --quiet --no-tags origin "$EXPECTED_REVISION" || DEPLOYMENT_DRIFT=1
+                git fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION" || DEPLOYMENT_DRIFT=1
               fi
-              git fetch --quiet --no-tags origin main || DEPLOYMENT_DRIFT=1
+              git fetch --quiet --no-tags --depth=200 origin main || DEPLOYMENT_DRIFT=1
+              if ! git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
+                DEPLOYMENT_DRIFT=1
+              fi
               APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
               if [ "$DEPLOYMENT_DRIFT" -eq 0 ] &&
                 git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null &&
