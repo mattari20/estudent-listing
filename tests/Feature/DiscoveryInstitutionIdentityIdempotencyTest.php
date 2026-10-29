@@ -169,4 +169,68 @@ class DiscoveryInstitutionIdentityIdempotencyTest extends TestCase
         $this->assertNull($duplicate);
     }
 
+
+    public function test_same_slug_does_not_override_conflicting_official_names_in_canonical_or_staged_records(): void
+    {
+        $canonical = Institution::query()->create([
+            'name' => 'Government College University',
+            'official_name' => 'Government College University, Faisalabad',
+            'short_name' => 'GCUF',
+            'slug' => 'government-college-university-lahore',
+            'institution_type' => 'public university',
+            'status' => 'candidate',
+        ]);
+
+        $source = Source::create([
+            'source_type' => 'official',
+            'name' => 'HEC GCU identity',
+            'url' => 'https://example.gov.pk/gcu',
+            'authority_scope' => 'official university identity',
+            'status' => 'active',
+        ]);
+        $batch = ImportBatch::create([
+            'batch_key' => 'agent-gcu-conflicting-official-name',
+            'entity_type' => 'institution',
+            'source_type' => 'automated_discovery',
+            'source_id' => $source->id,
+            'status' => 'validated',
+            'total_rows' => 1,
+            'candidate_rows' => 1,
+            'received_at' => now(),
+        ]);
+        ImportRow::create([
+            'import_batch_id' => $batch->id,
+            'row_number' => 1,
+            'status' => 'candidate',
+            'match_state' => 'unresolved',
+            'payload' => [
+                'name' => 'Government College University',
+                'official_name' => 'Government College University, Faisalabad',
+                'slug' => 'government-college-university-lahore',
+                'institution_type' => 'public university',
+            ],
+            'normalized_payload' => [
+                'name' => 'Government College University',
+                'official_name' => 'Government College University, Faisalabad',
+                'slug' => 'government-college-university-lahore',
+                'institution_type' => 'public university',
+            ],
+        ]);
+
+        $duplicate = app(ImportDuplicateDetectorService::class)->findInstitution(
+            'government-college-university-lahore',
+            null,
+            [],
+            [
+                'name' => 'Government College University',
+                'official_name' => 'Government College University, Lahore',
+                'slug' => 'government-college-university-lahore',
+                'institution_type' => 'public university',
+            ]
+        );
+
+        $this->assertSame('Government College University, Faisalabad', $canonical->fresh()->official_name);
+        $this->assertNull($duplicate);
+    }
+
 }
