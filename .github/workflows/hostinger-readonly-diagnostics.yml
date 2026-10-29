@@ -393,34 +393,47 @@ jobs:
               echo "hostinger_scheduler_cron_exit_code=$CRON_STATUS"
               echo "hostinger_scheduler_cron_evidence=crontab_command_failed_or_access_denied"
             fi
-            echo "=== Deployed code revision (read-only) ==="
-            DEPLOYMENT_DRIFT=0
-            if git rev-parse --show-toplevel >/dev/null 2>&1; then
-              DEPLOYED_REVISION="$(git rev-parse HEAD)"
-              echo "deployed_revision=$DEPLOYED_REVISION"
-              echo "expected_application_revision=$EXPECTED_REVISION"
-              # Compare deployed application paths, not full commit IDs. Documentation-only
-              # commits can advance main without requiring an application deployment.
-              # The Hostinger checkout may be intentionally shallow; do not rewrite its
-              # shallow metadata in-place. Fetch the bounded target commit and main ref,
-              # then let the content/ancestry checks below fail closed if history is incomplete.
-              if ! git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
-                git fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION" || DEPLOYMENT_DRIFT=1
-              fi
-              git fetch --quiet --no-tags --depth=200 origin main || DEPLOYMENT_DRIFT=1
-              if ! git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
-                DEPLOYMENT_DRIFT=1
-              fi
+            echo "=== Deployed code revision and application-path parity (isolated, read-only) ==="
+            DEPLOYED_REVISION="git_metadata_unavailable"
+            if git -C "$PROJECT_PATH" rev-parse --show-toplevel >/dev/null 2>&1; then
+              DEPLOYED_REVISION="$(git -C "$PROJECT_PATH" rev-parse HEAD 2>/dev/null || printf git_metadata_unavailable)"
+            fi
+            echo "deployed_revision=$DEPLOYED_REVISION"
+            echo "expected_application_revision=$EXPECTED_REVISION"
+            # Never fetch or update refs inside the live Hostinger repository. Fetch in a
+            # disposable temporary repository; compare committed source files to deployed
+            # files by content so shallow or absent production Git metadata cannot be
+            # mutated during a read-only diagnostic.
+            PARITY_REPO="$(mktemp -d "${TMPDIR:-/tmp}/estudent-parity.XXXXXX")"
+            trap 'rm -rf "$PARITY_REPO"' EXIT
+            git -C "$PARITY_REPO" init -q
+            git -C "$PARITY_REPO" remote add origin https://github.com/mattari20/estudent-listing.git
+            PARITY_FETCH_FAILED=0
+            git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin +refs/heads/main:refs/remotes/origin/main || PARITY_FETCH_FAILED=1
+            if ! git -C "$PARITY_REPO" cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
+              git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION" || PARITY_FETCH_FAILED=1
+            fi
+            if [ "$PARITY_FETCH_FAILED" -eq 0 ] &&
+              git -C "$PARITY_REPO" cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null &&
+              git -C "$PARITY_REPO" merge-base --is-ancestor "$EXPECTED_REVISION" origin/main 2>/dev/null; then
               APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
-              if [ "$DEPLOYMENT_DRIFT" -eq 0 ] &&
-                git cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null &&
-                git merge-base --is-ancestor "$EXPECTED_REVISION" FETCH_HEAD &&
-                git diff --quiet "$EXPECTED_REVISION" "$DEPLOYED_REVISION" -- $APP_CODE_PATHS &&
-                git diff --quiet HEAD -- $APP_CODE_PATHS &&
-                git diff --cached --quiet HEAD -- $APP_CODE_PATHS; then
+              git -C "$PARITY_REPO" checkout --quiet --detach "$EXPECTED_REVISION"
+              PARITY_MATCH=1
+              while IFS= read -r APP_PATH; do
+                [ -n "$APP_PATH" ] || continue
+                if [ -L "$PARITY_REPO/$APP_PATH" ] || [ -L "$PROJECT_PATH/$APP_PATH" ]; then
+                  EXPECTED_LINK="$(readlink "$PARITY_REPO/$APP_PATH" 2>/dev/null || true)"
+                  DEPLOYED_LINK="$(readlink "$PROJECT_PATH/$APP_PATH" 2>/dev/null || true)"
+                  if [ "$EXPECTED_LINK" != "$DEPLOYED_LINK" ] || [ ! -L "$PROJECT_PATH/$APP_PATH" ]; then PARITY_MATCH=0; break; fi
+                elif [ ! -f "$PARITY_REPO/$APP_PATH" ] || [ ! -f "$PROJECT_PATH/$APP_PATH" ] || ! cmp -s "$PARITY_REPO/$APP_PATH" "$PROJECT_PATH/$APP_PATH"; then
+                  PARITY_MATCH=0
+                  break
+                fi
+              done < <(git -C "$PARITY_REPO" ls-tree -r --name-only "$EXPECTED_REVISION" -- $APP_CODE_PATHS)
+              if [ "$PARITY_MATCH" -eq 1 ]; then
                 echo "deployment_revision_status=APPLICATION_CODE_MATCH"
                 echo "application_code_parity=match"
-                echo "application_code_parity_method=git_diff_target_vs_deployed_paths"
+                echo "application_code_parity_method=isolated_expected_tree_vs_deployed_file_content"
                 DEPLOYMENT_DRIFT=0
               else
                 echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
@@ -428,14 +441,13 @@ jobs:
                 DEPLOYMENT_DRIFT=1
               fi
             else
-              echo "deployed_revision=git_metadata_unavailable"
-              echo "expected_application_revision=$EXPECTED_REVISION"
-              echo "deployment_revision_status=UNVERIFIABLE"
+              echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
+              echo "application_code_parity=reference_fetch_or_ancestry_unverifiable"
               DEPLOYMENT_DRIFT=1
             fi
-            echo "=== Relevant migration history (read-only, bounded) ==="
-            git log --all --format='%H %cs %s' -S'duplicate_rows' -- database/migrations | head -n 20 || true
-            git log --all --format='%H %cs %s' -S'import_batches' -- database/migrations | head -n 30 || true
+            echo "=== Relevant migration history (read-only, bounded, isolated clone) ==="
+            git -C "$PARITY_REPO" log --all --format='%H %cs %s' -S'duplicate_rows' -- database/migrations | head -n 20 || true
+            git -C "$PARITY_REPO" log --all --format='%H %cs %s' -S'import_batches' -- database/migrations | head -n 30 || true
             echo "=== Migration source inventory for import_batches/duplicate_rows (read-only) ==="
             find database/migrations -maxdepth 1 -type f -name '*.php' -print0 | xargs -0 grep -lE 'duplicate_rows|import_batches' | sort || true
 
