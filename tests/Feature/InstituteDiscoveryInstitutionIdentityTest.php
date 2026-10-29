@@ -106,4 +106,287 @@ class InstituteDiscoveryInstitutionIdentityTest extends TestCase
         $this->assertDatabaseCount('import_rows', 0);
     }
 
+
+    public function test_campus_discovery_requires_canonical_parent_before_any_source_or_staging_writes(): void
+    {
+        Http::fake();
+
+        try {
+            app(InstituteDiscoveryAgentService::class)->run('cui-lahore-campus');
+            $this->fail('Campus discovery must fail closed without a canonical parent institution.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('requires an existing parent institution', $exception->getMessage());
+        }
+
+        Http::assertNothingSent();
+        $this->assertDatabaseCount('sources', 0);
+        $this->assertDatabaseCount('source_snapshots', 0);
+        $this->assertDatabaseCount('evidence', 0);
+        $this->assertDatabaseCount('import_batches', 0);
+        $this->assertDatabaseCount('import_rows', 0);
+    }
+
+    public function test_existing_canonical_institution_slug_is_marked_duplicate_without_mutation(): void
+    {
+        Storage::fake('local');
+        $canonical = Institution::create([
+            'name' => 'Government College University Lahore',
+            'slug' => 'government-college-university-lahore',
+            'status' => 'active',
+        ]);
+        $before = $canonical->getAttributes();
+        $html = '<html><head><title>Government College University, Lahore — HEC</title></head><body>'
+            .'<h1>Government College University, Lahore</h1><p>Government College University, Lahore is a public university.</p>'
+            .'</body></html>';
+        Http::fake([self::URL => Http::response($html, 200, ['Content-Type' => 'text/html'])]);
+
+        $summary = app(InstituteDiscoveryAgentService::class)->run(self::PROFILE);
+        $row = ImportRow::query()->where('import_batch_id', $summary['batch_id'])->firstOrFail();
+
+        $this->assertSame('duplicate', $row->status);
+        $this->assertSame('duplicate', $row->match_state);
+        $this->assertStringContainsString('already exists in canonical data', implode(' ', $row->validation_errors ?? []));
+        $this->assertSame($before, $canonical->fresh()->getAttributes());
+        $this->assertSame(1, Institution::count());
+        $this->assertSame(1, ImportRow::where('import_batch_id', $summary['batch_id'])->count());
+    }
+
+    public function test_previously_staged_institution_slug_is_marked_duplicate(): void
+    {
+        Storage::fake('local');
+        $firstHtml = '<html><head><title>Government College University, Lahore — HEC</title></head><body>'
+            .'<h1>Government College University, Lahore</h1><p>Government College University, Lahore is a public university.</p>'
+            .'</body></html>';
+        Http::fake([self::URL => Http::sequence()
+            ->push($firstHtml, 200, ['Content-Type' => 'text/html'])
+            ->push($firstHtml.'<p>Updated page content.</p>', 200, ['Content-Type' => 'text/html'])]);
+
+        $first = app(InstituteDiscoveryAgentService::class)->run(self::PROFILE);
+        $firstRow = ImportRow::where('import_batch_id', $first['batch_id'])->firstOrFail();
+        $this->assertSame('candidate', $firstRow->status);
+
+        // The changed body creates a separate source snapshot and batch while retaining the earlier row.
+        $second = app(InstituteDiscoveryAgentService::class)->run($this->profileWithUniqueSourceUrl(self::URL.'?rev=2'));
+        $secondRow = ImportRow::where('import_batch_id', $second['batch_id'])->firstOrFail();
+        $this->assertSame('duplicate', $secondRow->status);
+        $this->assertStringContainsString('already staged', implode(' ', $secondRow->validation_errors ?? []));
+        $this->assertNotSame($first['batch_id'], $second['batch_id']);
+        $this->assertSame(2, ImportBatch::where('entity_type', 'institution')->count());
+        $this->assertSame('candidate', $firstRow->fresh()->status);
+        $this->assertSame(0, Institution::count());
+    }
+
+    public function test_repeated_institution_slug_within_one_source_batch_is_marked_duplicate(): void
+    {
+        Storage::fake('local');
+        $profile = $this->profileWithIdentityTerms([
+            'Government College University, Lahore',
+            'Government College University Lahore',
+        ]);
+        $html = '<html><head><title>Government College University, Lahore</title></head><body>'
+            .'<h1>Government College University, Lahore</h1><p>Government College University Lahore is listed.</p>'
+            .'</body></html>';
+        Http::fake([$profile['source']['url'] => Http::response($html, 200, ['Content-Type' => 'text/html'])]);
+
+        $summary = app(InstituteDiscoveryAgentService::class)->run(self::PROFILE);
+        $rows = ImportRow::where('import_batch_id', $summary['batch_id'])->orderBy('row_number')->get();
+
+        $this->assertCount(2, $rows);
+        $this->assertSame('candidate', $rows[0]->status);
+        $this->assertSame('duplicate', $rows[1]->status);
+        $this->assertStringContainsString('same normalized slug', implode(' ', $rows[1]->validation_errors ?? []));
+        $this->assertSame(0, Institution::count());
+    }
+
+    public function test_different_institution_slug_is_not_classified_as_duplicate(): void
+    {
+        Storage::fake('local');
+        $this->createInstitutionCandidateStagingRow('other-university-slug');
+        $profile = $this->profileWithIdentity([
+            'name' => 'Distinct University',
+            'official_name' => 'Distinct University',
+            'short_name' => 'DU',
+            'slug' => 'distinct-university',
+            'institution_type' => 'public university',
+            'identity_terms' => ['Distinct University'],
+        ]);
+        $html = '<html><head><title>Distinct University</title></head><body><h1>Distinct University</h1></body></html>';
+        Http::fake([$profile['source']['url'] => Http::response($html, 200, ['Content-Type' => 'text/html'])]);
+
+        $summary = app(InstituteDiscoveryAgentService::class)->run(self::PROFILE);
+        $row = ImportRow::where('import_batch_id', $summary['batch_id'])->firstOrFail();
+
+        $this->assertSame('candidate', $row->status);
+        $this->assertNull($row->validation_errors);
+        $this->assertSame(0, Institution::count());
+    }
+
+    public function test_explicit_refresh_requires_valid_profile_and_source_specific_superseded_batch(): void
+    {
+        Storage::fake('local');
+        $html = '<html><head><title>Government College University, Lahore — HEC</title></head><body>'
+            .'<h1>Government College University, Lahore</h1></body></html>';
+        Http::fake([self::URL => Http::response($html, 200, ['Content-Type' => 'text/html'])]);
+        $summary = app(InstituteDiscoveryAgentService::class)->run(self::PROFILE);
+
+        try {
+            app(InstituteDiscoveryAgentService::class)->run(self::PROFILE, false, true);
+            $this->fail('Explicit refresh must name the superseded batch.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('requires a superseded batch ID', $exception->getMessage());
+        }
+
+        $unrelated = ImportBatch::create([
+            'batch_key' => 'agent-unrelated-profile-'.uniqid(),
+            'entity_type' => 'institution',
+            'source_type' => 'automated_discovery',
+            'source_id' => $summary['source_id'],
+            'status' => 'validated',
+            'received_at' => now(),
+        ]);
+        try {
+            app(InstituteDiscoveryAgentService::class)->run(self::PROFILE, false, true, $unrelated->id);
+            $this->fail('Refresh must reject a batch with a different profile key.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('must belong to this profile and source', $exception->getMessage());
+        }
+
+        $wrongSource = \App\Models\Source::create([
+            'source_type' => 'official',
+            'name' => 'Unrelated source',
+            'url' => 'https://example.edu/unrelated',
+            'authority_scope' => 'unrelated source',
+            'status' => 'active',
+        ]);
+        $wrongSourceBatch = ImportBatch::create([
+            'batch_key' => 'agent-'.self::PROFILE.'-wrong-source',
+            'entity_type' => 'institution',
+            'source_type' => 'automated_discovery',
+            'source_id' => $wrongSource->id,
+            'status' => 'validated',
+            'received_at' => now(),
+        ]);
+        try {
+            app(InstituteDiscoveryAgentService::class)->run(self::PROFILE, false, true, $wrongSourceBatch->id);
+            $this->fail('Refresh must reject a batch associated with another source.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('must belong to this profile and source', $exception->getMessage());
+        }
+        $this->assertSame(0, Institution::count());
+    }
+
+    public function test_changed_source_explicitly_supersedes_history_without_canonical_mutation(): void
+    {
+        Storage::fake('local');
+        $firstHtml = '<html><head><title>Government College University, Lahore — HEC</title></head><body>'
+            .'<h1>Government College University, Lahore</h1><p>Original official content.</p></body></html>';
+        $changedHtml = '<html><head><title>Government College University, Lahore — HEC</title></head><body>'
+            .'<h1>Government College University, Lahore</h1><p>Changed official content.</p></body></html>';
+        Http::fake([self::URL => Http::sequence()
+            ->push($firstHtml, 200, ['Content-Type' => 'text/html'])
+            ->push($changedHtml, 200, ['Content-Type' => 'text/html'])]);
+
+        $first = app(InstituteDiscoveryAgentService::class)->run(self::PROFILE);
+        $oldRow = ImportRow::where('import_batch_id', $first['batch_id'])->firstOrFail();
+        $refresh = app(InstituteDiscoveryAgentService::class)->run(self::PROFILE, false, true, $first['batch_id']);
+        $newRow = ImportRow::where('import_batch_id', $refresh['batch_id'])->firstOrFail();
+
+        $this->assertNotSame($first['batch_id'], $refresh['batch_id']);
+        $this->assertNotSame($first['snapshot_id'], $refresh['snapshot_id']);
+        $this->assertSame('candidate', $oldRow->fresh()->status);
+        $this->assertSame('candidate', $newRow->status);
+        $this->assertDatabaseHas('source_snapshots', ['id' => $first['snapshot_id'], 'content_hash' => hash('sha256', $firstHtml)]);
+        $this->assertDatabaseHas('source_snapshots', ['id' => $refresh['snapshot_id'], 'content_hash' => hash('sha256', $changedHtml)]);
+        $this->assertDatabaseHas('evidence', ['id' => $first['evidence_id'], 'snapshot_id' => $first['snapshot_id']]);
+        $this->assertDatabaseHas('evidence', ['id' => $refresh['evidence_id'], 'snapshot_id' => $refresh['snapshot_id']]);
+        $this->assertStringContainsString('refresh_of_batch_id='.$first['batch_id'], $refresh['review_package']['manifest_path'] ?? $this->batchNotes($refresh['batch_id']));
+        $this->assertSame(2, ImportBatch::where('entity_type', 'institution')->count());
+        $this->assertSame(0, Institution::count());
+    }
+
+    public function test_institution_candidate_remains_review_only_with_staged_row_evidence_and_no_canonical_publication(): void
+    {
+        Storage::fake('local');
+        $html = '<html><head><title>Government College University, Lahore — HEC</title></head><body>'
+            .'<h1>Government College University, Lahore</h1></body></html>';
+        Http::fake([self::URL => Http::response($html, 200, ['Content-Type' => 'text/html'])]);
+
+        $summary = app(InstituteDiscoveryAgentService::class)->run(self::PROFILE);
+        $row = ImportRow::where('import_batch_id', $summary['batch_id'])->firstOrFail();
+        $manifest = json_decode(Storage::disk('local')->get($summary['review_package']['manifest_path']), true);
+
+        $this->assertSame('candidate', $row->status);
+        $this->assertDatabaseHas('assertions', [
+            'evidence_id' => $summary['evidence_id'],
+            'subject_type' => ImportRow::class,
+            'subject_id' => $row->id,
+        ]);
+        $this->assertSame('review_required', $manifest['status']);
+        $this->assertFalse($manifest['canonical_mutations_performed']);
+        $this->assertFalse($manifest['automatic_approval_performed']);
+        $this->assertDatabaseCount('import_promotion_decisions', 0);
+        $this->assertDatabaseCount('identity_resolution_decisions', 0);
+        $this->assertSame(0, Institution::count());
+    }
+
+    private function profileWithUniqueSourceUrl(string $url): array
+    {
+        $profile = config('institute_agent.profiles.'.self::PROFILE);
+        $profile['source']['url'] = $url;
+        config()->set('institute_agent.profiles.'.self::PROFILE, $profile);
+        return $profile;
+    }
+
+    private function profileWithIdentityTerms(array $terms): array
+    {
+        $profile = config('institute_agent.profiles.'.self::PROFILE);
+        $profile['institution_identity']['identity_terms'] = $terms;
+        config()->set('institute_agent.profiles.'.self::PROFILE, $profile);
+        return $profile;
+    }
+
+    private function profileWithIdentity(array $identity): array
+    {
+        $profile = config('institute_agent.profiles.'.self::PROFILE);
+        $profile['institution_identity'] = $identity;
+        config()->set('institute_agent.profiles.'.self::PROFILE, $profile);
+        return $profile;
+    }
+
+    private function createInstitutionCandidateStagingRow(string $slug): ImportRow
+    {
+        $source = \App\Models\Source::create([
+            'source_type' => 'official',
+            'name' => 'Old official source',
+            'url' => 'https://example.edu/old',
+            'authority_scope' => 'official identity listing',
+            'status' => 'active',
+        ]);
+        $batch = ImportBatch::create([
+            'batch_key' => 'agent-old-institution-'.uniqid(),
+            'entity_type' => 'institution',
+            'source_type' => 'automated_discovery',
+            'source_id' => $source->id,
+            'status' => 'validated',
+            'total_rows' => 1,
+            'received_at' => now(),
+        ]);
+        return ImportRow::create([
+            'import_batch_id' => $batch->id,
+            'row_number' => 1,
+            'status' => 'candidate',
+            'match_state' => 'unresolved',
+            'parent_subject_type' => null,
+            'parent_subject_id' => null,
+            'payload' => ['name' => 'Previous University', 'slug' => $slug],
+            'normalized_payload' => ['name' => 'Previous University', 'slug' => $slug],
+        ]);
+    }
+
+    private function batchNotes(int $batchId): string
+    {
+        return (string) ImportBatch::query()->findOrFail($batchId)->notes;
+    }
+
+}
 }
