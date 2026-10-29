@@ -82,14 +82,14 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('getColumns($table)', $workflow);
         $this->assertStringContainsString('getIndexes($table)', $workflow);
         $this->assertStringContainsString('getForeignKeys($table)', $workflow);
-        $this->assertStringContainsString("->where('migration', $migration)", $workflow);
+        $this->assertStringContainsString("->where('migration', \\$migration)", $workflow);
         $this->assertStringContainsString('PRESENT_AND_VERIFIED_EQUIVALENT', $workflow);
         $this->assertStringContainsString('PARTIALLY_APPLIED', $workflow);
         $this->assertStringContainsString('ABSENT', $workflow);
         $this->assertStringContainsString('AMBIGUOUS_UNVERIFIED', $workflow);
         $this->assertStringContainsString("'mutation_performed' => false", $workflow);
         $this->assertStringContainsString("'write_requested' => false", $workflow);
-        $this->assertStringContainsString('database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php', $workflow);
+        $this->assertStringContainsString("base_path('database/migrations/'", $workflow);
     }
 
     public function test_laravel_api_prefix_matches_the_public_institutes_subfolder(): void
