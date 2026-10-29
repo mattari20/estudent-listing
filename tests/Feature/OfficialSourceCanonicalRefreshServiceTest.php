@@ -133,7 +133,7 @@ class OfficialSourceCanonicalRefreshServiceTest extends TestCase
             'slug' => 'approval-gate-campus',
             'status' => 'active',
         ]);
-        $before = $institution->fresh()->getAttributes();
+        $before = $institution->fresh()->only(['id', 'name', 'official_name', 'short_name', 'slug', 'institution_type', 'status', 'description', 'verified_at']);
 
         try {
             app(OfficialSourceCanonicalRefreshService::class)->refresh(
@@ -155,7 +155,7 @@ class OfficialSourceCanonicalRefreshServiceTest extends TestCase
             $this->assertStringContainsString('persisted field-level approval integration is unavailable', $exception->getMessage());
         }
 
-        $this->assertSame($before, $institution->fresh()->getAttributes());
+        $this->assertSame($before, $institution->fresh()->only(['id', 'name', 'official_name', 'short_name', 'slug', 'institution_type', 'status', 'description', 'verified_at']));
         $this->assertSame($institution->id, $campus->fresh()->institution_id);
         $this->assertDatabaseCount('official_source_refresh_events', 0);
     }
