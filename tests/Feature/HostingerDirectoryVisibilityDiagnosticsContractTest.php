@@ -21,6 +21,9 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString("'rows_by_status'", $workflow);
         $this->assertStringContainsString("'soft_deleted_rows'", $workflow);
         $this->assertStringContainsString('expected_hostinger_cron_command=', $workflow);
+        $this->assertStringContainsString('Deployed API route registration (read-only; bounded)', $workflow);
+        $this->assertStringContainsString('php artisan route:list --json --no-ansi', $workflow);
+        $this->assertStringContainsString('institution_api_route_registration', $workflow);
         $this->assertStringContainsString('Laravel API route registration (read-only)', $workflow);
         $this->assertStringContainsString('institution_api_route_registration', $workflow);
         $this->assertStringContainsString('artisan route:list --path=api/v1/institutions --json', $workflow);
