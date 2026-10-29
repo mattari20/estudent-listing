@@ -179,14 +179,39 @@ class InstituteDiscoveryInstitutionIdentityTest extends TestCase
     public function test_repeated_institution_slug_within_one_source_batch_is_marked_duplicate(): void
     {
         Storage::fake('local');
-        $profile = $this->profileWithIdentityTerms([
-            'Government College University, Lahore',
-            'Government College University Lahore',
-        ]);
         $html = '<html><head><title>Government College University, Lahore</title></head><body>'
-            .'<h1>Government College University, Lahore</h1><p>Government College University Lahore is listed.</p>'
-            .'</body></html>';
-        Http::fake([$profile['source']['url'] => Http::response($html, 200, ['Content-Type' => 'text/html'])]);
+            .'<h1>Government College University, Lahore</h1></body></html>';
+        Http::fake([self::URL => Http::response($html, 200, ['Content-Type' => 'text/html'])]);
+
+        // Institution profiles currently extract one configured identity. Supply two
+        // deterministic extractor results to exercise the generic same-batch duplicate guard.
+        app()->instance(\App\Services\InstituteDiscoveryCandidateExtractor::class, new class {
+            public function extract(string $entityType, string $html, array $identity = []): array
+            {
+                return [
+                    [
+                        'name' => 'Government College University Lahore',
+                        'official_name' => 'Government College University, Lahore',
+                        'short_name' => 'GCU',
+                        'slug' => 'government-college-university-lahore',
+                        'institution_type' => 'public university',
+                        'status' => 'candidate',
+                        'confidence' => 0.98,
+                        'evidence_excerpt' => 'Government College University, Lahore',
+                    ],
+                    [
+                        'name' => 'Government College University Lahore',
+                        'official_name' => 'Government College University, Lahore',
+                        'short_name' => 'GCU',
+                        'slug' => 'government-college-university-lahore',
+                        'institution_type' => 'public university',
+                        'status' => 'candidate',
+                        'confidence' => 0.98,
+                        'evidence_excerpt' => 'Government College University Lahore',
+                    ],
+                ];
+            }
+        });
 
         $summary = app(InstituteDiscoveryAgentService::class)->run(self::PROFILE);
         $rows = ImportRow::where('import_batch_id', $summary['batch_id'])->orderBy('row_number')->get();
@@ -388,5 +413,4 @@ class InstituteDiscoveryInstitutionIdentityTest extends TestCase
         return (string) ImportBatch::query()->findOrFail($batchId)->notes;
     }
 
-}
 }
