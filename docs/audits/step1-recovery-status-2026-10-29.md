@@ -87,3 +87,73 @@ Safe reconciliation plan remains read-only: wait until the deployed app-code rev
 6. Confirm hPanel cron list and recent execution history manually; the rest can remain automated.
 
 No Step 2 work has begun.
+
+
+## Update — 2026-10-29: browser runtime investigation and current quality gates
+
+### Current repository state
+
+- Current `main` is `7ef402d14338ff0b51c0f395a1fd3ad9d4c5b0ed` (`fix: remove duplicate commands from Hostinger read-only diagnostics`). PR #905 is open against that exact base, head `2f7868ef7f2d00a87e49d5fdb5d0644e8bf562bd`.
+- PR #905 contains only two added files: `.github/workflows/public-browser-runtime-diagnostics.yml` and `tests/Feature/PublicBrowserRuntimeDiagnosticsContractTest.php`. No application/runtime code is changed by PR #905 itself.
+- Required main ruleset is active on `refs/heads/main`: deletion and non-fast-forward blocked; required status context `test`; strict status checking disabled. PR #905 has no submitted review, no inline threads and no requested reviewers at this snapshot.
+- On PR #905 head, Test [#40833025055](https://github.com/mattari20/estudent-listing/actions/runs/40833025055), Laravel CI [#40833025051](https://github.com/mattari20/estudent-listing/actions/runs/40833025051), and Public Browser Runtime Diagnostics [#40833025109](https://github.com/mattari20/estudent-listing/actions/runs/40833025109) all completed successfully.
+
+### Browser runtime output (actual job log)
+
+Public Browser Runtime Diagnostics job [#123311323890](https://github.com/mattari20/estudent-listing/actions/runs/40833025109/job/123311323890) produced:
+
+- `directory_initial`: URL `https://estudent.pk/institutes/`, HTTP 200, title “Institutes Directory | eStudent.pk”, summary “No institutions to display”, heading “No institutions available”, 0 institution cards, search and page-size controls present.
+- Browser-originated API GET: `https://estudent.pk/institutes/api/v1/institutions?per_page=2`. Response HTTP 200, `application/json`, 609 bytes, valid JSON with paginator keys (`data`, `total`, `current_page`, `last_page`, and links); `dataCount=0`, `total=0`, page 1 of 1. This is a valid empty collection, not an empty response body, malformed JSON or an HTML error.
+- Its `Network.requestWillBeSent` record shows initiator type `script`, but the captured frames are the diagnostic itself (`eval`/Playwright `evaluate`) with blank script URLs. Thus it proves a browser-originated API request works, but does not capture the user's failing request/initiator.
+- `search_get`: `https://estudent.pk/institutes/search?q=COMSATS`, HTTP 200, expected empty heading “No matching institutes found”, 0 cards.
+- `page_size_12`: `https://estudent.pk/institutes/?per_page=12`, HTTP 200, correct empty-state text, 0 cards, search/page-size controls present.
+- Final diagnostic summary: `pageErrorCount=0`, `targetSyntaxErrorCount=0`, `targetErrors=[]`, `structuralFailures=[]`, `conclusion=PASS`.
+- Interpretation: this clean Chromium run did not reproduce `Unexpected end of JSON input`. It must not be reported as resolution in the owner's browser. The precise script/request causing the owner-reported error remains **NOT VERIFIED**.
+
+### API prefix root cause and deployment distinction
+
+- Confirmed source mismatch was that Laravel had registered API routes under `api/v1/...` while the Laravel application is served under the `/institutes/` subfolder. The root API probe returned WordPress HTML 404, and the subfolder API path also returned HTML 404 before the source fix.
+- PR #902 merged as `4b95e2d945583f36ff07376ed51f2d2727c0b78d`; it sets `apiPrefix: 'institutes/api'` in `bootstrap/app.php` and aligns API tests to `/institutes/api/v1/institutions`, including an empty JSON paginator regression test. Test [#40830834468](https://github.com/mattari20/estudent-listing/actions/runs/40830834468), Laravel CI [#40830834622](https://github.com/mattari20/estudent-listing/actions/runs/40830834622), and frontend build [#40830834508](https://github.com/mattari20/estudent-listing/actions/runs/40830834508) passed.
+- The post-merge Hostinger diagnostic [#40830834506](https://github.com/mattari20/estudent-listing/actions/runs/40830834506) stopped at revision parity: Hostinger still reported `c83f0162731a7efccda9cf1e8c6878697659d017`, whereas expected code revision was `4b95e2d945583f36ff07376ed51f2d2727c0b78d`. It did not test the new deployed API route.
+- A later public-browser run independently confirms that the public subfolder API endpoint currently responds as valid empty JSON, but the deployment workflow's application-code parity still must be explicitly rechecked before claiming the entire app revision is aligned. The controlled deployment workflow remains opt-in (`confirm_deployment=false`) and no production deployment was executed in this investigation.
+
+### Quality-gate assessment
+
+Already present and useful:
+- Route and API feature tests cover public subfolder routes and a valid empty paginator.
+- A clean-browser runtime workflow checks the page's empty state, makes a guarded GET to the public API, exercises search and page-size navigation, logs request/response metadata, and fails on uncaught target syntax errors and invalid API contracts.
+- Hostinger read-only workflow checks public API status/content-type/paginator shape, canonical row/status counts, relationship integrity, route registration, migration diagnostics and scheduler evidence.
+- Controlled deployment workflow computes the application-code revision, refuses dirty tracked/untracked work trees, compares application-path content rather than full commit hash, provides a dry-run by default, verifies `php artisan --version`, and performs a read-only offering-gap preflight. The deployment is intentionally manual and no deploy occurred here.
+- Existing import/readiness/source/identity/promotion audit mechanisms exist, but current candidate cluster still requires exact official-source row-level provenance and duplicate review; do not auto-approve or promote it.
+
+Missing or incomplete:
+- Permanent main-branch protection currently requires only `test`; Laravel CI, frontend build, and public-browser runtime checks are not required merge gates. This is a systemic process gap. Do not change repository rules automatically without separately checking GitHub permissions and agreeing the required contexts.
+- Browser diagnostic did not observe a user-originated exception; ask for a sanitized DevTools request/initiator capture only if it continues after deployment parity is verified.
+- The clean browser run's request initiator is the diagnostic fetch (blank URL frames), not a discovered production script. Do not implement generic JS changes without the exact failing request.
+- Live detail/campus/program functional acceptance remains impossible with zero canonical published rows; test fixtures can and should cover these paths in test DB, but never seed fake production rows.
+
+### Step 1 statuses after the browser runtime result
+
+| Criterion | Status | Latest evidence |
+| --- | --- | --- |
+| Page renders correctly | PASS for HTML and intended empty-state rendering | Public browser run #40833025109 |
+| JSON exception is resolved and covered by regression tests | BLOCKED / NOT VERIFIED for user's browser | Clean Chromium saw 0 syntax errors, but owner-reported initiator remains unknown |
+| Empty state works without dummy data | PASS in clean Chromium | Search and page-size navigation displayed expected empty states |
+| API routing and response contract | PASS for current live endpoint response; deployment code parity still separately needs verification | Browser API response: HTTP 200, application/json, valid paginator, total 0 |
+| Search/pagination with empty data | PASS for exercised GET search and page-size; pagination has no page links when total=0 | Browser summaries #40833025109 |
+| Verified real records pass import/review/promotion | NOT VERIFIED end-to-end | Current canonical records intentionally empty; candidate rows #348–352 remain unapproved |
+| Institution/campus/program relationships | NOT VERIFIED in production; no rows to exercise | Read-only canonical counts zero |
+| Migration/schema inconsistency plan | PARTIAL | Column present, definition/position match; ledger row absent; full schema equivalence and origin unknown |
+| Required workflows and scheduler | PARTIAL | CI passes; hPanel cron presence unresolved; controlled deployment is opt-in; prior post-fix parity check failed |
+| Production acceptance and source parity | PARTIAL | Browser endpoint responds; most recent Hostinger parity check still requires a fresh run |
+
+### Recommendation — repair versus rebuild
+
+Evidence currently favors **repairing the existing foundation in focused PRs**, not a rebuild:
+- The confirmed API mismatch was localized to Laravel API prefix configuration and has a focused, tested source correction (PR #902).
+- The public empty state behaves correctly under a zero-record database, which is the intended testing state.
+- The candidate/import system already has source evidence, identity decision, review, promotion event and readiness gates; the immediate risk is data provenance/repeat-import governance, not proven need to replace the entire system.
+- There are real cross-cutting quality concerns: production revision parity, critical checks not required by the main ruleset, the unverified browser exception from the owner's browser, and the missing migration-ledger entry. These require stronger gates and explicit operator decisions, but no evidence yet proves core architecture is irreparable.
+- Reassess rebuild only if a targeted import-to-publication test in a clean test database repeatedly fails after focused fixes, or if schema integrity review shows incompatible migration history that cannot be reconciled safely. No rebuild is authorized or started.
+
+No production database/data/schema or cron mutation was performed. Step 1 remains open; Step 2 feature work and later feature phases remain on hold.
