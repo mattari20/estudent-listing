@@ -60,19 +60,14 @@ class ImportDuplicateDetectorService
      */
     public function findInstitution(string $slug, ?int $currentBatchId = null, array $ignoredBatchIds = [], array $identity = []): ?array
     {
-        $identityKeys = $this->institutionIdentityKeys(array_merge($identity, ['slug' => $slug]));
-        if ($identityKeys === []) {
+        $candidateSlug = $this->normalizedIdentityKey($slug);
+        if ($candidateSlug === '') {
             return null;
         }
 
-        $canonical = Institution::query()
-            ->where(function ($query) use ($identityKeys) {
-                foreach ($identityKeys as $key) {
-                    $query->orWhere('slug', $key);
-                }
-            })
-            ->first();
-
+        // Keep canonical matching on the configured slug; name fallbacks below
+        // apply only to staged rows and never mutate canonical data.
+        $canonical = Institution::query()->where('slug', $slug)->first();
         if ($canonical) {
             return [
                 'kind' => 'canonical',
@@ -82,9 +77,9 @@ class ImportDuplicateDetectorService
             ];
         }
 
-        // Compare historical staged identities by stable name/official-name slugs
-        // as well as stored slugs, covering legacy rows from older extractor versions.
-        // Stream rows to bound memory and preserve all historical provenance.
+        // Stream historical institution rows rather than relying on a JSON-path
+        // equality that may miss legacy payload variants. When both official names
+        // exist they must match; a shared generic display name alone is insufficient.
         $previousRows = ImportRow::query()
             ->whereIn('status', ['candidate', 'promoted', 'duplicate'])
             ->whereHas('batch', fn ($query) => $query->where('entity_type', 'institution'))
@@ -98,7 +93,7 @@ class ImportDuplicateDetectorService
             if ($payload === []) {
                 $payload = is_array($previous->payload) ? $previous->payload : [];
             }
-            if (array_intersect($identityKeys, $this->institutionIdentityKeys($payload)) === []) {
+            if (! $this->sameInstitutionIdentity($slug, $identity, $payload)) {
                 continue;
             }
 
@@ -113,25 +108,35 @@ class ImportDuplicateDetectorService
         return null;
     }
 
-    /**
-     * Short names are intentionally excluded: they can collide across unrelated
-     * institutions and campuses. Name/official-name keys use the same slug rules.
-     */
-    private function institutionIdentityKeys(array $identity): array
+    private function sameInstitutionIdentity(string $slug, array $candidate, array $previous): bool
     {
-        $keys = [];
-        foreach (['slug', 'name', 'official_name'] as $field) {
-            $value = $identity[$field] ?? null;
-            if (! is_string($value) || trim($value) === '') {
-                continue;
-            }
-            $key = Str::lower(Str::slug(trim($value)));
-            if ($key !== '') {
-                $keys[] = $key;
-            }
+        $candidateSlug = $this->normalizedIdentityKey($slug);
+        $previousSlug = $this->normalizedIdentityKey((string) ($previous['slug'] ?? ''));
+        if ($candidateSlug !== '' && $candidateSlug === $previousSlug) {
+            return true;
         }
 
-        return array_values(array_unique($keys));
+        $candidateOfficial = $this->normalizedIdentityKey((string) ($candidate['official_name'] ?? ''));
+        $previousOfficial = $this->normalizedIdentityKey((string) ($previous['official_name'] ?? ''));
+        if ($candidateOfficial !== '' && $previousOfficial !== '') {
+            return $candidateOfficial === $previousOfficial;
+        }
+
+        $candidateName = $this->normalizedIdentityKey((string) ($candidate['name'] ?? ''));
+        $previousName = $this->normalizedIdentityKey((string) ($previous['name'] ?? ''));
+        if ($candidateName === '' || $candidateName !== $previousName) {
+            return false;
+        }
+
+        $candidateType = Str::lower(trim((string) ($candidate['institution_type'] ?? '')));
+        $previousType = Str::lower(trim((string) ($previous['institution_type'] ?? '')));
+
+        return $candidateType === '' || $previousType === '' || $candidateType === $previousType;
+    }
+
+    private function normalizedIdentityKey(string $value): string
+    {
+        return $value === '' ? '' : Str::lower(Str::slug(trim($value)));
     }
 
 }
