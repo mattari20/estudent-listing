@@ -143,6 +143,8 @@ class InstituteDiscoveryAgentService
         });
     }
 
+    // A different snapshot still receives its own immutable batch/evidence trail;
+    // the identity detector marks repeated institution identities as duplicates.
     private function persistCandidatesLocked(
         string $profile,
         ?Institution $institution,
