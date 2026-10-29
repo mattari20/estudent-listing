@@ -9,6 +9,7 @@ use App\Models\ImportRow;
 use App\Models\Institution;
 use App\Models\Source;
 use App\Models\SourceSnapshot;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -114,6 +115,37 @@ class InstituteDiscoveryAgentService
     }
 
     private function persistCandidates(
+        string $profile,
+        ?Institution $institution,
+        Source $source,
+        SourceSnapshot $snapshot,
+        bool $useAi,
+        bool $forceNewBatch = false,
+        ?int $supersedesBatchId = null,
+    ): array {
+        // Serialize candidate persistence per source. Without this lock, two
+        // simultaneous retrievals can both observe no prior batch/identity and
+        // create parallel candidate batches for the same source identity.
+        return DB::transaction(function () use (
+            $profile, $institution, $source, $snapshot, $useAi, $forceNewBatch, $supersedesBatchId
+        ): array {
+            $lockedSource = Source::query()->whereKey($source->id)->lockForUpdate()->firstOrFail();
+
+            return $this->persistCandidatesLocked(
+                $profile,
+                $institution,
+                $lockedSource,
+                $snapshot,
+                $useAi,
+                $forceNewBatch,
+                $supersedesBatchId
+            );
+        });
+    }
+
+    // A different snapshot still receives its own immutable batch/evidence trail;
+    // the identity detector marks repeated institution identities as duplicates.
+    private function persistCandidatesLocked(
         string $profile,
         ?Institution $institution,
         Source $source,
@@ -237,7 +269,7 @@ class InstituteDiscoveryAgentService
             } elseif ($blockers === []) {
                 $duplicateDetector = app(ImportDuplicateDetectorService::class);
                 $duplicate = $entityType === 'institution'
-                    ? $duplicateDetector->findInstitution($slug, $batch->id, $supersedesBatchId === null ? [] : [$supersedesBatchId])
+                    ? $duplicateDetector->findInstitution($slug, $batch->id, $supersedesBatchId === null ? [] : [$supersedesBatchId], $candidate)
                     : $duplicateDetector->find(
                         $entityType,
                         (int) $institution?->id,
