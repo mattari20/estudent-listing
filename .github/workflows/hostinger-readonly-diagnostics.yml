@@ -1140,32 +1140,45 @@ jobs:
 
           inspect_response directory_page "$BASE_URL/institutes/" false
 
-          # The app is deployed in a Hostinger subfolder in some environments.
-          # Probe both supported public URL layouts before selecting the API base;
-          # do not mistake a WordPress 404 HTML page for a JSON API response.
+          # Derive candidate base paths from the known subfolder layout and capture
+          # redirects rather than following into WordPress fallback pages.
           api_base=""
-          for candidate in "$BASE_URL/api/v1/institutions" "$BASE_URL/institutes/api/v1/institutions"; do
+          declare -a api_candidates=(
+            "$BASE_URL/institutes/api/v1/institutions"
+            "$BASE_URL/institutes/v1/institutions"
+            "$BASE_URL/api/v1/institutions"
+          )
+          for candidate in "${api_candidates[@]}"; do
             probe_body="$workdir/api-probe.body"
             probe_headers="$workdir/api-probe.headers"
-            probe_status="$(curl --silent --show-error --max-time 25 --dump-header "$probe_headers" --output "$probe_body" --write-out '%{http_code}' "$candidate?per_page=2" || true)"
-            probe_type="$(awk 'BEGIN{IGNORECASE=1} /^content-type:/ {sub(/^[^:]*:[[:space:]]*/, ""); sub(/\\r$/, ""); value=$0} END{print value}' "$probe_headers")"
+            probe_status="$(curl --silent --show-error --max-time 25 --max-redirs 0 --dump-header "$probe_headers" --output "$probe_body" --write-out '%{http_code}' "$candidate?per_page=2" || true)"
+            probe_type="$(awk 'BEGIN{IGNORECASE=1} /^content-type:/ {sub(/^[^:]*:[[:space:]]*/, ""); sub(/\r$/, ""); value=$0} END{print value}' "$probe_headers")"
+            probe_bytes="$(wc -c < "$probe_body" | tr -d ' ')"
+            probe_redirect="$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[^:]*:[[:space:]]*/, ""); sub(/\r$/, ""); value=$0} END{print value}' "$probe_headers")"
+            echo "institutions_api_candidate_path=${candidate#"$BASE_URL"}"
+            echo "institutions_api_candidate_status=$probe_status"
+            echo "institutions_api_candidate_content_type=${probe_type:-missing}"
+            echo "institutions_api_candidate_bytes=$probe_bytes"
+            if [[ -n "$probe_redirect" ]]; then
+              echo "institutions_api_candidate_redirect=${probe_redirect%%\?*}"
+            fi
             if [[ "$probe_status" == "200" && "$probe_type" == application/json* ]] && jq -e 'type == "object" and (.data | type == "array") and (.total | type == "number") and (.current_page | type == "number") and (.last_page | type == "number")' "$probe_body" >/dev/null 2>&1; then
               api_base="$candidate"
               echo "institutions_api_base_path=PASS"
               echo "institutions_api_base_url=$candidate"
               break
             fi
-            echo "institutions_api_candidate_status=$probe_status"
-            echo "institutions_api_candidate_content_type=${probe_type:-missing}"
           done
           if [[ -z "$api_base" ]]; then
             echo "institutions_api_base_path=FAIL_NO_VALID_JSON_ENDPOINT"
+            echo "No candidate returned HTTP 200 + application/json + a Laravel paginator contract."
             exit 1
           fi
 
           inspect_response institutions_api_page_1 "${api_base}?per_page=2" true
           inspect_response institutions_api_search "${api_base}?q=COMSATS&per_page=2" true
           inspect_response institutions_api_page_2 "${api_base}?per_page=2&page=2" true
+
           total="$(jq -r '.total' "$workdir/institutions_api_page_1.body")"
           if [[ "$total" =~ ^[0-9]+$ ]] && (( total > 2 )); then
             jq -en --slurpfile first "$workdir/institutions_api_page_1.body" --slurpfile second "$workdir/institutions_api_page_2.body" '
