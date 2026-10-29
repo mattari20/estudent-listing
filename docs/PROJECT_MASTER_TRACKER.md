@@ -614,3 +614,12 @@ See [Step 1 recovery status report](docs/audits/step1-recovery-status-2026-10-29
 - Hostinger command identified: `* * * * * cd /home/u537436044/domains/estudent.pk/public_html/institutes && /opt/alt/php85/usr/bin/php artisan schedule:run >> /dev/null 2>&1` (PHP 8.5.12). hPanel job presence/execution still needs owner confirmation; SSH `crontab -l` is inconclusive.
 - Current ruleset requires only `test`, not Laravel CI/build/browser-runtime. A repository administrator must make other critical checks required; no ruleset mutation occurred.
 - Recommendation: repair the current Laravel foundation in focused PRs; evidence does not justify a rebuild. Step 1 remains OPEN; Step 2/feature phases remain HOLD.
+
+
+## Post-merge verification — 2026-10-29 12:40 PKT
+
+- PR #912 merged as `1ce7830881adc82b055d4e388fffc10c178c69a8`. Post-merge Test #40836856952, Laravel CI #40836856933, frontend build #40836856938, Public Site Monitor #40836856947, Project Controller #40836856927 and Command Orchestrator #40836856924 passed.
+- Hostinger Read-only Diagnostics #40836856923 failed closed at the deployment parity gate with `fatal: Unable to create .../.git/shallow.lock: No such file or directory` and subsequent `not a git repository` messages. This is a live diagnostic metadata/path issue, not proof of API regression. The same run still printed the expected Laravel route URI `institutes/api/v1/institutions` and the existing `duplicate_rows` incident evidence; it did not reach a clean acceptance conclusion.
+- Last clean Hostinger live acceptance remains run #40835662204: deployment app-path parity matched and the subfolder API returned HTTP 200, application/json, valid paginator `data=[]`, `total=0`. Keep latest parity verification BLOCKED until diagnostic revision handling is repaired in a focused PR.
+- The assessment in `docs/audits/step1-root-cause-quality-gates-rebuild-assessment-2026-10-29.md` was amended to record this failure. No production .git metadata rewrite, database/schema/ledger write, deployment, cron change, import, promotion or publication was performed.
+- Step 1 remains OPEN; Step 2 and feature phases remain HOLD. Recommendation remains focused repair, not rebuild.
