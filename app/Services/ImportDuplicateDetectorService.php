@@ -69,12 +69,18 @@ class ImportDuplicateDetectorService
         // apply only to staged rows and never mutate canonical data.
         $canonical = Institution::query()->where('slug', $slug)->first();
         if ($canonical) {
-            return [
-                'kind' => 'canonical',
-                'label' => 'Institution',
-                'id' => $canonical->id,
-                'message' => 'This institution already exists in canonical data. Review the existing record instead of creating another copy.',
-            ];
+            $candidateOfficial = $this->normalizedIdentityKey((string) ($identity['official_name'] ?? ''));
+            $canonicalOfficial = $this->normalizedIdentityKey((string) ($canonical->official_name ?? ''));
+
+            // A matching slug is not sufficient when two known official names disagree.
+            if ($candidateOfficial === '' || $canonicalOfficial === '' || $candidateOfficial === $canonicalOfficial) {
+                return [
+                    'kind' => 'canonical',
+                    'label' => 'Institution',
+                    'id' => $canonical->id,
+                    'message' => 'This institution already exists in canonical data. Review the existing record instead of creating another copy.',
+                ];
+            }
         }
 
         // Stream historical institution rows rather than relying on a JSON-path
@@ -110,17 +116,18 @@ class ImportDuplicateDetectorService
 
     private function sameInstitutionIdentity(string $slug, array $candidate, array $previous): bool
     {
+        $candidateOfficial = $this->normalizedIdentityKey((string) ($candidate['official_name'] ?? ''));
+        $previousOfficial = $this->normalizedIdentityKey((string) ($previous['official_name'] ?? ''));
+
+        // Known official names take precedence over a shared slug or generic display name.
+        if ($candidateOfficial !== '' && $previousOfficial !== '') {
+            return $candidateOfficial === $previousOfficial;
+        }
+
         $candidateSlug = $this->normalizedIdentityKey($slug);
         $previousSlug = $this->normalizedIdentityKey((string) ($previous['slug'] ?? ''));
         if ($candidateSlug !== '' && $candidateSlug === $previousSlug) {
             return true;
-        }
-
-        $candidateOfficial = $this->normalizedIdentityKey((string) ($candidate['official_name'] ?? ''));
-        $previousOfficial = $this->normalizedIdentityKey((string) ($previous['official_name'] ?? ''));
-        // If both official names exist but disagree, do not fall back to a generic display name.
-        if ($candidateOfficial !== '' && $previousOfficial !== '') {
-            return $candidateOfficial === $previousOfficial;
         }
 
         $candidateName = $this->normalizedIdentityKey((string) ($candidate['name'] ?? ''));
