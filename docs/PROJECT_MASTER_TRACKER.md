@@ -527,3 +527,18 @@ These authoritative pages were checked through current web retrieval to refine s
 - Workflow inventory review covered the controlled duplicate_rows, official-source refresh, discovery-outcome, geography seed, and code-deploy workflows plus read-only diagnostics and scheduled discovery. The duplicate_rows workflow now has an explicit migration default false, scoped migration path, postcheck, least-privilege `contents: read`, and concurrency group. The official-source refresh workflow still uses `script_stop: true`; this remains an audit item, not a confirmed defect, and must be checked independently before changing it.
 - Static migration inventory showed multiple historical filenames that mention the same tables, but the sampled earlier duplicates were intentionally empty superseded migrations; no duplicate-create defect is asserted from filenames alone.
 - No production migration, schema/index repair, migration-ledger write, import, canonical promotion, approval, deletion, or scheduled mutating command was executed. Current live schema and ledger state remain unknown.
+
+
+## Fresh Hostinger diagnostics checkpoint — 2026-10-29 10:01 +05
+
+Source: [Hostinger Read-only Diagnostics #40820996249](https://github.com/mattari20/estudent-listing/actions/runs/40820996249); public monitor [#40820996120](https://github.com/mattari20/estudent-listing/actions/runs/40820996120).
+
+- Application-path parity: `APPLICATION_CODE_MATCH`.
+- **Duplicate-row migration:** `import_batches` and `duplicate_rows` exist, migration file and migrations ledger exist, but the target migration row is absent. Diagnostic: `COLUMN_PRESENT_MIGRATION_NOT_RECORDED`. Read-only check reports `mutation_performed=false`. This is a confirmed schema/ledger inconsistency; the column's full physical definition is not yet reported. Do not run the migration or manually insert a ledger row.
+- **Current repair PR:** [#894](https://github.com/mattari20/estudent-listing/pull/894) adds a fail-closed check for column-present/ledger-absent state and regression coverage. It remains open until the latest-head required checks pass.
+- **Official-source refresh schema:** current diagnostic reports `schema_ready=true`, all expected columns/indexes present, and the migration row present. This supersedes the older October 28 observation for that separate table.
+- **Canonical population:** the latest snapshot has zero active institutions, campuses, programs, and offerings. The public listing returns HTTP 200 but the monitor reports `EMPTY_DATA`; there is no genuine detail URL to test. Do not fabricate a record.
+- **Guest denial:** discovery history and review-package download redirect to Institutes login. This verifies only those sampled endpoints.
+- **Scheduler:** Laravel reports hourly scheduled tasks; Hostinger `crontab -l` is unreadable with exit 127. Actual hPanel cron configuration and recent execution history remain unverified.
+- **Main checks after PR #893 merge:** Test, Laravel CI, frontend build, command orchestrator, public monitor, and read-only diagnostics all passed. The guarded migration's manual workflow has not been rerun on the merged fix.
+- **Safety boundary:** no production migration, schema change, ledger write, data import, promotion, approval, deletion, or mutating scheduled command was run. Step 1 remains blocked; Step 2 remains prohibited.
