@@ -415,7 +415,7 @@ jobs:
             fi
             if [ "$PARITY_FETCH_FAILED" -eq 0 ] &&
               git -C "$PARITY_REPO" cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null &&
-              git -C "$PARITY_REPO" merge-base --is-ancestor "$EXPECTED_REVISION" "$PARITY_REPO/refs/remotes/origin/main" 2>/dev/null; then
+              git -C "$PARITY_REPO" merge-base --is-ancestor "$EXPECTED_REVISION" origin/main 2>/dev/null; then
               APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
               git -C "$PARITY_REPO" checkout --quiet --detach "$EXPECTED_REVISION"
               PARITY_MATCH=1
