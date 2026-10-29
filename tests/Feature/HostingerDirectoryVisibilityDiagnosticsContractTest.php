@@ -44,7 +44,7 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('git -C "$PARITY_REPO" log --all --format=', $workflow);
         $this->assertStringNotContainsString('git fetch --quiet --no-tags --depth=200 origin main || DEPLOYMENT_DRIFT=1', $workflow);
         $this->assertStringContainsString('git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION"', $workflow);
-        $this->assertStringContainsString('git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin main', $workflow);
+        $this->assertStringContainsString('git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin +refs/heads/main:refs/remotes/origin/main', $workflow);
         $this->assertStringNotContainsString('git fetch --quiet --no-tags --unshallow origin main', $workflow);
         $this->assertStringContainsString('Deployed API route registration (read-only; bounded)', $workflow);
         $this->assertStringContainsString('php artisan route:list --json --no-ansi', $workflow);
