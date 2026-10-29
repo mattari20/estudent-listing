@@ -68,7 +68,6 @@ class Phase4InstitutionDiscoveryPilotTest extends TestCase
             $this->assertSame('institution', $summary['entity_type'], $profile);
             $this->assertSame(1, $summary['candidate_rows'], $profile);
             $this->assertSame(0, $summary['duplicate_rows'], $profile);
-            $this->assertFalse($summary['canonical_mutations_performed'], $profile);
             $this->assertSame(hash('sha256', $html), SourceSnapshot::findOrFail($summary['snapshot_id'])->content_hash, $profile);
 
             $row = ImportRow::query()->where('import_batch_id', $summary['batch_id'])->firstOrFail();
@@ -80,6 +79,9 @@ class Phase4InstitutionDiscoveryPilotTest extends TestCase
             $this->assertSame($summary['snapshot_id'], data_get($payload, '_provenance.snapshot_id'), $profile);
             $this->assertSame($summary['evidence_id'], data_get($payload, '_provenance.evidence_id'), $profile);
             $this->assertSame(hash('sha256', $html), data_get($payload, '_provenance.content_hash'), $profile);
+            $manifest = json_decode(Storage::disk('local')->get($summary['review_package']['manifest_path']), true);
+            $this->assertFalse($manifest['canonical_mutations_performed'], $profile);
+            $this->assertFalse($manifest['automatic_approval_performed'], $profile);
             $this->assertDatabaseHas('evidence', [
                 'id' => $summary['evidence_id'],
                 'source_id' => $summary['source_id'],
