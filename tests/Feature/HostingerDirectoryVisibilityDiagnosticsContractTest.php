@@ -32,6 +32,7 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('PARITY_REPO="$(mktemp -d', $workflow);
         $this->assertStringContainsString('git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin main', $workflow);
         $this->assertStringContainsString('isolated_expected_tree_vs_deployed_file_content', $workflow);
+        $this->assertStringContainsString('merge-base --is-ancestor "$EXPECTED_REVISION" origin/main', $workflow);
         $this->assertStringContainsString('git -C "$PARITY_REPO" log --all --format=', $workflow);
         $this->assertStringNotContainsString('git fetch --quiet --no-tags --depth=200 origin main || DEPLOYMENT_DRIFT=1', $workflow);
         $this->assertStringContainsString('git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION"', $workflow);
