@@ -82,7 +82,7 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('getColumns($table)', $workflow);
         $this->assertStringContainsString('getIndexes($table)', $workflow);
         $this->assertStringContainsString('getForeignKeys($table)', $workflow);
-        $this->assertStringContainsString("->where('migration', \\$migration)", $workflow);
+        $this->assertStringContainsString('->where(\\'migration\\', $migration)', $workflow);
         $this->assertStringContainsString('PRESENT_AND_VERIFIED_EQUIVALENT', $workflow);
         $this->assertStringContainsString('PARTIALLY_APPLIED', $workflow);
         $this->assertStringContainsString('ABSENT', $workflow);
