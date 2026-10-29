@@ -345,6 +345,18 @@ jobs:
                 exit(21);
             }
             PHP
+            echo "=== Hostinger scheduler command and PHP executable (read-only) ==="
+            PHP_EXECUTABLE="$(command -v php || true)"
+            if [ -n "$PHP_EXECUTABLE" ]; then
+              PHP_EXECUTABLE_REAL="$(readlink -f "$PHP_EXECUTABLE" 2>/dev/null || printf '%s' "$PHP_EXECUTABLE")"
+              echo "hostinger_php_executable=$PHP_EXECUTABLE_REAL"
+              "$PHP_EXECUTABLE_REAL" -r 'echo "hostinger_php_version=".PHP_VERSION.PHP_EOL;'
+              printf 'expected_hostinger_cron_command=* * * * * cd %s && %s artisan schedule:run >> /dev/null 2>&1\n' "$PROJECT_PATH" "$PHP_EXECUTABLE_REAL"
+            else
+              echo "hostinger_php_executable=UNVERIFIED"
+              echo "expected_hostinger_cron_command=UNVERIFIED"
+            fi
+
             echo "=== Hostinger scheduler cron presence (read-only; command contents suppressed) ==="
             # Distinguish an explicitly empty user crontab from an unreadable or
             # otherwise failing crontab command. Never print scheduler command contents.
@@ -408,6 +420,12 @@ jobs:
               echo "deployment_revision_status=UNVERIFIABLE"
               DEPLOYMENT_DRIFT=1
             fi
+            echo "=== Relevant migration history (read-only, bounded) ==="
+            git log --all --format='%H %cs %s' -S'duplicate_rows' -- database/migrations | head -n 20 || true
+            git log --all --format='%H %cs %s' -S'import_batches' -- database/migrations | head -n 30 || true
+            echo "=== Migration source inventory for import_batches/duplicate_rows (read-only) ==="
+            find database/migrations -maxdepth 1 -type f -name '*.php' -print0 | xargs -0 grep -lE 'duplicate_rows|import_batches' | sort || true
+
             echo "=== Canonical institution identity export (read-only; names and slugs only) ==="
             php <<'PHP'
             <?php
