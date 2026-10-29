@@ -115,4 +115,58 @@ class DiscoveryInstitutionIdentityIdempotencyTest extends TestCase
         $this->assertSame('Import Row', $duplicate['label']);
         $this->assertSame('The same normalized institution identity was already staged. Review the existing import row instead of creating another copy.', $duplicate['message']);
     }
+
+    public function test_shared_generic_name_does_not_match_a_distinct_official_institution_identity(): void
+    {
+        $source = Source::create([
+            'source_type' => 'official',
+            'name' => 'HEC GCUF identity',
+            'url' => 'https://example.gov.pk/gcuf',
+            'authority_scope' => 'official university identity',
+            'status' => 'active',
+        ]);
+        $batch = ImportBatch::create([
+            'batch_key' => 'agent-gcuf-legacy',
+            'entity_type' => 'institution',
+            'source_type' => 'automated_discovery',
+            'source_id' => $source->id,
+            'status' => 'validated',
+            'total_rows' => 1,
+            'candidate_rows' => 1,
+            'received_at' => now(),
+        ]);
+        ImportRow::create([
+            'import_batch_id' => $batch->id,
+            'row_number' => 1,
+            'status' => 'candidate',
+            'match_state' => 'unresolved',
+            'payload' => [
+                'name' => 'Government College University',
+                'official_name' => 'Government College University, Faisalabad',
+                'slug' => 'government-college-university-faisalabad',
+                'institution_type' => 'public university',
+            ],
+            'normalized_payload' => [
+                'name' => 'Government College University',
+                'official_name' => 'Government College University, Faisalabad',
+                'slug' => 'government-college-university-faisalabad',
+                'institution_type' => 'public university',
+            ],
+        ]);
+
+        $duplicate = app(ImportDuplicateDetectorService::class)->findInstitution(
+            'government-college-university-lahore',
+            null,
+            [],
+            [
+                'name' => 'Government College University',
+                'official_name' => 'Government College University, Lahore',
+                'slug' => 'government-college-university-lahore',
+                'institution_type' => 'public university',
+            ]
+        );
+
+        $this->assertNull($duplicate);
+    }
+
 }
