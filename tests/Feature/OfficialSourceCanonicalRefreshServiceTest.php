@@ -115,4 +115,69 @@ class OfficialSourceCanonicalRefreshServiceTest extends TestCase
             'content_fingerprint' => hash('sha256', 'official campus page'),
         ];
     }
+
+    public function test_institution_refresh_fails_closed_without_persisted_field_approval_decision(): void
+    {
+        $institution = Institution::create([
+            'name' => 'Institution Approval Gate University',
+            'official_name' => 'Institution Approval Gate University',
+            'short_name' => 'IAGU',
+            'slug' => 'institution-approval-gate-university',
+            'institution_type' => 'public university',
+            'status' => 'active',
+            'description' => 'Original official description.',
+        ]);
+        $campus = Campus::create([
+            'institution_id' => $institution->id,
+            'name' => 'Approval Gate Campus',
+            'slug' => 'approval-gate-campus',
+            'status' => 'active',
+        ]);
+        $before = ['id' => $institution->id, 'name' => $institution->name, 'slug' => $institution->slug, 'status' => $institution->status, 'description' => $institution->description];
+
+        try {
+            app(OfficialSourceCanonicalRefreshService::class)->refresh(
+                $institution,
+                'description',
+                'Original official description.',
+                'Updated official description.',
+                array_merge($this->validEvidence(), [
+                    'source_official' => true,
+                    'source_identity_verified' => true,
+                    'fetch_successful' => true,
+                    'entity_match_confirmed' => true,
+                    'source_id' => null,
+                    'source_change_observation_id' => null,
+                ])
+            );
+            $this->fail('Institution refresh must remain blocked until a persisted field-level approval is available.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('persisted field-level approval integration is unavailable', $exception->getMessage());
+        }
+
+        $fresh = $institution->fresh();
+        $this->assertSame($before, ['id' => $fresh->id, 'name' => $fresh->name, 'slug' => $fresh->slug, 'status' => $fresh->status, 'description' => $fresh->description]);
+        $this->assertSame($institution->id, $campus->fresh()->institution_id);
+        $this->assertDatabaseCount('official_source_refresh_events', 0);
+    }
+
+    public function test_institution_identity_fields_are_not_allowlisted_for_source_refresh(): void
+    {
+        $institution = Institution::create([
+            'name' => 'Identity Guard University',
+            'slug' => 'identity-guard-university',
+            'status' => 'active',
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('not allowlisted');
+        app(OfficialSourceCanonicalRefreshService::class)->refresh(
+            $institution,
+            'slug',
+            'identity-guard-university',
+            'different-university-slug',
+            $this->validEvidence()
+        );
+    }
+
 }
