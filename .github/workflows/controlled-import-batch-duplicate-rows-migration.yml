@@ -73,13 +73,36 @@ jobs:
             echo "deployed_revision=$PREVIOUS_REVISION"
             echo "target_application_revision=$TARGET_REVISION"
             echo "git_fetch_stage=starting"
-            export GIT_TERMINAL_PROMPT=0
+            echo "git_shell=$SHELL"
+            echo "git_worktree=$(git rev-parse --show-toplevel)"
+            if export GIT_TERMINAL_PROMPT=0; then
+              echo "git_prompt_suppression=enabled"
+            else
+              echo "ERROR: unable to disable interactive Git prompts"
+              exit 4
+            fi
+
+            FETCH_OUTPUT_FILE="$(mktemp)"
+            trap 'rm -f "$FETCH_OUTPUT_FILE"' EXIT
             if [ -f .git/shallow ]; then
               echo "git_fetch_mode=unshallow"
-              git fetch --no-tags --unshallow origin main || { fetch_status=$?; echo "ERROR: unable to fetch main history (git exit $fetch_status)"; exit 4; }
+              if git fetch --no-tags --unshallow origin main >"$FETCH_OUTPUT_FILE" 2>&1; then
+                FETCH_STATUS=0
+              else
+                FETCH_STATUS=$?
+              fi
             else
               echo "git_fetch_mode=normal"
-              git fetch --no-tags origin main || { fetch_status=$?; echo "ERROR: unable to fetch main (git exit $fetch_status)"; exit 4; }
+              if git fetch --no-tags origin main >"$FETCH_OUTPUT_FILE" 2>&1; then
+                FETCH_STATUS=0
+              else
+                FETCH_STATUS=$?
+              fi
+            fi
+            cat "$FETCH_OUTPUT_FILE"
+            if [ "$FETCH_STATUS" -ne 0 ]; then
+              echo "ERROR: git fetch failed (exit $FETCH_STATUS); no database checks or writes were attempted."
+              exit 4
             fi
             echo "git_fetch_stage=completed"
             git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || { echo "ERROR: target commit unavailable"; exit 4; }
