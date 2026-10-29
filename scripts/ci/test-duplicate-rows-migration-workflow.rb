@@ -59,9 +59,22 @@ Tempfile.create(['duplicate-rows-preflight', '.php']) do |file|
   abort "ERROR: embedded PHP preflight fails php -l:\n#{output}" unless status.success?
 end
 
+diagnostic_workflow = YAML.load_file(File.join(root, '.github/workflows/hostinger-readonly-diagnostics.yml'))
+diagnostic_script = diagnostic_workflow.fetch('jobs').fetch('diagnostics').fetch('steps')
+  .find { |step| step['name'] == 'Run diagnostics on Hostinger' }
+  .fetch('with').fetch('script')
+diagnostic_php = diagnostic_script.match(/php <<'PHP'\n(.*?)\nPHP/m)
+abort 'ERROR: read-only diagnostic PHP block could not be extracted' unless diagnostic_php
+Tempfile.create(['duplicate-rows-readonly-diagnostic', '.php']) do |file|
+  file.write(diagnostic_php[1].lstrip)
+  file.flush
+  output, status = Open3.capture2e('php', '-l', file.path)
+  abort "ERROR: read-only diagnostic PHP fails php -l:\n#{output}" unless status.success?
+end
+
 puts 'PASS: dry-run default, least-privilege permissions, and concurrency guard'
 puts 'PASS: JSON output includes column, position, table, index, foreign-key, and ledger evidence'
 puts 'PASS: explicit unsafe-state diagnoses and fail-closed guards'
 puts 'PASS: migration origin is not inferred from basic column attributes'
-puts 'PASS: embedded PHP preflight passes php -l'
+puts 'PASS: embedded migration preflight and read-only diagnostic PHP both pass php -l'
 puts 'PASS: read-only path contains no migration-ledger or schema-repair write'
