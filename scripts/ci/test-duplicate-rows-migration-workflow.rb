@@ -22,7 +22,7 @@ required_fields = %w[
   column_definition column_definition_matches_migration column_position_verified
   candidate_rows_precedes_duplicate_rows table_definition indexes foreign_keys
   migration_file_exists migration_ledger_exists matching_migration_count
-  matching_migrations related_migration_ledger_entries schema_equivalence
+  matching_migrations related_migration_ledger_entries related_migration_files schema_equivalence
   migration_origin diagnosis
 ]
 required_fields.each do |field|
@@ -40,7 +40,7 @@ abort 'ERROR: diagnostic must explicitly leave migration origin unknown unless e
 abort 'ERROR: column position must be checked against candidate_rows' unless script.include?("$duplicatePosition === $candidatePosition + 1")
 abort 'ERROR: index and foreign-key inventory must be read-only schema introspection' unless script.include?('$schema->getIndexes($table)') && script.include?('$schema->getForeignKeys($table)')
 abort 'ERROR: MySQL table metadata must be read-only' unless script.include?('information_schema.TABLES')
-abort 'ERROR: alternate related migration history must be inventoried' unless script.include?("like', '%duplicate_rows%'") && script.include?("like', '%import_batches%'")
+abort 'ERROR: alternate related migration history must be inventoried' unless script.include?("like', '%duplicate_rows%'") && script.include?("like', '%import_batches%'") && script.include?("glob(base_path('database/migrations/*.php'))")
 abort 'ERROR: duplicate ledger entries must fail closed' unless script.include?('$matchingMigrationCount > 1') && script.include?('exit(15);')
 abort 'ERROR: partial schema must fail closed' unless script.include?('$columnExists && $matchingMigrationCount === 0') && script.include?('exit(14);')
 abort 'ERROR: preflight must not auto-reconcile the migration ledger' if script.match?(/insert\s+into\s+['"]?migrations|table\(['"]migrations['"]\)->insert/i)
