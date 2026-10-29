@@ -101,6 +101,19 @@ class InstitutesDirectoryTest extends TestCase
         $this->assertStringContainsString('storage_engine_foreign_key_compatible', $workflow);
         $this->assertStringContainsString('referenced_id_type_not_compatible_with_unsigned_bigint_foreignId', $workflow);
         $this->assertStringContainsString('referenced_id_not_primary_or_unique', $workflow);
+        foreach ([
+            'referenced_table_missing',
+            'referenced_id_column_missing',
+            'referenced_id_nullability_not_verified_non_null',
+            'referenced_table_engine_not_verified_innodb',
+            'metadata_introspection_failed',
+            'PARTIALLY_APPLIED',
+            'TABLE_ABSENT_LEDGER_PRESENT',
+            'TABLE_PRESENT_LEDGER_COUNT_MISMATCH',
+            'AMBIGUOUS_UNVERIFIED',
+        ] as $failureClassification) {
+            $this->assertStringContainsString($failureClassification, $workflow);
+        }
         $this->assertStringContainsString('TABLE_SCHEMA = DATABASE()', $workflow);
     }
 
