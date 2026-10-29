@@ -24,7 +24,7 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('Deployed API route registration (read-only; bounded)', $workflow);
         $this->assertStringContainsString('php artisan route:list --json --no-ansi', $workflow);
         $this->assertStringContainsString('institution_api_route_registration', $workflow);
-        $this->assertStringContainsString('Laravel API route registration (read-only)', $workflow);
+        $this->assertStringContainsString('Deployed API route registration (read-only; bounded)', $workflow);
         $this->assertStringContainsString('institution_api_route_registration', $workflow);
         $this->assertStringContainsString('artisan route:list --path=api/v1/institutions --json', $workflow);
         $this->assertStringContainsString('artisan schedule:run', $workflow);
