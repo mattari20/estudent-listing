@@ -66,7 +66,7 @@ diagnostic_script = diagnostic_workflow.fetch('jobs').fetch('diagnostics').fetch
   .fetch('with').fetch('script')
 diagnostic_php = diagnostic_script.match(/php <<'PHP'\n(.*?)\nPHP/m)
 abort 'ERROR: read-only diagnostic PHP block could not be extracted' unless diagnostic_php
-%w[mutation_performed write_requested column_definition_equivalence schema_equivalence migration_origin diagnosis related_migration_files].each do |field|
+%w[mutation_performed write_requested column_definition_equivalence schema_equivalence metadata_introspection_succeeded migration_origin diagnosis related_migration_files].each do |field|
   abort "ERROR: read-only diagnostic report is missing #{field}" unless diagnostic_php[1].include?("'#{field}'")
 end
 abort 'ERROR: read-only diagnostic must report no requested write' unless diagnostic_php[1].include?("'write_requested' => false")
