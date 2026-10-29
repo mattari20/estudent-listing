@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Assertion;
 use App\Models\Campus;
 use App\Models\Evidence;
 use App\Models\Institution;
