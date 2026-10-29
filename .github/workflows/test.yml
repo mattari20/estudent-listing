@@ -66,6 +66,8 @@ jobs:
 
       - name: Validate controlled migration rendered remote script
         run: ruby scripts/ci/test-controlled-migration-workflow.rb
+      - name: Validate duplicate_rows read-only schema diagnostics contract
+        run: ruby scripts/ci/test-duplicate-rows-migration-workflow.rb
       - name: Validate scheduled discovery dependency conditions
         run: ruby scripts/ci/test-scheduled-discovery-workflow.rb
 

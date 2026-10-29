@@ -83,59 +83,190 @@ jobs:
             $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
             $schema = \Illuminate\Support\Facades\Schema::class;
-            $db = \Illuminate\Support\Facades\DB::class;
             $table = 'import_batches';
             $migration = '2026_10_23_000001_add_duplicate_rows_to_import_batches_table';
-            $tableExists = $schema::hasTable($table);
-            $columnExists = $tableExists && $schema::hasColumn($table, 'duplicate_rows');
-            $migrationFileExists = is_file(base_path('database/migrations/'.$migration.'.php'));
-            $migrationLedgerExists = $schema::hasTable('migrations');
+            $migrationFile = base_path('database/migrations/'.$migration.'.php');
+            $tableExists = null;
+            $columnExists = null;
+            $ledgerExists = null;
+            $driver = null;
             $migrationRows = [];
-            if ($migrationLedgerExists) {
-                $migrationRows = $db::table('migrations')
-                    ->where('migration', $migration)
-                    ->orderBy('batch')
-                    ->get(['migration', 'batch'])
-                    ->map(fn ($row) => ['migration' => $row->migration, 'batch' => (int) $row->batch])
-                    ->all();
-            }
-            $columnDefinition = null;
-            if ($columnExists) {
-                foreach ($schema::getColumns($table) as $column) {
-                    if (($column['name'] ?? null) === 'duplicate_rows') {
-                        $columnDefinition = [
-                            'name' => $column['name'] ?? null,
-                            'type_name' => $column['type_name'] ?? null,
-                            'type' => $column['type'] ?? null,
-                            'nullable' => $column['nullable'] ?? null,
-                            'default' => $column['default'] ?? null,
-                            'auto_increment' => $column['auto_increment'] ?? null,
+            $relatedMigrationEntries = [];
+            $relatedMigrationFiles = [];
+            $matchingMigrationCount = null;
+            $metadataError = false;
+            try {
+                $connection = \Illuminate\Support\Facades\DB::connection();
+                $driver = $connection->getDriverName();
+                $tableExists = $schema::hasTable($table);
+                $columnExists = $tableExists && $schema::hasColumn($table, 'duplicate_rows');
+                $ledgerExists = $schema::hasTable('migrations');
+                if ($ledgerExists) {
+                    $migrationRows = $connection->table('migrations')
+                        ->where('migration', $migration)->orderBy('batch')
+                        ->get(['migration', 'batch'])
+                        ->map(static fn ($row) => ['migration' => (string) $row->migration, 'batch' => (int) $row->batch])
+                        ->all();
+                    $matchingMigrationCount = count($migrationRows);
+                    $relatedMigrationEntries = $connection->table('migrations')
+                        ->where(function ($query): void {
+                            $query->where('migration', 'like', '%duplicate_rows%')
+                                ->orWhere('migration', 'like', '%import_batches%');
+                        })->orderBy('batch')->orderBy('migration')
+                        ->get(['migration', 'batch'])
+                        ->map(static fn ($row) => [
+                            'migration' => (string) $row->migration,
+                            'batch' => (int) $row->batch,
+                            'migration_file_exists' => is_file(base_path('database/migrations/'.$row->migration.'.php')),
+                        ])->all();
+                }
+                foreach (glob(base_path('database/migrations/*.php')) ?: [] as $candidatePath) {
+                    $source = file_get_contents($candidatePath);
+                    if (! is_string($source)) { continue; }
+                    $mentionsDuplicateRows = str_contains($source, 'duplicate_rows');
+                    $mentionsImportBatches = str_contains($source, 'import_batches');
+                    if ($mentionsDuplicateRows || $mentionsImportBatches) {
+                        $candidateName = basename($candidatePath, '.php');
+                        $relatedMigrationFiles[] = [
+                            'migration' => $candidateName,
+                            'mentions_duplicate_rows' => $mentionsDuplicateRows,
+                            'mentions_import_batches' => $mentionsImportBatches,
+                            'migration_ledger_count' => $ledgerExists
+                                ? (int) $connection->table('migrations')->where('migration', $candidateName)->count()
+                                : null,
                         ];
-                        break;
                     }
                 }
+            } catch (\Throwable $exception) {
+                // Suppress exception details; report incomplete introspection without exposing SQL or credentials.
+                $metadataError = true;
+                $migrationRows = [];
+                $relatedMigrationEntries = [];
+                $relatedMigrationFiles = [];
+                $matchingMigrationCount = null;
             }
-            $migrationApplied = count($migrationRows) > 0;
-            $diagnosis = match (true) {
-                ! $tableExists => 'IMPORT_BATCHES_TABLE_MISSING',
-                ! $columnExists && ! $migrationApplied => 'COLUMN_MISSING_MIGRATION_NOT_RECORDED',
-                ! $columnExists && $migrationApplied => 'SCHEMA_DRIFT_MIGRATION_RECORDED_COLUMN_MISSING',
-                $columnExists && ! $migrationApplied => 'COLUMN_PRESENT_MIGRATION_NOT_RECORDED',
-                default => 'COLUMN_AND_MIGRATION_LEDGER_CONSISTENT',
-            };
+
+            $columnDefinition = null;
+            $columnPositionVerified = false;
+            $candidateRowsPrecedes = null;
+            $columnDefinitionMatches = false;
+            $tableDefinition = null;
+            $indexes = [];
+            $foreignKeys = [];
+            try {
+                if ($tableExists) {
+                    $columns = $schema::getColumns($table);
+                    $columnNames = array_map(static fn ($column) => (string) ($column['name'] ?? ''), $columns);
+                    $candidatePosition = array_search('candidate_rows', $columnNames, true);
+                    $duplicatePosition = array_search('duplicate_rows', $columnNames, true);
+                    if ($duplicatePosition !== false) {
+                        $column = $columns[$duplicatePosition];
+                        $typeLabel = strtolower((string) ($column['type_name'] ?? '').' '.(string) ($column['type'] ?? ''));
+                        $nullable = $column['nullable'] ?? null;
+                        $default = $column['default'] ?? null;
+                        $autoIncrement = $column['auto_increment'] ?? null;
+                        $columnPositionVerified = $candidatePosition !== false;
+                        $candidateRowsPrecedes = $candidatePosition !== false
+                            && $duplicatePosition === $candidatePosition + 1;
+                        $columnDefinition = [
+                            'name' => 'duplicate_rows',
+                            'type_name' => $column['type_name'] ?? null,
+                            'type' => $column['type'] ?? null,
+                            'unsigned' => str_contains($typeLabel, 'unsigned'),
+                            'nullable' => $nullable,
+                            'default' => $default,
+                            'auto_increment' => $autoIncrement,
+                            'ordinal_position' => $duplicatePosition + 1,
+                            'previous_column' => $duplicatePosition > 0 ? $columnNames[$duplicatePosition - 1] : null,
+                            'next_column' => $duplicatePosition + 1 < count($columnNames) ? $columnNames[$duplicatePosition + 1] : null,
+                            'candidate_rows_exists' => $candidatePosition !== false,
+                        ];
+                        $columnDefinitionMatches = str_contains($typeLabel, 'int')
+                            && str_contains($typeLabel, 'unsigned')
+                            && $nullable === false
+                            && $default !== null && (string) $default === '0'
+                            && $autoIncrement === false;
+                    }
+                    $indexes = $schema::getIndexes($table);
+                    $foreignKeys = $schema::getForeignKeys($table);
+                    if ($driver === 'mysql') {
+                        $rows = $connection->select(
+                            'SELECT ENGINE, TABLE_COLLATION, ROW_FORMAT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
+                            [$table]
+                        );
+                        if ($rows !== []) {
+                            $tableDefinition = [
+                                'engine' => $rows[0]->ENGINE ?? null,
+                                'collation' => $rows[0]->TABLE_COLLATION ?? null,
+                                'row_format' => $rows[0]->ROW_FORMAT ?? null,
+                            ];
+                        }
+                    } elseif ($driver === 'sqlite') {
+                        $rows = $connection->select("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?", [$table]);
+                        $tableDefinition = ['create_sql_available' => $rows !== []];
+                    } elseif ($driver === 'pgsql') {
+                        $tableDefinition = ['metadata_driver' => 'pgsql', 'engine' => null];
+                    }
+                }
+            } catch (\Throwable $exception) {
+                // Suppress exception details because they may contain SQL or connection metadata.
+                $metadataError = true;
+                $columnDefinition = null;
+                $columnPositionVerified = false;
+                $candidateRowsPrecedes = null;
+                $columnDefinitionMatches = false;
+            }
+            $columnAndPositionMatch = $columnExists && $columnDefinitionMatches
+                && $columnPositionVerified && $candidateRowsPrecedes === true;
+            if ($matchingMigrationCount > 1) {
+                $diagnosis = 'DUPLICATE_MIGRATION_LEDGER_ENTRIES';
+            } elseif ($metadataError) {
+                $diagnosis = 'SCHEMA_EQUIVALENCE_UNVERIFIED';
+            } elseif ($columnExists && ! $columnAndPositionMatch) {
+                $diagnosis = 'COLUMN_DEFINITION_MISMATCH';
+            } elseif (! $columnExists && $matchingMigrationCount > 0) {
+                $diagnosis = 'COLUMN_ABSENT_LEDGER_PRESENT';
+            } elseif ($columnExists && $matchingMigrationCount === 0) {
+                $diagnosis = 'COLUMN_PRESENT_LEDGER_ABSENT';
+            } elseif ($columnExists && $matchingMigrationCount === 1) {
+                $diagnosis = 'COLUMN_AND_LEDGER_CONSISTENT';
+            } else {
+                $diagnosis = 'SCHEMA_EQUIVALENCE_UNVERIFIED';
+            }
+            $columnDefinitionEquivalence = $metadataError ? 'UNVERIFIED' : ($columnAndPositionMatch ? 'MATCH' : ($columnExists ? 'MISMATCH' : 'NOT_APPLICABLE'));
+            // Full table-schema equivalence cannot be asserted until the original creation migration is identified and compared.
+            $schemaEquivalence = 'UNVERIFIED';
             echo json_encode([
                 'check' => 'import_batches_duplicate_rows_schema_verification',
                 'checked_at' => now()->toIso8601String(),
                 'mutation_performed' => false,
+                'write_requested' => false,
+                'database_driver' => $driver,
                 'table' => $table,
                 'table_exists' => $tableExists,
+                'column_exists' => $columnExists,
                 'duplicate_rows_column_exists' => $columnExists,
                 'duplicate_rows_column_definition' => $columnDefinition,
+                'column_definition' => $columnDefinition,
+                'column_definition_matches_migration' => $columnDefinitionMatches,
+                'column_definition_equivalence' => $columnDefinitionEquivalence,
+                'column_position_verified' => $columnPositionVerified,
+                'candidate_rows_precedes_duplicate_rows' => $candidateRowsPrecedes,
+                'table_definition' => $tableDefinition,
+                'indexes' => $indexes,
+                'foreign_keys' => $foreignKeys,
                 'migration_name' => $migration,
-                'migration_file_exists' => $migrationFileExists,
-                'migration_ledger_exists' => $migrationLedgerExists,
-                'migration_applied' => $migrationApplied,
+                'migration_file_exists' => is_file($migrationFile),
+                'migration_ledger_exists' => $ledgerExists,
+                'matching_migration_count' => $matchingMigrationCount,
+                'matching_migrations' => $migrationRows,
                 'matching_migration_rows' => $migrationRows,
+                'migration_applied' => $matchingMigrationCount > 0,
+                'related_migration_ledger_entries' => $relatedMigrationEntries,
+                'related_migration_files' => $relatedMigrationFiles,
+                'schema_equivalence' => $schemaEquivalence,
+                'metadata_introspection_succeeded' => ! $metadataError,
+                'migration_origin' => 'UNKNOWN',
                 'diagnosis' => $diagnosis,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP

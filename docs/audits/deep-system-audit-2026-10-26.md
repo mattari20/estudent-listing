@@ -236,3 +236,10 @@ Source: Hostinger Read-only Diagnostics [run #40820996249](https://github.com/ma
 - No full live route-by-route authorization matrix or authenticated browser test was executed in this pass.
 - Public API rate-limit behavior, setup-route race behavior, admin/master-admin role policy, CSRF/session settings, upload-size and malformed-CSV cases, and all sensitive mutation controllers still require dedicated tests or reviewed evidence.
 - Do not classify these as confirmed vulnerabilities without reproducing the specific failure.
+
+
+## Execution update — 2026-10-29: duplicate_rows schema/ledger incident
+
+- Latest live evidence is guarded migration run [#40822324545](https://github.com/mattari20/estudent-listing/actions/runs/40822324545): PHP/Laravel preflight works and confirms the target column exists while its exact migration ledger row is absent. The run requested no write and performed no mutation.
+- A review branch extends both the guarded preflight and Hostinger read-only diagnostics with column definition/position, index, foreign-key, table metadata, related migration ledger and migration-file inventory, plus bounded migration Git history and Test-workflow contract checks. This branch is not yet merged or live-verified.
+- Full schema equivalence and the historical origin of the column are still unknown. No reconciliation action is authorized. Continue the remaining independent audit work; this incident does not justify pausing public-route, data-integrity, security, scheduler, and deployment audits.
