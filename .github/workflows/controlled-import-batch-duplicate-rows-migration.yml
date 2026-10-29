@@ -92,8 +92,7 @@ jobs:
 
             PREFLIGHT_OUTPUT_FILE="$(mktemp)"
             trap 'rm -f "$PREFLIGHT_OUTPUT_FILE"' EXIT
-            set +e
-            php >"$PREFLIGHT_OUTPUT_FILE" 2>&1 <<'PHP'
+            if php >"$PREFLIGHT_OUTPUT_FILE" 2>&1 <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -125,8 +124,11 @@ jobs:
             if ($migrationRecorded && $columnExists) { echo "decision=ALREADY_APPLIED_AND_VERIFIED\n"; exit(0); }
             echo "decision=READY_FOR_SINGLE_MIGRATION\n";
             PHP
-            PREFLIGHT_PHP_EXIT=$?
-            set -e
+            then
+              PREFLIGHT_PHP_EXIT=0
+            else
+              PREFLIGHT_PHP_EXIT=$?
+            fi
             cat "$PREFLIGHT_OUTPUT_FILE"
             if [ "$PREFLIGHT_PHP_EXIT" -ne 0 ]; then
               echo "ERROR: PHP preflight failed with exit code $PREFLIGHT_PHP_EXIT; see PHP output above."
