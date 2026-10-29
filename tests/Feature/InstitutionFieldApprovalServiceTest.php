@@ -330,6 +330,24 @@ class InstitutionFieldApprovalServiceTest extends TestCase
         $this->assertDatabaseCount('official_source_refresh_events', 0);
     }
 
+    public function test_inactive_evidence_invalidates_approved_proposal(): void
+    {
+        [$institution, $source, $observation, $snapshot, $evidence] = $this->fixture();
+        $this->actingAs($this->user('operator'));
+        $proposal = $this->proposal($institution, $source, $observation, $snapshot, $evidence);
+        $this->actingAs($this->user('admin'));
+        app(InstitutionFieldApprovalService::class)->decide($proposal->id, 'approved');
+        $evidence->status = 'inactive';
+        $evidence->save();
+
+        $result = app(OfficialSourceCanonicalRefreshService::class)->refreshApprovedInstitutionDescription($proposal->id);
+
+        $this->assertSame('stale', $result['outcome']);
+        $this->assertSame('evidence_invalid', $result['approval']->application_outcome);
+        $this->assertSame('Original description', $institution->fresh()->description);
+        $this->assertDatabaseCount('official_source_refresh_events', 0);
+    }
+
     public function test_changed_snapshot_content_invalidates_approval(): void
     {
         [$institution, $source, $observation, $snapshot, $evidence] = $this->fixture();
