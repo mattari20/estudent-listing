@@ -99,6 +99,22 @@ jobs:
                     ->map(fn ($row) => ['migration' => $row->migration, 'batch' => (int) $row->batch])
                     ->all();
             }
+            $columnDefinition = null;
+            if ($columnExists) {
+                foreach ($schema::getColumns($table) as $column) {
+                    if (($column['name'] ?? null) === 'duplicate_rows') {
+                        $columnDefinition = [
+                            'name' => $column['name'] ?? null,
+                            'type_name' => $column['type_name'] ?? null,
+                            'type' => $column['type'] ?? null,
+                            'nullable' => $column['nullable'] ?? null,
+                            'default' => $column['default'] ?? null,
+                            'auto_increment' => $column['auto_increment'] ?? null,
+                        ];
+                        break;
+                    }
+                }
+            }
             $migrationApplied = count($migrationRows) > 0;
             $diagnosis = match (true) {
                 ! $tableExists => 'IMPORT_BATCHES_TABLE_MISSING',
@@ -114,6 +130,7 @@ jobs:
                 'table' => $table,
                 'table_exists' => $tableExists,
                 'duplicate_rows_column_exists' => $columnExists,
+                'duplicate_rows_column_definition' => $columnDefinition,
                 'migration_name' => $migration,
                 'migration_file_exists' => $migrationFileExists,
                 'migration_ledger_exists' => $migrationLedgerExists,

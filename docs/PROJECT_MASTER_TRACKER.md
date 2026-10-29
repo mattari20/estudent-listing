@@ -512,3 +512,33 @@ These authoritative pages were checked through current web retrieval to refine s
 - [ ] All Step 1 gates reconciled and independently verified.
 
 **Next required action:** use GitHub's Actions UI or an authorized dispatch client to run Hostinger Read-only Diagnostics on current main, with no write inputs (or their false defaults), then review the sanitized report and deployed revision before considering any separate production write authorization. Until that evidence and the other unchecked criteria are complete, Step 1 remains blocked and Step 2 must not begin.
+
+
+## Step 1 execution checkpoint — 2026-10-29 (main `a6239509d1183ad54e3f062d572876e377e5743d`)
+
+**Overall status: BLOCKED / NOT COMPLETE. Step 2 remains prohibited.**
+
+- PR [#893](https://github.com/mattari20/estudent-listing/pull/893) merged at `a6239509d1183ad54e3f062d572876e377e5743d`. PR Test [#40819995295](https://github.com/mattari20/estudent-listing/actions/runs/40819995295) and Laravel CI [#40819995286](https://github.com/mattari20/estudent-listing/actions/runs/40819995286) passed. It removes `script_stop: true` from the targeted workflow and adds PHP CLI probe markers. It does not yet prove the live preflight succeeds.
+- The latest actual controlled import migration run remains [#40819601765](https://github.com/mattari20/estudent-listing/actions/runs/40819601765), failed after `php_preflight_stage=starting` with SSH status 255 on the old commit `c0f7bb9aa15e9b994fa3a4787c29399e570567bf`. No schema/ledger output was produced; migration was not reached.
+- A code review found an additional fail-closed gap: the preflight did not reject `duplicate_rows` present while its migration-ledger row is absent. [PR #894](https://github.com/mattari20/estudent-listing/pull/894) adds the guard, regression test, and audit updates. Do not merge until required checks pass.
+- Main CI after PR #893 merge passed on commit `a6239509d1183ad54e3f062d572876e377e5743d`: Test [#40820996276](https://github.com/mattari20/estudent-listing/actions/runs/40820996276), Laravel CI [#40820996150](https://github.com/mattari20/estudent-listing/actions/runs/40820996150), frontend build [#40820996214](https://github.com/mattari20/estudent-listing/actions/runs/40820996214), command orchestrator [#40820996122](https://github.com/mattari20/estudent-listing/actions/runs/40820996122), public monitor [#40820996120](https://github.com/mattari20/estudent-listing/actions/runs/40820996120), and Hostinger read-only diagnostics [#40820996249](https://github.com/mattari20/estudent-listing/actions/runs/40820996249) all succeeded. These are not a substitute for the guarded workflow's manual preflight.
+- The available GitHub integration cannot dispatch Actions workflows. Required next external action: open the [Controlled Import Batch Duplicate Rows Migration workflow](https://github.com/mattari20/estudent-listing/actions/workflows/controlled-import-batch-duplicate-rows-migration.yml), select `main`, set `confirm_migration=false`, and run it. Inspect the full job logs for PHP probe markers, preflight JSON, schema state, and ledger state. Never set confirmation true for diagnosis.
+- Read-only branch/ruleset inspection found an active ruleset named `main`; direct branch-protection details returned 403 to this integration, so exact required-check/rule configuration is not verified.
+- Workflow inventory review covered the controlled duplicate_rows, official-source refresh, discovery-outcome, geography seed, and code-deploy workflows plus read-only diagnostics and scheduled discovery. The duplicate_rows workflow now has an explicit migration default false, scoped migration path, postcheck, least-privilege `contents: read`, and concurrency group. The official-source refresh workflow still uses `script_stop: true`; this remains an audit item, not a confirmed defect, and must be checked independently before changing it.
+- Static migration inventory showed multiple historical filenames that mention the same tables, but the sampled earlier duplicates were intentionally empty superseded migrations; no duplicate-create defect is asserted from filenames alone.
+- No production migration, schema/index repair, migration-ledger write, import, canonical promotion, approval, deletion, or scheduled mutating command was executed. Current live schema and ledger state remain unknown.
+
+
+## Fresh Hostinger diagnostics checkpoint — 2026-10-29 10:01 +05
+
+Source: [Hostinger Read-only Diagnostics #40820996249](https://github.com/mattari20/estudent-listing/actions/runs/40820996249); public monitor [#40820996120](https://github.com/mattari20/estudent-listing/actions/runs/40820996120).
+
+- Application-path parity: `APPLICATION_CODE_MATCH`.
+- **Duplicate-row migration:** `import_batches` and `duplicate_rows` exist, migration file and migrations ledger exist, but the target migration row is absent. Diagnostic: `COLUMN_PRESENT_MIGRATION_NOT_RECORDED`. Read-only check reports `mutation_performed=false`. This is a confirmed schema/ledger inconsistency; the column's full physical definition is not yet reported. Do not run the migration or manually insert a ledger row.
+- **Current repair PR:** [#894](https://github.com/mattari20/estudent-listing/pull/894) adds a fail-closed check for column-present/ledger-absent state and regression coverage. It remains open until the latest-head required checks pass.
+- **Official-source refresh schema:** current diagnostic reports `schema_ready=true`, all expected columns/indexes present, and the migration row present. This supersedes the older October 28 observation for that separate table.
+- **Canonical population:** the latest snapshot has zero active institutions, campuses, programs, and offerings. The public listing returns HTTP 200 but the monitor reports `EMPTY_DATA`; there is no genuine detail URL to test. Do not fabricate a record.
+- **Guest denial:** discovery history and review-package download redirect to Institutes login. This verifies only those sampled endpoints.
+- **Scheduler:** Laravel reports hourly scheduled tasks; Hostinger `crontab -l` is unreadable with exit 127. Actual hPanel cron configuration and recent execution history remain unverified.
+- **Main checks after PR #893 merge:** Test, Laravel CI, frontend build, command orchestrator, public monitor, and read-only diagnostics all passed. The guarded migration's manual workflow has not been rerun on the merged fix.
+- **Safety boundary:** no production migration, schema change, ledger write, data import, promotion, approval, deletion, or mutating scheduled command was run. Step 1 remains blocked; Step 2 remains prohibited.

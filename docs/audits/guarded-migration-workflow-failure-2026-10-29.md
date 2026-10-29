@@ -63,3 +63,26 @@ This incident remains one item within the existing [deep system audit](deep-syst
 Track each item as **confirmed defect**, **audit gap**, **verified pass**, or **blocked by external access**. Do not treat a successful CI run, merged PR, or successful deployment as proof that the entire system is healthy.
 
 **Closure rule:** close this incident only after the guarded workflow produces an interpretable read-only result and the relevant live schema/migration state is verified. A merged PR alone is not closure evidence.
+
+
+## Execution update — 2026-10-29
+
+- [PR #893](https://github.com/mattari20/estudent-listing/pull/893) was reviewed and squash-merged as `a6239509d1183ad54e3f062d572876e377e5743d`. Its Test run [#40819995295](https://github.com/mattari20/estudent-listing/actions/runs/40819995295) and Laravel CI run [#40819995286](https://github.com/mattari20/estudent-listing/actions/runs/40819995286) passed.
+- The merged change removes the legacy SSH `script_stop: true` setting from this workflow and adds PHP CLI discovery/version/inline-execution markers. This is a diagnostic improvement, **not proof of a live fix**.
+- The only observed production attempt still remains the old main workflow run [#40819601765](https://github.com/mattari20/estudent-listing/actions/runs/40819601765), which stopped with SSH status 255 immediately after `php_preflight_stage=starting`. No schema report was emitted; no migration execution or production schema mutation is evidenced.
+- The connected GitHub integration has no workflow-dispatch operation. No fresh run was triggered by this session. Required next operational check: manually dispatch [Controlled Import Batch Duplicate Rows Migration](https://github.com/mattari20/estudent-listing/actions/workflows/controlled-import-batch-duplicate-rows-migration.yml) on `main` with `confirm_migration=false`, then inspect all stage markers and sanitized schema/ledger output.
+
+### Additional confirmed fail-closed gap discovered in code review
+
+- The existing preflight rejected “migration recorded, column absent” and accepted “migration recorded, column present,” but did not reject the opposite partial state: `duplicate_rows` already exists while the migration has no ledger row. In that state it could report `READY_FOR_SINGLE_MIGRATION`, causing an attempted duplicate-column migration if explicitly confirmed.
+- A focused fail-closed fix and regression test are in [PR #894](https://github.com/mattari20/estudent-listing/pull/894), currently open and awaiting CI. The fix rejects that partial state before the ready decision. It does not inspect or mutate the production database and does not alter the migration confirmation gate.
+- Fresh Hostinger read-only diagnostics [run #40820996249](https://github.com/mattari20/estudent-listing/actions/runs/40820996249), checked at 2026-10-29 10:01:46 +05, now establish `import_batches` exists, `duplicate_rows` exists, the migration file exists, and the migrations table exists, but the target migration row is absent (`COLUMN_PRESENT_MIGRATION_NOT_RECORDED`). The diagnostic does not report the column type, nullability, default, or all relevant schema constraints, so full equivalence remains unproven. Do not dispatch with confirmation enabled.
+
+
+### Fresh live evidence — 2026-10-29 10:01 +05
+
+- Hostinger read-only diagnostics [#40820996249](https://github.com/mattari20/estudent-listing/actions/runs/40820996249) completed successfully and reported `deployment_revision_status=APPLICATION_CODE_MATCH`; this verifies application-path parity, not the entire Git commit SHA.
+- The duplicate_rows check explicitly returned `table_exists=true`, `duplicate_rows_column_exists=true`, `migration_file_exists=true`, `migration_ledger_exists=true`, `migration_applied=false`, `matching_migration_rows=[]`, and `diagnosis=COLUMN_PRESENT_MIGRATION_NOT_RECORDED`. `mutation_performed=false`.
+- This is a confirmed partial schema/ledger state, but not yet proof that the existing column definition exactly matches the migration's `unsignedInteger('duplicate_rows')->default(0)->after('candidate_rows')` contract. Do not apply the migration; the new PR #894 guard is designed to fail closed.
+- The same diagnostics run reports `official_source_refresh_events` readiness as `schema_ready=true`, required columns/indexes present, and its migration ledger row present. This updates the earlier October 28 finding for that separate migration.
+- The public monitor [#40820996120](https://github.com/mattari20/estudent-listing/actions/runs/40820996120) passed its HTTP smoke workflow but classified the public listing as `EMPTY_DATA` (HTTP 200); no published institution detail URL was available to test. Guest requests to operator-only discovery history and review-package download returned 302 to the Institutes login.
