@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Assertion;
 use App\Models\Evidence;
 use App\Models\Institution;
 use App\Models\InstitutionFieldApproval;
