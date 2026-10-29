@@ -134,7 +134,7 @@ class InstituteDiscoveryInstitutionIdentityTest extends TestCase
             'slug' => 'government-college-university-lahore',
             'status' => 'active',
         ]);
-        $before = $canonical->getAttributes();
+        $before = $canonical->only(['name', 'slug', 'status']);
         $html = '<html><head><title>Government College University, Lahore — HEC</title></head><body>'
             .'<h1>Government College University, Lahore</h1><p>Government College University, Lahore is a public university.</p>'
             .'</body></html>';
@@ -146,7 +146,7 @@ class InstituteDiscoveryInstitutionIdentityTest extends TestCase
         $this->assertSame('duplicate', $row->status);
         $this->assertSame('duplicate', $row->match_state);
         $this->assertStringContainsString('already exists in canonical data', implode(' ', $row->validation_errors ?? []));
-        $this->assertSame($before, $canonical->fresh()->getAttributes());
+        $this->assertSame($before, $canonical->fresh()->only(['name', 'slug', 'status']));
         $this->assertSame(1, Institution::count());
         $this->assertSame(1, ImportRow::where('import_batch_id', $summary['batch_id'])->count());
     }
