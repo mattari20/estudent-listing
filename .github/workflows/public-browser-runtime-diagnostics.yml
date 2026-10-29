@@ -287,12 +287,6 @@ jobs:
             }, API);
             emit('browser_api_fetch_summary', apiSummary);
 
-            const navigationStatuses = {
-              directoryInitial: response?.status() ?? 0,
-              searchGet: null,
-              pageSize12: null,
-            };
-
             // Exercise the GET search form and preserve the actual navigation response.
             if (await page.locator('#directory-search').count()) {
               await page.locator('#directory-search').fill('COMSATS');
