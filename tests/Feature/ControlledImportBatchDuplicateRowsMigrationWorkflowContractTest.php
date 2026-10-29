@@ -35,6 +35,20 @@ class ControlledImportBatchDuplicateRowsMigrationWorkflowContractTest extends Te
         $this->assertStringNotContainsString('php artisan migrate --force --no-interaction', $workflow);
     }
 
+    public function test_preflight_rejects_column_present_without_migration_ledger_entry(): void
+    {
+        $workflow = file_get_contents(base_path('.github/workflows/controlled-import-batch-duplicate-rows-migration.yml'));
+
+        $this->assertIsString($workflow);
+        $partialSchemaGuard = strpos($workflow, 'if ($columnExists && !$migrationRecorded)');
+        $readyDecision = strpos($workflow, 'echo "decision=READY_FOR_SINGLE_MIGRATION');
+        $this->assertNotFalse($partialSchemaGuard);
+        $this->assertNotFalse($readyDecision);
+        $this->assertLessThan($readyDecision, $partialSchemaGuard);
+        $this->assertStringContainsString('partial schema requires separate review', $workflow);
+        $this->assertStringContainsString('exit(14);', $workflow);
+    }
+
     public function test_post_migration_verification_uses_explicit_script_file_and_cleans_up(): void
     {
         $workflow = file_get_contents(base_path('.github/workflows/controlled-import-batch-duplicate-rows-migration.yml'));
