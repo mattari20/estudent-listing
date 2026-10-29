@@ -515,7 +515,7 @@ jobs:
                             $expected = $expectedColumns[$name];
                             if (!preg_match($expected['pattern'], $type)
                                 || $nullable !== $expected['nullable']
-                                || (array_key_exists('default', $expected) && (string) ($column['default'] ?? '') !== (string) $expected['default']
+                                || (array_key_exists('default', $expected) && (string) ($column['default'] ?? '') !== (string) $expected['default'])
                                 || (array_key_exists('auto_increment', $expected) && (bool) ($column['auto_increment'] ?? false) !== $expected['auto_increment'])) {
                                 $columnDefinitionMismatches[] = $name;
                             }
