@@ -33,6 +33,7 @@ use App\Http\Controllers\InstituteSetupController;
 use App\Http\Controllers\InstituteUserController;
 use App\Http\Controllers\InstituteSitemapController;
 use App\Http\Controllers\InstitutionController;
+use App\Http\Controllers\InstitutionFieldApprovalController;
 use App\Http\Controllers\MonitoringExportController;
 use App\Http\Controllers\MonitoringOperationsController;
 use App\Http\Controllers\MonitoringPolicyController;
@@ -57,6 +58,10 @@ Route::prefix('institutes')->name('institutes.')->group(function (): void {
     Route::post('/logout', [InstituteAuthController::class, 'destroy'])->middleware('auth')->name('logout');
 
     Route::middleware(['auth', 'institute.operator'])->prefix('operations')->name('operations.')->group(function (): void {
+        Route::post('/institution-description-proposals', [InstitutionFieldApprovalController::class, 'store'])->name('institution-description-proposals.store');
+        Route::middleware('institute.admin')->post('/institution-description-proposals/{proposal}/decision', [InstitutionFieldApprovalController::class, 'decide'])->name('institution-description-proposals.decision');
+        Route::middleware('institute.admin')->post('/institution-description-proposals/{proposal}/apply', [InstitutionFieldApprovalController::class, 'apply'])->name('institution-description-proposals.apply');
+
         Route::get('/', [InstituteOperationsController::class, 'queue'])->name('queue');
         Route::get('/duplicate-audit', [InstituteImportDuplicateAuditController::class, 'view'])->name('duplicate-audit.view');
         Route::get('/duplicate-audit/data', InstituteImportDuplicateAuditController::class)->name('duplicate-audit');

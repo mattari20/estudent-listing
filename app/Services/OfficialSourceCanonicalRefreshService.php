@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Campus;
 use App\Models\Institution;
+use App\Models\InstitutionFieldApproval;
 use App\Models\OfficialSourceRefreshEvent;
 use App\Models\Program;
 use App\Models\ProgramOffering;
@@ -48,13 +49,11 @@ class OfficialSourceCanonicalRefreshService
             throw new RuntimeException('Canonical field is not allowlisted for official refresh.');
         }
 
-        // SourceChangeObservation currently records detection/actionability, not a
-        // persisted human approval of this exact field proposal. Import promotion
-        // decisions are tied to import-row promotion and cannot authorize a field
-        // overwrite. Do not trust caller-supplied booleans as an approval substitute.
+        // Institution writes must use the persisted proposal ID path below. The generic
+        // evidence-array path is intentionally never an authorization mechanism.
         if ($class === Institution::class) {
             throw new RuntimeException(
-                'Institution official refresh is blocked: persisted field-level approval integration is unavailable.'
+                'Institution official refresh requires a persisted approved proposal ID.'
             );
         }
 
@@ -105,6 +104,125 @@ class OfficialSourceCanonicalRefreshService
             ]);
 
             return $locked;
+        }, 3);
+    }
+
+    /**
+     * Apply one approved, evidence-bound Institution description proposal.
+     *
+     * @return array{outcome:string,institution:?Institution,approval:InstitutionFieldApproval}
+     */
+    public function refreshApprovedInstitutionDescription(int $proposalId): array
+    {
+        return DB::transaction(function () use ($proposalId): array {
+            $proposal = InstitutionFieldApproval::query()->lockForUpdate()->findOrFail($proposalId);
+            if ($proposal->status !== 'approved' || $proposal->decision_at === null || $proposal->reviewer_id === null || $proposal->applied_at !== null) {
+                throw new RuntimeException('Only an approved, unapplied proposal can be applied.');
+            }
+            if ($proposal->field_name !== 'description') {
+                throw new RuntimeException('Only Institution description proposals may be applied.');
+            }
+
+            $institution = Institution::query()->lockForUpdate()->findOrFail($proposal->institution_id);
+            $approvals = app(InstitutionFieldApprovalService::class);
+            try {
+                $approvals->assertProposalIntegrity($proposal);
+                $values = $approvals->validatedEvidenceForProposal($proposal);
+                $approvals->assertNoConflictingVerifiedAssertions($proposal);
+            } catch (RuntimeException $exception) {
+                $knownValidationFailure = $exception instanceof \Illuminate\Database\Eloquent\ModelNotFoundException
+                    || str_starts_with($exception->getMessage(), 'The persisted proposal binding has changed.')
+                    || str_starts_with($exception->getMessage(), 'Official source identity is not verified:')
+                    || str_starts_with($exception->getMessage(), 'Source observation, snapshot, and evidence relationships are invalid.')
+                    || str_starts_with($exception->getMessage(), 'Source snapshot has been superseded.')
+                    || str_starts_with($exception->getMessage(), 'Evidence fingerprint does not match the captured source snapshot.')
+                    || str_starts_with($exception->getMessage(), 'Captured snapshot content fingerprint is invalid')
+                    || str_starts_with($exception->getMessage(), 'Evidence URL is not a safe public HTTP destination.')
+                    || str_starts_with($exception->getMessage(), 'Evidence URL host does not match the verified official source.')
+                    || str_starts_with($exception->getMessage(), 'A valid evidence URL, excerpt, and source observation timestamp are required.')
+                    || str_starts_with($exception->getMessage(), 'Evidence or source revision changed after review:')
+                    || str_starts_with($exception->getMessage(), 'Conflicting active verified evidence exists');
+
+                if (! $knownValidationFailure) {
+                    throw $exception;
+                }
+
+                $proposal->status = 'stale';
+                $proposal->application_outcome = 'evidence_invalid';
+                $proposal->applied_at = now();
+                $proposal->save();
+
+                return ['outcome' => 'stale', 'institution' => null, 'approval' => $proposal->refresh()];
+            }
+
+            if ($institution->description !== $proposal->expected_current_value) {
+                $proposal->status = 'stale';
+                $proposal->application_outcome = 'expected_value_changed';
+                $proposal->applied_at = now();
+                $proposal->save();
+
+                return ['outcome' => 'stale', 'institution' => $institution, 'approval' => $proposal->refresh()];
+            }
+
+            $policy = app(OfficialSourceRefreshPolicyService::class)->evaluate([
+                'source_official' => true,
+                'source_identity_verified' => true,
+                'fetch_successful' => true,
+                'entity_match_confirmed' => true,
+                'evidence_url' => $values['evidence_url'],
+                'evidence_excerpt' => $values['evidence_excerpt'],
+                'observed_at' => $values['source_observed_at'],
+                'content_fingerprint' => $values['fingerprint'],
+                'previous_value' => $proposal->expected_current_value,
+                'proposed_value' => $proposal->proposed_value,
+                'allow_no_change' => true,
+                'entity_identity_ambiguous' => false,
+                'source_conflict' => false,
+            ]);
+            if (! $policy['eligible']) {
+                $proposal->status = 'stale';
+                $proposal->application_outcome = 'evidence_blocked';
+                $proposal->applied_at = now();
+                $proposal->save();
+
+                return ['outcome' => 'stale', 'institution' => $institution, 'approval' => $proposal->refresh()];
+            }
+
+            if ($institution->description === $proposal->proposed_value) {
+                $proposal->status = 'applied';
+                $proposal->application_outcome = 'no_change';
+                $proposal->applied_at = now();
+                $proposal->save();
+
+                return ['outcome' => 'no_change', 'institution' => $institution, 'approval' => $proposal->refresh()];
+            }
+
+            $before = $institution->description;
+            $institution->description = $proposal->proposed_value;
+            $institution->save();
+
+            $event = OfficialSourceRefreshEvent::query()->create([
+                'source_id' => $proposal->source_id,
+                'source_change_observation_id' => $proposal->source_change_observation_id,
+                'canonical_type' => Institution::class,
+                'canonical_id' => $institution->id,
+                'field_name' => 'description',
+                'before_value' => ['value' => $before],
+                'after_value' => ['value' => $proposal->proposed_value],
+                'evidence_url' => $values['evidence_url'],
+                'evidence_excerpt' => $values['evidence_excerpt'],
+                'content_fingerprint' => $values['fingerprint'],
+                'observed_at' => $values['source_observed_at'],
+                'occurred_at' => now(),
+            ]);
+
+            $proposal->status = 'applied';
+            $proposal->application_outcome = 'applied';
+            $proposal->applied_refresh_event_id = $event->id;
+            $proposal->applied_at = now();
+            $proposal->save();
+
+            return ['outcome' => 'applied', 'institution' => $institution->refresh(), 'approval' => $proposal->refresh()];
         }, 3);
     }
 

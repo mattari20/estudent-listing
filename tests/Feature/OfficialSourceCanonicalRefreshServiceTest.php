@@ -152,7 +152,7 @@ class OfficialSourceCanonicalRefreshServiceTest extends TestCase
             );
             $this->fail('Institution refresh must remain blocked until a persisted field-level approval is available.');
         } catch (RuntimeException $exception) {
-            $this->assertStringContainsString('persisted field-level approval integration is unavailable', $exception->getMessage());
+            $this->assertStringContainsString('persisted approved proposal ID', $exception->getMessage());
         }
 
         $fresh = $institution->fresh();
