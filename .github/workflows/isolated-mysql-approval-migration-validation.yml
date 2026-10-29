@@ -1,0 +1,83 @@
+name: Isolated MySQL Approval Migration Validation
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/isolated-mysql-approval-migration-validation.yml'
+      - 'database/migrations/**'
+      - 'tests/Feature/InstitutionFieldApprovalServiceTest.php'
+      - 'tests/Support/verify-institution-field-approvals-schema.php'
+      - 'composer.json'
+      - 'composer.lock'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-mysql-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-${{ github.run_id }}-${{ github.run_attempt }}
+          MYSQL_DATABASE: approval_migration_test
+          MYSQL_USER: approval_ci
+          MYSQL_PASSWORD: ci-user-${{ github.run_id }}-${{ github.run_attempt }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-root-${{ github.run_id }}-${{ github.run_attempt }}"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: approval_migration_test
+      DB_USERNAME: approval_ci
+      DB_PASSWORD: ci-user-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: dom, mbstring, xml, curl, pdo_mysql
+          coverage: none
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Confirm isolated MySQL server version
+        run: mysql --host=127.0.0.1 --port=3306 --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e 'SELECT VERSION();'
+      - name: Prepare prerequisites without the target migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          target=database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php
+          hold="$RUNNER_TEMP/2026_10_29_000001_create_institution_field_approvals_table.php"
+          test -f "$target"
+          test ! -e "$hold"
+          mv "$target" "$hold"
+          restore_target() { if [ -f "$hold" ]; then mv "$hold" "$target"; fi; }
+          trap restore_target EXIT
+          php artisan migrate:fresh --force
+          php -r 'require "vendor/autoload.php"; $app=require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); if (Illuminate\Support\Facades\Schema::hasTable("institution_field_approvals")) { fwrite(STDERR, "Target table unexpectedly exists before target migration\n"); exit(1); } echo "Confirmed target table absent before target migration.\n";'
+          mv "$hold" "$target"
+          trap - EXIT
+      - name: Execute existing migration through Laravel migrator
+        run: php artisan migrate --force --path=database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php
+      - name: Verify exact schema and migration ledger
+        run: php tests/Support/verify-institution-field-approvals-schema.php
+      - name: Verify second migration run is idempotent
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(mysql --host=127.0.0.1 --port=3306 --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e "SELECT COUNT(*) FROM migrations WHERE migration='2026_10_29_000001_create_institution_field_approvals_table';")"
+          test "$before" = "1"
+          php artisan migrate --force --path=database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php
+          after="$(mysql --host=127.0.0.1 --port=3306 --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e "SELECT COUNT(*) FROM migrations WHERE migration='2026_10_29_000001_create_institution_field_approvals_table';")"
+          test "$after" = "1"
+      - name: Run approval-specific and Laravel test suite
+        run: composer test
