@@ -585,3 +585,19 @@ See [Step 1 recovery status report](docs/audits/step1-recovery-status-2026-10-29
 - Empty canonical tables are intentional after test data removal. Candidate institution rows #348–352 across batch IDs #19–23 are still candidates for Government College University Lahore, with active source evidence but no approved identity or promotion decision. Do not approve/promote/publish/delete automatically.
 - `duplicate_rows` still classifies as `COLUMN_PRESENT_LEDGER_ABSENT`, `schema_equivalence=UNVERIFIED`, `migration_origin=UNKNOWN`; no production database write was performed.
 - Step 1 remains open; Step 2 has not started.
+
+
+## Execution update — 2026-10-29 12:30 PKT (PR #909 and fresh Hostinger verification)
+
+- Current main: fae32944e6880632fa96a82fb972afd362933338, PR #909 merged.
+- PR #909 removed the in-place Hostinger git unshallow operation after run #40834804010 failed with shallow metadata/pack errors. The replacement bounded fetch and fail-closed app-path parity check passed in Hostinger run #40835662204.
+- Deployed Git revision 55f3baa86cf4a2b0e53eea982633d38dbf981192 and expected app-path revision 4b95e2d945583f36ff07376ed51f2d2727c0b78d produce APPLICATION_CODE_MATCH; workflow/docs-only commits explain the differing SHAs.
+- Current main Test #40835662178, Laravel CI #40835662186, build #40835662183, Public Monitor #40835662211, Orchestrator #40835662274 and Hostinger diagnostics #40835662204 all passed.
+- Latest live API returns HTTP 200 application/json valid paginator with data=[] and total=0. Canonical institutions/campuses/programs/offerings each have zero rows by design.
+- Browser #40834020536 caught an intermittent initial directory HTTP 500 while API remained valid empty JSON. Later browser #40834804093 passed all actual navigation checks (directory/search/reload/page-size all HTTP 200). Keep the earlier 500 in the incident record; precise cause remains unverified.
+- Owner-reported Unexpected end of JSON input was not reproduced by clean Chromium and no user-script initiator was identified. Do not claim it is resolved for their browser without request-level evidence.
+- duplicate_rows still has no matching migration-ledger entry; schema equivalence and migration origin remain unverified. No reconciliation write occurred.
+- Candidate rows #348–352 / batches #19–23 remain unapproved and need official-source/duplicate/dependency review. No production dummy data was recreated.
+- Existing ImportLifecyclePublicationEndToEndTest.php covers staging, evidence, explicit identity decision, promotion, separate publication, listing and detail route in the test DB; no duplicate integration test added.
+- Main ruleset still requires only test, so browser runtime/Laravel CI/build are not separate required contexts. hPanel scheduled job still needs owner confirmation.
+- Step 1 OPEN; Step 2 and later feature phases HOLD.
