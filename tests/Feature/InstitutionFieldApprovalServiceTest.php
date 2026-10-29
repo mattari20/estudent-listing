@@ -330,6 +330,24 @@ class InstitutionFieldApprovalServiceTest extends TestCase
         $this->assertDatabaseCount('official_source_refresh_events', 0);
     }
 
+    public function test_changed_snapshot_content_invalidates_approval(): void
+    {
+        [$institution, $source, $observation, $snapshot, $evidence] = $this->fixture();
+        $this->actingAs($this->user('operator'));
+        $proposal = $this->proposal($institution, $source, $observation, $snapshot, $evidence);
+        $this->actingAs($this->user('admin'));
+        app(InstitutionFieldApprovalService::class)->decide($proposal->id, 'approved');
+        $snapshot->content = 'tampered captured source content';
+        $snapshot->save();
+
+        $result = app(OfficialSourceCanonicalRefreshService::class)->refreshApprovedInstitutionDescription($proposal->id);
+
+        $this->assertSame('stale', $result['outcome']);
+        $this->assertSame('evidence_invalid', $result['approval']->application_outcome);
+        $this->assertSame('Original description', $institution->fresh()->description);
+        $this->assertDatabaseCount('official_source_refresh_events', 0);
+    }
+
     public function test_source_becoming_inactive_after_approval_invalidates_the_proposal(): void
     {
         [$institution, $source, $observation, $snapshot, $evidence] = $this->fixture();
@@ -371,7 +389,7 @@ class InstitutionFieldApprovalServiceTest extends TestCase
         $snapshot = SourceSnapshot::create([
             'source_id' => $source->id,
             'reference' => 'https://8.8.8.8/official',
-            'content_hash' => hash('sha256', 'official source content '.$this->fixtureNumber),
+            'content_hash' => hash('sha256', 'Official source content '.$this->fixtureNumber),
             'content_length' => 120,
             'content_type' => 'text/html',
             'content' => 'Official source content '.$this->fixtureNumber,
