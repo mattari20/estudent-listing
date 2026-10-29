@@ -73,7 +73,7 @@ foreach ($expectedColumns as $name => [$type, $nullable]) {
     }
 }
 
-if (($columns->get('status')['default'] ?? null) !== 'pending') {
+if (trim((string) ($columns->get('status')['default'] ?? ''), "'\"") !== 'pending') {
     bad('status default not pending');
 }
 

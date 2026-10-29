@@ -89,7 +89,8 @@ jobs:
 
             PREFLIGHT_SCRIPT_FILE="$(mktemp)"
             PREFLIGHT_OUTPUT_FILE="$(mktemp)"
-            trap 'rm -f "$PREFLIGHT_SCRIPT_FILE" "$PREFLIGHT_OUTPUT_FILE"' EXIT
+            VERIFY_SCRIPT_FILE="$PROJECT_PATH/tests/Support/.verify-institution-field-approvals-schema-runtime.php"
+            trap 'rm -f "$PREFLIGHT_SCRIPT_FILE" "$PREFLIGHT_OUTPUT_FILE" "$VERIFY_SCRIPT_FILE"' EXIT
             cat > "$PREFLIGHT_SCRIPT_FILE" <<'PHP'
             <?php
             $projectPath = getenv('PROJECT_PATH');
@@ -146,7 +147,8 @@ jobs:
               echo "migration_status=COMMAND_COMPLETED"
             fi
 
-            php tests/Support/verify-institution-field-approvals-schema.php
+            git show FETCH_HEAD:tests/Support/verify-institution-field-approvals-schema.php > "$VERIFY_SCRIPT_FILE"
+            php "$VERIFY_SCRIPT_FILE"
             php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
