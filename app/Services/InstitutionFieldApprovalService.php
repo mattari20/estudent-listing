@@ -223,7 +223,7 @@ class InstitutionFieldApprovalService
         }
         try {
             app(SourceUrlGuard::class)->validate($evidence->reference);
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             throw new RuntimeException('Evidence URL is not a safe public HTTP destination.', 0, $exception);
         }
         $sourceHost = strtolower((string) parse_url((string) $source->url, PHP_URL_HOST));
