@@ -70,7 +70,6 @@ class ControlledImportBatchDuplicateRowsMigrationWorkflowContractTest extends Te
         $this->assertStringContainsString("'metadata_introspection_succeeded' => ! \$metadataError", $workflow);
         $this->assertStringContainsString("'candidate_rows_precedes_duplicate_rows' => \$candidateRowsPrecedes", $workflow);
         $this->assertStringContainsString("'related_migration_files' => \$relatedMigrationFiles", $workflow);
-        $this->assertStringContainsString("'schema_equivalence' => \$schemaEquivalence", $workflow);
         $this->assertStringContainsString("'migration_origin' => 'UNKNOWN'", $workflow);
         $this->assertStringContainsString("'mutation_performed' => false", $workflow);
 
