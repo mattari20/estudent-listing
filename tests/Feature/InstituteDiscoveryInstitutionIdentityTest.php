@@ -95,7 +95,7 @@ class InstituteDiscoveryInstitutionIdentityTest extends TestCase
         try {
             app(InstituteDiscoveryAgentService::class)->run('gcu-lahore-programs');
             $this->fail('Program discovery must require an existing canonical parent institution.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertStringContainsString('requires an existing parent institution', $exception->getMessage());
         }
 
