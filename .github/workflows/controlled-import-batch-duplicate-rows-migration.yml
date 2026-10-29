@@ -86,7 +86,10 @@ jobs:
             git diff --cached --quiet HEAD -- $APP_CODE_PATHS || { echo "ERROR: application index has modifications"; exit 5; }
             echo "application_code_parity=VERIFIED"
 
-            PREFLIGHT_OUTPUT="$(php <<'PHP'
+            PREFLIGHT_OUTPUT_FILE="$(mktemp)"
+            trap 'rm -f "$PREFLIGHT_OUTPUT_FILE"' EXIT
+            set +e
+            php >"$PREFLIGHT_OUTPUT_FILE" 2>&1 <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -118,8 +121,14 @@ jobs:
             if ($migrationRecorded && $columnExists) { echo "decision=ALREADY_APPLIED_AND_VERIFIED\n"; exit(0); }
             echo "decision=READY_FOR_SINGLE_MIGRATION\n";
             PHP
-            )"
-            echo "$PREFLIGHT_OUTPUT"
+            PREFLIGHT_PHP_EXIT=$?
+            set -e
+            cat "$PREFLIGHT_OUTPUT_FILE"
+            if [ "$PREFLIGHT_PHP_EXIT" -ne 0 ]; then
+              echo "ERROR: PHP preflight failed with exit code $PREFLIGHT_PHP_EXIT; see PHP output above."
+              exit "$PREFLIGHT_PHP_EXIT"
+            fi
+            PREFLIGHT_OUTPUT="$(cat "$PREFLIGHT_OUTPUT_FILE")"
             if printf '%s\n' "$PREFLIGHT_OUTPUT" | grep -q 'decision=ALREADY_APPLIED_AND_VERIFIED'; then
               echo "migration_status=ALREADY_APPLIED_NO_CHANGE"
               exit 0
