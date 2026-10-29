@@ -19,7 +19,7 @@ script = workflow.fetch('jobs').fetch('migrate').fetch('steps')
 
 required_fields = %w[
   mutation_performed write_requested database_driver table_exists column_exists
-  column_definition column_definition_matches_migration column_position_verified
+  column_definition column_definition_matches_migration column_definition_equivalence column_position_verified
   candidate_rows_precedes_duplicate_rows table_definition indexes foreign_keys
   migration_file_exists migration_ledger_exists matching_migration_count
   matching_migrations related_migration_ledger_entries related_migration_files schema_equivalence
