@@ -123,6 +123,35 @@ class InstituteDiscoveryAgentService
         bool $forceNewBatch = false,
         ?int $supersedesBatchId = null,
     ): array {
+        // Serialize candidate persistence per source. Without this lock, two
+        // simultaneous retrievals can both observe no prior batch/identity and
+        // create parallel candidate batches for the same source identity.
+        return DB::transaction(function () use (
+            $profile, $institution, $source, $snapshot, $useAi, $forceNewBatch, $supersedesBatchId
+        ): array {
+            $lockedSource = Source::query()->whereKey($source->id)->lockForUpdate()->firstOrFail();
+
+            return $this->persistCandidatesLocked(
+                $profile,
+                $institution,
+                $lockedSource,
+                $snapshot,
+                $useAi,
+                $forceNewBatch,
+                $supersedesBatchId
+            );
+        });
+    }
+
+    private function persistCandidatesLocked(
+        string $profile,
+        ?Institution $institution,
+        Source $source,
+        SourceSnapshot $snapshot,
+        bool $useAi,
+        bool $forceNewBatch = false,
+        ?int $supersedesBatchId = null,
+    ): array {
         if (! is_string($snapshot->content) || $snapshot->content === '') {
             throw new \RuntimeException('The discovery snapshot has no stored source content.');
         }
@@ -238,7 +267,7 @@ class InstituteDiscoveryAgentService
             } elseif ($blockers === []) {
                 $duplicateDetector = app(ImportDuplicateDetectorService::class);
                 $duplicate = $entityType === 'institution'
-                    ? $duplicateDetector->findInstitution($slug, $batch->id, $supersedesBatchId === null ? [] : [$supersedesBatchId])
+                    ? $duplicateDetector->findInstitution($slug, $batch->id, $supersedesBatchId === null ? [] : [$supersedesBatchId], $candidate)
                     : $duplicateDetector->find(
                         $entityType,
                         (int) $institution?->id,
