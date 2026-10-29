@@ -383,10 +383,10 @@ jobs:
                 'created_at' => true, 'updated_at' => true,
             ];
             $expectedIndexes = [
-                'institution_field_approvals_proposal_hash_unique' => ['proposal_hash'],
-                'inst_field_approval_state_idx' => ['institution_id', 'field_name', 'status'],
-                'inst_field_approval_source_idx' => ['source_id', 'source_change_observation_id'],
-                'inst_field_approval_decision_idx' => ['status', 'decision_at'],
+                'institution_field_approvals_proposal_hash_unique' => ['columns' => ['proposal_hash'], 'unique' => true],
+                'inst_field_approval_state_idx' => ['columns' => ['institution_id', 'field_name', 'status'], 'unique' => false],
+                'inst_field_approval_source_idx' => ['columns' => ['source_id', 'source_change_observation_id'], 'unique' => false],
+                'inst_field_approval_decision_idx' => ['columns' => ['status', 'decision_at'], 'unique' => false],
             ];
             $expectedForeignKeys = [
                 'institution_id' => ['institutions', 'id'],
@@ -433,9 +433,11 @@ jobs:
                     foreach ($indexes as $index) {
                         $indexByName[(string) ($index['name'] ?? '')] = $index;
                     }
-                    foreach ($expectedIndexes as $name => $columns) {
+                    foreach ($expectedIndexes as $name => $expectedIndex) {
                         $index = $indexByName[$name] ?? null;
-                        if (! is_array($index) || array_values($index['columns'] ?? []) !== $columns) {
+                        if (! is_array($index)
+                            || array_values($index['columns'] ?? []) !== $expectedIndex['columns']
+                            || (bool) ($index['unique'] ?? false) !== $expectedIndex['unique']) {
                             $missingIndexes[] = $name;
                         }
                     }
@@ -475,12 +477,14 @@ jobs:
                 && $columnDefinitionMismatches === []
                 && $missingIndexes === []
                 && $missingForeignKeys === [];
-            if ($metadataError || ! $ledgerExists || count($migrationRows) !== 1 || ! $migrationFileExists) {
+            if ($metadataError) {
                 $classification = 'AMBIGUOUS_UNVERIFIED';
             } elseif (! $tableExists) {
                 $classification = 'ABSENT';
             } elseif (! $structureMatches) {
                 $classification = 'PARTIALLY_APPLIED';
+            } elseif (! $ledgerExists || count($migrationRows) !== 1 || ! $migrationFileExists) {
+                $classification = 'AMBIGUOUS_UNVERIFIED';
             } else {
                 $classification = 'PRESENT_AND_VERIFIED_EQUIVALENT';
             }
