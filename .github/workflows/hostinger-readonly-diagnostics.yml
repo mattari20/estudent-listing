@@ -1123,8 +1123,7 @@ jobs:
             if [[ "$expect_json" == "true" ]]; then
               if jq -e 'type == "object" and (.data | type == "array") and (.total | type == "number") and (.current_page | type == "number") and (.last_page | type == "number")' "$body" >/dev/null 2>&1; then
                 jq -c '{json_valid:true,data_count:(.data|length),ids:(.data|map(.id)),total,current_page,last_page,from,to,per_page}' "$body" | sed "s/^/$label json_summary=/"
-                jq -c '{data:(.data|map({id,name,slug,status})),total,current_page,last_page,from,to,per_page}' "$body" | head -c 500 | sed "s/^/$label sanitized_response_body=/"
-                echo
+                jq -c '{data:(.data|map({id,name,slug,status})),total,current_page,last_page,from,to,per_page} | tojson | .[0:500]' "$body" | sed "s/^/$label sanitized_response_body=/"
                 echo "$label json_contract=PASS"
               else
                 echo "$label json_contract=FAIL_OR_UNEXPECTED_SHAPE"
