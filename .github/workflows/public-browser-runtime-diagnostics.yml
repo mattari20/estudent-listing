@@ -248,6 +248,7 @@ jobs:
             const navigationStatuses = {
               directoryInitial: response?.status() ?? 0,
               searchGet: null,
+              directoryReload: null,
               pageSize12: null,
             };
             const structuralFailures = [];
@@ -287,7 +288,7 @@ jobs:
             }, API);
             emit('browser_api_fetch_summary', apiSummary);
 
-            // Exercise the GET search form and preserve the actual navigation response.
+            // Exercise GET search and capture the actual navigation response.
             if (await page.locator('#directory-search').count()) {
               await page.locator('#directory-search').fill('COMSATS');
               const [searchResponse] = await Promise.all([
@@ -306,11 +307,10 @@ jobs:
               structuralFailures.push('search_form_missing');
             }
 
-            // Exercise the page-size selector with zero records and capture the actual status.
-            const secondInitialResponse = await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 45000 });
-            if (!secondInitialResponse || secondInitialResponse.status() !== 200) {
-              structuralFailures.push('directory_reload_not_http_200');
-            }
+            // Exercise the page-size selector with zero records and record each real status.
+            const directoryReloadResponse = await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 45000 });
+            navigationStatuses.directoryReload = directoryReloadResponse?.status() ?? 0;
+            if (navigationStatuses.directoryReload !== 200) structuralFailures.push('directory_reload_not_http_200');
             if (await page.locator('#directory-per-page').count()) {
               const [pageSizeResponse] = await Promise.all([
                 page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
@@ -332,15 +332,7 @@ jobs:
             }
 
             const targetErrors = pageErrors.filter((item) => /SyntaxError|Unexpected end of JSON input/i.test(item.message || ''));
-            if ((response?.status() ?? 0) !== 200) structuralFailures.push('directory_html_not_http_200');
-            if (!String(initial.directorySummary || '').includes('No institutions to display')) structuralFailures.push('expected_empty_directory_summary_missing');
-            if (!String(initial.emptyStateHeading || '').includes('No institutions available')) structuralFailures.push('expected_empty_state_heading_missing');
-            if (apiSummary.requestError || apiSummary.status !== 200 || !/^application\/json\b/i.test(apiSummary.contentType || '') || apiSummary.jsonValid !== true) {
-              structuralFailures.push('browser_api_did_not_return_valid_json');
-            }
-
-            const structuralFailures = [];
-            if ((response?.status() ?? 0) !== 200) structuralFailures.push('directory_html_not_http_200');
+            if (navigationStatuses.directoryInitial !== 200) structuralFailures.push('directory_html_not_http_200');
             if (!String(initial.directorySummary || '').includes('No institutions to display')) structuralFailures.push('expected_empty_directory_summary_missing');
             if (!String(initial.emptyStateHeading || '').includes('No institutions available')) structuralFailures.push('expected_empty_state_heading_missing');
             if (apiSummary.requestError || apiSummary.status !== 200 || !/^application\/json\b/i.test(apiSummary.contentType || '') || apiSummary.jsonValid !== true) {
@@ -350,6 +342,7 @@ jobs:
               pageErrorCount: pageErrors.length,
               targetSyntaxErrorCount: targetErrors.length,
               targetErrors,
+              navigationStatuses,
               structuralFailures,
               requestCount: requestMap.size,
               conclusion: targetErrors.length === 0 && structuralFailures.length === 0 ? 'PASS' : 'FAIL',
