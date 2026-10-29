@@ -192,11 +192,11 @@ A targeted read of the eight highest-risk migration/deployment/diagnostic workfl
 ### OPS/DB incident status
 - PR [#893](https://github.com/mattari20/estudent-listing/pull/893) merged at `a6239509d1183ad54e3f062d572876e377e5743d`; PR-head Test [#40819995295](https://github.com/mattari20/estudent-listing/actions/runs/40819995295) and Laravel CI [#40819995286](https://github.com/mattari20/estudent-listing/actions/runs/40819995286) passed.
 - The live guarded workflow still requires a new manual read-only dispatch with `confirm_migration=false`. The available GitHub connector cannot dispatch workflows; no run is claimed. Existing failed run #40819601765 used the old workflow source and remains non-diagnostic for the merged change.
-- Confirmed code-review finding: the duplicate_rows preflight did not reject the partial state where the column exists but its migration ledger row is absent. A focused fail-closed fix and regression test are in [PR #894](https://github.com/mattari20/estudent-listing/pull/894), awaiting CI. This is a code-path finding; the live database's actual state is unknown.
+- Confirmed code-review finding: the duplicate_rows preflight did not reject the partial state where the column exists but its migration ledger row is absent. A focused fail-closed fix and regression test were merged in [PR #894](https://github.com/mattari20/estudent-listing/pull/894) as `2f4be296cc908ecd8da4d445ee3d724f8dd42da8` after CI passed. Fresh read-only diagnostics confirm the live column is `int(10) unsigned`, non-null, default `0`; column position and all table constraints remain unverified. The target migration ledger row is absent.
 
 ### Current audit boundary
 - **Verified:** main SHA, PR #893 merge, PR CI results, prior failed-run stage evidence, and source-level preflight state-handling gap.
-- **Audit gaps:** live schema/ledger report, current deployment parity after merge, route and SEO checks against current deployed data, importer row-level behavior, source-provenance/duplicate disposition, authorization matrix, and real Hostinger scheduler execution remain unverified in this execution.
+- **Audit gaps:** full schema equivalence/column ordering and migration-ledger reconciliation; end-to-end live detail-route acceptance with a real published institution; importer row-level behavior; source-provenance/duplicate disposition; complete authorization matrix; SEO checks against a populated directory; and actual Hostinger scheduler execution.
 - **Safety:** no production migration, schema repair, migration-ledger write, data import, canonical promotion, deletion, or scheduled command execution was performed. Keep the incident and Step 1 open; do not begin Step 2.
 
 
@@ -206,7 +206,7 @@ Source: Hostinger Read-only Diagnostics [run #40820996249](https://github.com/ma
 
 | Area | Latest evidence | Classification / next step |
 |---|---|---|
-| Duplicate-row migration | `import_batches` exists; `duplicate_rows` exists; migration file and migrations table exist; target migration ledger row absent; diagnosis `COLUMN_PRESENT_MIGRATION_NOT_RECORDED` | **Confirmed schema/ledger inconsistency.** Do not run migration. PR #894 fails closed for this state; separately inspect the actual column type, default, nullability, position, and constraints before proposing any ledger reconciliation. |
+| Duplicate-row migration | `import_batches` exists; `duplicate_rows` exists; migration file and migrations table exist; target migration ledger row absent; diagnosis `COLUMN_PRESENT_MIGRATION_NOT_RECORDED` | **Confirmed schema/ledger inconsistency.** PR #894's fail-closed guard is merged. Fresh diagnostics confirm `int(10) unsigned`, non-null, default `0`; position after `candidate_rows` and complete constraints remain unverified. Do not run migration or write the ledger without a separately reviewed and authorized reconciliation. |
 | Official-source refresh migration | `official_source_refresh_events` exists; required columns and indexes present; matching migration ledger row exists; `schema_ready=true` | **Verified for the fields the diagnostic checks.** This is narrower than full schema fingerprint proof. |
 | Canonical directory data | Live diagnostic reports zero active institutions, campuses, programs, and offerings; related integrity gap counts are zero because the active canonical population is empty | **Confirmed empty canonical dataset at this snapshot**, not proof the national source universe is empty. Public directory has no genuine institution detail URL to smoke-test. |
 | Public listing | HTTP 200, expected listing/empty-state content; public monitor recorded `EMPTY_DATA` | **HTTP/empty-state pass; data-coverage gate blocked.** Do not create fake records to satisfy the smoke test. |
@@ -219,3 +219,20 @@ Source: Hostinger Read-only Diagnostics [run #40820996249](https://github.com/ma
 - The five controlled-write workflows reviewed include duplicate_rows migration, official-source refresh migration, discovery-outcome migration, Pakistan geography seed, and Hostinger code deployment. Their confirmation controls are manual-dispatch inputs; duplicate_rows, discovery-outcome, and code-deploy defaults are false. The official-source refresh workflow still has `script_stop: true`; this remains an audit item, not a confirmed defect, pending workflow-specific live testing.
 - Main push checks after PR #893 merge passed: Test, Laravel CI, frontend build, command orchestrator, public monitor, and Hostinger read-only diagnostics. These checks do not run the manual duplicate_rows workflow.
 - Historical migration filenames with repeated table names were sampled; at least the duplicate institution_names, ranking_methodologies, and campuses files inspected were intentionally empty superseded migrations plus later active migrations. No duplicate-create defect is inferred from filename repetition alone.
+
+
+## Static route/security audit checkpoint — 2026-10-29
+
+### Verified by source inspection
+- Public institution listing/search/detail, sitemap, robots, login/setup/password-reset, and token-protected diagnostics routes are declared under the `institutes` prefix.
+- All observed `/institutes/operations/*` routes are nested inside `auth` plus `institute.operator`; user-management routes are further nested under `institute.admin`.
+- The automated diagnostics endpoint requires a configured token of at least 32 characters, compares the bearer token with `hash_equals`, has `throttle:5,1`, returns `Cache-Control: no-store, private`, and fails closed if report shape or read-only assertions are invalid.
+- The User model uses Laravel's `hashed` password cast. Password changes require the current password and rotate the remember token; feature tests cover these behaviors.
+- The user-management creation path is admin-gated and validates role/email/password. Whether `master_admin` should be assignable by ordinary admins is not established by the inspected policy; keep this as an authorization-policy audit gap, not a confirmed exploit.
+- Public smoke run [#40821636641](https://github.com/mattari20/estudent-listing/actions/runs/40821636641) passed HTTP checks, but classified the listing as `EMPTY_DATA`. This is not a route failure; there is no published institution detail URL to test.
+- Guest requests to discovery history and review-package download were redirected to the Institutes login during diagnostics [#40821636664](https://github.com/mattari20/estudent-listing/actions/runs/40821636664). This is evidence for those two endpoints only, not a complete route authorization matrix.
+
+### Remaining audit gaps
+- No full live route-by-route authorization matrix or authenticated browser test was executed in this pass.
+- Public API rate-limit behavior, setup-route race behavior, admin/master-admin role policy, CSRF/session settings, upload-size and malformed-CSV cases, and all sensitive mutation controllers still require dedicated tests or reviewed evidence.
+- Do not classify these as confirmed vulnerabilities without reproducing the specific failure.
