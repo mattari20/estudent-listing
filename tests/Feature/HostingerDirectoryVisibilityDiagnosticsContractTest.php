@@ -28,6 +28,12 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('expected_hostinger_cron_command=', $workflow);
         $this->assertStringContainsString('do not rewrite its', $workflow);
         $this->assertStringContainsString('shallow metadata in-place', $workflow);
+        $this->assertStringContainsString('isolated temporary Git repository', $workflow);
+        $this->assertStringContainsString('PARITY_REPO="$(mktemp -d', $workflow);
+        $this->assertStringContainsString('git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin main', $workflow);
+        $this->assertStringContainsString('isolated_expected_tree_vs_deployed_file_content', $workflow);
+        $this->assertStringContainsString('git -C "$PARITY_REPO" log --all --format=', $workflow);
+        $this->assertStringNotContainsString('git fetch --quiet --no-tags --depth=200 origin main || DEPLOYMENT_DRIFT=1', $workflow);
         $this->assertStringContainsString('git fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION"', $workflow);
         $this->assertStringContainsString('git fetch --quiet --no-tags --depth=200 origin main', $workflow);
         $this->assertStringNotContainsString('git fetch --quiet --no-tags --unshallow origin main', $workflow);
