@@ -178,6 +178,10 @@ jobs:
             if (!is_file(base_path('database/migrations/'.$migration.'.php'))) { fwrite(STDERR, "ERROR: target migration file missing; refusing.\n"); exit(12); }
             if ($migrationRecorded && !$columnExists) { fwrite(STDERR, "ERROR: migration recorded but column absent; schema drift requires separate review.\n"); exit(13); }
             if ($migrationRecorded && $columnExists) { echo "decision=ALREADY_APPLIED_AND_VERIFIED\n"; exit(0); }
+            if ($columnExists && !$migrationRecorded) {
+                fwrite(STDERR, "ERROR: duplicate_rows column exists but migration is not recorded; partial schema requires separate review.\n");
+                exit(14);
+            }
             echo "decision=READY_FOR_SINGLE_MIGRATION\n";
             PHP
             echo "php_preflight_stage=starting"
