@@ -36,6 +36,18 @@ class Phase4InstitutionDiscoveryPilotTest extends TestCase
                 $profiles
             ), 'slug'))
         );
+        $sourceUrls = array_map(static fn (array $definition): string => $definition['source']['url'], $profiles);
+        $this->assertSame(count($profiles), count(array_unique($sourceUrls)));
+
+        foreach ($profiles as $profile => $definition) {
+            $this->assertStringStartsWith('https://www.hec.gov.pk/english/universities/Pages/', $definition['source']['url'], $profile);
+            $this->assertContains($definition['institution_identity']['institution_type'], ['public university', 'private university'], $profile);
+            $this->assertFalse($definition['monitoring']['use_ai'], $profile);
+            if (str_starts_with((string) $profile, 'hec-')) {
+                $this->assertFalse($definition['monitoring']['enabled'], $profile);
+                $this->assertFalse($definition['monitoring']['auto_discovery'], $profile);
+            }
+        }
 
         $responses = [];
         $expected = [];
