@@ -13,7 +13,16 @@
     "canonical_institution_writes": 0,
     "production_imports": 0,
     "production_approvals_promotions_publications": 0,
-    "fully_live_qualified_sources": 0
+    "fully_live_qualified_sources": 0,
+    "examined_candidates": 21,
+    "browser_rendered_sources": 18,
+    "search_excerpt_only_sources": 3,
+    "identities_corroborated_by_hec_text_or_excerpt": 21,
+    "synthetic_duplicate_candidates": 0,
+    "synthetic_rejected_candidates": 0,
+    "new_profiles_blocked_from_live_activation": 20,
+    "existing_gcu_profile_changed": false,
+    "live_source_rejection_count": "not evaluated; direct application retrieval not performed"
   },
   "snapshot_note": "synthetic_fixture_sha256 values are hashes of deterministic synthetic HTML test fixtures only; they are not hashes of HEC source pages. The test run's auto-increment snapshot IDs were not exported and are not represented as production IDs.",
   "candidates": [
@@ -36,7 +45,7 @@
       "duplicate_decision": "no duplicate detected in isolated synthetic database; this is not a production canonical match",
       "proposed_outcome": "new_candidate_private_test_staging_only",
       "snapshot_id": "ephemeral isolated-test ID not exported by CI",
-      "blocking_reason": "Origin HTTP status/raw response bytes and app-level extractor result remain unverified; profile remains disabled."
+      "blocking_reason": "Existing GCU profile was left unchanged; live application retrieval and raw-body fingerprint were not captured by this phase, and this PR did not run production discovery."
     },
     {
       "profile_key": "hec-lums-institution-identity",
