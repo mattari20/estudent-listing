@@ -83,53 +83,67 @@ jobs:
             $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
             $schema = \Illuminate\Support\Facades\Schema::class;
-            $connection = \Illuminate\Support\Facades\DB::connection();
             $table = 'import_batches';
             $migration = '2026_10_23_000001_add_duplicate_rows_to_import_batches_table';
             $migrationFile = base_path('database/migrations/'.$migration.'.php');
-            $tableExists = $schema::hasTable($table);
-            $columnExists = $tableExists && $schema::hasColumn($table, 'duplicate_rows');
-            $ledgerExists = $schema::hasTable('migrations');
-            $driver = $connection->getDriverName();
+            $tableExists = null;
+            $columnExists = null;
+            $ledgerExists = null;
+            $driver = null;
             $migrationRows = [];
             $relatedMigrationEntries = [];
             $relatedMigrationFiles = [];
-            $matchingMigrationCount = 0;
-            if ($ledgerExists) {
-                $migrationRows = $connection->table('migrations')
-                    ->where('migration', $migration)->orderBy('batch')
-                    ->get(['migration', 'batch'])
-                    ->map(static fn ($row) => ['migration' => (string) $row->migration, 'batch' => (int) $row->batch])
-                    ->all();
-                $matchingMigrationCount = count($migrationRows);
-                $relatedMigrationEntries = $connection->table('migrations')
-                    ->where(function ($query): void {
-                        $query->where('migration', 'like', '%duplicate_rows%')
-                            ->orWhere('migration', 'like', '%import_batches%');
-                    })->orderBy('batch')->orderBy('migration')
-                    ->get(['migration', 'batch'])
-                    ->map(static fn ($row) => [
-                        'migration' => (string) $row->migration,
-                        'batch' => (int) $row->batch,
-                        'migration_file_exists' => is_file(base_path('database/migrations/'.$row->migration.'.php')),
-                    ])->all();
-            }
-            foreach (glob(base_path('database/migrations/*.php')) ?: [] as $candidatePath) {
-                $source = file_get_contents($candidatePath);
-                if (! is_string($source)) { continue; }
-                $mentionsDuplicateRows = str_contains($source, 'duplicate_rows');
-                $mentionsImportBatches = str_contains($source, 'import_batches');
-                if ($mentionsDuplicateRows || $mentionsImportBatches) {
-                    $candidateName = basename($candidatePath, '.php');
-                    $relatedMigrationFiles[] = [
-                        'migration' => $candidateName,
-                        'mentions_duplicate_rows' => $mentionsDuplicateRows,
-                        'mentions_import_batches' => $mentionsImportBatches,
-                        'migration_ledger_count' => $ledgerExists
-                            ? (int) $connection->table('migrations')->where('migration', $candidateName)->count()
-                            : null,
-                    ];
+            $matchingMigrationCount = null;
+            $metadataError = false;
+            try {
+                $connection = \Illuminate\Support\Facades\DB::connection();
+                $driver = $connection->getDriverName();
+                $tableExists = $schema::hasTable($table);
+                $columnExists = $tableExists && $schema::hasColumn($table, 'duplicate_rows');
+                $ledgerExists = $schema::hasTable('migrations');
+                if ($ledgerExists) {
+                    $migrationRows = $connection->table('migrations')
+                        ->where('migration', $migration)->orderBy('batch')
+                        ->get(['migration', 'batch'])
+                        ->map(static fn ($row) => ['migration' => (string) $row->migration, 'batch' => (int) $row->batch])
+                        ->all();
+                    $matchingMigrationCount = count($migrationRows);
+                    $relatedMigrationEntries = $connection->table('migrations')
+                        ->where(function ($query): void {
+                            $query->where('migration', 'like', '%duplicate_rows%')
+                                ->orWhere('migration', 'like', '%import_batches%');
+                        })->orderBy('batch')->orderBy('migration')
+                        ->get(['migration', 'batch'])
+                        ->map(static fn ($row) => [
+                            'migration' => (string) $row->migration,
+                            'batch' => (int) $row->batch,
+                            'migration_file_exists' => is_file(base_path('database/migrations/'.$row->migration.'.php')),
+                        ])->all();
                 }
+                foreach (glob(base_path('database/migrations/*.php')) ?: [] as $candidatePath) {
+                    $source = file_get_contents($candidatePath);
+                    if (! is_string($source)) { continue; }
+                    $mentionsDuplicateRows = str_contains($source, 'duplicate_rows');
+                    $mentionsImportBatches = str_contains($source, 'import_batches');
+                    if ($mentionsDuplicateRows || $mentionsImportBatches) {
+                        $candidateName = basename($candidatePath, '.php');
+                        $relatedMigrationFiles[] = [
+                            'migration' => $candidateName,
+                            'mentions_duplicate_rows' => $mentionsDuplicateRows,
+                            'mentions_import_batches' => $mentionsImportBatches,
+                            'migration_ledger_count' => $ledgerExists
+                                ? (int) $connection->table('migrations')->where('migration', $candidateName)->count()
+                                : null,
+                        ];
+                    }
+                }
+            } catch (\Throwable $exception) {
+                // Suppress exception details; report incomplete introspection without exposing SQL or credentials.
+                $metadataError = true;
+                $migrationRows = [];
+                $relatedMigrationEntries = [];
+                $relatedMigrationFiles = [];
+                $matchingMigrationCount = null;
             }
 
             $columnDefinition = null;
@@ -139,7 +153,6 @@ jobs:
             $tableDefinition = null;
             $indexes = [];
             $foreignKeys = [];
-            $metadataError = false;
             try {
                 if ($tableExists) {
                     $columns = $schema::getColumns($table);
