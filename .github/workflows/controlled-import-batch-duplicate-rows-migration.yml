@@ -1,0 +1,155 @@
+name: Controlled Import Batch Duplicate Rows Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_migration:
+        description: "Set true only to apply the single reviewed import_batches duplicate_rows migration after its read-only preflight passes."
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: controlled-import-batch-duplicate-rows-migration
+  cancel-in-progress: false
+
+jobs:
+  resolve-target:
+    name: Resolve approved application-code revision
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      target_revision: ${{ steps.revision.outputs.target_revision }}
+    steps:
+      - name: Checkout main with full history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Resolve latest application-code commit
+        id: revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          test -n "$revision"
+          echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "target_application_revision=$revision"
+
+  migrate:
+    name: Preflight and optionally apply only duplicate_rows migration
+    needs: resolve-target
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify deployed code and run guarded single migration
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
+          TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
+          CONFIRM_MIGRATION: ${{ inputs.confirm_migration }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,TARGET_REVISION,CONFIRM_MIGRATION
+          command_timeout: 6m
+          script_stop: true
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: project path must be absolute"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: project path must not contain .."; exit 2 ;; esac
+            test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan missing"; exit 3; }
+            test -f "$PROJECT_PATH/vendor/autoload.php" || { echo "ERROR: Composer autoloader missing; refusing migration"; exit 3; }
+            MIGRATION_FILE="database/migrations/2026_10_23_000001_add_duplicate_rows_to_import_batches_table.php"
+            test -f "$PROJECT_PATH/$MIGRATION_FILE" || { echo "ERROR: target migration file missing on Hostinger"; exit 4; }
+            cd "$PROJECT_PATH"
+            git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "ERROR: Git metadata unavailable; refusing migration"; exit 4; }
+            PREVIOUS_REVISION="$(git rev-parse HEAD)"
+            echo "deployed_revision=$PREVIOUS_REVISION"
+            echo "target_application_revision=$TARGET_REVISION"
+            if [ -f .git/shallow ]; then
+              git fetch --quiet --no-tags --unshallow origin main || { echo "ERROR: unable to fetch main history"; exit 4; }
+            else
+              git fetch --quiet --no-tags origin main || { echo "ERROR: unable to fetch main"; exit 4; }
+            fi
+            git fetch --quiet --no-tags origin main || { echo "ERROR: unable to refresh main"; exit 4; }
+            git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || { echo "ERROR: target commit unavailable"; exit 4; }
+            git merge-base --is-ancestor "$TARGET_REVISION" FETCH_HEAD || { echo "ERROR: target commit is not reachable from origin/main"; exit 4; }
+            APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
+            git diff --quiet "$TARGET_REVISION" "$PREVIOUS_REVISION" -- $APP_CODE_PATHS || { echo "ERROR: deployed application code differs from target; deploy/verify code first"; exit 5; }
+            git diff --quiet HEAD -- $APP_CODE_PATHS || { echo "ERROR: application working tree has modifications"; exit 5; }
+            git diff --cached --quiet HEAD -- $APP_CODE_PATHS || { echo "ERROR: application index has modifications"; exit 5; }
+            echo "application_code_parity=VERIFIED"
+
+            PREFLIGHT_OUTPUT="$(php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+            $db = \Illuminate\Support\Facades\DB::connection();
+            $schema = \Illuminate\Support\Facades\Schema::connection($db->getName());
+            $table = 'import_batches';
+            $migration = '2026_10_23_000001_add_duplicate_rows_to_import_batches_table';
+            $tableExists = $schema->hasTable($table);
+            $columnExists = $tableExists && $schema->hasColumn($table, 'duplicate_rows');
+            $ledgerExists = $schema->hasTable('migrations');
+            $migrationRecorded = $ledgerExists && $db->table('migrations')->where('migration', $migration)->exists();
+            echo json_encode([
+                'check' => 'controlled_import_batch_duplicate_rows_migration_preflight',
+                'mutation_performed' => false,
+                'table_exists' => $tableExists,
+                'duplicate_rows_column_exists' => $columnExists,
+                'migration_file_exists' => is_file(base_path('database/migrations/'.$migration.'.php')),
+                'migration_ledger_exists' => $ledgerExists,
+                'migration_recorded' => $migrationRecorded,
+                'write_requested' => getenv('CONFIRM_MIGRATION') === 'true',
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+
+            if (!$tableExists) { fwrite(STDERR, "ERROR: import_batches table is missing; refusing.\n"); exit(10); }
+            if (!$ledgerExists) { fwrite(STDERR, "ERROR: migrations ledger is missing; refusing.\n"); exit(11); }
+            if (!is_file(base_path('database/migrations/'.$migration.'.php'))) { fwrite(STDERR, "ERROR: target migration file missing; refusing.\n"); exit(12); }
+            if ($migrationRecorded && !$columnExists) { fwrite(STDERR, "ERROR: migration recorded but column absent; schema drift requires separate review.\n"); exit(13); }
+            if ($migrationRecorded && $columnExists) { echo "decision=ALREADY_APPLIED_AND_VERIFIED\n"; exit(0); }
+            echo "decision=READY_FOR_SINGLE_MIGRATION\n";
+            PHP
+            )"
+            echo "$PREFLIGHT_OUTPUT"
+            if printf '%s\n' "$PREFLIGHT_OUTPUT" | grep -q 'decision=ALREADY_APPLIED_AND_VERIFIED'; then
+              echo "migration_status=ALREADY_APPLIED_NO_CHANGE"
+              exit 0
+            fi
+            if [ "$CONFIRM_MIGRATION" != "true" ]; then
+              echo "migration_status=DRY_RUN_PREFLIGHT_PASSED_NO_CHANGES"
+              echo "production_schema_writes=NOT_RUN"
+              exit 0
+            fi
+            printf '%s\n' "$PREFLIGHT_OUTPUT" | grep -q 'decision=READY_FOR_SINGLE_MIGRATION' || { echo "ERROR: preflight did not authorize migration"; exit 14; }
+
+            echo "Applying exactly one migration: $MIGRATION_FILE"
+            php artisan migrate --force --path="$MIGRATION_FILE" --no-interaction
+
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $db = \Illuminate\Support\Facades\DB::connection();
+            $schema = \Illuminate\Support\Facades\Schema::connection($db->getName());
+            $migration = '2026_10_23_000001_add_duplicate_rows_to_import_batches_table';
+            $columnExists = $schema->hasTable('import_batches') && $schema->hasColumn('import_batches', 'duplicate_rows');
+            $migrationRecorded = $schema->hasTable('migrations') && $db->table('migrations')->where('migration', $migration)->exists();
+            echo json_encode([
+                'check' => 'post_migration_verification',
+                'mutation_performed' => false,
+                'duplicate_rows_column_exists' => $columnExists,
+                'migration_recorded' => $migrationRecorded,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            if (!$columnExists || !$migrationRecorded) { fwrite(STDERR, "ERROR: post-migration verification failed.\n"); exit(20); }
+            PHP
+            echo "migration_status=TARGET_MIGRATION_APPLIED_AND_VERIFIED"
