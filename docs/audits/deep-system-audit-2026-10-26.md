@@ -253,3 +253,15 @@ Source: Hostinger Read-only Diagnostics [run #40820996249](https://github.com/ma
 - PR [#898](https://github.com/mattari20/estudent-listing/pull/898) adds read-only production table/status/relationship counts and public GET probes that report HTTP status, content type, sanitized body summary, paginator structure and page-ID overlap. CI pending; do not merge until required checks pass.
 - The `duplicate_rows` migration was introduced in repository commit [`556bfce3d9c381bfd50d38017ee0982356b0b2af`](https://github.com/mattari20/estudent-listing/commit/556bfce3d9c381bfd50d38017ee0982356b0b2af), but the live column's origin remains unverified because its exact ledger row was absent. Do not reconcile ledger or schema without fresh evidence and explicit authorization.
 - Scheduler source registers two hourly Laravel commands; hPanel cron presence remains unverified. PR #898 reports PHP executable/version and the expected every-minute scheduler command. No production write or scheduler change was performed.
+
+
+## Execution update — 2026-10-29 (after PR #902)
+
+See [Step 1 recovery status report](docs/audits/step1-recovery-status-2026-10-29.md) for detailed acceptance statuses, API routing evidence, candidate rows, migration incident, and next gates.
+
+- PR #902 merged as `4b95e2d945583f36ff07376ed51f2d2727c0b78d`. Test #40830834468, Laravel CI #40830834622, and frontend build #40830834508 passed.
+- The merged fix sets Laravel `apiPrefix: 'institutes/api'` and updates API tests including the valid empty paginator regression test.
+- The first post-merge Hostinger diagnostic #40830834506 failed at the deployment parity gate: Hostinger remained on `c83f0162731a7efccda9cf1e8c6878697659d017` while main expects `4b95e2d945583f36ff07376ed51f2d2727c0b78d`. The new API route was not live-verified in that run. The existing controlled deploy workflow is manual with `confirm_deployment=false` by default; no production deployment was performed here.
+- Empty canonical tables are intentional after test data removal. Candidate institution rows #348–352 across batch IDs #19–23 are still candidates for Government College University Lahore, with active source evidence but no approved identity or promotion decision. Do not approve/promote/publish/delete automatically.
+- `duplicate_rows` still classifies as `COLUMN_PRESENT_LEDGER_ABSENT`, `schema_equivalence=UNVERIFIED`, `migration_origin=UNKNOWN`; no production database write was performed.
+- Step 1 remains open; Step 2 has not started.
