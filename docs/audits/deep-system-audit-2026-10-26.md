@@ -192,7 +192,7 @@ A targeted read of the eight highest-risk migration/deployment/diagnostic workfl
 ### OPS/DB incident status
 - PR [#893](https://github.com/mattari20/estudent-listing/pull/893) merged at `a6239509d1183ad54e3f062d572876e377e5743d`; PR-head Test [#40819995295](https://github.com/mattari20/estudent-listing/actions/runs/40819995295) and Laravel CI [#40819995286](https://github.com/mattari20/estudent-listing/actions/runs/40819995286) passed.
 - The live guarded workflow still requires a new manual read-only dispatch with `confirm_migration=false`. The available GitHub connector cannot dispatch workflows; no run is claimed. Existing failed run #40819601765 used the old workflow source and remains non-diagnostic for the merged change.
-- Confirmed code-review finding: the duplicate_rows preflight did not reject the partial state where the column exists but its migration ledger row is absent. A focused fail-closed fix and regression test are now being prepared. This is a code-path finding; the live database's actual state is unknown.
+- Confirmed code-review finding: the duplicate_rows preflight did not reject the partial state where the column exists but its migration ledger row is absent. A focused fail-closed fix and regression test are in [PR #894](https://github.com/mattari20/estudent-listing/pull/894), awaiting CI. This is a code-path finding; the live database's actual state is unknown.
 
 ### Current audit boundary
 - **Verified:** main SHA, PR #893 merge, PR CI results, prior failed-run stage evidence, and source-level preflight state-handling gap.
