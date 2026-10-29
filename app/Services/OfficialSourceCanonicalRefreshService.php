@@ -134,6 +134,7 @@ class OfficialSourceCanonicalRefreshService
                     || str_starts_with($exception->getMessage(), 'The persisted proposal binding has changed.')
                     || str_starts_with($exception->getMessage(), 'Official source identity is not verified:')
                     || str_starts_with($exception->getMessage(), 'Source observation, snapshot, and evidence relationships are invalid.')
+                    || str_starts_with($exception->getMessage(), 'Source snapshot has been superseded.')
                     || str_starts_with($exception->getMessage(), 'Evidence fingerprint does not match the captured source snapshot.')
                     || str_starts_with($exception->getMessage(), 'Captured snapshot content fingerprint is invalid')
                     || str_starts_with($exception->getMessage(), 'Evidence URL is not a safe public HTTP destination.')
