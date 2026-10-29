@@ -75,5 +75,5 @@ Track each item as **confirmed defect**, **audit gap**, **verified pass**, or **
 ### Additional confirmed fail-closed gap discovered in code review
 
 - The existing preflight rejected “migration recorded, column absent” and accepted “migration recorded, column present,” but did not reject the opposite partial state: `duplicate_rows` already exists while the migration has no ledger row. In that state it could report `READY_FOR_SINGLE_MIGRATION`, causing an attempted duplicate-column migration if explicitly confirmed.
-- A focused fix and regression test are being prepared on branch `fix/duplicate-rows-preflight-partial-schema-guard`. The fix rejects that partial state before the ready decision. It does not inspect or mutate the production database and does not alter the migration confirmation gate.
+- A focused fail-closed fix and regression test are in [PR #894](https://github.com/mattari20/estudent-listing/pull/894), currently open and awaiting CI. The fix rejects that partial state before the ready decision. It does not inspect or mutate the production database and does not alter the migration confirmation gate.
 - Production schema/ledger state remains unknown until a successful read-only preflight returns evidence. Do not dispatch with confirmation enabled.
