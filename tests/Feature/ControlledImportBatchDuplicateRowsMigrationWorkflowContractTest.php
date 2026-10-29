@@ -55,7 +55,7 @@ class ControlledImportBatchDuplicateRowsMigrationWorkflowContractTest extends Te
 
         $this->assertIsString($workflow);
         $this->assertStringContainsString('$schema::getColumns($table)', $workflow);
-        $this->assertStringContainsString("'duplicate_rows_column_definition' => $columnDefinition", $workflow);
+        $this->assertStringContainsString("'duplicate_rows_column_definition' => \$columnDefinition", $workflow);
         $this->assertStringContainsString("'type_name' => \$column['type_name'] ?? null", $workflow);
         $this->assertStringContainsString("'nullable' => \$column['nullable'] ?? null", $workflow);
         $this->assertStringContainsString("'default' => \$column['default'] ?? null", $workflow);
