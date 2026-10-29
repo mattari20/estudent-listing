@@ -472,7 +472,7 @@ jobs:
                         $migrationPrivilegeReadiness['status'] = ! in_array(false, $migrationPrivilegeReadiness['required_privileges'], true)
                             ? 'PASS'
                             : 'INSUFFICIENT_OR_UNVERIFIED_GRANTS';
-                    } catch (\\Throwable $privilegeError) {
+                    } catch (\Throwable $privilegeError) {
                         // Keep the diagnostic useful without exposing credentials, grants, or exception text.
                         $migrationPrivilegeReadiness['status'] = 'UNVERIFIED_GRANT_INTROSPECTION_FAILED';
                     }
