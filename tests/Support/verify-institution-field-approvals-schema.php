@@ -114,7 +114,10 @@ foreach ($expectedIndexes as $name => [$expectedIndexColumns, $unique]) {
     }
 }
 
-if ($indexes->count() !== count($expectedIndexes) + 1) {
+if (
+    $indexes->filter(fn (array $index): bool => (bool) ($index['primary'] ?? false))->count()
+    + count($expectedIndexes) !== count($indexes)
+) {
     bad('unexpected index count');
 }
 
