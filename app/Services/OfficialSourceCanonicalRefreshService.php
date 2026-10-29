@@ -128,6 +128,7 @@ class OfficialSourceCanonicalRefreshService
             try {
                 $approvals->assertProposalIntegrity($proposal);
                 $values = $approvals->validatedEvidenceForProposal($proposal);
+                $approvals->assertNoConflictingVerifiedAssertions($proposal);
             } catch (RuntimeException $exception) {
                 $proposal->status = 'stale';
                 $proposal->application_outcome = 'evidence_invalid';
@@ -137,7 +138,7 @@ class OfficialSourceCanonicalRefreshService
                 return ['outcome' => 'stale', 'institution' => null, 'approval' => $proposal->refresh()];
             }
 
-            if ($this->normalize($institution->description) !== $this->normalize($proposal->expected_current_value)) {
+            if ($institution->description !== $proposal->expected_current_value) {
                 $proposal->status = 'stale';
                 $proposal->application_outcome = 'expected_value_changed';
                 $proposal->applied_at = now();
@@ -170,7 +171,7 @@ class OfficialSourceCanonicalRefreshService
                 return ['outcome' => 'stale', 'institution' => $institution, 'approval' => $proposal->refresh()];
             }
 
-            if ($this->normalize($institution->description) === $this->normalize($proposal->proposed_value)) {
+            if ($institution->description === $proposal->proposed_value) {
                 $proposal->status = 'applied';
                 $proposal->application_outcome = 'no_change';
                 $proposal->applied_at = now();
