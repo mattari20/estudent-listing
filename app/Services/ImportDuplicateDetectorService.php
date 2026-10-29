@@ -118,7 +118,8 @@ class ImportDuplicateDetectorService
 
         $candidateOfficial = $this->normalizedIdentityKey((string) ($candidate['official_name'] ?? ''));
         $previousOfficial = $this->normalizedIdentityKey((string) ($previous['official_name'] ?? ''));
-        // If both official names exist but disagree, do not fall back to a generic display name.\n        if ($candidateOfficial !== '' && $previousOfficial !== '') {
+        // If both official names exist but disagree, do not fall back to a generic display name.
+        if ($candidateOfficial !== '' && $previousOfficial !== '') {
             return $candidateOfficial === $previousOfficial;
         }
 
