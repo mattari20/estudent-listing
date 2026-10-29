@@ -82,9 +82,9 @@ class InstitutesDirectoryTest extends TestCase
 
         $this->assertStringContainsString("'check' => 'institution_field_approvals_schema_readiness'", $workflow);
         $this->assertStringContainsString("'mutation_performed' => false", $workflow);
-        $this->assertStringContainsString("'foreign_key_prerequisites' => $prerequisites", $workflow);
-        $this->assertStringContainsString("'prerequisite_blockers' => $prerequisiteBlockers", $workflow);
-        $this->assertStringContainsString("'metadata_introspection_succeeded' => !$metadataError", $workflow);
+        $this->assertStringContainsString(\"'foreign_key_prerequisites' => $prerequisites\", $workflow);
+        $this->assertStringContainsString(\"'prerequisite_blockers' => $prerequisiteBlockers\", $workflow);
+        $this->assertStringContainsString(\"'metadata_introspection_succeeded' => !$metadataError\", $workflow);
 
         foreach ([
             'institutions',
