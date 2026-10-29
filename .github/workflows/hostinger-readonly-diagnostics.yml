@@ -409,7 +409,7 @@ jobs:
             git -C "$PARITY_REPO" init -q
             git -C "$PARITY_REPO" remote add origin https://github.com/mattari20/estudent-listing.git
             PARITY_FETCH_FAILED=0
-            git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin main || PARITY_FETCH_FAILED=1
+            git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin +refs/heads/main:refs/remotes/origin/main || PARITY_FETCH_FAILED=1
             if ! git -C "$PARITY_REPO" cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
               git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION" || PARITY_FETCH_FAILED=1
             fi
