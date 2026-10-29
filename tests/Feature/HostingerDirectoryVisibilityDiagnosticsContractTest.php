@@ -32,6 +32,14 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('PARITY_REPO="$(mktemp -d', $workflow);
         $this->assertStringContainsString('git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin main', $workflow);
         $this->assertStringContainsString('isolated_expected_tree_vs_deployed_file_content', $workflow);
+        $parityStart = strpos($workflow, '=== Deployed code revision and application-path parity (isolated, read-only) ===');
+        $parityEnd = strpos($workflow, '=== Migration source inventory for import_batches/duplicate_rows (read-only) ===', $parityStart === false ? 0 : $parityStart);
+        $this->assertNotFalse($parityStart);
+        $this->assertNotFalse($parityEnd);
+        $parityBlock = substr($workflow, $parityStart, $parityEnd - $parityStart);
+        $this->assertStringNotContainsString('git -C "$PROJECT_PATH" fetch', $parityBlock);
+        $this->assertStringNotContainsString('git -C "$PROJECT_PATH" log', $parityBlock);
+        $this->assertStringContainsString('trap \'rm -rf "$PARITY_REPO"\' EXIT', $parityBlock);
         $this->assertStringContainsString('merge-base --is-ancestor "$EXPECTED_REVISION" origin/main', $workflow);
         $this->assertStringContainsString('git -C "$PARITY_REPO" log --all --format=', $workflow);
         $this->assertStringNotContainsString('git fetch --quiet --no-tags --depth=200 origin main || DEPLOYMENT_DRIFT=1', $workflow);
