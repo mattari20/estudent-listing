@@ -211,14 +211,25 @@ class InstitutionFieldApprovalService
             throw new RuntimeException('Source observation, snapshot, and evidence relationships are invalid.');
         }
         if (! is_string($snapshot->content_hash) || trim($snapshot->content_hash) === ''
+            || ! is_string($snapshot->content) || ! hash_equals($snapshot->content_hash, hash('sha256', $snapshot->content))
             || ! is_string($evidence->content_hash) || ! hash_equals($snapshot->content_hash, $evidence->content_hash)) {
-            throw new RuntimeException('Evidence fingerprint does not match the captured source snapshot.');
+            throw new RuntimeException('Captured snapshot content fingerprint is invalid or does not match the evidence.');
         }
         if (! is_string($evidence->reference) || ! filter_var($evidence->reference, FILTER_VALIDATE_URL)
             || ! in_array(strtolower((string) parse_url($evidence->reference, PHP_URL_SCHEME)), ['http', 'https'], true)
             || ! is_string($evidence->excerpt) || trim($evidence->excerpt) === ''
             || $observation->observed_at === null) {
             throw new RuntimeException('A valid evidence URL, excerpt, and source observation timestamp are required.');
+        }
+        try {
+            app(SourceUrlGuard::class)->validate($evidence->reference);
+        } catch (\\Throwable $exception) {
+            throw new RuntimeException('Evidence URL is not a safe public HTTP destination.', 0, $exception);
+        }
+        $sourceHost = strtolower((string) parse_url((string) $source->url, PHP_URL_HOST));
+        $evidenceHost = strtolower((string) parse_url($evidence->reference, PHP_URL_HOST));
+        if ($sourceHost === '' || $evidenceHost !== $sourceHost) {
+            throw new RuntimeException('Evidence URL host does not match the verified official source.');
         }
 
         $sourceObservedAt = $this->timestamp($observation->observed_at);
