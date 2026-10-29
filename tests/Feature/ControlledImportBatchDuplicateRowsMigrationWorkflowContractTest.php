@@ -58,8 +58,11 @@ class ControlledImportBatchDuplicateRowsMigrationWorkflowContractTest extends Te
         $this->assertStringContainsString('$schema::getColumns($table)', $workflow);
         $this->assertStringContainsString("'duplicate_rows_column_definition' => \$columnDefinition", $workflow);
         $this->assertStringContainsString("'type_name' => \$column['type_name'] ?? null", $workflow);
-        $this->assertStringContainsString("'nullable' => \$column['nullable'] ?? null", $workflow);
-        $this->assertStringContainsString("'default' => \$column['default'] ?? null", $workflow);
+        $this->assertStringContainsString("'nullable' => \$nullable", $workflow);
+        $this->assertStringContainsString("'default' => \$default", $workflow);
+        $this->assertStringContainsString("'auto_increment' => \$autoIncrement", $workflow);
+        $this->assertStringContainsString("'matching_migration_count' => \$matchingMigrationCount", $workflow);
+        $this->assertStringContainsString("'related_migration_ledger_entries' => \$relatedMigrationEntries", $workflow);
         $this->assertStringContainsString("'ordinal_position' => \$duplicatePosition + 1", $workflow);
         $this->assertStringContainsString("'candidate_rows_precedes_duplicate_rows' => \$candidateRowsPrecedes", $workflow);
         $this->assertStringContainsString("'related_migration_files' => \$relatedMigrationFiles", $workflow);
