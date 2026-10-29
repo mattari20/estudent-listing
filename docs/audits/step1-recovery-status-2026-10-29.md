@@ -87,3 +87,64 @@ Safe reconciliation plan remains read-only: wait until the deployed app-code rev
 6. Confirm hPanel cron list and recent execution history manually; the rest can remain automated.
 
 No Step 2 work has begun.
+
+
+## Update — 2026-10-29 12:30 PKT: post-merge parity and browser results
+
+### Current source and merged fixes
+
+- Current main: fae32944e6880632fa96a82fb972afd362933338.
+- PR #905 merged as ad86009823550281e07e2d62674db8582f85427b: clean Chromium runtime diagnostic for page/API/network/JS errors.
+- PR #907 merged as 55f3baa86cf4a2b0e53eea982633d38dbf981192: browser gate now captures actual initial, search, reload and page-size navigation statuses and fails closed on non-200/incorrect empty-state output.
+- PR #909 merged as fae32944e6880632fa96a82fb972afd362933338: Hostinger parity check no longer runs git fetch --unshallow on the live shallow checkout; bounded fetches + the same fail-closed application-path comparison remain.
+
+### Latest main checks
+
+- Test #40835662178 PASS: https://github.com/mattari20/estudent-listing/actions/runs/40835662178
+- Laravel CI #40835662186 PASS: https://github.com/mattari20/estudent-listing/actions/runs/40835662186
+- Frontend build #40835662183 PASS: https://github.com/mattari20/estudent-listing/actions/runs/40835662183
+- Public monitor #40835662211 PASS: https://github.com/mattari20/estudent-listing/actions/runs/40835662211
+- Command Orchestrator #40835662274 PASS: https://github.com/mattari20/estudent-listing/actions/runs/40835662274
+- Hostinger Read-only Diagnostics #40835662204 PASS: https://github.com/mattari20/estudent-listing/actions/runs/40835662204
+
+The latest Hostinger job reports deployed Git revision 55f3baa86cf4a2b0e53eea982633d38dbf981192 and expected app-path revision 4b95e2d945583f36ff07376ed51f2d2727c0b78d, with APPLICATION_CODE_MATCH. This is correct because the app code paths match; the intervening commits only changed workflows/quality gates. The earlier shallow-history error did not recur.
+
+The same latest Hostinger run confirms GET /institutes/ returns HTTP 200. The subfolder API /institutes/api/v1/institutions?per_page=2 returns HTTP 200, application/json, valid paginator, data=[], total=0, current_page=1, last_page=1. Canonical institutions, campuses, programs and offerings each have zero rows and zero active rows; this is intentional after dummy-data removal.
+
+### Intermittent 500 and browser JSON error
+
+- Browser run #40834020536 captured an initial GET /institutes/ HTTP 500, title “500 Internal Server Error”, no rendered controls/empty state. The API in that same run still returned valid empty JSON; a later page-size navigation succeeded with HTTP 200. This was a genuine intermittent failure, not the empty-data state itself.
+- Later browser run #40834804093 passed: initial directory/search/reload/page-size statuses all 200, API valid JSON with total=0, correct empty-state headings, no syntax errors and no structural failures.
+- The latest Hostinger run also passed page/API checks. Thus the 500 has not recurred in subsequent sampled runs, but its exact Laravel exception has not been established; retain it as an intermittent risk rather than claim it can never recur.
+- The user-reported SyntaxError: Unexpected end of JSON input still was not reproduced by clean Chromium. The captured API fetch was initiated by the diagnostic itself (Playwright evaluate frames, blank script URLs). Authored resources/js/app.js only toggles password visibility; the directory is server-rendered. The exact request/script in the owner’s browser remains NOT VERIFIED. If it persists, the evidence needed is the exact Network URL, status, content type/body and initiator from that browser session.
+- Confirmed and fixed API route cause: API was registered at root /api/v1 while the app is served in /institutes. PR #902 set apiPrefix to institutes/api and added subfolder API/valid-empty-paginator tests. Current live endpoint is now verified.
+
+### Migration, candidates, scheduler and permanent quality gates
+
+- duplicate_rows remains COLUMN_PRESENT_LEDGER_ABSENT: expected column exists and its basic definition matches the migration, target migration ledger count is zero, schema_equivalence remains UNVERIFIED and migration_origin UNKNOWN. No schema/ledger write was performed.
+- Candidate import rows #348–352, batches #19–23, all show Government College University Lahore and same shown slug; active source evidence exists, but no approved identity or promotion decisions and no canonical row. The sanitized report does not prove payloads are identical. Only source-provenance, duplicate and dependency review is appropriate; no auto-approval/promotion/publication/deletion.
+- Existing ImportLifecyclePublicationEndToEndTest.php already covers evidence-backed candidate staging, explicit identity approval, promotion while private, separate explicit publication, listing and detail route in the test database. Do not duplicate it or use synthetic production records.
+- Main ruleset remains active on refs/heads/main, blocks deletion and non-fast-forward, but requires only the test status. Laravel CI, build and Browser Runtime are separate green checks but are not required ruleset contexts. No ruleset-edit tool was available; adding independent required contexts requires privileged repository administration.
+- Expected Hostinger cron: * * * * * cd /home/u537436044/domains/estudent.pk/public_html/institutes && /opt/alt/php85/usr/bin/php artisan schedule:run >> /dev/null 2>&1 (PHP 8.5.12). crontab remains unreadable. Owner must confirm hPanel jobs and recent executions; no cron was created/changed.
+
+### Acceptance status and recommendation
+
+| Criterion | Status | Evidence/blocker |
+| --- | --- | --- |
+| Directory HTML | PASS on latest runs; prior intermittent 500 remains a risk | Hostinger #40835662204, browser #40834804093; prior failure #40834020536 |
+| Exact owner-browser JSON exception identified/resolved | NOT VERIFIED | Clean Chromium did not reproduce it; actual initiator remains unknown |
+| Empty state without test data | PASS | Latest browser shows correct headings, zero cards, zero JSON exceptions |
+| Subfolder API and paginator | PASS | Latest Hostinger API check: HTTP 200, application/json, total=0 |
+| Search/page-size with empty data | PASS for exercised requests | Browser #40834804093, all actual statuses 200 |
+| Import → approval → promotion → publication | PASS in existing test-database integration; NOT VERIFIED using a fresh real official-source record | Existing end-to-end test; production remains intentionally empty |
+| Production program/campus relationships/detail data | NOT VERIFIED | No canonical published rows |
+| Candidate provenance/duplicates | PARTIAL | Rows 348–352 need evidence/dependency review |
+| duplicate_rows reconciliation | PARTIAL/BLOCKED | Ledger entry absent, schema equivalence and live origin unknown |
+| Hostinger parity/API | PASS | Latest diagnostics #40835662204 |
+| hPanel scheduler | PARTIAL/BLOCKED on owner confirmation | Correct command/path/PHP identified, hPanel status unresolved |
+| Required quality governance | PARTIAL | Ruleset requires only test |
+| Production acceptance | PARTIAL | Current endpoint is good; owner-browser error unlocated and prior 500 must stay tracked |
+
+Repairing the existing foundation remains the best-supported decision; no evidence yet warrants a rebuild. The API path defect was localized and is fixed. Existing import/identity/publication boundaries are tested. Reassess rebuild only if clean test-DB lifecycle tests continue failing after targeted repairs or complete schema/history review shows irreconcilable drift. No rebuild started or authorized.
+
+No production DB/data/schema/migration-ledger write, import, approval, promotion, publication, deletion, deployment or cron change was performed. Step 1 remains OPEN; Step 2 and feature phases remain HOLD.
