@@ -440,6 +440,60 @@ jobs:
             echo "=== Migration source inventory for import_batches/duplicate_rows (read-only) ==="
             find database/migrations -maxdepth 1 -type f -name '*.php' -print0 | xargs -0 grep -lE 'duplicate_rows|import_batches' | sort || true
 
+            echo "=== Candidate import source/evidence lineage (read-only; payloads omitted) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $db = \Illuminate\Support\Facades\DB::connection();
+            $schema = \Illuminate\Support\Facades\Schema::connection($db->getName());
+            $report = ['check' => 'candidate_import_source_evidence_lineage', 'mutation_performed' => false, 'rows' => [], 'sources' => []];
+            $targets = [348, 349, 350, 351, 352];
+            if (!$schema->hasTable('import_rows') || !$schema->hasTable('import_batches')) {
+                $report['status'] = 'blocked_required_import_tables_missing';
+            } else {
+                $rows = $db->table('import_rows')->join('import_batches', 'import_batches.id', '=', 'import_rows.import_batch_id')
+                    ->whereIn('import_rows.id', $targets)->orderBy('import_rows.id')
+                    ->get(['import_rows.id', 'import_rows.import_batch_id', 'import_rows.row_number', 'import_rows.status', 'import_rows.match_state', 'import_rows.canonical_subject_type', 'import_rows.canonical_subject_id', 'import_rows.parent_subject_type', 'import_rows.parent_subject_id', 'import_batches.batch_key', 'import_batches.entity_type', 'import_batches.status as batch_status', 'import_batches.source_id']);
+                foreach ($rows as $row) {
+                    $item = ['row_id' => (int) $row->id, 'batch_id' => (int) $row->import_batch_id, 'batch_key' => $row->batch_key, 'row_number' => (int) $row->row_number, 'row_status' => $row->status, 'match_state' => $row->match_state, 'entity_type' => $row->entity_type, 'batch_status' => $row->batch_status, 'source_id' => $row->source_id === null ? null : (int) $row->source_id, 'canonical_subject_type' => $row->canonical_subject_type, 'canonical_subject_id' => $row->canonical_subject_id === null ? null : (int) $row->canonical_subject_id, 'parent_subject_type' => $row->parent_subject_type, 'parent_subject_id' => $row->parent_subject_id === null ? null : (int) $row->parent_subject_id];
+                    $item['source'] = null;
+                    if ($row->source_id !== null && $schema->hasTable('sources')) {
+                        $columns = array_values(array_filter(['id', 'name', 'url', 'source_type', 'authority_scope', 'status'], fn ($col) => $schema->hasColumn('sources', $col)));
+                        $source = $db->table('sources')->where('id', $row->source_id)->first($columns);
+                        $item['source'] = $source ? (array) $source : null;
+                    }
+                    $item['identity_decisions'] = $schema->hasTable('identity_resolution_decisions') ? $db->table('identity_resolution_decisions')->where('import_row_id', $row->id)->orderBy('id')->get(['id', 'decision', 'institution_id', 'actor_type', 'actor_id', 'decided_at'])->map(fn ($d) => (array) $d)->all() : [];
+                    $item['promotion_decisions'] = $schema->hasTable('import_promotion_decisions') ? $db->table('import_promotion_decisions')->where('import_row_id', $row->id)->orderBy('id')->get(['id', 'decision', 'actor_type', 'actor_id', 'created_at'])->map(fn ($d) => (array) $d)->all() : [];
+                    $item['open_conflict_count'] = $schema->hasTable('import_conflicts') ? (int) $db->table('import_conflicts')->where('import_row_id', $row->id)->where('status', 'open')->count() : null;
+                    $item['active_evidence'] = [];
+                    if ($schema->hasTable('assertions') && $schema->hasTable('evidence') && $schema->hasColumn('assertions', 'subject_type') && $schema->hasColumn('assertions', 'subject_id')) {
+                        $evidenceColumns = array_values(array_filter(['id', 'source_id', 'snapshot_id', 'reference', 'content_hash', 'observed_at', 'published_at', 'expires_at', 'status'], fn ($col) => $schema->hasColumn('evidence', $col)));
+                        $assertionColumns = array_values(array_filter(['id', 'evidence_id', 'attribute', 'value', 'verification_state', 'confidence', 'verified_at'], fn ($col) => $schema->hasColumn('assertions', $col)));
+                        $assertions = $db->table('assertions')->where('subject_type', \App\Models\ImportRow::class)->where('subject_id', $row->id)->orderBy('id')->get(['id', 'evidence_id']);
+                        foreach ($assertions as $assertion) {
+                            $evidence = $db->table('evidence')->where('id', $assertion->evidence_id)->first($evidenceColumns);
+                            $assertionDetail = $db->table('assertions')->where('id', $assertion->id)->first($assertionColumns);
+                            $item['active_evidence'][] = ['assertion' => $assertionDetail ? (array) $assertionDetail : null, 'evidence' => $evidence ? (array) $evidence : null];
+                        }
+                    }
+                    $item['promotion_events'] = [];
+                    if ($schema->hasTable('import_promotion_events')) {
+                        $eventColumns = array_values(array_filter(['id', 'event_type', 'canonical_type', 'canonical_id', 'actor_type', 'actor_id', 'occurred_at'], fn ($col) => $schema->hasColumn('import_promotion_events', $col)));
+                        $item['promotion_events'] = $db->table('import_promotion_events')->where('import_row_id', $row->id)->orderBy('id')->get($eventColumns)->map(fn ($e) => (array) $e)->all();
+                    }
+                    $report['rows'][] = $item;
+                }
+                $sourceIds = collect($rows)->pluck('source_id')->filter()->unique()->values()->all();
+                if ($sourceIds && $schema->hasTable('sources')) {
+                    $sourceColumns = array_values(array_filter(['id', 'name', 'url', 'source_type', 'authority_scope', 'status'], fn ($col) => $schema->hasColumn('sources', $col)));
+                    $report['sources'] = $db->table('sources')->whereIn('id', $sourceIds)->orderBy('id')->get($sourceColumns)->map(fn ($s) => (array) $s)->all();
+                }
+            }
+            echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
+
             echo "=== Canonical institution identity export (read-only; names and slugs only) ==="
             php <<'PHP'
             <?php
