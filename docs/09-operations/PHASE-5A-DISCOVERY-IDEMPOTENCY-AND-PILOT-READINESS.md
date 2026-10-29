@@ -55,7 +55,7 @@ The post-merge review identified one additional correctness defect worth fixing:
 
 The post-merge read-only diagnostic runs confirm six GCU Lahore candidate rows (IDs 348–353) across batches 19–24, all associated with official source ID 27 for the HEC university identity page. Detailed source/evidence lineage is now returned for all six, including the previously missing row 353. Every row remains a candidate in a validated batch, with active source evidence, no identity decision, no promotion decision, no open conflicts and no validation errors. The canonical institution table remains empty. No row was modified.
 
-The read-only lineage target list was expanded in PR #927, and run #40882355434 now returns complete lineage for all six rows. For row 353 specifically, the private log confirms batch 24, source 27, snapshot 13 and evidence 20, with active evidence tied to the official HEC GCU Lahore identity page. Its identity and promotion decision arrays are empty, there are no open conflicts, and the assertion remains a discovered candidate rather than a verified/published canonical record. The exact content hash and detailed row-level identifiers remain in the private Actions log, not repeated in this public report. The lineage query sets `mutation_performed=false`; the workflow's later nonzero exit is solely its revision-parity gate.
+The read-only lineage target list was expanded in PR #927, and run #40882355434 now returns complete lineage for all six rows. For row 353 specifically, the private log confirms batch 24, source 27, snapshot 13 and evidence 20, with active evidence tied to the official HEC GCU Lahore identity page. Its identity and promotion decision arrays are empty, there are no open conflicts, and the assertion remains a discovered candidate rather than a verified/published canonical record. The exact content hash, source excerpt and raw row payload remain in the private Actions log, not repeated in this public report; only the minimum lineage coverage needed to reconcile the gap is summarized here. The lineage query sets `mutation_performed=false`; the workflow's later nonzero exit is solely its revision-parity gate.
 
 Sensitive row-level production IDs beyond those needed to identify this review scope, raw response content, evidence excerpts, package manifests and content hashes should remain in the private diagnostics/log view, not be copied into public documentation or pull requests.
 
@@ -65,12 +65,12 @@ All six captured lineage records have distinct content hashes, establishing byte
 
 ## First GCU review package and human decision
 
-Candidate for initial review: row 348, batch 19, snapshot 8, evidence 15 (lineage verified in the earlier bounded report). The official source reference recorded for this candidate is the HEC GCU Lahore identity page.
+Candidate for initial review: row 348 in batch 19. Its snapshot/evidence identifiers must be matched against the private manifest and CSV during the authorized review. The official source reference recorded for this candidate is the HEC GCU Lahore identity page.
 
 The existing protected package download endpoint is:
 
-- `GET /institutes/operations/discovery-packages/19/manifest`
-- `GET /institutes/operations/discovery-packages/19/csv`
+- `GET /institutes/operations/discovery-packages/{batch}/manifest`
+- `GET /institutes/operations/discovery-packages/{batch}/csv`
 
 These are authenticated operator routes. They only download an existing private package and validate the batch/snapshot association plus CSV checksum; a 404 may mean the package is not present or its provenance cannot be resolved. The existing `InstituteDiscoveryReviewPackageService::create($batch, $snapshot, $evidenceId)` can build a package in private local storage when invoked through an authorized operator/console path.
 
@@ -110,7 +110,7 @@ The pilot count remains **0 institutions cleared for promotion**. The first GCU 
 | 1. Current `main` and merged PR #926 verified | PASS | `main` equals merge commit `90fc06164da925ac5ef5d0cfad31ec7f734ae78c`; PR #926 is merged |
 | 2. Post-merge CI/regression status verified | PASS for code CI; BLOCKED for production parity | Latest Test #40882355334 and Laravel CI #40882355259 pass; diagnostics #40882355434 and integrity audit #40882355388 remain blocked at the deployment-parity gate |
 | 3. Duplicate prevention / identity collision tests pass | PASS | PR #927 is merged; Test #40882355334 and Laravel CI #40882355259 passed with 737 tests / 3,314 assertions, including the conflicting-official-name regression |
-| 4. Six production rows have complete lineage or a documented gap | PASS — lineage complete | Hostinger Read-only Diagnostics #40882355434 returns source/snapshot/evidence lineage for rows 348–353, including row 353 (batch 24, source 27, snapshot 13, evidence 20); identifiers and hashes remain in the private log |
+| 4. Six production rows have complete lineage or a documented gap | PASS — lineage complete | Hostinger Read-only Diagnostics #40882355434 returns source/snapshot/evidence lineage for rows 348–353, including the previously omitted row 353; precise evidence identifiers and hashes remain in the private log |
 | 5. Source-response differences classified from actual content | BLOCKED | Sanitized diagnostics do not expose bodies/excerpts; hashes alone cannot classify changes. Authorized private source comparison required |
 | 6. Private review package validated or blocker documented | BLOCKED | Exact blocker: no authorized production operator session/private-storage access through connected tools. Operator must retrieve batch 19 manifest/CSV and verify checksum, provenance and safety flags |
 | 7. First GCU review prepared without invented decision | PARTIAL | Review target and official source reference identified; preliminary identity remains unresolved pending package verification and human review |
