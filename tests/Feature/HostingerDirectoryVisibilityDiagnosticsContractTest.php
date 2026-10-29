@@ -32,6 +32,14 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString("git log --all --format='%H %cs %s' -S'import_batches' -- database/migrations", $workflow);
     }
 
+    public function test_laravel_api_prefix_matches_the_public_institutes_subfolder(): void
+    {
+        $bootstrap = file_get_contents(base_path('bootstrap/app.php'));
+
+        $this->assertIsString($bootstrap);
+        $this->assertStringContainsString("apiPrefix: 'institutes/api'", $bootstrap);
+    }
+
     public function test_public_site_diagnostics_capture_status_content_type_and_json_pagination_contract(): void
     {
         $workflow = file_get_contents(base_path('.github/workflows/hostinger-readonly-diagnostics.yml'));
