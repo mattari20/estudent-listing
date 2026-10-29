@@ -49,6 +49,18 @@ class ControlledImportBatchDuplicateRowsMigrationWorkflowContractTest extends Te
         $this->assertStringContainsString('exit(14);', $workflow);
     }
 
+    public function test_read_only_diagnostics_report_duplicate_rows_column_definition(): void
+    {
+        $workflow = file_get_contents(base_path('.github/workflows/hostinger-readonly-diagnostics.yml'));
+
+        $this->assertIsString($workflow);
+        $this->assertStringContainsString('$schema::getColumns($table)', $workflow);
+        $this->assertStringContainsString("'duplicate_rows_column_definition' => $columnDefinition", $workflow);
+        $this->assertStringContainsString("'type_name' => $column['type_name'] ?? null", $workflow);
+        $this->assertStringContainsString("'nullable' => $column['nullable'] ?? null", $workflow);
+        $this->assertStringContainsString("'default' => $column['default'] ?? null", $workflow);
+    }
+
     public function test_post_migration_verification_uses_explicit_script_file_and_cleans_up(): void
     {
         $workflow = file_get_contents(base_path('.github/workflows/controlled-import-batch-duplicate-rows-migration.yml'));
