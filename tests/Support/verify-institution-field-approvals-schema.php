@@ -81,34 +81,44 @@ if (!($columns->get('id')['auto_increment'] ?? false)) {
     bad('id is not auto increment');
 }
 
-$indexes = collect(Schema::getIndexes($table))->keyBy('name');
-
+$indexes = collect(Schema::getIndexes($table));
 $expectedIndexes = [
-    'PRIMARY' => [['id'], true, true],
-    'institution_field_approvals_proposal_hash_unique' => [['proposal_hash'], true, false],
-    'inst_field_approval_state_idx' => [['institution_id', 'field_name', 'status'], false, false],
-    'inst_field_approval_source_idx' => [['source_id', 'source_change_observation_id'], false, false],
-    'inst_field_approval_decision_idx' => [['status', 'decision_at'], false, false],
+    'institution_field_approvals_proposal_hash_unique' => [['proposal_hash'], true],
+    'inst_field_approval_state_idx' => [['institution_id', 'field_name', 'status'], false],
+    'inst_field_approval_source_idx' => [['source_id', 'source_change_observation_id'], false],
+    'inst_field_approval_decision_idx' => [['status', 'decision_at'], false],
 ];
 
-foreach ($expectedIndexes as $name => [$expectedIndexColumns, $unique, $primary]) {
-    $index = $indexes->get($name);
+$primaryIndexes = $indexes->filter(
+    fn (array $index): bool => (bool) ($index['primary'] ?? false)
+);
 
-    if (!is_array($index)) {
-        bad("missing index {$name}");
-    }
+if (
+    $primaryIndexes->count() !== 1
+    || array_values($primaryIndexes->first()['columns'] ?? []) !== ['id']
+) {
+    bad('primary key is not exactly id');
+}
 
-    if (
-        array_values($index['columns'] ?? []) !== $expectedIndexColumns
-        || (bool) ($index['unique'] ?? false) !== $unique
-        || (bool) ($index['primary'] ?? false) !== $primary
-    ) {
-        bad("index mismatch {$name}");
+foreach ($expectedIndexes as $name => [$expectedIndexColumns, $unique]) {
+    $matches = $indexes->filter(
+        fn (array $index): bool =>
+            ($index['name'] ?? null) === $name
+            && array_values($index['columns'] ?? []) === $expectedIndexColumns
+            && (bool) ($index['unique'] ?? false) === $unique
+            && !((bool) ($index['primary'] ?? false))
+    );
+
+    if ($matches->count() !== 1) {
+        bad("missing/duplicate/mismatched index {$name}");
     }
 }
 
-$foreignKeys = collect(Schema::getForeignKeys($table));
+if ($indexes->count() !== count($expectedIndexes) + 1) {
+    bad('unexpected index count');
+}
 
+$foreignKeys = collect(Schema::getForeignKeys($table));
 $expectedForeignKeys = [
     'institution_id' => ['institutions', 'id'],
     'source_id' => ['sources', 'id'],
@@ -147,4 +157,4 @@ if (DB::table('migrations')->where('migration', $migration)->count() !== 1) {
     bad('migration ledger count is not one');
 }
 
-echo 'Verified '.count($expectedColumns).' columns, defaults, five expected indexes, eight restrictive foreign keys, and one ledger entry.'.PHP_EOL;
+echo 'Verified '.count($expectedColumns).' columns, defaults, primary/unique/secondary indexes, eight restrictive foreign keys, and one ledger entry.'.PHP_EOL;
