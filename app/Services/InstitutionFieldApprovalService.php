@@ -264,9 +264,10 @@ class InstitutionFieldApprovalService
         foreach (['institution_id', 'source_id', 'source_change_observation_id', 'source_snapshot_id', 'evidence_id'] as $field) {
             $attributes[$field] = (int) $attributes[$field];
         }
-        foreach (['source_observed_at', 'evidence_observed_at'] as $field) {
-            $attributes[$field] = $attributes[$field] === null ? null : $this->timestamp($attributes[$field]);
-        }
+        // The persisted timestamp fields are checked directly against the live
+        // observation and evidence records during review and application. Exclude
+        // their driver-dependent date serialization from the immutable payload hash.
+        unset($attributes['source_observed_at'], $attributes['evidence_observed_at']);
         ksort($attributes);
 
         return hash('sha256', json_encode($attributes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
