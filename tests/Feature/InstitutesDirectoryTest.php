@@ -115,6 +115,10 @@ class InstitutesDirectoryTest extends TestCase
             $this->assertStringContainsString($failureClassification, $workflow);
         }
         $this->assertStringContainsString('TABLE_SCHEMA = DATABASE()', $workflow);
+        $this->assertStringContainsString('EXPECTED_PATH_LIST="$PARITY_REPO/expected-application-paths.txt"', $workflow);
+        $this->assertStringContainsString('done < "$EXPECTED_PATH_LIST"', $workflow);
+        $this->assertStringContainsString('application_code_parity=reference_path_list_failed', $workflow);
+        $this->assertStringNotContainsString('done < <(git -C "$PARITY_REPO" ls-tree', $workflow);
     }
 
 }
