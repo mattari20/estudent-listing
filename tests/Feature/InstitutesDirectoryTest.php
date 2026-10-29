@@ -74,4 +74,51 @@ class InstitutesDirectoryTest extends TestCase
             ->assertDontSee('AAA Page Size Test Institution 01')
             ->assertSee('per_page=9');
     }
+
+    public function test_readonly_diagnostic_contract_has_prerequisite_foreign_key_metadata_fields(): void
+    {
+        $workflow = file_get_contents(base_path('.github/workflows/hostinger-readonly-diagnostics.yml'));
+        $this->assertIsString($workflow);
+
+        $this->assertStringContainsString("'check' => 'institution_field_approvals_schema_readiness'", $workflow);
+        $this->assertStringContainsString("'mutation_performed' => false", $workflow);
+        $this->assertStringContainsString('\'foreign_key_prerequisites\' => $prerequisites', $workflow);
+        $this->assertStringContainsString('\'prerequisite_blockers\' => $prerequisiteBlockers', $workflow);
+        $this->assertStringContainsString('\'metadata_introspection_succeeded\' => !$metadataError', $workflow);
+
+        foreach ([
+            'institutions',
+            'sources',
+            'source_change_observations',
+            'source_snapshots',
+            'evidence',
+            'users',
+            'official_source_refresh_events',
+        ] as $table) {
+            $this->assertStringContainsString("'".$table."' =>", $workflow);
+        }
+
+        $this->assertStringContainsString('storage_engine_foreign_key_compatible', $workflow);
+        $this->assertStringContainsString('referenced_id_type_not_compatible_with_unsigned_bigint_foreignId', $workflow);
+        $this->assertStringContainsString('referenced_id_not_primary_or_unique', $workflow);
+        foreach ([
+            'referenced_table_missing',
+            'referenced_id_column_missing',
+            'referenced_id_nullability_not_verified_non_null',
+            'referenced_table_engine_not_verified_innodb',
+            'metadata_introspection_failed',
+            'PARTIALLY_APPLIED',
+            'TABLE_ABSENT_LEDGER_PRESENT',
+            'TABLE_PRESENT_LEDGER_COUNT_MISMATCH',
+            'AMBIGUOUS_UNVERIFIED',
+        ] as $failureClassification) {
+            $this->assertStringContainsString($failureClassification, $workflow);
+        }
+        $this->assertStringContainsString('TABLE_SCHEMA = DATABASE()', $workflow);
+        $this->assertStringContainsString('EXPECTED_PATH_LIST="$PARITY_REPO/expected-application-paths.txt"', $workflow);
+        $this->assertStringContainsString('done < "$EXPECTED_PATH_LIST"', $workflow);
+        $this->assertStringContainsString('application_code_parity=reference_path_list_failed', $workflow);
+        $this->assertStringNotContainsString('done < <(git -C "$PARITY_REPO" ls-tree', $workflow);
+    }
+
 }
