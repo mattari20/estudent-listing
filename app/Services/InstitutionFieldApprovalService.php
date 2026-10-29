@@ -243,18 +243,21 @@ class InstitutionFieldApprovalService
             'evidence_observed_at' => $evidenceObservedAt,
         ];
 
-        if ($proposal !== null && (
-            (int) $proposal->source_id !== (int) $source->id
-            || (int) $proposal->source_change_observation_id !== (int) $observation->id
-            || (int) $proposal->source_snapshot_id !== (int) $snapshot->id
-            || (int) $proposal->evidence_id !== (int) $evidence->id
-            || $proposal->evidence_url !== $values['evidence_url']
-            || $proposal->evidence_excerpt !== $values['evidence_excerpt']
-            || $proposal->content_fingerprint !== $values['fingerprint']
-            || $this->timestamp($proposal->source_observed_at) !== $values['source_observed_at']
-            || $this->nullableTimestamp($proposal->evidence_observed_at) !== $values['evidence_observed_at']
-        )) {
-            throw new RuntimeException('Evidence or source revision changed after review.');
+        if ($proposal !== null) {
+            $differences = [];
+            if ((int) $proposal->source_id !== (int) $source->id) $differences[] = 'source_id';
+            if ((int) $proposal->source_change_observation_id !== (int) $observation->id) $differences[] = 'observation_id';
+            if ((int) $proposal->source_snapshot_id !== (int) $snapshot->id) $differences[] = 'snapshot_id';
+            if ((int) $proposal->evidence_id !== (int) $evidence->id) $differences[] = 'evidence_id';
+            if ($proposal->evidence_url !== $values['evidence_url']) $differences[] = 'evidence_url';
+            if ($proposal->evidence_excerpt !== $values['evidence_excerpt']) $differences[] = 'evidence_excerpt';
+            if ($proposal->content_fingerprint !== $values['fingerprint']) $differences[] = 'fingerprint';
+            if ($this->timestamp($proposal->source_observed_at) !== $values['source_observed_at']) $differences[] = 'source_observed_at';
+            if ($this->nullableTimestamp($proposal->evidence_observed_at) !== $values['evidence_observed_at']) $differences[] = 'evidence_observed_at';
+
+            if ($differences !== []) {
+                throw new RuntimeException('Evidence or source revision changed after review: '.implode(',', $differences).'.');
+            }
         }
 
         return $values;
