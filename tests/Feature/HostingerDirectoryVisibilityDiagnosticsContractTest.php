@@ -37,6 +37,20 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString("git log --all --format='%H %cs %s' -S'import_batches' -- database/migrations", $workflow);
     }
 
+    public function test_readonly_diagnostics_have_single_public_api_and_guest_access_checks(): void
+    {
+        $workflow = file_get_contents(base_path('.github/workflows/hostinger-readonly-diagnostics.yml'));
+
+        $this->assertIsString($workflow);
+        $this->assertSame(1, substr_count($workflow, '      - name: Verify public directory and API response contracts'));
+        $this->assertSame(1, substr_count($workflow, '      - name: Verify guest denial for operator-only discovery endpoints'));
+        $this->assertStringContainsString('live_guest_denial_status=PASS', $workflow);
+        $this->assertStringNotContainsString('php artisan schedule:list --no-ansi', substr(
+            $workflow,
+            strpos($workflow, '      - name: Verify guest denial for operator-only discovery endpoints')
+        ));
+    }
+
     public function test_laravel_api_prefix_matches_the_public_institutes_subfolder(): void
     {
         $bootstrap = file_get_contents(base_path('bootstrap/app.php'));
