@@ -1,0 +1,164 @@
+name: Controlled Institution Field Approvals Migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/controlled-institution-field-approvals-migration.yml'
+  workflow_dispatch:
+    inputs:
+      confirm_migration:
+        description: "Set true only to apply the single reviewed migration after read-only preflight passes."
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: controlled-institution-field-approvals-migration
+  cancel-in-progress: false
+
+jobs:
+  resolve-target:
+    name: Resolve reviewed application-code revision
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      target_revision: ${{ steps.revision.outputs.target_revision }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - id: revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          test -n "$revision"
+          echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "target_application_revision=$revision"
+
+  migrate:
+    name: Preflight, run only the target migration, and verify
+    needs: resolve-target
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify deployed code, preflight, and run only the authorized migration
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
+          TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
+          CONFIRM_MIGRATION: ${{ (github.event_name == 'push' && contains(github.event.head_commit.message, 'Run explicitly authorized institution field approvals migration once')) || inputs.confirm_migration }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,TARGET_REVISION,CONFIRM_MIGRATION
+          command_timeout: 6m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: project path must be absolute"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: invalid project path"; exit 2 ;; esac
+            test -f "$PROJECT_PATH/artisan" || { echo "ERROR: artisan missing"; exit 3; }
+            test -f "$PROJECT_PATH/vendor/autoload.php" || { echo "ERROR: Composer autoloader missing"; exit 3; }
+            MIGRATION_FILE="database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php"
+            MIGRATION_NAME="2026_10_29_000001_create_institution_field_approvals_table"
+            test -f "$PROJECT_PATH/$MIGRATION_FILE" || { echo "ERROR: target migration file missing on Hostinger"; exit 4; }
+            cd "$PROJECT_PATH"
+            git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "ERROR: Git metadata unavailable"; exit 4; }
+            PREVIOUS_REVISION="$(git rev-parse HEAD)"
+            echo "deployed_revision=$PREVIOUS_REVISION"
+            echo "target_application_revision=$TARGET_REVISION"
+            if [ -f .git/shallow ]; then
+              git fetch --quiet --no-tags --unshallow origin main || { echo "ERROR: unable to verify code history"; exit 4; }
+            else
+              git fetch --quiet --no-tags origin main || { echo "ERROR: unable to verify code history"; exit 4; }
+            fi
+            git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || { echo "ERROR: target application commit unavailable"; exit 4; }
+            git merge-base --is-ancestor "$TARGET_REVISION" FETCH_HEAD || { echo "ERROR: target commit not reachable from origin/main"; exit 4; }
+            APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
+            git diff --quiet "$TARGET_REVISION" "$PREVIOUS_REVISION" -- $APP_CODE_PATHS || { echo "ERROR: deployed application code differs from target"; exit 5; }
+            git diff --quiet HEAD -- $APP_CODE_PATHS || { echo "ERROR: application working tree has modifications"; exit 5; }
+            git diff --cached --quiet HEAD -- $APP_CODE_PATHS || { echo "ERROR: application index has modifications"; exit 5; }
+            echo "application_code_parity=VERIFIED"
+
+            PREFLIGHT_SCRIPT_FILE="$(mktemp)"
+            PREFLIGHT_OUTPUT_FILE="$(mktemp)"
+            trap 'rm -f "$PREFLIGHT_SCRIPT_FILE" "$PREFLIGHT_OUTPUT_FILE"' EXIT
+            cat > "$PREFLIGHT_SCRIPT_FILE" <<'PHP'
+            <?php
+            $projectPath = getenv('PROJECT_PATH');
+            if (!is_string($projectPath) || $projectPath === '') { fwrite(STDERR, "ERROR: project path unavailable\n"); exit(2); }
+            require $projectPath.'/vendor/autoload.php';
+            $app = require $projectPath.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $db = \Illuminate\Support\Facades\DB::connection();
+            $schema = \Illuminate\Support\Facades\Schema::connection($db->getName());
+            $migration = '2026_10_29_000001_create_institution_field_approvals_table';
+            $table = 'institution_field_approvals';
+            if ($db->getDriverName() !== 'mysql') { fwrite(STDERR, "ERROR: production database is not MySQL\n"); exit(10); }
+            if (!$schema->hasTable('migrations')) { fwrite(STDERR, "ERROR: migration ledger missing\n"); exit(11); }
+            $ledgerCount = (int) $db->table('migrations')->where('migration', $migration)->count();
+            $tableExists = $schema->hasTable($table);
+            echo json_encode([
+                'check' => 'institution_field_approvals_migration_preflight',
+                'database_driver' => $db->getDriverName(),
+                'target_table_exists' => $tableExists,
+                'target_migration_ledger_count' => $ledgerCount,
+                'mutation_performed' => false,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            if ($tableExists && $ledgerCount === 1) { echo "decision=ALREADY_APPLIED_VERIFY_ONLY\n"; exit(0); }
+            if ($tableExists || $ledgerCount !== 0) { fwrite(STDERR, "ERROR: ambiguous table/ledger state; refusing repair or rerun\n"); exit(12); }
+            $parents = ['institutions','sources','source_change_observations','source_snapshots','evidence','users','official_source_refresh_events'];
+            foreach ($parents as $parent) {
+                if (!$schema->hasTable($parent)) { fwrite(STDERR, "ERROR: prerequisite table missing\n"); exit(13); }
+                $idColumn = null;
+                foreach ($schema->getColumns($parent) as $column) { if (($column['name'] ?? null) === 'id') { $idColumn = $column; break; } }
+                $idType = strtolower((string) ($idColumn['type'] ?? '').' '.(string) ($idColumn['type_name'] ?? ''));
+                if (!$idColumn || !str_contains($idType,'bigint') || !str_contains($idType,'unsigned') || ($idColumn['nullable'] ?? true) !== false) { fwrite(STDERR, "ERROR: prerequisite id column incompatible\n"); exit(14); }
+                $unique = false;
+                foreach ($schema->getIndexes($parent) as $index) {
+                    if (array_values($index['columns'] ?? []) === ['id'] && (($index['primary'] ?? false) || ($index['unique'] ?? false) || strtolower((string) ($index['name'] ?? '')) === 'primary')) { $unique = true; break; }
+                }
+                if (!$unique) { fwrite(STDERR, "ERROR: prerequisite id is not primary or unique\n"); exit(15); }
+                $engines = $db->select('SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$parent]);
+                if (!isset($engines[0]) || strtoupper((string) ($engines[0]->ENGINE ?? '')) !== 'INNODB') { fwrite(STDERR, "ERROR: prerequisite storage engine is not InnoDB\n"); exit(16); }
+            }
+            echo "decision=READY_TO_MIGRATE\n";
+            PHP
+            if php "$PREFLIGHT_SCRIPT_FILE" >"$PREFLIGHT_OUTPUT_FILE"; then PREFLIGHT_EXIT=0; else PREFLIGHT_EXIT=$?; fi
+            cat "$PREFLIGHT_OUTPUT_FILE"
+            if [ "$PREFLIGHT_EXIT" -ne 0 ]; then echo "ERROR: preflight failed; migration not run"; exit "$PREFLIGHT_EXIT"; fi
+            if grep -q 'decision=ALREADY_APPLIED_VERIFY_ONLY' "$PREFLIGHT_OUTPUT_FILE"; then
+              echo "migration_status=ALREADY_APPLIED_VERIFY_ONLY"
+            elif [ "$CONFIRM_MIGRATION" != "true" ]; then
+              echo "migration_status=READ_ONLY_PREFLIGHT_ONLY"
+              exit 0
+            else
+              grep -q 'decision=READY_TO_MIGRATE' "$PREFLIGHT_OUTPUT_FILE" || { echo "ERROR: preflight did not authorize migration"; exit 17; }
+              echo "migration_command=php artisan migrate --force --path=$MIGRATION_FILE"
+              php artisan migrate --force --path="$MIGRATION_FILE"
+              echo "migration_status=COMMAND_COMPLETED"
+            fi
+
+            php tests/Support/verify-institution-field-approvals-schema.php
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $db = \Illuminate\Support\Facades\DB::connection();
+            $rows = $db->select('SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', ['institution_field_approvals']);
+            $engine = isset($rows[0]) ? strtoupper((string) ($rows[0]->ENGINE ?? '')) : '';
+            $ledger = (int) $db->table('migrations')->where('migration', '2026_10_29_000001_create_institution_field_approvals_table')->count();
+            $approvalRows = (int) $db->table('institution_field_approvals')->count();
+            echo json_encode(['check'=>'institution_field_approvals_post_migration','engine'=>$engine,'migration_ledger_count'=>$ledger,'approval_rows'=>$approvalRows,'mutation_performed_by_verification'=>false], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            if ($engine !== 'INNODB' || $ledger !== 1 || $approvalRows !== 0) { fwrite(STDERR, "FAILED: post-migration engine, ledger, or empty-table check\n"); exit(20); }
+            echo "migration_status=TARGET_SCHEMA_AND_LEDGER_VERIFIED\n";
+            PHP
+            echo "production_data_import_promotion_publication=NOT_PERFORMED"
