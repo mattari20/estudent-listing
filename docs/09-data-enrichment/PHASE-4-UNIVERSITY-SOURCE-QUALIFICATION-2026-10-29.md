@@ -28,6 +28,8 @@ The official HEC university profile pages below were inspected using the web res
 
 ## Preliminary identity profile manifest
 
+The per-candidate dry-run results, synthetic fixture hashes, duplicate decisions, and blocked reasons are also available in [`PHASE-4-INSTITUTION-IDENTITY-DRY-RUN-2026-10-29.json`](PHASE-4-INSTITUTION-IDENTITY-DRY-RUN-2026-10-29.json). Synthetic hashes are explicitly labeled as fixture hashes, not live HEC content hashes; test snapshot IDs are ephemeral and were not exported by CI.
+
 Status labels:
 - `Rendered`: HEC page rendered and the institution name was visible in the returned page text; origin HTTP status and raw-body fingerprint were not exposed.
 - `Search excerpt only`: the direct open timed out; the official HEC search-index result showed the institution identity, but direct reachability is not established.
