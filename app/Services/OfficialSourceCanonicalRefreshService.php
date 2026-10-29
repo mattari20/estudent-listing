@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Campus;
+use App\Models\Institution;
 use App\Models\OfficialSourceRefreshEvent;
 use App\Models\Program;
 use App\Models\ProgramOffering;
@@ -12,7 +13,13 @@ use RuntimeException;
 
 class OfficialSourceCanonicalRefreshService
 {
+    /**
+     * Institution refresh is deliberately limited to descriptive prose. Identity,
+     * classification, status, verification state, keys, and relationships are not
+     * safe to revise until a persisted field-level approval decision is integrated.
+     */
     private const ALLOWED_FIELDS = [
+        Institution::class => ['description'],
         Campus::class => ['name', 'campus_type', 'status', 'address', 'postal_code', 'latitude', 'longitude'],
         Program::class => ['name', 'program_level', 'award', 'discipline', 'status', 'description'],
         ProgramOffering::class => ['delivery_mode', 'status', 'intake_label', 'duration', 'availability', 'effective_from', 'effective_until'],
@@ -39,6 +46,16 @@ class OfficialSourceCanonicalRefreshService
         $class = $canonical::class;
         if (! isset(self::ALLOWED_FIELDS[$class]) || ! in_array($field, self::ALLOWED_FIELDS[$class], true)) {
             throw new RuntimeException('Canonical field is not allowlisted for official refresh.');
+        }
+
+        // SourceChangeObservation currently records detection/actionability, not a
+        // persisted human approval of this exact field proposal. Import promotion
+        // decisions are tied to import-row promotion and cannot authorize a field
+        // overwrite. Do not trust caller-supplied booleans as an approval substitute.
+        if ($class === Institution::class) {
+            throw new RuntimeException(
+                'Institution official refresh is blocked: persisted field-level approval integration is unavailable.'
+            );
         }
 
         return DB::transaction(function () use ($canonical, $class, $field, $expectedCurrentValue, $proposedValue, $evidence): Model {
