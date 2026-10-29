@@ -15,6 +15,20 @@ class InstitutionApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_subfolder_api_returns_a_valid_empty_paginator_when_no_institutions_exist(): void
+    {
+        // Some test configurations load shared fixtures; explicitly clear publication eligibility.
+        Institution::query()->update(['status' => 'inactive']);
+
+        $this->getJson('/institutes/api/v1/institutions?per_page=2')
+            ->assertOk()
+            ->assertHeader('content-type', 'application/json')
+            ->assertJsonPath('data', [])
+            ->assertJsonPath('total', 0)
+            ->assertJsonPath('current_page', 1)
+            ->assertJsonPath('last_page', 1);
+    }
+
     public function test_versioned_institution_api_lists_active_institutions(): void
     {
         Institution::create([
@@ -29,7 +43,7 @@ class InstitutionApiTest extends TestCase
             'status' => 'closed',
         ]);
 
-        $this->getJson('/api/v1/institutions')
+        $this->getJson('/institutes/api/v1/institutions')
             ->assertOk()
             ->assertJsonPath('data.0.name', 'API University')
             ->assertJsonMissing(['slug' => 'closed-university']);
@@ -43,7 +57,7 @@ class InstitutionApiTest extends TestCase
             'status' => 'active',
         ]);
 
-        $this->getJson('/api/v1/institutions/api-university')
+        $this->getJson('/institutes/api/v1/institutions/api-university')
             ->assertOk()
             ->assertJsonPath('name', $institution->name);
     }
@@ -63,7 +77,7 @@ class InstitutionApiTest extends TestCase
             'is_current' => true,
         ]);
 
-        $this->getJson('/api/v1/institutions?q=AUP')
+        $this->getJson('/institutes/api/v1/institutions?q=AUP')
             ->assertOk()
             ->assertJsonPath('data.0.slug', 'api-university');
     }
@@ -89,7 +103,7 @@ class InstitutionApiTest extends TestCase
             'status' => 'active',
         ]);
 
-        $this->getJson('/api/v1/institutions?program=Computer')
+        $this->getJson('/institutes/api/v1/institutions?program=Computer')
             ->assertOk()
             ->assertJsonPath('data.0.slug', 'api-university')
             ->assertJsonCount(1, 'data');
@@ -185,7 +199,7 @@ class InstitutionApiTest extends TestCase
             'availability' => 'closed',
         ]);
 
-        $response = $this->getJson('/api/v1/institutions/api-university')
+        $response = $this->getJson('/institutes/api/v1/institutions/api-university')
             ->assertOk();
 
         $response
@@ -241,7 +255,7 @@ class InstitutionApiTest extends TestCase
             'availability' => 'open',
         ]);
 
-        $this->getJson('/api/v1/institutions/api-university')
+        $this->getJson('/institutes/api/v1/institutions/api-university')
             ->assertOk()
             ->assertJsonPath('campuses.0.name', 'Main Campus')
             ->assertJsonPath('campuses.0.geography.name', 'Lahore')
@@ -252,12 +266,12 @@ class InstitutionApiTest extends TestCase
     public function test_api_does_not_return_inactive_institution_profile(): void
     {
         Institution::create(['name' => 'Inactive API University', 'slug' => 'inactive-api-university', 'status' => 'inactive']);
-        $this->getJson('/api/v1/institutions/inactive-api-university')->assertNotFound();
+        $this->getJson('/institutes/api/v1/institutions/inactive-api-university')->assertNotFound();
     }
 
     public function test_api_does_not_return_candidate_institution_profile(): void
     {
         Institution::create(['name' => 'Candidate API University', 'slug' => 'candidate-api-university', 'status' => 'candidate']);
-        $this->getJson('/api/v1/institutions/candidate-api-university')->assertNotFound();
+        $this->getJson('/institutes/api/v1/institutions/candidate-api-university')->assertNotFound();
     }
 }
