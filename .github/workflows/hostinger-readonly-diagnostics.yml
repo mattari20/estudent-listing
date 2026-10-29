@@ -75,7 +75,7 @@ jobs:
             php artisan env
             echo "=== Deployed API route registration (read-only; bounded) ==="
             API_ROUTE_REPORT="$(mktemp)"
-            php artisan route:list --path=api/v1/institutions --json --no-ansi > "$API_ROUTE_REPORT"
+            php artisan route:list --json --no-ansi > "$API_ROUTE_REPORT"
             php -r '
             $routes = json_decode(file_get_contents($argv[1]), true);
             if (! is_array($routes)) {
@@ -86,16 +86,7 @@ jobs:
             echo json_encode(["check" => "institution_api_route_registration", "mutation_performed" => false, "route_count" => count($matched), "routes" => array_map(fn ($route) => ["method" => $route["method"] ?? null, "uri" => $route["uri"] ?? null, "name" => $route["name"] ?? null, "action" => $route["action"] ?? null, "middleware" => $route["middleware"] ?? []], $matched)], JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES).PHP_EOL;
             if (count($matched) === 0) exit(3);
             ' "$API_ROUTE_REPORT"
-            rm -f "$API_ROUTE_REPORT"            php artisan route:list --path=api/v1/institutions --json --no-ansi | php -r '
-            $routes = json_decode(stream_get_contents(STDIN), true);
-            if (! is_array($routes)) {
-                fwrite(STDERR, "ERROR: route:list JSON was invalid or empty".PHP_EOL);
-                exit(2);
-            }
-            $matched = array_values(array_filter($routes, fn ($route) => str_contains((string) ($route["uri"] ?? ""), "api/v1/institutions") || str_contains((string) ($route["uri"] ?? ""), "v1/institutions")));
-            echo json_encode(["check" => "institution_api_route_registration", "mutation_performed" => false, "route_count" => count($matched), "routes" => array_map(fn ($route) => ["method" => $route["method"] ?? null, "uri" => $route["uri"] ?? null, "name" => $route["name"] ?? null, "action" => $route["action"] ?? null, "middleware" => $route["middleware"] ?? []], $matched)], JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES).PHP_EOL;
-            if (count($matched) === 0) exit(3);
-            '
+            rm -f "$API_ROUTE_REPORT"
             echo "=== Laravel scheduled task definitions (read-only) ==="
             php artisan schedule:list --no-ansi
             echo "=== Import-batch duplicate_rows schema/migration verification (read-only) ==="
