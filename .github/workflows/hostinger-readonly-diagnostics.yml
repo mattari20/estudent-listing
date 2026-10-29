@@ -1122,7 +1122,9 @@ jobs:
             echo "$label response_bytes=$(wc -c < "$body" | tr -d ' ')"
             if [[ "$expect_json" == "true" ]]; then
               if jq -e 'type == "object" and (.data | type == "array") and (.total | type == "number") and (.current_page | type == "number") and (.last_page | type == "number")' "$body" >/dev/null 2>&1; then
-                jq -c '{json_valid:true,data_count:(.data|length),total,current_page,last_page,from,to,per_page}' "$body" | sed "s/^/$label json_summary=/"
+                jq -c '{json_valid:true,data_count:(.data|length),ids:(.data|map(.id)),total,current_page,last_page,from,to,per_page}' "$body" | sed "s/^/$label json_summary=/"
+                jq -c '{data:(.data|map({id,name,slug,status})),total,current_page,last_page,from,to,per_page}' "$body" | head -c 500 | sed "s/^/$label sanitized_response_body=/"
+                echo
                 echo "$label json_contract=PASS"
               else
                 echo "$label json_contract=FAIL_OR_UNEXPECTED_SHAPE"
@@ -1141,6 +1143,17 @@ jobs:
           inspect_response institutions_api_page_1 "$BASE_URL/api/v1/institutions?per_page=2" true
           inspect_response institutions_api_search "$BASE_URL/api/v1/institutions?q=COMSATS&per_page=2" true
           inspect_response institutions_api_page_2 "$BASE_URL/api/v1/institutions?per_page=2&page=2" true
+          total="$(jq -r '.total' "$workdir/institutions_api_page_1.body")"
+          if [[ "$total" =~ ^[0-9]+$ ]] && (( total > 2 )); then
+            jq -en --slurpfile first "$workdir/institutions_api_page_1.body" --slurpfile second "$workdir/institutions_api_page_2.body" '
+              ($first[0].data | map(.id)) as $a |
+              ($second[0].data | map(.id)) as $b |
+              (($b | length) > 0) and ([ $a[] as $id | select($b | index($id)) ] | length == 0)
+            ' >/dev/null
+            echo "institutions_api_pagination=PASS"
+          else
+            echo "institutions_api_pagination=NOT_APPLICABLE_TOTAL_LE_2"
+          fi
 
       - name: Verify guest denial for operator-only discovery endpoints
         shell: bash
