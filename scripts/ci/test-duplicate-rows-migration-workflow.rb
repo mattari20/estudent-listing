@@ -53,6 +53,7 @@ abort 'ERROR: unsigned type, non-nullability, zero default, and non-auto-increme
 abort 'ERROR: confirm_migration=false must exit before any migration command' unless script.include?('if [ "$CONFIRM_MIGRATION" != "true" ]; then') && script.include?('production_schema_writes=NOT_RUN')
 abort 'ERROR: successful migration path must retain post-operation verification' unless script.include?('POSTCHECK_SCRIPT_FILE="$(mktemp)"') && script.include?('migration_status=TARGET_MIGRATION_APPLIED_AND_VERIFIED')
 abort 'ERROR: exception details must remain suppressed' if script.include?('$exception->getMessage()') || script.include?('diagnostic_exception_type=')
+abort 'ERROR: already-applied status must not imply full table-schema equivalence' unless script.include?('decision=ALREADY_APPLIED_TARGET_COLUMN_CONTRACT_VERIFIED') && !script.include?('decision=ALREADY_APPLIED_AND_VERIFIED')
 abort 'ERROR: preflight must not auto-reconcile the migration ledger' if script.match?(/insert\s+into\s+['"]?migrations|table\(['"]migrations['"]\)->insert/i)
 abort 'ERROR: preflight must not drop or recreate the column' if script.match?(/dropColumn|drop\s+column|add\s+column/i)
 abort 'ERROR: the workflow must remain restricted to the exact target migration' unless script.include?('2026_10_23_000001_add_duplicate_rows_to_import_batches_table.php') && script.include?('--path="$MIGRATION_FILE"')
