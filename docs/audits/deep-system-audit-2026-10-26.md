@@ -196,7 +196,7 @@ A targeted read of the eight highest-risk migration/deployment/diagnostic workfl
 
 ### Current audit boundary
 - **Verified:** main SHA, PR #893 merge, PR CI results, prior failed-run stage evidence, and source-level preflight state-handling gap.
-- **Audit gaps:** live schema/ledger report, current deployment parity after merge, route and SEO checks against current deployed data, importer row-level behavior, source-provenance/duplicate disposition, authorization matrix, and real Hostinger scheduler execution remain unverified in this execution.
+- **Audit gaps:** full schema equivalence/column ordering and migration-ledger reconciliation; end-to-end live detail-route acceptance with a real published institution; importer row-level behavior; source-provenance/duplicate disposition; complete authorization matrix; SEO checks against a populated directory; and actual Hostinger scheduler execution.
 - **Safety:** no production migration, schema repair, migration-ledger write, data import, canonical promotion, deletion, or scheduled command execution was performed. Keep the incident and Step 1 open; do not begin Step 2.
 
 
