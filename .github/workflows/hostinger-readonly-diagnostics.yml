@@ -76,7 +76,6 @@ jobs:
             echo "=== Laravel scheduled task definitions (read-only) ==="
             php artisan schedule:list --no-ansi
             echo "=== Import-batch duplicate_rows schema/migration verification (read-only) ==="
-            echo "=== Import-batch duplicate_rows schema/migration verification (read-only) ==="
             php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
@@ -247,6 +246,8 @@ jobs:
                 'migration_ledger_exists' => $ledgerExists,
                 'matching_migration_count' => $matchingMigrationCount,
                 'matching_migrations' => $migrationRows,
+                'matching_migration_rows' => $migrationRows,
+                'migration_applied' => $matchingMigrationCount > 0,
                 'related_migration_ledger_entries' => $relatedMigrationEntries,
                 'related_migration_files' => $relatedMigrationFiles,
                 'schema_equivalence' => $schemaEquivalence,
