@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Evidence;
 use App\Models\ImportBatch;
 use App\Models\ImportRow;
+use App\Models\Institution;
 use App\Models\Source;
 use App\Models\SourceSnapshot;
 use App\Services\ImportDuplicateDetectorService;
