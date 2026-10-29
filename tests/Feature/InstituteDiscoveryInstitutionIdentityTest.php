@@ -87,4 +87,23 @@ class InstituteDiscoveryInstitutionIdentityTest extends TestCase
         $this->assertDatabaseCount('import_batches', 0);
         $this->assertDatabaseCount('import_rows', 0);
     }
+
+    public function test_program_discovery_still_requires_an_existing_canonical_parent(): void
+    {
+        $this->assertSame(0, Institution::count());
+
+        try {
+            app(InstituteDiscoveryAgentService::class)->run('gcu-lahore-programs');
+            $this->fail('Program discovery must require an existing canonical parent institution.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertStringContainsString('requires an existing parent institution', $exception->getMessage());
+        }
+
+        $this->assertDatabaseCount('sources', 0);
+        $this->assertDatabaseCount('source_snapshots', 0);
+        $this->assertDatabaseCount('evidence', 0);
+        $this->assertDatabaseCount('import_batches', 0);
+        $this->assertDatabaseCount('import_rows', 0);
+    }
+
 }
