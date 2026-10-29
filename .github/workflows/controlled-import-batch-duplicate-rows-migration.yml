@@ -114,11 +114,14 @@ jobs:
             echo "application_code_parity=VERIFIED"
 
             PREFLIGHT_OUTPUT_FILE="$(mktemp)"
-            trap 'rm -f "$PREFLIGHT_OUTPUT_FILE"' EXIT
-            if php >"$PREFLIGHT_OUTPUT_FILE" 2>&1 <<'PHP'
+            PREFLIGHT_SCRIPT_FILE="$(mktemp)"
+            trap 'rm -f "$PREFLIGHT_OUTPUT_FILE" "$PREFLIGHT_SCRIPT_FILE"' EXIT
+            cat > "$PREFLIGHT_SCRIPT_FILE" <<'PHP'
             <?php
-            require __DIR__.'/vendor/autoload.php';
-            $app = require __DIR__.'/bootstrap/app.php';
+            $projectPath = getenv('PROJECT_PATH');
+            if (!is_string($projectPath) || $projectPath === '') { fwrite(STDERR, "ERROR: PROJECT_PATH unavailable to PHP preflight.\\n"); exit(2); }
+            require $projectPath.'/vendor/autoload.php';
+            $app = require $projectPath.'/bootstrap/app.php';
             $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
             $db = \Illuminate\Support\Facades\DB::connection();
@@ -147,16 +150,19 @@ jobs:
             if ($migrationRecorded && $columnExists) { echo "decision=ALREADY_APPLIED_AND_VERIFIED\n"; exit(0); }
             echo "decision=READY_FOR_SINGLE_MIGRATION\n";
             PHP
-            then
+            echo "php_preflight_stage=starting"
+            if php -d display_errors=1 -d log_errors=0 "$PREFLIGHT_SCRIPT_FILE" >"$PREFLIGHT_OUTPUT_FILE" 2>&1; then
               PREFLIGHT_PHP_EXIT=0
             else
               PREFLIGHT_PHP_EXIT=$?
             fi
             cat "$PREFLIGHT_OUTPUT_FILE"
+            echo "php_preflight_exit_code=$PREFLIGHT_PHP_EXIT"
             if [ "$PREFLIGHT_PHP_EXIT" -ne 0 ]; then
               echo "ERROR: PHP preflight failed with exit code $PREFLIGHT_PHP_EXIT; see PHP output above."
               exit "$PREFLIGHT_PHP_EXIT"
             fi
+            echo "php_preflight_stage=completed"
             PREFLIGHT_OUTPUT="$(cat "$PREFLIGHT_OUTPUT_FILE")"
             if printf '%s\n' "$PREFLIGHT_OUTPUT" | grep -q 'decision=ALREADY_APPLIED_AND_VERIFIED'; then
               echo "migration_status=ALREADY_APPLIED_NO_CHANGE"
@@ -172,10 +178,15 @@ jobs:
             echo "Applying exactly one migration: $MIGRATION_FILE"
             php artisan migrate --force --path="$MIGRATION_FILE" --no-interaction
 
-            php <<'PHP'
+            POSTCHECK_SCRIPT_FILE="$(mktemp)"
+            POSTCHECK_OUTPUT_FILE="$(mktemp)"
+            trap 'rm -f "$PREFLIGHT_OUTPUT_FILE" "$PREFLIGHT_SCRIPT_FILE" "$POSTCHECK_SCRIPT_FILE" "$POSTCHECK_OUTPUT_FILE"' EXIT
+            cat > "$POSTCHECK_SCRIPT_FILE" <<'PHP'
             <?php
-            require __DIR__.'/vendor/autoload.php';
-            $app = require __DIR__.'/bootstrap/app.php';
+            $projectPath = getenv('PROJECT_PATH');
+            if (!is_string($projectPath) || $projectPath === '') { fwrite(STDERR, "ERROR: PROJECT_PATH unavailable to post-migration verification.\\n"); exit(2); }
+            require $projectPath.'/vendor/autoload.php';
+            $app = require $projectPath.'/bootstrap/app.php';
             $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
             $db = \Illuminate\Support\Facades\DB::connection();
             $schema = \Illuminate\Support\Facades\Schema::connection($db->getName());
@@ -190,4 +201,16 @@ jobs:
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             if (!$columnExists || !$migrationRecorded) { fwrite(STDERR, "ERROR: post-migration verification failed.\n"); exit(20); }
             PHP
+            echo "post_migration_verification_stage=starting"
+            if php -d display_errors=1 -d log_errors=0 "$POSTCHECK_SCRIPT_FILE" >"$POSTCHECK_OUTPUT_FILE" 2>&1; then
+              POSTCHECK_PHP_EXIT=0
+            else
+              POSTCHECK_PHP_EXIT=$?
+            fi
+            cat "$POSTCHECK_OUTPUT_FILE"
+            echo "post_migration_php_exit_code=$POSTCHECK_PHP_EXIT"
+            if [ "$POSTCHECK_PHP_EXIT" -ne 0 ]; then
+              echo "ERROR: post-migration verification PHP failed; inspect output above."
+              exit "$POSTCHECK_PHP_EXIT"
+            fi
             echo "migration_status=TARGET_MIGRATION_APPLIED_AND_VERIFIED"
