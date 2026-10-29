@@ -382,7 +382,7 @@ class InstituteDiscoveryAgentService
         return [
             'entity_type' => $batch->entity_type,
             'profile' => $profile,
-            'institution_id' => $institution->id,
+            'institution_id' => $institution?->id,
             'source_id' => $source->id,
             'snapshot_id' => $batchSnapshot->id,
             'evidence_id' => $evidenceId === null ? null : (int) $evidenceId,
@@ -439,7 +439,7 @@ class InstituteDiscoveryAgentService
         return [
             'entity_type' => $entityType,
             'profile' => $profile,
-            'institution_id' => $institution->id,
+            'institution_id' => $institution?->id,
             'source_id' => $source->id,
             'snapshot_id' => $snapshot->id,
             'evidence_id' => $evidence->id,
