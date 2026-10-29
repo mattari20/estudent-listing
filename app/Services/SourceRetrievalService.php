@@ -13,6 +13,9 @@ class SourceRetrievalService
             throw new \InvalidArgumentException('Source retrieval is only allowed for active sources.');
         }
 
+        $httpStatus = null;
+        $contentType = null;
+
         $run = SourceRetrievalRun::create([
             'source_id' => $source->id,
             'status' => 'started',
@@ -31,6 +34,8 @@ class SourceRetrievalService
                 'eStudent-SourceMonitor/1.0'
             );
 
+            $httpStatus = $response->status();
+            $contentType = $response->header('Content-Type');
             $body = $response->body();
 
             if (! $response->successful()) {
@@ -63,6 +68,8 @@ class SourceRetrievalService
         } catch (\Throwable $e) {
             $run->update([
                 'status' => 'failed',
+                'http_status' => $httpStatus,
+                'content_type' => $contentType,
                 'error_message' => mb_substr($e->getMessage(), 0, 1000),
                 'completed_at' => now(),
             ]);
