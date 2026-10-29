@@ -220,9 +220,9 @@ jobs:
             } else {
                 $diagnosis = 'SCHEMA_EQUIVALENCE_UNVERIFIED';
             }
-            $schemaEquivalence = $columnAndPositionMatch
-                ? 'TARGET_COLUMN_DEFINITION_AND_POSITION_MATCH_ORIGIN_UNKNOWN'
-                : 'UNVERIFIED';
+            $columnDefinitionEquivalence = $metadataError ? 'UNVERIFIED' : ($columnAndPositionMatch ? 'MATCH' : ($columnExists ? 'MISMATCH' : 'NOT_APPLICABLE'));
+            // Full table-schema equivalence cannot be asserted until the original creation migration is identified and compared.
+            $schemaEquivalence = 'UNVERIFIED';
             echo json_encode([
                 'check' => 'import_batches_duplicate_rows_schema_verification',
                 'checked_at' => now()->toIso8601String(),
@@ -236,6 +236,7 @@ jobs:
                 'duplicate_rows_column_definition' => $columnDefinition,
                 'column_definition' => $columnDefinition,
                 'column_definition_matches_migration' => $columnDefinitionMatches,
+                'column_definition_equivalence' => $columnDefinitionEquivalence,
                 'column_position_verified' => $columnPositionVerified,
                 'candidate_rows_precedes_duplicate_rows' => $candidateRowsPrecedes,
                 'table_definition' => $tableDefinition,
