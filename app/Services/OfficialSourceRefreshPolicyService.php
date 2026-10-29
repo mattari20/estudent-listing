@@ -52,7 +52,7 @@ class OfficialSourceRefreshPolicyService
         }
         if (! array_key_exists('previous_value', $proposal) || ! array_key_exists('proposed_value', $proposal)) {
             $blockers[] = 'before_after_values_required';
-        } elseif ($this->normalize($proposal['previous_value']) === $this->normalize($proposal['proposed_value'])) {
+        } elseif ($this->normalize($proposal['previous_value']) === $this->normalize($proposal['proposed_value']) && ($proposal['allow_no_change'] ?? false) !== true) {
             $blockers[] = 'no_material_field_change';
         }
         if (($proposal['entity_identity_ambiguous'] ?? false) === true) {
