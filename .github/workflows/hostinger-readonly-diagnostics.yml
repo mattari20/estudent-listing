@@ -865,7 +865,7 @@ jobs:
               echo "application_code_parity=match"
               echo "application_code_parity_method=isolated_expected_tree_vs_deployed_file_content"
               DEPLOYMENT_DRIFT=0
-            else
+            elif [ "${DEPLOYMENT_DRIFT:-0}" -eq 0 ]; then
               echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
               echo "application_code_parity=mismatch_or_unverifiable"
               DEPLOYMENT_DRIFT=1
