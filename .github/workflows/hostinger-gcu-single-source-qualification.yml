@@ -74,7 +74,6 @@ jobs:
 
             PROJECT_PATH='/home/u537436044/domains/estudent.pk/public_html/institutes'
             PHP='/opt/alt/php85/usr/bin/php'
-            REPORT_RELATIVE='source-qualification/gcu-lahore-phase-5b14-20261030.json'
             fail() { echo "ERROR: $1"; exit 10; }
 
             [ "$CONFIRM_GCU_QUALIFICATION" = 'true' ] || fail 'explicit confirmation is false'
@@ -126,7 +125,7 @@ jobs:
               if (! str_contains($command, "$"."inventory = $"."matchingDefinitions;")
                   || ! str_contains($command, "count($"."matchingDefinitions) !== 1")
                   || ! str_contains($command, "$"."retriever->getWithMetadata(")
-                  || ! str_contains($command, "Storage::disk('''local''')->put(")
+                  || ! str_contains($command, "Storage::disk('local')->put(")
                   || ! str_contains($command, "does not access Eloquent models or database services")) exit(24);
               if (str_contains($command, "DB::") || str_contains($command, "Institution::") || str_contains($command, "Import") || str_contains($command, "Approval") || str_contains($command, "Promotion") || str_contains($command, "publish")) exit(25);
               if (($filesystems["disks"]["local"]["root"] ?? null) !== storage_path("app/private")) exit(26);
@@ -149,7 +148,14 @@ jobs:
 
             echo "=== BEGIN SINGLE GCU QUALIFICATION INVOCATION ==="
             set +e
-            "$PHP" artisan institutes:qualify-official-sources               --stage=hec-universities               --source=gcu-lahore               --timeout=15               --connect-timeout=5               --delay-ms=0               --output=source-qualification/gcu-lahore-phase-5b14-20261030.json               --no-ansi > /tmp/gcu-qualification-console.log 2>&1
+            "$PHP" artisan institutes:qualify-official-sources \
+              --stage=hec-universities \
+              --source=gcu-lahore \
+              --timeout=15 \
+              --connect-timeout=5 \
+              --delay-ms=0 \
+              --output=source-qualification/gcu-lahore-phase-5b14-20261030.json \
+              --no-ansi > /tmp/gcu-qualification-console.log 2>&1
             COMMAND_STATUS=$?
             set -e
             sed -E 's#https?://[^[:space:]]+#[SOURCE_URL_REDACTED]#g' /tmp/gcu-qualification-console.log
