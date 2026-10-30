@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Tests\TestCase;
 
 class QualifyOfficialInstituteSourcesTest extends TestCase
@@ -204,15 +205,16 @@ class QualifyOfficialInstituteSourcesTest extends TestCase
         ]]);
         Http::fake();
 
+        $output = new BufferedOutput();
         $exit = Artisan::call('institutes:qualify-official-sources', [
             '--stage' => 'test',
             '--source' => 'not-configured',
             '--delay-ms' => 0,
             '--output' => 'source-qualification/invalid-filter.json',
-        ]);
+        ], $output);
 
-        $this->assertSame(2, $exit, Artisan::output());
-        $this->assertStringContainsString('Unknown or ambiguous source id', Artisan::output());
+        $this->assertSame(2, $exit, $output->fetch());
+        $this->assertStringContainsString('Unknown or ambiguous source id', $output->fetch());
         Http::assertNothingSent();
         $this->assertFalse(Storage::disk('local')->exists('source-qualification/invalid-filter.json'));
     }
