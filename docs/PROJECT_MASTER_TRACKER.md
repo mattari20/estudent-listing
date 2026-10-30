@@ -677,3 +677,16 @@ See [Step 1 recovery status report](docs/audits/step1-recovery-status-2026-10-29
 - HEC live retrieval: NOT RUN; no per-source live response tuples exist. No production source activation, discovery, database mutation, migration, deployment, imports, approvals, promotions or publications occurred.
 - The controlled deployment workflow is manual and confirmation defaults false. Do not deploy without separate explicit production deployment authorization. Once authorized deployment occurs, re-run read-only Hostinger diagnostics and only run bounded HEC qualification after command and private path are verified.
 - Phase 5B.2 remains BLOCKED; Phase 5A remains OPEN.
+
+
+## Execution update — 2026-10-30: Phase 5B.2 verification and live HEC gate
+
+- PR #932 merged as `87df688b05fc2be85ed69389858a251074e9dc23`.
+- PR #933 merged as `4c8b731eb8c5708c809322714d587e780add6ebd`; its Test #41008742271 and Laravel CI #41008742366 passed.
+- PR #934 merged as `5d6570b87fcd4e2f5a18f2cd90c8b4bc2409135d`; its Test #41009088437, Laravel CI #41009088435, and Project Controller #41009088436 passed.
+- Hostinger run #41009230720 after #934: deployed revision `4c8b731eb8c5708c809322714d587e780add6ebd`, expected app revision `5d6570b87fcd4e2f5a18f2cd90c8b4bc2409135d`, parity mismatch. Production app code does not yet include the latest merged fix/qualification implementation.
+- The read-only check reports `qualification_command=NOT_AVAILABLE`; PHP 8.5.12 at `/opt/alt/php85/usr/bin/php`; corrected private path `storage/app/private/source-qualification` outside public root, target missing but parent private root writable. No directory/probe file created. Cron listing is unreadable and runtime cron execution remains unverified.
+- No HEC URLs have been requested by the application qualification command. All live per-source outcomes remain NOT MEASURED; no synthetic fixture results are counted as live.
+- No deployment authorization was provided. Do not run the manual controlled Hostinger deployment workflow (its `confirm_deployment` input defaults false). No production changes or database mutations occurred.
+- Required operator next action: explicitly authorize the existing controlled deployment workflow for current main `5d6570b87fcd4e2f5a18f2cd90c8b4bc2409135d`. After deployment, rerun Hostinger read-only diagnostics; require app parity, command availability, private path boundary and schema checks to pass; only then execute `php artisan institutes:qualify-official-sources --stage=hec-universities --timeout=15 --connect-timeout=5 --delay-ms=1000`. Preserve its JSON report privately. No profile activation/discovery/import/approval/promotion/publication.
+- Phase 5B.2 remains BLOCKED; Phase 5A remains OPEN.
