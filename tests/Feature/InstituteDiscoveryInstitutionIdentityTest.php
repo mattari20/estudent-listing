@@ -77,7 +77,8 @@ class InstituteDiscoveryInstitutionIdentityTest extends TestCase
             ->push($html.'<footer>Updated page chrome.</footer>', 200, ['Content-Type' => 'text/html'])]);
 
         $service = app(InstituteIdentityDiscoveryService::class);
-        $firstSource = \\App\\Models\\Source::query()->updateOrCreate(
+        $definition = config('institute_agent.profiles.'.self::PROFILE);
+        $firstSource = \App\Models\\App\Models\Source::query()->updateOrCreate(
             ['url' => self::URL],
             ['source_type' => 'official', 'name' => 'HEC GCU identity', 'authority_scope' => 'HEC identity', 'status' => 'active']
         );
