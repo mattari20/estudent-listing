@@ -825,13 +825,16 @@ jobs:
               fi
               rm -f "$LIST_OUTPUT" "$LIST_ERROR"
               echo "=== Laravel console command path and reflection diagnosis ==="
-              "$PHP_EXECUTABLE_REAL" <<'PHP'
-            <?php
-            require __DIR__.'/vendor/autoload.php';
-            $app = require __DIR__.'/bootstrap/app.php';
-            $kernelContract = 'Illuminate'.chr(92).'Contracts'.chr(92).'Console'.chr(92).'Kernel';
-            $kernel = $app->make($kernelContract);
-            $kernel->bootstrap();
+              KERNEL_REPORT="$(mktemp)"
+              KERNEL_ERROR="$(mktemp)"
+              set +e
+              "$PHP_EXECUTABLE_REAL" >"$KERNEL_REPORT" 2>"$KERNEL_ERROR" <<'PHP'
+<?php
+require __DIR__.'/vendor/autoload.php';
+$app = require __DIR__.'/bootstrap/app.php';
+$kernelContract = 'Illuminate'.chr(92).'Contracts'.chr(92).'Console'.chr(92).'Kernel';
+$kernel = $app->make($kernelContract);
+$kernel->bootstrap();
             $path = base_path('app/Console/Commands');
             $file = $path.'/QualifyOfficialInstituteSources.php';
             $class = 'App'.chr(92).'Console'.chr(92).'Commands'.chr(92).'QualifyOfficialInstituteSources';
@@ -870,8 +873,21 @@ jobs:
                 'app_namespace' => $app->getNamespace(),
                 'bootstrap_cache_entries' => array_values(array_filter(glob(base_path('bootstrap/cache/*.php')) ?: [], fn ($entry) => basename($entry) !== '.gitignore')),
             ];
-            echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
-            PHP
+echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+PHP
+              KERNEL_STATUS=$?
+              set -e
+              echo "qualification_kernel_inspection_exit=$KERNEL_STATUS"
+              if [ "$KERNEL_STATUS" -eq 0 ] && php -r '$v = json_decode(file_get_contents($argv[1]), true); exit(is_array($v) && ($v["check"] ?? "") === "qualification_command_registration_path" ? 0 : 1);' "$KERNEL_REPORT"; then
+                cat "$KERNEL_REPORT"
+                echo "qualification_kernel_inspection_json=VALID"
+              else
+                echo "qualification_kernel_inspection_json=INVALID_OR_MISSING"
+                echo "qualification_kernel_inspection_stderr_sha256=$(sha256sum "$KERNEL_ERROR" | awk '{print $1}')"
+                rm -f "$KERNEL_REPORT" "$KERNEL_ERROR"
+                exit 24
+              fi
+              rm -f "$KERNEL_REPORT" "$KERNEL_ERROR"
             fi
             echo "=== Qualification private report storage probe ==="
             "$PHP_EXECUTABLE_REAL" <<'PHP'
