@@ -88,6 +88,7 @@ jobs:
           echo "Hostinger SSH host key fingerprint verified."
 
       - name: Preflight and execute the fixed one-source command
+        id: gcu_ssh
         uses: appleboy/ssh-action@v1.2.0
         env:
           TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
@@ -274,6 +275,10 @@ jobs:
           DEST_FILE="$DEST_DIR/gcu-lahore-phase-5b14-20261030.json"
           PARTIAL_FILE="$RUNNER_TEMP/gcu-lahore-phase-5b14-20261030.json.partial"
           mkdir -p "$DEST_DIR"
+          [[ ! -e "$DEST_FILE" ]] || {
+            echo "::error::Runner destination already exists; overwrite is forbidden."
+            exit 2
+          }
           rm -f "$PARTIAL_FILE"
           trap 'rm -f "$PARTIAL_FILE"' EXIT
           timeout 120s scp -q -P "$HOSTINGER_PORT" -i "$KEY_PATH" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" -o ConnectTimeout=15 -o ServerAliveInterval=10 -o ServerAliveCountMax=6 "$HOSTINGER_USER@$HOSTINGER_HOST:$REMOTE_REPORT" "$PARTIAL_FILE"
