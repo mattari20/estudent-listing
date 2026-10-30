@@ -730,3 +730,13 @@ See [Step 1 recovery status report](docs/audits/step1-recovery-status-2026-10-29
 - Private storage location was already verified outside public root and writable in run #41018560655; no repeated probe. No qualification report generated yet.
 - No migrations/SQL writes, application data writes, imports, approvals, promotions, publications, changes to GCU rows 348–353, or activation of the 20 additional HEC profiles. The separate `institution_field_approvals` schema warning is still independently tracked.
 - **GCU qualification remains BLOCKED** pending confirmed production deploy, post-deploy `--source` help verification, and the one-source GCU report.
+
+
+## Execution update — 2026-10-30: Phase 5B.14 governed GCU runner prepared
+
+- Branch: `feat/phase5b14-gcu-qualified-runner-20261030`, based on verified main `38e6e859bc7b0b90abde481ad6fa26eec3a79e82`.
+- Adds `.github/workflows/hostinger-gcu-single-source-qualification.yml`, a workflow_dispatch-only, fixed-scope Hostinger runner. Required boolean `confirm_gcu_qualification` defaults false. It uses `contents: read`, one concurrency group, bounded timeouts, existing Hostinger SSH secrets/action and hard-coded production project/PHP/stage/source/report values.
+- Preflight blocks on false confirmation, missing Artisan/PHP, non-Git project, unapproved application-code revision or parity mismatch, absent required command help options, non-ten-source HEC stage, anything other than exactly one configured GCU entry, mismatched GCU profile/URL, failed code safety invariants, private path inside public root, or pre-existing report file.
+- Exactly one fixed Artisan invocation is present; no retry/loop/fallback/source input. The report is validated for JSON shape, stage, source_filter, source_count=1 and one result with source_id=gcu-lahore before the seven-day `gcu-lahore-qualification-report` artifact is staged.
+- No live qualification workflow dispatch occurred during implementation. No GCU/HEC HTTP request, database migration, write, import, approval, promotion or publication occurred. Historical GCU rows 348–353 remain untouched; 20 additional HEC profiles remain disabled; `institution_field_approvals` warning remains untouched.
+- Branch contains the workflow implementation; docs/tracker updates are included in this change set. Await exact-head workflow validation, Laravel CI/Test, human PR review and merge. Actual qualification remains a separate manual action after merge and is not claimed complete.
