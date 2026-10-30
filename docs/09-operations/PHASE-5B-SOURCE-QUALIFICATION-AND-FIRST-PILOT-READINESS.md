@@ -222,3 +222,48 @@ Rationale: substantial governed discovery, snapshot/evidence, duplicate matching
 - Command source signature remains `institutes:qualify-official-sources` with `--stage=hec-universities|hec-campuses|provincial`, `--timeout`, `--connect-timeout`, `--delay-ms`, and optional `--output`. This is source inspection only; production help has not yet been verified. The enabled GCU profile appears within the HEC universities stage configuration, so do not execute the entire stage as a GCU-only request.
 - GCU qualification remains BLOCKED pending valid runtime JSON, command help, safe bounded source-scope execution path and private output confirmation. No HEC retrieval was executed.
 - No application-code changes, deployments, Composer writes, migrations, SQL writes, normal discovery, source activation, snapshots/evidence, imports, human identity decisions, approvals, promotions, publications, or changes to GCU historical rows #348–353. All 20 additional HEC profiles remain disabled. The separate `institution_field_approvals` schema warning remains outside this task.
+
+
+## Phase 5B.10 execution checkpoint — 2026-10-30
+
+### Production Artisan discrepancy — resolved
+
+- PR #944 merged: `89d7599d862438fecad3ad0a06a21789fdb3578f`. It replaces `Artisan::has()` with `array_key_exists()` against the already retrieved registry and captures native raw command listing.
+- PR #945 merged: `16f848d0c1670e43d7b1afe846bbd5d2fb42e189`. It changes native-list matching to compare the first whitespace-delimited command-name column rather than requiring the entire padded command/description line to equal the command name.
+- Production Hostinger run #41046403222 completed successfully. PHP 8.5.12; native `artisan list --raw --no-ansi` exit 0; exact command first-column match; command AVAILABLE; native `artisan help institutes:qualify-official-sources --no-ansi` exit 0; all existing options `stage`, `timeout`, `connect-timeout`, `delay-ms`, and `output` present. Kernel JSON valid; `artisan_command_registered=true`; no diagnostic PHP error; Laravel 13.33.0; registry and kernel-loaded counts both 157; command class extends `Illuminate\\Console\\Command`; deployed application-code parity matched.
+- Root cause was solely false-negative diagnostic matching: Symfony/Laravel native raw listing emits the command name in a padded first column followed by a description. Previous `grep -Fxq` tested the entire line. No application registration repair was needed.
+
+### GCU-only filter implementation
+
+- PR #946 merged: `b93e88aca7c645e43603b9c32d6447c76d83e913`.
+- Adds `--source=<configured-id>` to `institutes:qualify-official-sources`. The ID is matched within the selected stage and exactly one matching configured entry is required; invalid or ambiguous IDs exit before any HTTP request or report write. The private report records the selected `source_filter`.
+- Existing configured GCU source ID is `gcu-lahore`, mapped to profile `gcu-lahore-institution-identity` and the official HEC GCU Lahore identity page. The 10-entry `hec-universities` stage is not a GCU-only operation without this filter.
+- Regression tests cover selecting only GCU from a multi-source fixture, a single HTTP request to the GCU fixture URL, unchanged counts for the relevant database tables, false database/discovery mutation markers in the report, and invalid-ID rejection with no HTTP request or report write.
+- Exact-head Test run #41046964231 passed: 744 tests, 3,372 assertions. Exact-head Laravel CI run #41046964133 passed, including formatting checks.
+
+### Production deployment gate — still pending
+
+- Post-merge Hostinger run #41047170267 executed the read-only diagnostics successfully through kernel inspection but correctly failed its final application-code parity gate. Expected application-code revision: `b93e88aca7c645e43603b9c32d6447c76d83e913`. Deployed application-code revision: `16f848d0c1670e43d7b1afe846bbd5d2fb42e189`. The deployed code therefore does not yet contain `--source`; the production help verified by run #41046403222 is the pre-filter help and must not be treated as verification of the new option.
+- No live GCU request was sent. The GCU-only filter has passed CI, but production deployment and post-deployment verification are still required.
+- Deployment must use the existing [Controlled Hostinger Code Deployment workflow](https://github.com/mattari20/estudent-listing/actions/workflows/controlled-hostinger-code-deploy.yml), manually dispatched with `confirm_deployment=true`. After successful deployment, repeat native `artisan list`, run native `artisan help` and verify `--source` is present before invoking qualification.
+- Planned one-source command after those gates:
+  ```bash
+  /opt/alt/php85/usr/bin/php artisan institutes:qualify-official-sources \
+    --stage=hec-universities \
+    --source=gcu-lahore \
+    --timeout=15 \
+    --connect-timeout=5 \
+    --delay-ms=0 \
+    --output=source-qualification/gcu-lahore-phase-5b10-20261030.json \
+    --no-ansi
+  ```
+- The report destination remains on the already verified private local disk under `storage/app/private/source-qualification/`. Prior Hostinger run #41018560655 established that this location is outside the public root and writable; the private write/read/delete probe is deliberately not repeated. No report has been generated by this Phase 5B.10 task yet.
+- The GitHub connection can inspect and update repository files and workflow runs, but does not expose a workflow-dispatch action. Therefore the controlled deployment has not been started from this session. Do not claim deployment, new-option production help, or the first GCU report until the manually confirmed workflow and subsequent Hostinger verification complete.
+
+### Safety state
+
+- No HEC request or GCU qualification run was executed in Phase 5B.10.
+- No database writes, migrations, SQL repairs, discovery rows, source snapshots/evidence, imports, identity decisions, approvals, promotions, publications, or changes to historical GCU rows 348–353 occurred.
+- All 20 additional HEC profiles remain disabled.
+- The separate `institution_field_approvals` schema warning remains an independent tracked blocker and was not repaired.
+- **GCU pilot status: BLOCKED pending controlled production deployment, production `--source` help verification, and the first one-source GCU report.**
