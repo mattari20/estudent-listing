@@ -758,14 +758,73 @@ jobs:
                 exit(21);
             }
             PHP
-            echo "=== Qualification command availability (read-only) ==="
-            if php artisan list --raw --no-ansi | grep -Fxq 'institutes:qualify-official-sources'; then
-              echo "qualification_command=AVAILABLE"
+            echo "=== Qualification command registration diagnosis (read-only) ==="
+            PHP_EXECUTABLE="$(command -v php || true)"
+            if [ -z "$PHP_EXECUTABLE" ]; then
+              echo "qualification_runtime_php=UNAVAILABLE"
+              echo "qualification_command=UNVERIFIED"
             else
-              echo "qualification_command=NOT_AVAILABLE"
+              PHP_EXECUTABLE_REAL="$(readlink -f "$PHP_EXECUTABLE" 2>/dev/null || printf '%s' "$PHP_EXECUTABLE")"
+              echo "qualification_runtime_php=$PHP_EXECUTABLE_REAL"
+              "$PHP_EXECUTABLE_REAL" -r 'echo "qualification_runtime_php_version=".PHP_VERSION.PHP_EOL;'
+              LIST_OUTPUT="$(mktemp)"
+              LIST_ERROR="$(mktemp)"
+              set +e
+              "$PHP_EXECUTABLE_REAL" artisan list --raw --no-ansi >"$LIST_OUTPUT" 2>"$LIST_ERROR"
+              LIST_STATUS=$?
+              set -e
+              echo "qualification_artisan_list_exit=$LIST_STATUS"
+              if [ "$LIST_STATUS" -eq 0 ]; then
+                echo "qualification_artisan_list=SUCCEEDED"
+                if grep -Fxq 'institutes:qualify-official-sources' "$LIST_OUTPUT"; then
+                  echo "qualification_command=AVAILABLE"
+                else
+                  echo "qualification_command=NOT_LISTED"
+                fi
+              else
+                echo "qualification_artisan_list=FAILED"
+                echo "qualification_artisan_list_stderr_sha256=$(sha256sum "$LIST_ERROR" | awk '{print $1}')"
+              fi
+              if grep -Fxq 'institutes:qualify-official-sources' "$LIST_OUTPUT"; then
+                HELP_OUTPUT="$(mktemp)"
+                HELP_ERROR="$(mktemp)"
+                set +e
+                "$PHP_EXECUTABLE_REAL" artisan help institutes:qualify-official-sources --no-ansi >"$HELP_OUTPUT" 2>"$HELP_ERROR"
+                HELP_STATUS=$?
+                set -e
+                echo "qualification_artisan_help_exit=$HELP_STATUS"
+                if [ "$HELP_STATUS" -eq 0 ]; then
+                  echo "qualification_artisan_help=SUCCEEDED"
+                  for option in --stage --timeout --connect-timeout --delay-ms; do
+                    if grep -Fq -- "$option" "$HELP_OUTPUT"; then
+                      echo "qualification_help_option_$((OPTIND++))=PRESENT" || true
+                    fi
+                  done
+                else
+                  echo "qualification_artisan_help=FAILED"
+                  echo "qualification_artisan_help_stderr_sha256=$(sha256sum "$HELP_ERROR" | awk '{print $1}')"
+                fi
+                rm -f "$HELP_OUTPUT" "$HELP_ERROR"
+              else
+                echo "qualification_artisan_help=NOT_RUN_COMMAND_NOT_LISTED"
+              fi
+              set +e
+              AUTOLOAD_STATUS="$("$PHP_EXECUTABLE_REAL" -r 'require "vendor/autoload.php"; echo class_exists(App\\\\Console\\\\Commands\\\\QualifyOfficialInstituteSources::class) ? "CLASS_AUTOLOAD=AVAILABLE" : "CLASS_AUTOLOAD=MISSING";' 2>&1)"
+              AUTOLOAD_EXIT=$?
+              set -e
+              echo "qualification_class_autoload_exit=$AUTOLOAD_EXIT"
+              case "$AUTOLOAD_STATUS" in
+                *"CLASS_AUTOLOAD=AVAILABLE"*) echo "qualification_class_autoload=AVAILABLE" ;;
+                *"CLASS_AUTOLOAD=MISSING"*) echo "qualification_class_autoload=MISSING" ;;
+                *) echo "qualification_class_autoload=ERROR" ;;
+              esac
+              if [ "$AUTOLOAD_EXIT" -ne 0 ]; then
+                echo "qualification_class_autoload_error_sha256=$(printf '%s' "$AUTOLOAD_STATUS" | sha256sum | awk '{print $1}')"
+              fi
+              rm -f "$LIST_OUTPUT" "$LIST_ERROR"
             fi
-            echo "=== Qualification private report storage path (read-only) ==="
-            php <<'PHP'
+            echo "=== Qualification private report storage probe ==="
+            "$PHP_EXECUTABLE_REAL" <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -774,16 +833,55 @@ jobs:
             $path = $disk->path('source-qualification');
             $parent = dirname($path);
             $publicRoot = realpath(public_path());
+            $insidePublic = $publicRoot !== false && str_starts_with($path, rtrim($publicRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR);
+            $probe = 'source-qualification/.readiness-probe-'.bin2hex(random_bytes(8)).'.tmp';
+            $created = false;
+            $readBack = false;
+            $deleted = false;
+            $errorClass = null;
+            try {
+                if ($insidePublic) {
+                    throw new RuntimeException('private_path_inside_public_root');
+                }
+                if (! is_dir($path) && ! @mkdir($path, 0700, true) && ! is_dir($path)) {
+                    throw new RuntimeException('private_directory_creation_failed');
+                }
+                $payload = 'qualification-readiness-probe';
+                if (! $disk->put($probe, $payload)) {
+                    throw new RuntimeException('private_probe_write_failed');
+                }
+                $created = true;
+                $readBack = hash_equals($payload, (string) $disk->get($probe));
+                if (! $readBack) {
+                    throw new RuntimeException('private_probe_readback_mismatch');
+                }
+            } catch (Throwable $exception) {
+                $errorClass = class_basename($exception);
+            } finally {
+                if ($created || $disk->exists($probe)) {
+                    $deleted = $disk->delete($probe);
+                }
+            }
+            $freeBytes = @disk_free_space($parent);
             echo json_encode([
-                'check' => 'qualification_private_storage',
+                'check' => 'qualification_private_storage_probe',
                 'disk' => 'local',
                 'resolved_path' => $path,
+                'inside_public_root' => $insidePublic,
                 'directory_exists' => is_dir($path),
                 'directory_writable' => is_dir($path) && is_writable($path),
                 'parent_directory_writable' => is_dir($parent) && is_writable($parent),
-                'inside_public_root' => $publicRoot !== false && str_starts_with($path, rtrim($publicRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR),
+                'free_bytes_parent' => $freeBytes === false ? null : (int) $freeBytes,
+                'probe_created' => $created,
+                'probe_read_back' => $readBack,
+                'probe_deleted' => $deleted,
+                'error_class' => $errorClass,
                 'mutation_performed' => false,
+                'only_temporary_private_probe_written' => true,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            if ($insidePublic || ! $created || ! $readBack || ! $deleted) {
+                exit(22);
+            }
             PHP
 
             PHP_EXECUTABLE="$(command -v php || true)"
