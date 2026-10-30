@@ -770,12 +770,13 @@ jobs:
             "$PHP_EXECUTABLE_REAL" -r 'echo "qualification_runtime_php_version=".PHP_VERSION.PHP_EOL;'
             LIST_OUTPUT="$(mktemp)"
             LIST_ERROR="$(mktemp)"
+            LIST_MATCH_OUTPUT="$(mktemp)"
             HELP_OUTPUT=""
             HELP_ERROR=""
             AUTOLOAD_OUTPUT="$(mktemp)"
             AUTOLOAD_ERROR="$(mktemp)"
             cleanup_command_diagnostics() {
-              rm -f "$LIST_OUTPUT" "$LIST_ERROR" "$AUTOLOAD_OUTPUT" "$AUTOLOAD_ERROR"
+              rm -f "$LIST_OUTPUT" "$LIST_ERROR" "$LIST_MATCH_OUTPUT" "$AUTOLOAD_OUTPUT" "$AUTOLOAD_ERROR"
               [ -z "$HELP_OUTPUT" ] || rm -f "$HELP_OUTPUT"
               [ -z "$HELP_ERROR" ] || rm -f "$HELP_ERROR"
             }
@@ -785,9 +786,16 @@ jobs:
             LIST_STATUS=$?
             set -e
             echo "qualification_artisan_list_exit=$LIST_STATUS"
+            echo "qualification_artisan_list_output_bytes=$(wc -c < "$LIST_OUTPUT" | tr -d ' ')"
+            if [ -s "$LIST_ERROR" ]; then
+              echo "qualification_artisan_list_stderr_sha256=$(sha256sum "$LIST_ERROR" | awk '{print $1}')"
+            else
+              echo "qualification_artisan_list_stderr=EMPTY"
+            fi
             if [ "$LIST_STATUS" -eq 0 ]; then
               echo "qualification_artisan_list=SUCCEEDED"
-              if grep -Fxq 'institutes:qualify-official-sources' "$LIST_OUTPUT"; then
+              if grep -Fx 'institutes:qualify-official-sources' "$LIST_OUTPUT" >"$LIST_MATCH_OUTPUT"; then
+                echo "qualification_artisan_list_target_match=EXACT"
                 echo "qualification_command=AVAILABLE"
                 HELP_OUTPUT="$(mktemp)"
                 HELP_ERROR="$(mktemp)"
@@ -801,19 +809,28 @@ jobs:
                   for option in stage timeout connect-timeout delay-ms output; do
                     if grep -Fq -- "--$option" "$HELP_OUTPUT"; then echo "qualification_help_$option=PRESENT"; else echo "qualification_help_$option=MISSING"; fi
                   done
+                  echo "qualification_artisan_help_output_begin"
+                  cat "$HELP_OUTPUT"
+                  echo "qualification_artisan_help_output_end"
                 else
                   echo "qualification_artisan_help=FAILED"
                   echo "qualification_artisan_help_stderr_sha256=$(sha256sum "$HELP_ERROR" | awk '{print $1}')"
                 fi
               else
+                echo "qualification_artisan_list_target_match=ABSENT"
                 echo "qualification_command=NOT_LISTED"
                 echo "qualification_artisan_help=NOT_RUN_COMMAND_NOT_LISTED"
               fi
+              echo "qualification_artisan_list_raw_output_begin"
+              cat "$LIST_OUTPUT"
+              echo "qualification_artisan_list_raw_output_end"
             else
               echo "qualification_artisan_list=FAILED"
               echo "qualification_command=UNVERIFIED"
               echo "qualification_artisan_help=NOT_RUN_LIST_FAILED"
-              echo "qualification_artisan_list_stderr_sha256=$(sha256sum "$LIST_ERROR" | awk '{print $1}')"
+              echo "qualification_artisan_list_raw_output_begin"
+              cat "$LIST_OUTPUT"
+              echo "qualification_artisan_list_raw_output_end"
             fi
             set +e
             "$PHP_EXECUTABLE_REAL" -r 'require "vendor/autoload.php"; $class="App".chr(92)."Console".chr(92)."Commands".chr(92)."QualifyOfficialInstituteSources"; echo class_exists($class) ? "CLASS_AUTOLOAD=AVAILABLE" : "CLASS_AUTOLOAD=MISSING";' >"$AUTOLOAD_OUTPUT" 2>"$AUTOLOAD_ERROR"
@@ -925,7 +942,7 @@ jobs:
                 $registry = $artisan::all();
                 $report['artisan_registry_command_names'] = array_values(array_map('strval', array_keys($registry)));
                 $report['artisan_registry_command_count'] = count($registry);
-                $report['artisan_command_registered'] = $artisan::has('institutes:qualify-official-sources');
+                $report['artisan_command_registered'] = array_key_exists('institutes:qualify-official-sources', $registry);
                 $report['kernel_loaded_commands_count'] = count($kernel->all());
             } catch (Throwable $exception) {
                 $report['diagnostic_error_class'] = get_class($exception);
