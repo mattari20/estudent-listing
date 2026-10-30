@@ -703,3 +703,15 @@ See [Step 1 recovery status report](docs/audits/step1-recovery-status-2026-10-29
 - **Phase 5B.8 remains OPEN / production kernel evidence pending.** The available GitHub connector exposes PR-triggered runs but not the push-triggered Hostinger diagnostic run list. The post-merge production run ID/report could not be obtained here. Do not state the new kernel inspection passed or name an application root cause until its JSON report is reviewed.
 - Next action: inspect the latest Hostinger Read-only Diagnostics run on main after PR #940 and capture the valid JSON kernel report. Only then decide whether the defect is class loading, inheritance, command-directory discovery, kernel/bootstrap, duplicate registration, or diagnostic logic.
 - No HEC requests, normal discovery, source activation, snapshots/evidence, database writes/migrations, imports, human identity decisions, approvals, promotions, publications, GCU rows #348–353 changes, or production deployment occurred. All 20 additional HEC profiles remain disabled.
+
+
+## Execution update — 2026-10-30: Phase 5B.9 production Artisan diagnosis
+
+- Main at this checkpoint: `60c54ebe68faf054e530a13c1bd36e3048fbb31e` (PR #942 merged).
+- Failed run #41023923217 established native Artisan list exit 0 / qualification command NOT_LISTED / Composer autoload AVAILABLE; the former multiline `-r` kernel probe exited 255 without JSON.
+- PR #942 replaced that fragile code with a temporary PHP script using the fixed PHP 8.5 executable and separate stdout/stderr, versioned JSON validation and cleanup. Exact-head Test #2332 and Laravel CI #2100 passed; PR #942 merged at `60c54ebe68faf054e530a13c1bd36e3048fbb31e`.
+- First post-merge Hostinger run #41034289943 again confirmed Artisan list exit 0 / command NOT_LISTED / class autoload AVAILABLE. The new script itself exited 31, but JSON was present and stderr empty: its logic classified expected command absence as inspector failure, so the report was rejected. No actual registry evidence was exposed. Do not treat this as a proven application-code defect.
+- PR #943 fixes this workflow-only distinction: emit the kernel report if bootstrap/kernel inspection succeeds, even when target command registration is false; only actual PHP execution failure, missing output or invalid JSON fails the workflow. Exact-head Test #2334 and Laravel CI #2102 passed. PR #943 remains open at `2e0325488f650f63609a2e0f1f8697de8cf3e9c6` in this checkpoint; after merge retrieve the next Hostinger read-only diagnostic report.
+- Native `artisan help` remains not run because the command is not listed. Do not execute qualification or HEC requests until registration/help/scope is proven.
+- Private storage was already proven outside public root with write/read/delete; no repeat.
+- GCU qualification remains BLOCKED. No production application code, deployment, Composer mutation, migration, SQL write, discovery, source activation, snapshots/evidence, imports, identity decisions, approvals, promotions, publications or GCU rows #348–353 modifications. All 20 additional HEC profiles remain disabled. Track `institution_field_approvals` schema warning separately.
