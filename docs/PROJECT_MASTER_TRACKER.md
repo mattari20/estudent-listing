@@ -715,3 +715,18 @@ See [Step 1 recovery status report](docs/audits/step1-recovery-status-2026-10-29
 - Native `artisan help` remains not run because the command is not listed. Do not execute qualification or HEC requests until registration/help/scope is proven.
 - Private storage was already proven outside public root with write/read/delete; no repeat.
 - GCU qualification remains BLOCKED. No production application code, deployment, Composer mutation, migration, SQL write, discovery, source activation, snapshots/evidence, imports, identity decisions, approvals, promotions, publications or GCU rows #348–353 modifications. All 20 additional HEC profiles remain disabled. Track `institution_field_approvals` schema warning separately.
+
+
+## Phase 5B.10 — Artisan registration and GCU single-source execution gate (2026-10-30)
+
+- Main after PR #946: `b93e88aca7c645e43603b9c32d6447c76d83e913`.
+- PR #944 merged (`89d7599d862438fecad3ad0a06a21789fdb3578f)): replaced failing `Artisan::has()` diagnostic with registry `array_key_exists()`.
+- PR #945 merged (`16f848d0c1670e43d7b1afe846bbd5d2fb42e189)): native list matcher checks the command-name column, not the complete padded name/description line.
+- Hostinger run #41046403222 proved PHP 8.5.12, native listing exit 0, target command AVAILABLE, native help exit 0, all pre-filter options present, valid kernel JSON, `artisan_command_registered=true`, no diagnostic PHP error, Laravel 13.33.0, 157 commands, and deployed app-code parity match. Diagnosis complete: diagnostic matcher false negative, not Laravel command registration failure.
+- PR #946 merged (`b93e88aca7c645e43603b9c32d6447c76d83e913)): added a strict `--source=<configured-id>` filter and a report `source_filter` marker. Tests prove only the selected configured source is called, DB table counts remain unchanged, report safety markers remain false for mutations, and invalid IDs do no HTTP request/report write.
+- Exact-head Test #41046964231 passed (744 tests, 3,372 assertions). Exact-head Laravel CI #41046964133 passed.
+- Post-merge Hostinger run #41047170267 found application-code drift: expected `b93e88aca7c645e43603b9c32d6447c76d83e913`, deployed `16f848d0c1670e43d7b1afe846bbd5d2fb42e189`. The diagnostic intentionally failed at parity. Production still runs the pre-`--source` command copy. No live GCU source retrieval was attempted.
+- Next required gate: manually run [Controlled Hostinger Code Deployment](https://github.com/mattari20/estudent-listing/actions/workflows/controlled-hostinger-code-deploy.yml) with `confirm_deployment=true`. Then verify production native list and `artisan help` includes `--source`; only then use `--stage=hec-universities --source=gcu-lahore` to run one GCU retrieval and preserve the JSON at private `storage/app/private/source-qualification/gcu-lahore-phase-5b10-20261030.json`.
+- Private storage location was already verified outside public root and writable in run #41018560655; no repeated probe. No qualification report generated yet.
+- No migrations/SQL writes, application data writes, imports, approvals, promotions, publications, changes to GCU rows 348–353, or activation of the 20 additional HEC profiles. The separate `institution_field_approvals` schema warning is still independently tracked.
+- **GCU qualification remains BLOCKED** pending confirmed production deploy, post-deploy `--source` help verification, and the one-source GCU report.
