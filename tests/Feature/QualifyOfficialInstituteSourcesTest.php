@@ -213,8 +213,9 @@ class QualifyOfficialInstituteSourcesTest extends TestCase
             '--output' => 'source-qualification/invalid-filter.json',
         ], $output);
 
-        $this->assertSame(2, $exit, $output->fetch());
-        $this->assertStringContainsString('Unknown or ambiguous source id', $output->fetch());
+        $outputText = $output->fetch();
+        $this->assertSame(2, $exit, $outputText);
+        $this->assertStringContainsString('Unknown or ambiguous source id', $outputText);
         Http::assertNothingSent();
         $this->assertFalse(Storage::disk('local')->exists('source-qualification/invalid-filter.json'));
     }
