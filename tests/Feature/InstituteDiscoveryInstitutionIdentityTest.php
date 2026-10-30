@@ -8,6 +8,7 @@ use App\Models\ImportRow;
 use App\Models\Institution;
 use App\Models\Source;
 use App\Services\InstituteDiscoveryAgentService;
+use App\Services\InstituteIdentityDiscoveryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
