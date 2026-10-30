@@ -54,6 +54,7 @@ class QualifyOfficialInstituteSources extends Command
                 'response_bytes' => null,
                 'extraction_method' => null,
                 'extracted_count' => 0,
+                'extraction_status' => 'NOT_ATTEMPTED',
                 'institutions' => [],
                 'identity_conflicts' => [],
                 'campus_parent_status' => 'not_applicable',
@@ -110,6 +111,7 @@ class QualifyOfficialInstituteSources extends Command
                         'evidence_excerpt' => $candidate['evidence_excerpt'] ?? null,
                     ], $candidates);
                     $result['extracted_count'] = count($candidates);
+                    $result['extraction_status'] = $candidates === [] ? 'EMPTY' : 'SUCCESS';
                     $result['qualification_level'] = $candidates === [] ? 'BLOCKED' : 'EXTRACTION_QUALIFIED';
                     if ($extractorType === 'campus') {
                         $result['campus_parent_status'] = 'HUMAN_REVIEW_REQUIRED';
@@ -121,8 +123,11 @@ class QualifyOfficialInstituteSources extends Command
                 }
             } catch (\Throwable $exception) {
                 $result['error'] = $result['error'] ?: $exception->getMessage();
-                if ($result['qualification_level'] === 'AUTHORITY_LEAD') {
+                if ($result['qualification_level'] === 'AUTHORITY_LEAD' || $result['qualification_level'] === 'LIVE_RETRIEVED') {
                     $result['qualification_level'] = 'BLOCKED';
+                }
+                if ($result['extraction_status'] === 'NOT_ATTEMPTED' && $result['http_status'] !== null && $result['qualification_level'] === 'BLOCKED') {
+                    $result['extraction_status'] = 'FAILED_OR_NOT_RUN';
                 }
             } finally {
                 $result['duration_ms'] = (int) round((microtime(true) - $sourceStarted) * 1000);
