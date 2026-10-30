@@ -839,14 +839,22 @@ jobs:
             if ! git -C "$PARITY_REPO" cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
               git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION" || PARITY_FETCH_FAILED=1
             fi
+            APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
+            DEPLOYMENT_DRIFT=1
+            PARITY_MATCH=0
             if [ "$PARITY_FETCH_FAILED" -eq 0 ] &&
               git -C "$PARITY_REPO" merge-base --is-ancestor "$EXPECTED_REVISION" origin/main 2>/dev/null; then
-              APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
+              git -C "$PARITY_REPO" checkout --quiet --detach "$EXPECTED_REVISION"
+              EXPECTED_PATH_LIST="$PARITY_REPO/expected-application-paths.txt"
+              if ! git -C "$PARITY_REPO" ls-tree -r --name-only "$EXPECTED_REVISION" -- $APP_CODE_PATHS > "$EXPECTED_PATH_LIST"; then
                 echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
                 echo "application_code_parity=reference_path_list_failed"
                 DEPLOYMENT_DRIFT=1
-                PARITY_MATCH=0
               else
+                PARITY_MATCH=1
+                while IFS= read -r APP_PATH; do
+                  [ -n "$APP_PATH" ] || continue
+                  if [ -L "$PARITY_REPO/$APP_PATH" ] || [ -L "$PROJECT_PATH/$APP_PATH" ]; then
                     EXPECTED_LINK="$(readlink "$PARITY_REPO/$APP_PATH" 2>/dev/null || true)"
                     DEPLOYED_LINK="$(readlink "$PROJECT_PATH/$APP_PATH" 2>/dev/null || true)"
                     if [ "$EXPECTED_LINK" != "$DEPLOYED_LINK" ] || [ ! -L "$PROJECT_PATH/$APP_PATH" ]; then PARITY_MATCH=0; break; fi
@@ -856,18 +864,20 @@ jobs:
                   fi
                 done < "$EXPECTED_PATH_LIST"
                 rm -f "$EXPECTED_PATH_LIST"
+                if [ "$PARITY_MATCH" -eq 1 ]; then
+                  echo "deployment_revision_status=APPLICATION_CODE_MATCH"
+                  echo "application_code_parity=match"
+                  echo "application_code_parity_method=isolated_expected_tree_vs_deployed_file_content"
+                  DEPLOYMENT_DRIFT=0
+                else
+                  echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
+                  echo "application_code_parity=mismatch_or_unverifiable"
+                  DEPLOYMENT_DRIFT=1
+                fi
               fi
             else
-              PARITY_MATCH=0
-            fi
-            if [ "${PARITY_MATCH:-0}" -eq 1 ]; then
-              echo "deployment_revision_status=APPLICATION_CODE_MATCH"
-              echo "application_code_parity=match"
-              echo "application_code_parity_method=isolated_expected_tree_vs_deployed_file_content"
-              DEPLOYMENT_DRIFT=0
-            elif [ "${DEPLOYMENT_DRIFT:-0}" -eq 0 ]; then
               echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
-              echo "application_code_parity=mismatch_or_unverifiable"
+              echo "application_code_parity=reference_fetch_or_ancestry_unverifiable"
               DEPLOYMENT_DRIFT=1
             fi
 
