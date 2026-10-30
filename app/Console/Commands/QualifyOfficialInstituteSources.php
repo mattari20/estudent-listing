@@ -57,6 +57,7 @@ class QualifyOfficialInstituteSources extends Command
                 'institutions' => [],
                 'identity_conflicts' => [],
                 'campus_parent_status' => 'not_applicable',
+                'identity_validation_status' => 'NOT_RUN_NO_CANONICAL_OR_STAGED_FIXTURE_INPUT',
                 'error' => null,
             ];
 
@@ -72,6 +73,7 @@ class QualifyOfficialInstituteSources extends Command
                 );
                 $response = $retrieval['response'];
                 $body = $response->body();
+                $result['retrieved_at'] = now()->toIso8601String();
                 $result['http_status'] = $response->status();
                 $result['content_type'] = $response->header('Content-Type');
                 $result['final_url'] = $retrieval['final_url'];
@@ -114,9 +116,8 @@ class QualifyOfficialInstituteSources extends Command
                         $result['identity_conflicts'][] = 'Campus extractor returns campus labels only; parent-university relationships are not asserted or promoted.';
                         $result['qualification_level'] = 'BLOCKED';
                     }
-                    if ($extractorType === 'institution' && count($candidates) === 1) {
-                        $result['qualification_level'] = 'IDENTITY_QUALIFIED';
-                    }
+                    // Extraction alone cannot establish identity qualification. That
+                    // requires a separate canonical/staged identity cross-check.
                 }
             } catch (\Throwable $exception) {
                 $result['error'] = $result['error'] ?: $exception->getMessage();
