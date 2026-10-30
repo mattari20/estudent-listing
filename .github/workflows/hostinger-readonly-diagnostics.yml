@@ -829,7 +829,8 @@ jobs:
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
-            $kernel = $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class);
+            $kernelContract = 'Illuminate'.chr(92).'Contracts'.chr(92).'Console'.chr(92).'Kernel';
+            $kernel = $app->make($kernelContract);
             $kernel->bootstrap();
             $path = base_path('app/Console/Commands');
             $file = $path.'/QualifyOfficialInstituteSources.php';
@@ -841,7 +842,8 @@ jobs:
             } catch (Throwable $exception) {
                 $reflectionError = class_basename($exception);
             }
-            $commandType = $reflection ? $reflection->isSubclassOf(\\Illuminate\\Console\\Command::class) : false;
+            $commandBase = 'Illuminate'.chr(92).'Console'.chr(92).'Command';
+            $commandType = $reflection ? $reflection->isSubclassOf($commandBase) : false;
             $report = [
                 'check' => 'qualification_command_registration_path',
                 'framework_version' => $app->version(),
