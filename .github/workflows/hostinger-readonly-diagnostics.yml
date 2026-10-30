@@ -826,9 +826,10 @@ jobs:
             fi
             echo "deployed_revision=$DEPLOYED_REVISION"
             echo "expected_application_revision=$EXPECTED_REVISION"
-            # Compare current deployed files with the current app-code tree without
-            # requiring the app-code commit itself to be a direct/ancestor ref.
-            # Docs-only and workflow-only main commits must not cause false drift.
+            # Never fetch or update refs inside the live Hostinger repository. Fetch in a
+            # disposable temporary repository; compare committed source files to deployed
+            # files by content so shallow or absent production Git metadata cannot be
+            # mutated during a read-only diagnostic.
             PARITY_REPO="$(mktemp -d "${TMPDIR:-/tmp}/estudent-parity.XXXXXX")"
             trap 'rm -rf "$PARITY_REPO"' EXIT
             git -C "$PARITY_REPO" init -q
