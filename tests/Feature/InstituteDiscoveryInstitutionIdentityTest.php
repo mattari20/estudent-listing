@@ -76,9 +76,13 @@ class InstituteDiscoveryInstitutionIdentityTest extends TestCase
             ->push($html, 200, ['Content-Type' => 'text/html'])
             ->push($html.'<footer>Updated page chrome.</footer>', 200, ['Content-Type' => 'text/html'])]);
 
-        $service = app(InstituteDiscoveryAgentService::class);
-        $first = $service->run(self::PROFILE);
-        $second = $service->run(self::PROFILE);
+        $service = app(InstituteIdentityDiscoveryService::class);
+        $firstSource = \\App\\Models\\Source::query()->updateOrCreate(
+            ['url' => self::URL],
+            ['source_type' => 'official', 'name' => 'HEC GCU identity', 'authority_scope' => 'HEC identity', 'status' => 'active']
+        );
+        $first = $service->run(self::PROFILE, $firstSource, $definition);
+        $second = $service->run(self::PROFILE, $firstSource, $definition);
 
         $source = \App\Models\Source::query()->findOrFail($first['source_id']);
         $this->assertSame($source->id, $second['source_id']);
