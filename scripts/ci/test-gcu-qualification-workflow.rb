@@ -45,4 +45,17 @@ assert_contract(source.include?('echo "expected_size=$EXPECTED_SIZE" >> "$GITHUB
 assert_contract(source.include?('timeout 120s ssh') && source.include?('timeout 120s scp'), "metadata and file-transfer SSH operations must be bounded")
 assert_contract(!source.include?('continue-on-error: true') && !source.include?('if: always()'), "transfer/validation failures must stop before artifact upload and must not be ignored")
 
+assert_contract(source.include?("id: gcu_ssh"), "the Hostinger qualification SSH step must have the stable gcu_ssh ID")
+assert_contract(!source.match?(/steps\\.gcu_ssh\\.outputs\\./), "the appleboy SSH action declares no outputs; no undeclared output reference may target it")
+assert_contract(source.include?('[ ! -e "$REPORT_PATH" ] || fail \'report exists; overwrite forbidden\''), "Hostinger report overwrite must be refused")
+assert_contract(source.include?('[[ ! -e "$DEST_FILE" ]]'), "runner report overwrite must be refused")
+assert_contract(source.include?('test -s "$PARTIAL_FILE"') && source.include?('mv "$PARTIAL_FILE" "$DEST_FILE"'), "missing/empty or incomplete transfer must block final destination creation")
+assert_contract(source.include?('if (!is_array($d) || json_last_error() !== JSON_ERROR_NONE) exit(1);') &&
+                source.include?('count($d["results"] ?? []) !== 1') &&
+                source.include?('($d["results"][0]["source_id"] ?? null) !== "gcu-lahore"'), "invalid JSON, result count and wrong source ID must be rejected")
+assert_contract(source.include?('[[ "$ACTUAL_SHA256" == "$EXPECTED_SHA256" ]]') &&
+                source.include?('[[ "$SIZE" == "$EXPECTED_SIZE" ]]'), "checksum and byte-count mismatches must fail closed")
+assert_contract(source.include?('trap \'rm -f "$PARTIAL_FILE"\' EXIT') && source.include?('timeout 120s scp'), "failed/interrupted transfer must clean the partial file and terminate within two minutes")
+assert_contract(source.index('name: Upload controlled GCU qualification report') > source.index('name: Verify transferred report integrity'), "artifact upload must not run before all validation")
+
 puts "GCU qualification workflow syntax and security contract: PASS"
