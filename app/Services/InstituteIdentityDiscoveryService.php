@@ -222,11 +222,28 @@ class InstituteIdentityDiscoveryService
                 $blockers[] = 'duplicate_identity_slug_within_batch';
             }
 
-            $status = $blockers === []
-                ? 'candidate'
-                : ($withinBatchDuplicate && count($blockers) === 1 && $blockers[0] === 'duplicate_identity_slug_within_batch'
+            // Match the generic discovery path: a changed source snapshot gets
+            // its own immutable batch, but the same institution identity already
+            // staged in another batch is classified for duplicate review. The
+            // shared detector prefers known official names over slug/name aliases.
+            $duplicate = null;
+            if ($blockers === [] && ! $withinBatchDuplicate) {
+                $duplicate = app(ImportDuplicateDetectorService::class)->findInstitution(
+                    $slug,
+                    $batch->id,
+                    [],
+                    $candidate
+                );
+            }
+
+            $status = $blockers !== []
+                ? ($withinBatchDuplicate && count($blockers) === 1 && $blockers[0] === 'duplicate_identity_slug_within_batch'
                     ? 'duplicate'
-                    : 'invalid');
+                    : 'invalid')
+                : ($duplicate ? 'duplicate' : 'candidate');
+            $validationErrors = $blockers !== []
+                ? array_values(array_unique($blockers))
+                : ($duplicate ? [$duplicate['message']] : null);
             $row = ImportRow::create([
                 'import_batch_id' => $batch->id,
                 'row_number' => $index + 1,
@@ -236,7 +253,7 @@ class InstituteIdentityDiscoveryService
                 'parent_subject_id' => null,
                 'payload' => $payload,
                 'normalized_payload' => $payload,
-                'validation_errors' => $blockers === [] ? null : array_values(array_unique($blockers)),
+                'validation_errors' => $validationErrors,
                 'notes' => 'Official identity evidence #'.$evidence->id.' from '.$source->url,
             ]);
 
