@@ -1,6 +1,6 @@
 # eStudent Institutes Directory — Master Tracker
 
-Last reviewed: 2026-10-27
+Last reviewed: 2026-10-30
 Repository: https://github.com/mattari20/estudent-listing
 Phase 2 structure: exactly five sequential steps. Do not start the next step until the current step's completion gate is satisfied.
 Production safety: read-only diagnostics first. No destructive data operation or production migration is authorized by this tracker.
@@ -690,3 +690,16 @@ See [Step 1 recovery status report](docs/audits/step1-recovery-status-2026-10-29
 - No deployment authorization was provided. Do not run the manual controlled Hostinger deployment workflow (its `confirm_deployment` input defaults false). No production changes or database mutations occurred.
 - Required operator next action: explicitly authorize the existing controlled deployment workflow for current main `5d6570b87fcd4e2f5a18f2cd90c8b4bc2409135d`. After deployment, rerun Hostinger read-only diagnostics; require app parity, command availability, private path boundary and schema checks to pass; only then execute `php artisan institutes:qualify-official-sources --stage=hec-universities --timeout=15 --connect-timeout=5 --delay-ms=1000`. Preserve its JSON report privately. No profile activation/discovery/import/approval/promotion/publication.
 - Phase 5B.2 remains BLOCKED; Phase 5A remains OPEN.
+
+
+## Execution update — 2026-10-30: Phase 5B.8 production Artisan registration diagnosis
+
+- Current main after PR #940: `45fa7b817a62c1f9fb06257b0f23df06fd6ff956`.
+- PRs #936, #937, #938 and #939 are merged. PR #940 was reviewed, corrected on its existing branch, rebased onto current main, passed exact-head Test #41023475399 and Laravel CI #41023475538, and merged as `45fa7b817a62c1f9fb06257b0f23df06fd6ff956`.
+- Previous production run #41018560655: resolved PHP `/opt/alt/php85/usr/bin/php`; native Artisan list exit 0; qualification command NOT_LISTED; Composer class autoload AVAILABLE; help not run because command was absent.
+- Previous private storage probe passed all checks (outside public root, writable, write/read/delete successful). Do not repeat it.
+- PR #940 adds versioned/timestamped JSON output, stdout/stderr separation, exit-code preservation, same-PHP JSON validation, runtime console kernel and Artisan registry inspection, reflection metadata, and temporary-file cleanup. Workflow-only; no production application deployment required.
+- Current `bootstrap/app.php` source uses `Application::configure()->withCommands([__DIR__.'/../app/Console/Commands'])`; this source inspection is not runtime proof.
+- **Phase 5B.8 remains OPEN / production kernel evidence pending.** The available GitHub connector exposes PR-triggered runs but not the push-triggered Hostinger diagnostic run list. The post-merge production run ID/report could not be obtained here. Do not state the new kernel inspection passed or name an application root cause until its JSON report is reviewed.
+- Next action: inspect the latest Hostinger Read-only Diagnostics run on main after PR #940 and capture the valid JSON kernel report. Only then decide whether the defect is class loading, inheritance, command-directory discovery, kernel/bootstrap, duplicate registration, or diagnostic logic.
+- No HEC requests, normal discovery, source activation, snapshots/evidence, database writes/migrations, imports, human identity decisions, approvals, promotions, publications, GCU rows #348–353 changes, or production deployment occurred. All 20 additional HEC profiles remain disabled.
