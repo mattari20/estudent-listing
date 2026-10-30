@@ -91,6 +91,18 @@ class InstituteIdentityDiscoveryService
 
     private function stageSnapshot(string $profile, Source $source, SourceSnapshot $snapshot, array $definition): array
     {
+        // Serialize identity candidate persistence per source, matching the generic
+        // discovery agent's idempotency boundary. Concurrent scheduled/manual runs
+        // must not both observe an absent batch and create parallel identity rows.
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($profile, $source, $snapshot, $definition): array {
+            $lockedSource = Source::query()->whereKey($source->id)->lockForUpdate()->firstOrFail();
+
+            return $this->stageSnapshotLocked($profile, $lockedSource, $snapshot, $definition);
+        });
+    }
+
+    private function stageSnapshotLocked(string $profile, Source $source, SourceSnapshot $snapshot, array $definition): array
+    {
         $versionMarker = 'institution_identity_extractor_version='.self::VERSION;
         $existingBatches = ImportBatch::query()
             ->where('source_id', $source->id)
@@ -210,11 +222,28 @@ class InstituteIdentityDiscoveryService
                 $blockers[] = 'duplicate_identity_slug_within_batch';
             }
 
-            $status = $blockers === []
-                ? 'candidate'
-                : ($withinBatchDuplicate && count($blockers) === 1 && $blockers[0] === 'duplicate_identity_slug_within_batch'
+            // Match the generic discovery path: a changed source snapshot gets
+            // its own immutable batch, but the same institution identity already
+            // staged in another batch is classified for duplicate review. The
+            // shared detector prefers known official names over slug/name aliases.
+            $duplicate = null;
+            if ($blockers === [] && ! $withinBatchDuplicate) {
+                $duplicate = app(ImportDuplicateDetectorService::class)->findInstitution(
+                    $slug,
+                    $batch->id,
+                    [],
+                    $candidate
+                );
+            }
+
+            $status = $blockers !== []
+                ? ($withinBatchDuplicate && count($blockers) === 1 && $blockers[0] === 'duplicate_identity_slug_within_batch'
                     ? 'duplicate'
-                    : 'invalid');
+                    : 'invalid')
+                : ($duplicate ? 'duplicate' : 'candidate');
+            $validationErrors = $blockers !== []
+                ? array_values(array_unique($blockers))
+                : ($duplicate ? [$duplicate['message']] : null);
             $row = ImportRow::create([
                 'import_batch_id' => $batch->id,
                 'row_number' => $index + 1,
@@ -224,7 +253,7 @@ class InstituteIdentityDiscoveryService
                 'parent_subject_id' => null,
                 'payload' => $payload,
                 'normalized_payload' => $payload,
-                'validation_errors' => $blockers === [] ? null : array_values(array_unique($blockers)),
+                'validation_errors' => $validationErrors,
                 'notes' => 'Official identity evidence #'.$evidence->id.' from '.$source->url,
             ]);
 
