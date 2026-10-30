@@ -22,7 +22,7 @@ Qualification labels:
 
 - **Authority lead:** authoritative government/regulator ownership and relevant identity scope are evidenced by the official public directory.
 - **Profile fixture-tested:** the configured profile has been exercised using synthetic HTML, fixture hashes, and isolated application tests.
-- **Live application-qualified:** the deployed application retriever has captured the actual HTTP status, content type, raw response fingerprint, source snapshot and deterministic extraction output from the official endpoint.
+- **Live application-qualified:** the application SafeSourceHttpRetriever has captured the actual HTTP status, content type, final URL and raw response fingerprint from the official endpoint, with deterministic extraction evaluated in memory and its result stored in a private qualification report. This read-only qualification does not create a SourceSnapshot or other database record.
 - **Pilot-ready:** live qualification, duplicate/campus resolution, evidence provenance, approval workflow, deployment/schema readiness, and bounded human review are all satisfied.
 
 No source in this report is marked live application-qualified or pilot-ready.
@@ -143,8 +143,24 @@ Rationale: substantial governed discovery, snapshot/evidence, duplicate matching
 2. Resolve the explicit production deployment authorization and then run the existing controlled deployment workflow; do not deploy merely to clear a report gate.
 3. Run the existing read-only diagnostics after the authorized deployment to verify deployed app-code parity and current schema readiness.
 4. In a separate authorized operator session, retrieve and validate the private GCU batch-19 manifest/CSV and compare six snapshot bodies. Record a human decision without automatic promotion.
-5. Build a safe, read-only live source qualification command/report that processes source URLs one-by-one through the existing SafeSourceHttpRetriever, writes only the existing source retrieval/snapshot audit structures where currently designed, and emits per-source HTTP status/content type/content hash/extraction counts/blockers. Run only after parity/schema gates are satisfied and the controlled retrieval scope is separately approved.
+5. Build and run the isolated read-only qualification command through the existing SafeSourceHttpRetriever. It must write only a private execution report, not source retrieval/snapshot/evidence database rows. Use the report's actual HTTP status/content type/final URL/raw hash and in-memory extraction outcomes to decide the next qualification gate.
 6. Qualify HEC university and campus directories plus relevant provincial sources. Activate profiles only after all individual source gates pass and a separate explicit authorization is given.
 7. Execute a bounded 5–10 identity-only pilot into private review staging, then inspect duplicate and campus outcomes before any human approval/import decision.
 
 **Phase 5A remains open. Phase 5B remains in qualification/preparation, not completed. No production source profile activation, candidate import, promotion or publication is authorized by this report.**
+
+
+## Phase 5B.1 execution update — 2026-10-30: isolated read-only qualification capability
+
+- Reconciled PR #931: all three PR checks (Test #41005951390, Laravel CI #41005951466, Project Controller #41005951469) completed successfully on head `423c68657b099b633e153a7196924bd3fd86067c`. PR #931 merged at `b16144c73592ba4217d7d533a410ca91fef263a7`; this is the verified `main` baseline for Phase 5B.1.
+- Confirmed PRs #926–#930 merged. PR #930 direct-service changed-snapshot and conflicting-official-name tests are present on main; its Test and Laravel CI each passed 739 tests / 3,332 assertions.
+- Added `config/institute_source_qualification.php` with staged inventories: the ten named HEC identity candidates, HEC recognized campuses, and five provincial/ICT source leads. This inventory is separate from monitoring profiles and does not activate or modify them.
+- Added `institutes:qualify-official-sources` with bounded timeout/connect-timeout/delay options. It calls the existing `SafeSourceHttpRetriever`, records validated final URL, HTTP status, content type, raw SHA-256, response bytes, retrieval duration and timestamp, and invokes the existing deterministic extractor in memory. Reports contain no raw source body and are written only to private local storage.
+- Added `SafeSourceHttpRetriever::getWithMetadata()`; the existing `get()` API remains compatible and delegates to the same guarded redirect/DNS-pinned retrieval path.
+- The command does not call Eloquent models, database services, bootstrap, discovery, monitoring, snapshot/evidence, import, approval, or canonical-write services. Automated regression tests assert unchanged counts across existing discovery/source/canonical tables and verify HTTP fingerprint/extraction output, wrong content type handling and unsafe URL blocking.
+- HEC campus extraction currently returns labels only. Parent-university relationships are explicitly marked `HUMAN_REVIEW_REQUIRED`; no campus is asserted as an independent institution.
+- The five provincial/ICT endpoints have live-retrieval inventory entries, but no dedicated deterministic directory extractor exists for those formats yet. Even after a successful GET, those sources are classified BLOCKED pending a source-specific extractor and authority/coverage rules; no guessed university extraction is permitted.
+- **Live execution not yet performed:** this connected session can inspect and modify GitHub repository content and CI, but it does not provide a checked-out application runtime or authenticated Hostinger shell to execute the new Laravel command against official endpoints. The new command must first pass CI; a bounded live run remains an operator/runtime action. No actual live HTTP tuples are claimed in this update.
+- Current Phase 5B.1 counts before live execution: sources configured 16 (10 HEC identity pages + 1 HEC campus directory + 5 provincial/ICT directories); live retrieval successes 0; retrieval failures 0 observed by this command (not run); extraction successes 0; identity-qualified sources 0; campus-parent conflicts 0 measured (parent mapping remains explicitly unverified); pilot-review-ready institutions 0; blocked sources 0 measured by live run. These are NOT live outcomes.
+- No database writes, source/snapshot/evidence/import rows, profile activation, production discovery, migration, deployment, approval, promotion, publication or scheduler change occurred.
+- Phase 5B.1 remains IN PROGRESS until the implementation PR checks pass and a bounded live execution captures actual per-source evidence. Phase 5A remains OPEN.
