@@ -770,13 +770,12 @@ jobs:
             "$PHP_EXECUTABLE_REAL" -r 'echo "qualification_runtime_php_version=".PHP_VERSION.PHP_EOL;'
             LIST_OUTPUT="$(mktemp)"
             LIST_ERROR="$(mktemp)"
-            LIST_MATCH_OUTPUT="$(mktemp)"
             HELP_OUTPUT=""
             HELP_ERROR=""
             AUTOLOAD_OUTPUT="$(mktemp)"
             AUTOLOAD_ERROR="$(mktemp)"
             cleanup_command_diagnostics() {
-              rm -f "$LIST_OUTPUT" "$LIST_ERROR" "$LIST_MATCH_OUTPUT" "$AUTOLOAD_OUTPUT" "$AUTOLOAD_ERROR"
+              rm -f "$LIST_OUTPUT" "$LIST_ERROR" "$AUTOLOAD_OUTPUT" "$AUTOLOAD_ERROR"
               [ -z "$HELP_OUTPUT" ] || rm -f "$HELP_OUTPUT"
               [ -z "$HELP_ERROR" ] || rm -f "$HELP_ERROR"
             }
@@ -794,8 +793,8 @@ jobs:
             fi
             if [ "$LIST_STATUS" -eq 0 ]; then
               echo "qualification_artisan_list=SUCCEEDED"
-              if grep -Fx 'institutes:qualify-official-sources' "$LIST_OUTPUT" >"$LIST_MATCH_OUTPUT"; then
-                echo "qualification_artisan_list_target_match=EXACT"
+              if awk '$1 == "institutes:qualify-official-sources" { found=1 } END { exit(found ? 0 : 1) }' "$LIST_OUTPUT"; then
+                echo "qualification_artisan_list_target_match=FIRST_COLUMN_EXACT"
                 echo "qualification_command=AVAILABLE"
                 HELP_OUTPUT="$(mktemp)"
                 HELP_ERROR="$(mktemp)"
