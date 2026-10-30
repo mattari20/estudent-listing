@@ -184,7 +184,7 @@ jobs:
             # Return report bytes via the SSH action output only after validating them.
             # Base64 transport avoids shell quoting; content is not printed to SSH logs.
             REPORT_B64="$(base64 < "$REPORT_PATH" | tr -d '\\n')"
-            echo "::set-output name=report_b64::$REPORT_B64"
+            echo "report_b64=$REPORT_B64" >> "$GITHUB_OUTPUT"
             echo "artifact_staging=READY"
 
       - name: Materialize validated report for artifact upload
