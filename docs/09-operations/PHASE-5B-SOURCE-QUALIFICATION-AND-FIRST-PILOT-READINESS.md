@@ -85,13 +85,18 @@ The live scheduled bootstrap uses the separate `InstituteIdentityDiscoveryServic
 
 This leaves a race window: simultaneous scheduler/manual runs against the same source can both observe no matching prior batch and create duplicate candidate batches. The historical identity tests exercised the generic agent path rather than directly proving the separate service's persistence boundary.
 
-A focused repair is proposed in the accompanying pull request:
-- acquire a transaction and lock the source row around the identity staging/reuse check and persistence;
-- retain the existing immutable snapshot, batch/evidence, duplicate, approval and publication behaviour;
-- add regression coverage for changed snapshots from the same source, proving only one candidate is staged and later changed snapshots become duplicates;
-- add no new API dependency and no profile activation.
+**Implemented in merged PR #929** ([merge commit `cee61fe0c0128e278b30b495138a73c8147e93e6`](https://github.com/mattari20/estudent-listing/commit/cee61fe0c0128e278b30b495138a73c8147e93e6)):
+- identity candidate reuse/staging is wrapped in a database transaction and locks the source row;
+- changed source content retains its immutable snapshot, evidence and batch;
+- the service calls the shared `ImportDuplicateDetectorService::findInstitution()` so an already-staged identity is classified for duplicate review across batches;
+- the shared detector preserves PR #927's official-name precedence: a shared slug or generic display name does not override two known conflicting official names;
+- no canonical Institution is created, approved, promoted or published by this flow.
 
-This repair does not prove simultaneous DB worker contention under a production MySQL load test; that remains a test/qualification limitation.
+PR #929 passed Test (#41005553735), Laravel CI and formatting (#41005553794), and Project Controller (#41005553740), all on PR head `dc96305ed9ecd5da3ec93be10e4b17f4d25bc5f8`. Test and Laravel CI each reported 737 tests and 3,314 assertions.
+
+**Regression-test follow-up:** Post-merge inspection found that the final merged test file did not contain the direct-service changed-snapshot test (the last test consolidation commit had removed it). A focused follow-up branch, `test/phase5b-identity-changed-snapshot-regression-20261030`, restores this missing coverage and adds a conflicting-official-name regression for the duplicate-detection path. It must pass fresh CI before its test coverage can be marked verified.
+
+The PR #929 suite proves repository-wide tests, but it is not counted as direct regression coverage for the dedicated identity service until the follow-up passes.
 
 ## Production and historical GCU review gates
 
