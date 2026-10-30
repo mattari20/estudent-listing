@@ -842,8 +842,8 @@ jobs:
             $deleted = false;
             $errorClass = null;
             try {
-                if ($insidePublic) {
-                    throw new RuntimeException('private_path_inside_public_root');
+                if ($publicRoot === false) {
+                    throw new RuntimeException('public_root_unresolved');
                 }
                 if (! is_dir($path) && ! @mkdir($path, 0700, true) && ! is_dir($path)) {
                     throw new RuntimeException('private_directory_creation_failed');
