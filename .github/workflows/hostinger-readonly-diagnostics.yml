@@ -758,6 +758,33 @@ jobs:
                 exit(21);
             }
             PHP
+            echo "=== Qualification command availability (read-only) ==="
+            if php artisan list --raw --no-ansi | grep -Fxq 'institutes:qualify-official-sources'; then
+              echo "qualification_command=AVAILABLE"
+            else
+              echo "qualification_command=NOT_AVAILABLE"
+            fi
+            echo "=== Qualification private report storage path (read-only) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $disk = \Illuminate\Support\Facades\Storage::disk('local');
+            $path = $disk->path('private/source-qualification');
+            $parent = dirname($path);
+            $publicRoot = realpath(public_path());
+            echo json_encode([
+                'check' => 'qualification_private_storage',
+                'disk' => config('filesystems.default'),
+                'resolved_path' => $path,
+                'directory_exists' => is_dir($path),
+                'directory_writable' => is_dir($path) && is_writable($path),
+                'parent_directory_writable' => is_dir($parent) && is_writable($parent),
+                'inside_public_root' => $publicRoot !== false && str_starts_with($path, rtrim($publicRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR),
+                'mutation_performed' => false,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
             echo "=== Hostinger scheduler command and PHP executable (read-only) ==="
             PHP_EXECUTABLE="$(command -v php || true)"
             if [ -n "$PHP_EXECUTABLE" ]; then
