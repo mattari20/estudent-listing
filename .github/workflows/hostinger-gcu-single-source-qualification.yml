@@ -171,6 +171,7 @@ jobs:
             # Validate private report before export. Failure never re-invokes command.
             [ -s "$REPORT_PATH" ] || fail 'missing or empty report; no retry will occur'
             REPORT_SIZE="$(wc -c < "$REPORT_PATH" | tr -d ' ')"
+            case "$REPORT_SIZE" in ''|*[!0-9]*) fail 'report size is invalid' ;; esac
             [ "$REPORT_SIZE" -le "$MAX_REPORT_BYTES" ] || fail 'report exceeds 1 MiB transfer limit'
             "$PHP" -r '
               $data = json_decode(file_get_contents($argv[1]), true);
@@ -201,6 +202,7 @@ jobs:
 
       - name: Transfer report with bounded SCP
         if: ${{ inputs.confirm_gcu_qualification }}
+        timeout-minutes: 2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
