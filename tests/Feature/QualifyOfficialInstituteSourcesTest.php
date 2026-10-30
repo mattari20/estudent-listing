@@ -114,6 +114,109 @@ class QualifyOfficialInstituteSourcesTest extends TestCase
         $this->assertStringContainsString('Expected an HTML content type', $report['results'][0]['error']);
     }
 
+    public function test_source_filter_restricts_a_stage_to_one_configured_source_and_preserves_no_write_guarantee(): void
+    {
+        config([
+            'institute_agent.profiles.qualification-gcu' => [
+                'source' => ['url' => 'https://example.test/gcu'],
+                'institution_identity' => [
+                    'name' => 'Government College University Lahore',
+                    'official_name' => 'Government College University, Lahore',
+                    'short_name' => 'GCU Lahore',
+                    'slug' => 'government-college-university-lahore',
+                    'institution_type' => 'public university',
+                    'identity_terms' => ['Government College University, Lahore'],
+                ],
+            ],
+            'institute_agent.profiles.qualification-other' => [
+                'source' => ['url' => 'https://example.test/other'],
+                'institution_identity' => [
+                    'name' => 'Other University',
+                    'official_name' => 'Other University',
+                    'short_name' => 'Other',
+                    'slug' => 'other-university',
+                    'institution_type' => 'public university',
+                    'identity_terms' => ['Other University'],
+                ],
+            ],
+            'institute_source_qualification.test' => [
+                ['id' => 'gcu-lahore', 'profile' => 'qualification-gcu', 'authority' => 'HEC university identity'],
+                ['id' => 'other-university', 'profile' => 'qualification-other', 'authority' => 'HEC university identity'],
+            ],
+        ]);
+        Http::fake([
+            'https://example.test/gcu' => Http::response(
+                '<html><head><title>Government College University, Lahore</title></head><body>Government College University, Lahore</body></html>',
+                200,
+                ['Content-Type' => 'text/html; charset=UTF-8']
+            ),
+            'https://example.test/other' => Http::response(
+                '<html><head><title>Other University</title></head><body>Other University</body></html>',
+                200,
+                ['Content-Type' => 'text/html; charset=UTF-8']
+            ),
+        ]);
+
+        $tables = [
+            'sources', 'source_snapshots', 'evidences', 'import_batches', 'import_rows',
+            'source_retrieval_runs', 'source_monitoring_policies', 'source_change_observations',
+            'identity_resolution_decisions', 'verification_decisions',
+            'institutions', 'campuses', 'programs', 'program_offerings',
+        ];
+        $before = [];
+        foreach ($tables as $table) {
+            if (Schema::hasTable($table)) {
+                $before[$table] = \\Illuminate\\Support\\Facades\\DB::table($table)->count();
+            }
+        }
+
+        $exit = Artisan::call('institutes:qualify-official-sources', [
+            '--stage' => 'test',
+            '--source' => 'gcu-lahore',
+            '--delay-ms' => 0,
+            '--output' => 'source-qualification/gcu-only-test.json',
+        ]);
+
+        $this->assertSame(0, $exit, Artisan::output());
+        $after = [];
+        foreach ($before as $table => $count) {
+            $after[$table] = \\Illuminate\\Support\\Facades\\DB::table($table)->count();
+        }
+        $this->assertSame($before, $after);
+
+        $report = json_decode(Storage::disk('local')->get('source-qualification/gcu-only-test.json'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('test', $report['stage']);
+        $this->assertSame('gcu-lahore', $report['source_filter']);
+        $this->assertSame(1, $report['source_count']);
+        $this->assertSame(['gcu-lahore'], array_column($report['results'], 'source_id'));
+        $this->assertSame(1, $report['live_retrieval_successes']);
+        $this->assertSame(1, $report['extraction_successes']);
+        $this->assertFalse($report['database_writes_performed']);
+        $this->assertFalse($report['discovery_or_canonical_mutations_performed']);
+        Http::assertSentCount(1);
+        Http::assertSent(static fn ($request): bool => $request->url() === 'https://example.test/gcu');
+    }
+
+    public function test_unknown_source_filter_is_rejected_before_any_http_request_or_report_write(): void
+    {
+        config(['institute_source_qualification.test' => [
+            ['id' => 'gcu-lahore', 'url' => 'https://example.test/gcu', 'authority' => 'HEC university identity', 'extractor' => 'unsupported-directory'],
+        ]]);
+        Http::fake();
+
+        $exit = Artisan::call('institutes:qualify-official-sources', [
+            '--stage' => 'test',
+            '--source' => 'not-configured',
+            '--delay-ms' => 0,
+            '--output' => 'source-qualification/invalid-filter.json',
+        ]);
+
+        $this->assertSame(2, $exit, Artisan::output());
+        $this->assertStringContainsString('Unknown or ambiguous source id', Artisan::output());
+        Http::assertNothingSent();
+        $this->assertFalse(Storage::disk('local')->exists('source-qualification/invalid-filter.json'));
+    }
+
     public function test_invalid_url_is_blocked_before_any_http_request(): void
     {
         config(['institute_source_qualification.test' => [
