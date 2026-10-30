@@ -842,7 +842,6 @@ jobs:
                 $reflectionError = class_basename($exception);
             }
             $commandType = $reflection ? $reflection->isSubclassOf(\\Illuminate\\Console\\Command::class) : false;
-            $kernelMethods = get_class_methods($kernel);
             $report = [
                 'check' => 'qualification_command_registration_path',
                 'framework_version' => $app->version(),
