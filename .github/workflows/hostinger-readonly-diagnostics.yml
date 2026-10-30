@@ -858,8 +858,14 @@ jobs:
                 'reflection_error_class' => $reflectionError,
                 'kernel_bootstrapped' => method_exists($kernel, 'bootstrap'),
                 'kernel_loaded_commands' => $kernel->all() !== [],
-                'artisan_command_registered' => \Illuminate\Support\Facades\Artisan::all() !== [] && \Illuminate\Support\Facades\Artisan::has('institutes:qualify-official-sources'),
-                'artisan_loaded_command_names_count' => count(\Illuminate\Support\Facades\Artisan::all()),
+                'artisan_command_registered' => (static function () use ($app): bool {
+                    $artisan = 'Illuminate'.chr(92).'Support'.chr(92).'Facades'.chr(92).'Artisan';
+                    return $artisan::has('institutes:qualify-official-sources');
+                })(),
+                'artisan_loaded_command_names_count' => (static function () use ($app): int {
+                    $artisan = 'Illuminate'.chr(92).'Support'.chr(92).'Facades'.chr(92).'Artisan';
+                    return count($artisan::all());
+                })(),
                 'command_directory_files_count' => count(glob($path.'/*.php') ?: []),
                 'app_namespace' => $app->getNamespace(),
                 'bootstrap_cache_entries' => array_values(array_filter(glob(base_path('bootstrap/cache/*.php')) ?: [], fn ($entry) => basename($entry) !== '.gitignore')),
