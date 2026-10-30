@@ -775,7 +775,9 @@ jobs:
             AUTOLOAD_OUTPUT="$(mktemp)"
             AUTOLOAD_ERROR="$(mktemp)"
             cleanup_command_diagnostics() {
-              rm -f "$LIST_OUTPUT" "$LIST_ERROR" "$AUTOLOAD_OUTPUT" "$AUTOLOAD_ERROR" ${HELP_OUTPUT:+"$HELP_OUTPUT"} ${HELP_ERROR:+"$HELP_ERROR"}
+              rm -f "$LIST_OUTPUT" "$LIST_ERROR" "$AUTOLOAD_OUTPUT" "$AUTOLOAD_ERROR"
+              [ -z "$HELP_OUTPUT" ] || rm -f "$HELP_OUTPUT"
+              [ -z "$HELP_ERROR" ] || rm -f "$HELP_ERROR"
             }
             trap cleanup_command_diagnostics EXIT HUP INT TERM
             set +e
@@ -826,11 +828,9 @@ jobs:
               echo "qualification_class_autoload=ERROR"
               echo "qualification_class_autoload_stderr_sha256=$(sha256sum "$AUTOLOAD_ERROR" | awk '{print $1}')"
             fi
-            rm -f "$LIST_OUTPUT" "$LIST_ERROR" "$AUTOLOAD_OUTPUT" "$AUTOLOAD_ERROR" ${HELP_OUTPUT:+"$HELP_OUTPUT"} ${HELP_ERROR:+"$HELP_ERROR"}
+            cleanup_command_diagnostics
             trap - EXIT HUP INT TERM
-            if [ "$LIST_STATUS" -ne 0 ]; then
-              exit 25
-            fi
+            if [ "$LIST_STATUS" -ne 0 ]; then exit 25; fi
             echo "=== Laravel console command path and reflection diagnosis ==="
             DIAGNOSTIC_TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/estudent-kernel.XXXXXX")"
             KERNEL_SCRIPT="$DIAGNOSTIC_TMP_DIR/inspect-console-kernel.php"
