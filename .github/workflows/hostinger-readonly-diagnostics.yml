@@ -840,7 +840,10 @@ jobs:
             cleanup_kernel_diagnostic() {
               rm -rf -- "$DIAGNOSTIC_TMP_DIR"
             }
-            trap cleanup_kernel_diagnostic EXIT HUP INT TERM
+            trap 'cleanup_kernel_diagnostic' EXIT
+            trap 'exit 129' HUP
+            trap 'exit 130' INT
+            trap 'exit 143' TERM
             cat > "$KERNEL_SCRIPT" <<'PHP'
             <?php
             declare(strict_types=1);
@@ -943,6 +946,8 @@ jobs:
             set -e
             echo "qualification_kernel_inspection_exit=$KERNEL_STATUS"
             echo "qualification_kernel_inspection_stderr_present=$([ -s "$KERNEL_ERROR" ] && echo true || echo false)"
+            echo "qualification_kernel_inspection_report_present=$([ -s "$KERNEL_REPORT" ] && echo true || echo false)"
+            set +e
             if [ "$KERNEL_STATUS" -eq 0 ] && "$PHP_EXECUTABLE_REAL" -r '$v=json_decode(file_get_contents($argv[1]),true); $required=["check","diagnostic_version","generated_at","php_version","framework_version","bootstrap_succeeded","kernel_class","kernel_bootstrapped","artisan_registry_command_names","artisan_command_registered","command_directory_exists","command_directory_readable","command_file_exists","command_file_readable","command_class_exists","command_class_reflection_created","command_class_namespace","command_class_parent","command_class_is_console_command","bootstrap_cache_entries"]; exit(is_array($v) && ($v["check"] ?? "") === "qualification_command_registration_path" && ($v["diagnostic_version"] ?? "") === "phase-5b9-temp-script-v1" && count(array_filter($required, fn($key)=>array_key_exists($key,$v))) === count($required) ? 0 : 1);' "$KERNEL_REPORT" 2>"$KERNEL_VALIDATION_ERROR"; then
               cat "$KERNEL_REPORT"
               echo "qualification_kernel_inspection_json=VALID"
