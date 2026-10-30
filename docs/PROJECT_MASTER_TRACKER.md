@@ -665,3 +665,15 @@ See [Step 1 recovery status report](docs/audits/step1-recovery-status-2026-10-29
 - Live qualification is not executed from this GitHub-only connected environment. No actual HTTP response tuple is claimed. A runtime/operator session must run the command after CI and preserve the private report.
 - No production or database writes, source activation, imports, migration, deployment, approvals, promotions, publications or schedule changes were performed.
 - Phase 5B.1 remains IN PROGRESS; Phase 5A remains OPEN.
+
+
+## Execution update — 2026-10-30: Phase 5B.2 post-merge verification
+
+- PR #932 merge verified at `87df688b05fc2be85ed69389858a251074e9dc23`; PR #933 merged at `4c8b731eb8c5708c809322714d587e780add6ebd`.
+- Hostinger read-only diagnostics #41008883135 verified deployed application code parity at `87df688b05fc2be85ed69389858a251074e9dc23` (deployed == expected).
+- Same diagnostics report `qualification_command=NOT_AVAILABLE`: the PR #932 command is not present in the current production checkout. Hostinger uses PHP 8.5.12 at `/opt/alt/php85/usr/bin/php`.
+- Existing private review-package storage is proven outside public root (12 files). Qualification report-path check initially measured the incorrect nested `storage/app/private/private/source-qualification`; the Laravel local disk root is already `storage/app/private`. PR #934 corrects the command and diagnostic path. No directory was created by the read-only check.
+- Cron listing remains inaccessible to the SSH user; actual scheduler presence is unverified.
+- HEC live retrieval: NOT RUN; no per-source live response tuples exist. No production source activation, discovery, database mutation, migration, deployment, imports, approvals, promotions or publications occurred.
+- The controlled deployment workflow is manual and confirmation defaults false. Do not deploy without separate explicit production deployment authorization. Once authorized deployment occurs, re-run read-only Hostinger diagnostics and only run bounded HEC qualification after command and private path are verified.
+- Phase 5B.2 remains BLOCKED; Phase 5A remains OPEN.

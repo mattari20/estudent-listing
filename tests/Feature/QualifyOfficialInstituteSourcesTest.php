@@ -79,7 +79,7 @@ class QualifyOfficialInstituteSourcesTest extends TestCase
         }
         $this->assertSame($before, $after);
 
-        $report = json_decode(Storage::disk('local')->get('private/source-qualification/test-report.json'), true, 512, JSON_THROW_ON_ERROR);
+        $report = json_decode(Storage::disk('local')->get('source-qualification/test-report.json'), true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame(1, $report['source_count']);
         $this->assertSame(1, $report['live_retrieval_successes']);
         $this->assertSame(1, $report['extraction_successes']);
@@ -104,7 +104,7 @@ class QualifyOfficialInstituteSourcesTest extends TestCase
         ]);
 
         $exit = Artisan::call('institutes:qualify-official-sources', ['--stage' => 'test', '--delay-ms' => 0, '--output' => 'source-qualification/non-html.json']);
-        $report = json_decode(Storage::disk('local')->get('private/source-qualification/non-html.json'), true, 512, JSON_THROW_ON_ERROR);
+        $report = json_decode(Storage::disk('local')->get('source-qualification/non-html.json'), true, 512, JSON_THROW_ON_ERROR);
 
         $this->assertSame(0, $exit);
         $this->assertSame(200, $report['results'][0]['http_status']);
@@ -122,7 +122,7 @@ class QualifyOfficialInstituteSourcesTest extends TestCase
         Http::fake();
 
         $exit = Artisan::call('institutes:qualify-official-sources', ['--stage' => 'test', '--delay-ms' => 0, '--output' => 'source-qualification/unsafe.json']);
-        $report = json_decode(Storage::disk('local')->get('private/source-qualification/unsafe.json'), true, 512, JSON_THROW_ON_ERROR);
+        $report = json_decode(Storage::disk('local')->get('source-qualification/unsafe.json'), true, 512, JSON_THROW_ON_ERROR);
 
         $this->assertSame(0, $exit);
         $this->assertSame('BLOCKED', $report['results'][0]['qualification_level']);

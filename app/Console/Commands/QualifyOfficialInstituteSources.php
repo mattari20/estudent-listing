@@ -156,7 +156,7 @@ class QualifyOfficialInstituteSources extends Command
             'results' => $results,
         ];
         $filename = $this->option('output') ?: 'source-qualification/'.$stage.'-'.now()->format('Ymd-His').'.json';
-        Storage::disk('local')->put('private/'.$filename, json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+        Storage::disk('local')->put($filename, json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
         $this->newLine();
         $this->table(['Metric', 'Count'], [
             ['sources', $report['source_count']],
