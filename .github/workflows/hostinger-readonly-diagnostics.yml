@@ -879,8 +879,8 @@ jobs:
                 require $base.'/vendor/autoload.php';
                 $app = require $base.'/bootstrap/app.php';
                 $report['bootstrap_succeeded'] = true;
-                $kernelContract = 'Illuminate\\Contracts\\Console\\Kernel';
-                $kernel = $app->make($kernelContract);
+
+                $kernel = $app->make('Illuminate\\Contracts\\Console\\Kernel');
                 $report['kernel_class'] = get_class($kernel);
                 $kernel->bootstrap();
                 $report['kernel_bootstrapped'] = true;
@@ -898,24 +898,24 @@ jobs:
 
                 $bootstrapSource = @file_get_contents($base.'/bootstrap/app.php');
                 $report['bootstrap_registration_method'] = is_string($bootstrapSource) && strpos($bootstrapSource, '->withCommands(') !== false
-                ? 'ApplicationBuilder::withCommands'
-                : 'NOT_DETECTED';
+                    ? 'ApplicationBuilder::withCommands'
+                    : 'NOT_DETECTED';
                 $report['bootstrap_cache_entries'] = array_values(array_map(
-                'basename',
-                array_filter(glob($base.'/bootstrap/cache/*.php') ?: [], static fn (string $entry): bool => basename($entry) !== '.gitignore')
+                    'basename',
+                    array_filter(glob($base.'/bootstrap/cache/*.php') ?: [], static fn (string $entry): bool => basename($entry) !== '.gitignore')
                 ));
 
                 $class = $report['command_class'];
                 $report['command_class_exists'] = class_exists($class);
                 if ($report['command_class_exists']) {
-                $reflection = new ReflectionClass($class);
-                $report['command_class_reflection_created'] = true;
-                $report['command_class_file'] = $reflection->getFileName();
-                $report['command_class_namespace'] = $reflection->getNamespaceName();
-                $parent = $reflection->getParentClass();
-                $report['command_class_parent'] = $parent ? $parent->getName() : null;
-                $report['command_class_is_console_command'] = $reflection->isSubclassOf('Illuminate\\Console\\Command');
-                $report['command_class_is_abstract'] = $reflection->isAbstract();
+                    $reflection = new ReflectionClass($class);
+                    $report['command_class_reflection_created'] = true;
+                    $report['command_class_file'] = $reflection->getFileName();
+                    $report['command_class_namespace'] = $reflection->getNamespaceName();
+                    $parent = $reflection->getParentClass();
+                    $report['command_class_parent'] = $parent ? $parent->getName() : null;
+                    $report['command_class_is_console_command'] = $reflection->isSubclassOf('Illuminate\\Console\\Command');
+                    $report['command_class_is_abstract'] = $reflection->isAbstract();
                 }
 
                 $artisan = 'Illuminate\\Support\\Facades\\Artisan';
@@ -928,7 +928,7 @@ jobs:
                 $report['diagnostic_error_class'] = get_class($exception);
                 $report['diagnostic_error_category'] = $exception instanceof Error ? 'PHP_ERROR' : 'THROWABLE';
                 if (! $report['command_class_reflection_created'] && $report['command_class_exists']) {
-                $report['reflection_error_class'] = get_class($exception);
+                    $report['reflection_error_class'] = get_class($exception);
                 }
             }
 
@@ -942,11 +942,7 @@ jobs:
             KERNEL_STATUS=$?
             set -e
             echo "qualification_kernel_inspection_exit=$KERNEL_STATUS"
-            if [ -s "$KERNEL_ERROR" ]; then
-              echo "qualification_kernel_inspection_stderr_sha256=$(sha256sum "$KERNEL_ERROR" | awk '{print $1}')"
-            else
-              echo "qualification_kernel_inspection_stderr=EMPTY"
-            fi
+            echo "qualification_kernel_inspection_stderr_present=$([ -s "$KERNEL_ERROR" ] && echo true || echo false)"
             if [ "$KERNEL_STATUS" -eq 0 ] && "$PHP_EXECUTABLE_REAL" -r '$v=json_decode(file_get_contents($argv[1]),true); $required=["check","diagnostic_version","generated_at","php_version","framework_version","bootstrap_succeeded","kernel_class","kernel_bootstrapped","artisan_registry_command_names","artisan_command_registered","command_directory_exists","command_directory_readable","command_file_exists","command_file_readable","command_class_exists","command_class_reflection_created","command_class_namespace","command_class_parent","command_class_is_console_command","bootstrap_cache_entries"]; exit(is_array($v) && ($v["check"] ?? "") === "qualification_command_registration_path" && ($v["diagnostic_version"] ?? "") === "phase-5b9-temp-script-v1" && count(array_filter($required, fn($key)=>array_key_exists($key,$v))) === count($required) ? 0 : 1);' "$KERNEL_REPORT" 2>"$KERNEL_VALIDATION_ERROR"; then
               cat "$KERNEL_REPORT"
               echo "qualification_kernel_inspection_json=VALID"
@@ -956,12 +952,10 @@ jobs:
               echo "qualification_kernel_inspection_json=INVALID_OR_MISSING"
               echo "qualification_kernel_inspection_json_validation_exit=$VALIDATION_STATUS"
               echo "qualification_kernel_inspection_report_present=$([ -s "$KERNEL_REPORT" ] && echo true || echo false)"
-              if [ -s "$KERNEL_VALIDATION_ERROR" ]; then
-                echo "qualification_kernel_inspection_validation_stderr_sha256=$(sha256sum "$KERNEL_VALIDATION_ERROR" | awk '{print $1}')"
-              fi
+              echo "qualification_kernel_inspection_error_sha256=$(sha256sum "$KERNEL_ERROR" | awk '{print $1}')"
+              echo "qualification_kernel_inspection_validation_error_sha256=$(sha256sum "$KERNEL_VALIDATION_ERROR" | awk '{print $1}')"
               exit 24
             fi
- 
             PHP_EXECUTABLE="$(command -v php || true)"
             if [ -n "$PHP_EXECUTABLE" ]; then
               PHP_EXECUTABLE_REAL="$(readlink -f "$PHP_EXECUTABLE" 2>/dev/null || printf '%s' "$PHP_EXECUTABLE")"
