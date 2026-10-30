@@ -10,20 +10,27 @@ class SafeSourceHttpRetriever
     private const REDIRECT_STATUSES = [301, 302, 303, 307, 308];
     private const MAX_REDIRECTS = 5;
 
-    public function get(
+    public function get(string $url, int $timeout, int $connectTimeout, string $userAgent): Response
+    {
+        return $this->getWithMetadata($url, $timeout, $connectTimeout, $userAgent)['response'];
+    }
+
+    /**
+     * Fetch through the same URL/DNS/redirect protections while exposing the
+     * validated final URL for read-only qualification reports.
+     *
+     * @return array{response: Response, final_url: string}
+     */
+    public function getWithMetadata(
         string $url,
         int $timeout,
         int $connectTimeout,
         string $userAgent
-    ): Response {
+    ): array {
         $guard = app(SourceUrlGuard::class);
         $currentUrl = $url;
 
         for ($redirects = 0; $redirects <= self::MAX_REDIRECTS; $redirects++) {
-            // Validate every hop before making a request. Redirect following is disabled
-            // in Guzzle so an unvalidated Location can never be fetched automatically.
-            // Pin DNS hostnames to an address that the guard just validated, preventing
-            // a second DNS lookup from rebinding the destination between validation and fetch.
             $validatedAddresses = $guard->validate($currentUrl);
             $currentParts = parse_url($currentUrl);
             $normalizedHost = trim((string) ($currentParts['host'] ?? ''), '[]');
@@ -54,7 +61,7 @@ class SafeSourceHttpRetriever
                 ->get($currentUrl);
 
             if (! in_array($response->status(), self::REDIRECT_STATUSES, true)) {
-                return $response;
+                return ['response' => $response, 'final_url' => $currentUrl];
             }
 
             if ($redirects === self::MAX_REDIRECTS) {
@@ -88,32 +95,25 @@ class SafeSourceHttpRetriever
         if (preg_match('#^https?://#i', $location) === 1) {
             return $location;
         }
-
         if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $location) === 1) {
             throw new \RuntimeException('Source redirect Location uses an unsupported URI scheme.');
         }
-
         $base = parse_url($baseUrl);
         $scheme = strtolower($base['scheme'] ?? '');
         $authority = $base['host'] ?? '';
-
         if (isset($base['port'])) {
             $authority .= ':'.$base['port'];
         }
-
         if (str_starts_with($location, '//')) {
             return $scheme.':'.$location;
         }
-
         if (str_starts_with($location, '#')) {
             throw new \RuntimeException('Fragment-only source redirects are not supported.');
         }
-
         $locationParts = parse_url($location);
         if ($locationParts === false) {
             throw new \RuntimeException('Source returned an invalid redirect Location.');
         }
-
         $path = $locationParts['path'] ?? '';
         if ($path === '') {
             $path = $base['path'] ?? '/';
@@ -121,7 +121,6 @@ class SafeSourceHttpRetriever
             $basePath = $base['path'] ?? '/';
             $path = substr($basePath, 0, strrpos($basePath, '/') + 1).$path;
         }
-
         $segments = [];
         foreach (explode('/', $path) as $segment) {
             if ($segment === '' || $segment === '.') {
@@ -137,13 +136,11 @@ class SafeSourceHttpRetriever
         if (str_ends_with($path, '/') && ! str_ends_with($normalizedPath, '/')) {
             $normalizedPath .= '/';
         }
-
         $query = array_key_exists('query', $locationParts)
             ? '?'.$locationParts['query']
             : (array_key_exists('path', $locationParts) && $locationParts['path'] === ''
                 ? (isset($base['query']) ? '?'.$base['query'] : '')
                 : '');
-
         return $scheme.'://'.$authority.$normalizedPath.$query;
     }
 }
