@@ -827,142 +827,77 @@ jobs:
               echo "=== Laravel console command path and reflection diagnosis ==="
               KERNEL_REPORT="$(mktemp)"
               KERNEL_ERROR="$(mktemp)"
-              set +e
-              "$PHP_EXECUTABLE_REAL" >"$KERNEL_REPORT" 2>"$KERNEL_ERROR" <<'PHP'
-              <?php
-              require __DIR__.'/vendor/autoload.php';
-              $app = require __DIR__.'/bootstrap/app.php';
-              $kernelContract = 'Illuminate'.chr(92).'Contracts'.chr(92).'Console'.chr(92).'Kernel';
+              trap 'rm -f "$KERNEL_REPORT" "$KERNEL_ERROR"' EXIT
+              KERNEL_CODE='
+              $base = getcwd();
+              require $base."/vendor/autoload.php";
+              $app = require $base."/bootstrap/app.php";
+              $kernelContract = "Illuminate".chr(92)."Contracts".chr(92)."Console".chr(92)."Kernel";
               $kernel = $app->make($kernelContract);
               $kernel->bootstrap();
-              $path = base_path('app/Console/Commands');
-              $file = $path.'/QualifyOfficialInstituteSources.php';
-              $class = 'App'.chr(92).'Console'.chr(92).'Commands'.chr(92).'QualifyOfficialInstituteSources';
+              $commandDirectory = $base."/app/Console/Commands";
+              $commandFile = $commandDirectory."/QualifyOfficialInstituteSources.php";
+              $class = "App".chr(92)."Console".chr(92)."Commands".chr(92)."QualifyOfficialInstituteSources";
               $reflection = null;
               $reflectionError = null;
-              try {
-              $reflection = new ReflectionClass($class);
-              } catch (Throwable $exception) {
-              $reflectionError = class_basename($exception);
-              }
-              $commandBase = 'Illuminate'.chr(92).'Console'.chr(92).'Command';
-              $commandType = $reflection ? $reflection->isSubclassOf($commandBase) : false;
+              try { $reflection = new ReflectionClass($class); }
+              catch (Throwable $exception) { $reflectionError = get_class($exception); }
+              $commandBase = "Illuminate".chr(92)."Console".chr(92)."Command";
+              $parent = $reflection ? $reflection->getParentClass() : false;
+              $artisan = "Illuminate".chr(92)."Support".chr(92)."Facades".chr(92)."Artisan";
+              $registry = $artisan::all();
+              $registeredNames = array_values(array_map("strval", array_keys($registry)));
+              $bootstrapSource = @file_get_contents($base."/bootstrap/app.php");
+              $withCommandsConfigured = is_string($bootstrapSource) && strpos($bootstrapSource, "->withCommands(") !== false;
+              $commandFiles = glob($commandDirectory."/*.php") ?: [];
               $report = [
-              'check' => 'qualification_command_registration_path',
-              'framework_version' => $app->version(),
-              'kernel_class' => get_class($kernel),
-              'app_commands_directory_exists' => is_dir($path),
-              'command_file_exists' => is_file($file),
-              'command_file_readable' => is_readable($file),
-              'command_class_exists' => class_exists($class),
-              'command_class_reflection_created' => $reflection instanceof ReflectionClass,
-              'command_class_is_console_command' => $commandType,
-              'command_class_is_abstract' => $reflection?->isAbstract(),
-              'reflection_error_class' => $reflectionError,
-              'kernel_bootstrapped' => method_exists($kernel, 'bootstrap'),
-              'kernel_loaded_commands' => $kernel->all() !== [],
-              'artisan_command_registered' => (static function () use ($app): bool {
-              $artisan = 'Illuminate'.chr(92).'Support'.chr(92).'Facades'.chr(92).'Artisan';
-              return $artisan::has('institutes:qualify-official-sources');
-              })(),
-              'artisan_loaded_command_names_count' => (static function () use ($app): int {
-              $artisan = 'Illuminate'.chr(92).'Support'.chr(92).'Facades'.chr(92).'Artisan';
-              return count($artisan::all());
-              })(),
-              'command_directory_files_count' => count(glob($path.'/*.php') ?: []),
-              'app_namespace' => $app->getNamespace(),
-              'bootstrap_cache_entries' => array_values(array_filter(glob(base_path('bootstrap/cache/*.php')) ?: [], fn ($entry) => basename($entry) !== '.gitignore')),
+                "check" => "qualification_command_registration_path",
+                "diagnostic_version" => "phase-5b8-kernel-inspection-v2",
+                "generated_at" => date(DATE_ATOM),
+                "framework_version" => $app->version(),
+                "kernel_class" => get_class($kernel),
+                "kernel_bootstrapped" => true,
+                "kernel_loaded_commands_count" => count($kernel->all()),
+                "artisan_registry_command_names" => $registeredNames,
+                "artisan_registry_command_count" => count($registeredNames),
+                "artisan_command_registered" => $artisan::has("institutes:qualify-official-sources"),
+                "bootstrap_registration_method" => $withCommandsConfigured ? "ApplicationBuilder::withCommands" : "NOT_DETECTED",
+                "configured_command_directory" => $commandDirectory,
+                "command_directory_exists" => is_dir($commandDirectory),
+                "command_directory_file_count" => count($commandFiles),
+                "command_file_path" => $commandFile,
+                "command_file_exists" => is_file($commandFile),
+                "command_file_readable" => is_readable($commandFile),
+                "command_class" => $class,
+                "command_class_exists" => class_exists($class),
+                "command_class_reflection_created" => $reflection instanceof ReflectionClass,
+                "command_class_file" => $reflection ? $reflection->getFileName() : null,
+                "command_class_namespace" => $reflection ? $reflection->getNamespaceName() : null,
+                "command_class_parent" => $parent ? $parent->getName() : null,
+                "command_class_is_console_command" => $reflection ? $reflection->isSubclassOf($commandBase) : false,
+                "command_class_is_abstract" => $reflection ? $reflection->isAbstract() : null,
+                "reflection_error_class" => $reflectionError,
+                "app_namespace" => $app->getNamespace(),
+                "bootstrap_cache_entries" => array_values(array_map("basename", array_filter(glob($base."/bootstrap/cache/*.php") ?: [], fn($entry) => basename($entry) !== ".gitignore")))
               ];
-              echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
-              PHP
+              echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), PHP_EOL;
+              '
+              set +e
+              "$PHP_EXECUTABLE_REAL" -r "$KERNEL_CODE" >"$KERNEL_REPORT" 2>"$KERNEL_ERROR"
               KERNEL_STATUS=$?
               set -e
               echo "qualification_kernel_inspection_exit=$KERNEL_STATUS"
-              if [ "$KERNEL_STATUS" -eq 0 ] && php -r '$v = json_decode(file_get_contents($argv[1]), true); exit(is_array($v) && ($v["check"] ?? "") === "qualification_command_registration_path" ? 0 : 1);' "$KERNEL_REPORT"; then
+              if [ "$KERNEL_STATUS" -eq 0 ] && "$PHP_EXECUTABLE_REAL" -r '$v=json_decode(file_get_contents($argv[1]),true); $required=["check","diagnostic_version","generated_at","framework_version","kernel_class","kernel_bootstrapped","artisan_registry_command_names","artisan_command_registered","command_class_exists","command_class_reflection_created","command_class_parent","command_directory_exists","command_file_exists","command_file_readable"]; exit(is_array($v) && ($v["check"] ?? "") === "qualification_command_registration_path" && ($v["diagnostic_version"] ?? "") === "phase-5b8-kernel-inspection-v2" && count(array_filter($required, fn($key)=>array_key_exists($key,$v))) === count($required) ? 0 : 1);' "$KERNEL_REPORT"; then
                 cat "$KERNEL_REPORT"
                 echo "qualification_kernel_inspection_json=VALID"
               else
                 echo "qualification_kernel_inspection_json=INVALID_OR_MISSING"
                 echo "qualification_kernel_inspection_stderr_sha256=$(sha256sum "$KERNEL_ERROR" | awk '{print $1}')"
-                rm -f "$KERNEL_REPORT" "$KERNEL_ERROR"
                 exit 24
               fi
-              rm -f "$KERNEL_REPORT" "$KERNEL_ERROR"
             fi
-            echo "=== Qualification private report storage probe ==="
-            "$PHP_EXECUTABLE_REAL" <<'PHP'
-            <?php
-            require __DIR__.'/vendor/autoload.php';
-            $app = require __DIR__.'/bootstrap/app.php';
-            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-            $disk = \Illuminate\Support\Facades\Storage::disk('local');
-            $path = $disk->path('source-qualification');
-            $parent = dirname($path);
-            $publicRoot = realpath(public_path());
-            $insidePublic = false;
-            $probe = 'source-qualification/.readiness-probe-'.bin2hex(random_bytes(8)).'.tmp';
-            $created = false;
-            $readBack = false;
-            $deleted = false;
-            $errorClass = null;
-            try {
-                if ($publicRoot === false) {
-                    throw new RuntimeException('public_root_unresolved');
-                }
-                if (! is_dir($path) && ! @mkdir($path, 0700, true) && ! is_dir($path)) {
-                    throw new RuntimeException('private_directory_creation_failed');
-                }
-                $resolvedPath = realpath($path);
-                if ($resolvedPath === false) {
-                    throw new RuntimeException('private_directory_realpath_failed');
-                }
-                $insidePublic = $publicRoot !== false
-                    && str_starts_with($resolvedPath, rtrim($publicRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR);
-                if ($insidePublic) {
-                    throw new RuntimeException('resolved_private_path_inside_public_root');
-                }
-                $path = $resolvedPath;
-                $parent = dirname($path);
-                $payload = 'qualification-readiness-probe';
-                if (! $disk->put($probe, $payload)) {
-                    throw new RuntimeException('private_probe_write_failed');
-                }
-                $created = true;
-                $readBack = hash_equals($payload, (string) $disk->get($probe));
-                if (! $readBack) {
-                    throw new RuntimeException('private_probe_readback_mismatch');
-                }
-            } catch (Throwable $exception) {
-                $errorClass = class_basename($exception);
-            } finally {
-                if ($created || $disk->exists($probe)) {
-                    $deleted = $disk->delete($probe);
-                }
-            }
-            $freeBytes = @disk_free_space($parent);
-            echo json_encode([
-                'check' => 'qualification_private_storage_probe',
-                'disk' => 'local',
-                'resolved_path' => $path,
-                'inside_public_root' => $insidePublic,
-                'directory_exists' => is_dir($path),
-                'directory_writable' => is_dir($path) && is_writable($path),
-                'parent_directory_writable' => is_dir($parent) && is_writable($parent),
-                'free_bytes_parent' => $freeBytes === false ? null : (int) $freeBytes,
-                'probe_created' => $created,
-                'probe_read_back' => $readBack,
-                'probe_deleted' => $deleted,
-                'error_class' => $errorClass,
-                'database_mutation_performed' => false,
-                'persistent_application_data_mutation_performed' => false,
-                'temporary_private_probe_write_performed' => true,
-                'only_temporary_private_probe_written' => true,
-            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
-            if ($insidePublic || ! $created || ! $readBack || ! $deleted) {
-                exit(22);
-            }
-            PHP
 
+            # Private source-qualification storage was verified previously; this diagnosis does not repeat its write probe.
             PHP_EXECUTABLE="$(command -v php || true)"
             if [ -n "$PHP_EXECUTABLE" ]; then
               PHP_EXECUTABLE_REAL="$(readlink -f "$PHP_EXECUTABLE" 2>/dev/null || printf '%s' "$PHP_EXECUTABLE")"
