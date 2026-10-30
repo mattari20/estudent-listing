@@ -759,33 +759,34 @@ jobs:
             }
             PHP
             echo "=== Qualification command registration diagnosis (read-only) ==="
-            PHP_EXECUTABLE="$(command -v php || true)"
-            if [ -z "$PHP_EXECUTABLE" ]; then
+            PHP_EXECUTABLE_REAL="/opt/alt/php85/usr/bin/php"
+            if [ ! -x "$PHP_EXECUTABLE_REAL" ]; then
               echo "qualification_runtime_php=UNAVAILABLE"
+              echo "qualification_artisan_list_exit=NOT_RUN"
               echo "qualification_command=UNVERIFIED"
-            else
-              PHP_EXECUTABLE_REAL="$(readlink -f "$PHP_EXECUTABLE" 2>/dev/null || printf '%s' "$PHP_EXECUTABLE")"
-              echo "qualification_runtime_php=$PHP_EXECUTABLE_REAL"
-              "$PHP_EXECUTABLE_REAL" -r 'echo "qualification_runtime_php_version=".PHP_VERSION.PHP_EOL;'
-              LIST_OUTPUT="$(mktemp)"
-              LIST_ERROR="$(mktemp)"
-              set +e
-              "$PHP_EXECUTABLE_REAL" artisan list --raw --no-ansi >"$LIST_OUTPUT" 2>"$LIST_ERROR"
-              LIST_STATUS=$?
-              set -e
-              echo "qualification_artisan_list_exit=$LIST_STATUS"
-              if [ "$LIST_STATUS" -eq 0 ]; then
-                echo "qualification_artisan_list=SUCCEEDED"
-                if grep -Fxq 'institutes:qualify-official-sources' "$LIST_OUTPUT"; then
-                  echo "qualification_command=AVAILABLE"
-                else
-                  echo "qualification_command=NOT_LISTED"
-                fi
-              else
-                echo "qualification_artisan_list=FAILED"
-                echo "qualification_artisan_list_stderr_sha256=$(sha256sum "$LIST_ERROR" | awk '{print $1}')"
-              fi
+              exit 23
+            fi
+            echo "qualification_runtime_php=$PHP_EXECUTABLE_REAL"
+            "$PHP_EXECUTABLE_REAL" -r 'echo "qualification_runtime_php_version=".PHP_VERSION.PHP_EOL;'
+            LIST_OUTPUT="$(mktemp)"
+            LIST_ERROR="$(mktemp)"
+            HELP_OUTPUT=""
+            HELP_ERROR=""
+            AUTOLOAD_OUTPUT="$(mktemp)"
+            AUTOLOAD_ERROR="$(mktemp)"
+            cleanup_command_diagnostics() {
+              rm -f "$LIST_OUTPUT" "$LIST_ERROR" "$AUTOLOAD_OUTPUT" "$AUTOLOAD_ERROR" ${HELP_OUTPUT:+"$HELP_OUTPUT"} ${HELP_ERROR:+"$HELP_ERROR"}
+            }
+            trap cleanup_command_diagnostics EXIT HUP INT TERM
+            set +e
+            "$PHP_EXECUTABLE_REAL" artisan list --raw --no-ansi >"$LIST_OUTPUT" 2>"$LIST_ERROR"
+            LIST_STATUS=$?
+            set -e
+            echo "qualification_artisan_list_exit=$LIST_STATUS"
+            if [ "$LIST_STATUS" -eq 0 ]; then
+              echo "qualification_artisan_list=SUCCEEDED"
               if grep -Fxq 'institutes:qualify-official-sources' "$LIST_OUTPUT"; then
+                echo "qualification_command=AVAILABLE"
                 HELP_OUTPUT="$(mktemp)"
                 HELP_ERROR="$(mktemp)"
                 set +e
@@ -795,36 +796,42 @@ jobs:
                 echo "qualification_artisan_help_exit=$HELP_STATUS"
                 if [ "$HELP_STATUS" -eq 0 ]; then
                   echo "qualification_artisan_help=SUCCEEDED"
-                  for option in stage timeout connect-timeout delay-ms; do
-                    if grep -Fq -- "--$option" "$HELP_OUTPUT"; then
-                      echo "qualification_help_${option}=PRESENT"
-                    else
-                      echo "qualification_help_${option}=MISSING"
-                    fi
+                  for option in stage timeout connect-timeout delay-ms output; do
+                    if grep -Fq -- "--$option" "$HELP_OUTPUT"; then echo "qualification_help_$option=PRESENT"; else echo "qualification_help_$option=MISSING"; fi
                   done
                 else
                   echo "qualification_artisan_help=FAILED"
                   echo "qualification_artisan_help_stderr_sha256=$(sha256sum "$HELP_ERROR" | awk '{print $1}')"
                 fi
-                rm -f "$HELP_OUTPUT" "$HELP_ERROR"
               else
+                echo "qualification_command=NOT_LISTED"
                 echo "qualification_artisan_help=NOT_RUN_COMMAND_NOT_LISTED"
               fi
-              set +e
-              AUTOLOAD_STATUS="$("$PHP_EXECUTABLE_REAL" -r 'require "vendor/autoload.php"; $class = "App".chr(92)."Console".chr(92)."Commands".chr(92)."QualifyOfficialInstituteSources"; echo class_exists($class) ? "CLASS_AUTOLOAD=AVAILABLE" : "CLASS_AUTOLOAD=MISSING";' 2>&1)"
-              AUTOLOAD_EXIT=$?
-              set -e
-              echo "qualification_class_autoload_exit=$AUTOLOAD_EXIT"
-              case "$AUTOLOAD_STATUS" in
-                *"CLASS_AUTOLOAD=AVAILABLE"*) echo "qualification_class_autoload=AVAILABLE" ;;
-                *"CLASS_AUTOLOAD=MISSING"*) echo "qualification_class_autoload=MISSING" ;;
-                *) echo "qualification_class_autoload=ERROR" ;;
-              esac
-              if [ "$AUTOLOAD_EXIT" -ne 0 ]; then
-                echo "qualification_class_autoload_error_sha256=$(printf '%s' "$AUTOLOAD_STATUS" | sha256sum | awk '{print $1}')"
-              fi
-              rm -f "$LIST_OUTPUT" "$LIST_ERROR"
-              echo "=== Laravel console command path and reflection diagnosis ==="
+            else
+              echo "qualification_artisan_list=FAILED"
+              echo "qualification_command=UNVERIFIED"
+              echo "qualification_artisan_help=NOT_RUN_LIST_FAILED"
+              echo "qualification_artisan_list_stderr_sha256=$(sha256sum "$LIST_ERROR" | awk '{print $1}')"
+            fi
+            set +e
+            "$PHP_EXECUTABLE_REAL" -r 'require "vendor/autoload.php"; $class="App".chr(92)."Console".chr(92)."Commands".chr(92)."QualifyOfficialInstituteSources"; echo class_exists($class) ? "CLASS_AUTOLOAD=AVAILABLE" : "CLASS_AUTOLOAD=MISSING";' >"$AUTOLOAD_OUTPUT" 2>"$AUTOLOAD_ERROR"
+            AUTOLOAD_EXIT=$?
+            set -e
+            echo "qualification_class_autoload_exit=$AUTOLOAD_EXIT"
+            if [ "$AUTOLOAD_EXIT" -eq 0 ] && grep -Fxq 'CLASS_AUTOLOAD=AVAILABLE' "$AUTOLOAD_OUTPUT"; then
+              echo "qualification_class_autoload=AVAILABLE"
+            elif [ "$AUTOLOAD_EXIT" -eq 0 ] && grep -Fxq 'CLASS_AUTOLOAD=MISSING' "$AUTOLOAD_OUTPUT"; then
+              echo "qualification_class_autoload=MISSING"
+            else
+              echo "qualification_class_autoload=ERROR"
+              echo "qualification_class_autoload_stderr_sha256=$(sha256sum "$AUTOLOAD_ERROR" | awk '{print $1}')"
+            fi
+            rm -f "$LIST_OUTPUT" "$LIST_ERROR" "$AUTOLOAD_OUTPUT" "$AUTOLOAD_ERROR" ${HELP_OUTPUT:+"$HELP_OUTPUT"} ${HELP_ERROR:+"$HELP_ERROR"}
+            trap - EXIT HUP INT TERM
+            if [ "$LIST_STATUS" -ne 0 ]; then
+              exit 25
+            fi
+            echo "=== Laravel console command path and reflection diagnosis ==="
               DIAGNOSTIC_TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/estudent-kernel.XXXXXX")"
               KERNEL_SCRIPT="$DIAGNOSTIC_TMP_DIR/inspect-console-kernel.php"
               KERNEL_REPORT="$DIAGNOSTIC_TMP_DIR/report.json"
