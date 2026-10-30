@@ -840,13 +840,13 @@ jobs:
               APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
               git -C "$PARITY_REPO" checkout --quiet --detach "$EXPECTED_REVISION"
               EXPECTED_PATH_LIST="$PARITY_REPO/expected-application-paths.txt"
+              EXPECTED_PATH_LIST="$PARITY_REPO/expected-application-paths.txt"
               if ! git -C "$PARITY_REPO" ls-tree -r --name-only "$EXPECTED_REVISION" -- $APP_CODE_PATHS > "$EXPECTED_PATH_LIST"; then
+                echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
+                echo "application_code_parity=reference_path_list_failed"
+                DEPLOYMENT_DRIFT=1
                 PARITY_MATCH=0
               else
-                PARITY_MATCH=1
-                while IFS= read -r APP_PATH; do
-                  [ -n "$APP_PATH" ] || continue
-                  if [ -L "$PARITY_REPO/$APP_PATH" ] || [ -L "$PROJECT_PATH/$APP_PATH" ]; then
                     EXPECTED_LINK="$(readlink "$PARITY_REPO/$APP_PATH" 2>/dev/null || true)"
                     DEPLOYED_LINK="$(readlink "$PROJECT_PATH/$APP_PATH" 2>/dev/null || true)"
                     if [ "$EXPECTED_LINK" != "$DEPLOYED_LINK" ] || [ ! -L "$PROJECT_PATH/$APP_PATH" ]; then PARITY_MATCH=0; break; fi
