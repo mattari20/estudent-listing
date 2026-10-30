@@ -91,6 +91,18 @@ class InstituteIdentityDiscoveryService
 
     private function stageSnapshot(string $profile, Source $source, SourceSnapshot $snapshot, array $definition): array
     {
+        // Serialize identity candidate persistence per source, matching the generic
+        // discovery agent's idempotency boundary. Concurrent scheduled/manual runs
+        // must not both observe an absent batch and create parallel identity rows.
+        return \Illuminate\\Support\\Facades\\DB::transaction(function () use ($profile, $source, $snapshot, $definition): array {
+            $lockedSource = Source::query()->whereKey($source->id)->lockForUpdate()->firstOrFail();
+
+            return $this->stageSnapshotLocked($profile, $lockedSource, $snapshot, $definition);
+        });
+    }
+
+    private function stageSnapshotLocked(string $profile, Source $source, SourceSnapshot $snapshot, array $definition): array
+    {
         $versionMarker = 'institution_identity_extractor_version='.self::VERSION;
         $existingBatches = ImportBatch::query()
             ->where('source_id', $source->id)
