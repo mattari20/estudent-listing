@@ -78,7 +78,9 @@ class QualifyOfficialInstituteSourcesTest extends TestCase
         $this->assertSame(1, $report['source_count']);
         $this->assertSame(1, $report['live_retrieval_successes']);
         $this->assertSame(1, $report['extraction_successes']);
-        $this->assertSame(1, $report['identity_qualified_sources']);
+        $this->assertSame(0, $report['identity_qualified_sources']);
+        $this->assertSame('EXTRACTION_QUALIFIED', $report['results'][0]['qualification_level']);
+        $this->assertSame('NOT_RUN_NO_CANONICAL_OR_STAGED_FIXTURE_INPUT', $report['results'][0]['identity_validation_status']);
         $this->assertFalse($report['database_writes_performed']);
         $this->assertSame(200, $report['results'][0]['http_status']);
         $this->assertSame('https://example.test/gcu', $report['results'][0]['final_url']);
