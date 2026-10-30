@@ -835,7 +835,8 @@ jobs:
             git -C "$PARITY_REPO" remote add origin https://github.com/mattari20/estudent-listing.git
             PARITY_FETCH_FAILED=0
             git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin +refs/heads/main:refs/remotes/origin/main || PARITY_FETCH_FAILED=1
-            if [ "$PARITY_FETCH_FAILED" -eq 0 ] && git -C "$PARITY_REPO" cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
+            if [ "$PARITY_FETCH_FAILED" -eq 0 ] &&
+              git -C "$PARITY_REPO" merge-base --is-ancestor "$EXPECTED_REVISION" origin/main 2>/dev/null; then
               APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
               git -C "$PARITY_REPO" checkout --quiet --detach "$EXPECTED_REVISION"
               EXPECTED_PATH_LIST="$PARITY_REPO/expected-application-paths.txt"
