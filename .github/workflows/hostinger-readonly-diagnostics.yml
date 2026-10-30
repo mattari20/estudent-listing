@@ -795,9 +795,11 @@ jobs:
                 echo "qualification_artisan_help_exit=$HELP_STATUS"
                 if [ "$HELP_STATUS" -eq 0 ]; then
                   echo "qualification_artisan_help=SUCCEEDED"
-                  for option in --stage --timeout --connect-timeout --delay-ms; do
-                    if grep -Fq -- "$option" "$HELP_OUTPUT"; then
-                      echo "qualification_help_option_$((OPTIND++))=PRESENT" || true
+                  for option in stage timeout connect-timeout delay-ms; do
+                    if grep -Fq -- "--$option" "$HELP_OUTPUT"; then
+                      echo "qualification_help_${option}=PRESENT"
+                    else
+                      echo "qualification_help_${option}=MISSING"
                     fi
                   done
                 else
@@ -809,7 +811,7 @@ jobs:
                 echo "qualification_artisan_help=NOT_RUN_COMMAND_NOT_LISTED"
               fi
               set +e
-              AUTOLOAD_STATUS="$("$PHP_EXECUTABLE_REAL" -r 'require "vendor/autoload.php"; echo class_exists(App\\\\Console\\\\Commands\\\\QualifyOfficialInstituteSources::class) ? "CLASS_AUTOLOAD=AVAILABLE" : "CLASS_AUTOLOAD=MISSING";' 2>&1)"
+              AUTOLOAD_STATUS="$("$PHP_EXECUTABLE_REAL" -r 'require "vendor/autoload.php"; $class = "App".chr(92)."Console".chr(92)."Commands".chr(92)."QualifyOfficialInstituteSources"; echo class_exists($class) ? "CLASS_AUTOLOAD=AVAILABLE" : "CLASS_AUTOLOAD=MISSING";' 2>&1)"
               AUTOLOAD_EXIT=$?
               set -e
               echo "qualification_class_autoload_exit=$AUTOLOAD_EXIT"
@@ -833,7 +835,7 @@ jobs:
             $path = $disk->path('source-qualification');
             $parent = dirname($path);
             $publicRoot = realpath(public_path());
-            $insidePublic = $publicRoot !== false && str_starts_with($path, rtrim($publicRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR);
+            $insidePublic = false;
             $probe = 'source-qualification/.readiness-probe-'.bin2hex(random_bytes(8)).'.tmp';
             $created = false;
             $readBack = false;
@@ -846,6 +848,17 @@ jobs:
                 if (! is_dir($path) && ! @mkdir($path, 0700, true) && ! is_dir($path)) {
                     throw new RuntimeException('private_directory_creation_failed');
                 }
+                $resolvedPath = realpath($path);
+                if ($resolvedPath === false) {
+                    throw new RuntimeException('private_directory_realpath_failed');
+                }
+                $insidePublic = $publicRoot !== false
+                    && str_starts_with($resolvedPath, rtrim($publicRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR);
+                if ($insidePublic) {
+                    throw new RuntimeException('resolved_private_path_inside_public_root');
+                }
+                $path = $resolvedPath;
+                $parent = dirname($path);
                 $payload = 'qualification-readiness-probe';
                 if (! $disk->put($probe, $payload)) {
                     throw new RuntimeException('private_probe_write_failed');
@@ -876,7 +889,9 @@ jobs:
                 'probe_read_back' => $readBack,
                 'probe_deleted' => $deleted,
                 'error_class' => $errorClass,
-                'mutation_performed' => false,
+                'database_mutation_performed' => false,
+                'persistent_application_data_mutation_performed' => false,
+                'temporary_private_probe_write_performed' => true,
                 'only_temporary_private_probe_written' => true,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             if ($insidePublic || ! $created || ! $readBack || ! $deleted) {
