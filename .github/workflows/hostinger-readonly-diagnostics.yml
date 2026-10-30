@@ -799,29 +799,20 @@ jobs:
             fi
             echo "deployed_revision=$DEPLOYED_REVISION"
             echo "expected_application_revision=$EXPECTED_REVISION"
-            # Never fetch or update refs inside the live Hostinger repository. Fetch in a
-            # disposable temporary repository; compare committed source files to deployed
-            # files by content so shallow or absent production Git metadata cannot be
-            # mutated during a read-only diagnostic.
+            # Compare current deployed files with the current app-code tree without
+            # requiring the app-code commit itself to be a direct/ancestor ref.
+            # Docs-only and workflow-only main commits must not cause false drift.
             PARITY_REPO="$(mktemp -d "${TMPDIR:-/tmp}/estudent-parity.XXXXXX")"
             trap 'rm -rf "$PARITY_REPO"' EXIT
             git -C "$PARITY_REPO" init -q
             git -C "$PARITY_REPO" remote add origin https://github.com/mattari20/estudent-listing.git
             PARITY_FETCH_FAILED=0
             git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin +refs/heads/main:refs/remotes/origin/main || PARITY_FETCH_FAILED=1
-            if ! git -C "$PARITY_REPO" cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
-              git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION" || PARITY_FETCH_FAILED=1
-            fi
-            if [ "$PARITY_FETCH_FAILED" -eq 0 ] &&
-              git -C "$PARITY_REPO" cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null &&
-              git -C "$PARITY_REPO" merge-base --is-ancestor "$EXPECTED_REVISION" origin/main 2>/dev/null; then
+            if [ "$PARITY_FETCH_FAILED" -eq 0 ] && git -C "$PARITY_REPO" cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
               APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
               git -C "$PARITY_REPO" checkout --quiet --detach "$EXPECTED_REVISION"
               EXPECTED_PATH_LIST="$PARITY_REPO/expected-application-paths.txt"
               if ! git -C "$PARITY_REPO" ls-tree -r --name-only "$EXPECTED_REVISION" -- $APP_CODE_PATHS > "$EXPECTED_PATH_LIST"; then
-                echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
-                echo "application_code_parity=reference_path_list_failed"
-                DEPLOYMENT_DRIFT=1
                 PARITY_MATCH=0
               else
                 PARITY_MATCH=1
@@ -838,21 +829,20 @@ jobs:
                 done < "$EXPECTED_PATH_LIST"
                 rm -f "$EXPECTED_PATH_LIST"
               fi
-              if [ "$PARITY_MATCH" -eq 1 ]; then
-                echo "deployment_revision_status=APPLICATION_CODE_MATCH"
-                echo "application_code_parity=match"
-                echo "application_code_parity_method=isolated_expected_tree_vs_deployed_file_content"
-                DEPLOYMENT_DRIFT=0
-              else
-                echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
-                echo "application_code_parity=mismatch_or_unverifiable"
-                DEPLOYMENT_DRIFT=1
-              fi
+            else
+              PARITY_MATCH=0
+            fi
+            if [ "${PARITY_MATCH:-0}" -eq 1 ]; then
+              echo "deployment_revision_status=APPLICATION_CODE_MATCH"
+              echo "application_code_parity=match"
+              echo "application_code_parity_method=isolated_expected_tree_vs_deployed_file_content"
+              DEPLOYMENT_DRIFT=0
             else
               echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
-              echo "application_code_parity=reference_fetch_or_ancestry_unverifiable"
+              echo "application_code_parity=mismatch_or_unverifiable"
               DEPLOYMENT_DRIFT=1
             fi
+
             echo "=== Relevant migration history (read-only, bounded, isolated clone) ==="
             git -C "$PARITY_REPO" log --all --format='%H %cs %s' -S'duplicate_rows' -- database/migrations | head -n 20 || true
             git -C "$PARITY_REPO" log --all --format='%H %cs %s' -S'import_batches' -- database/migrations | head -n 30 || true
