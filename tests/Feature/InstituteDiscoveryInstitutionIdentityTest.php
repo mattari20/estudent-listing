@@ -66,6 +66,31 @@ class InstituteDiscoveryInstitutionIdentityTest extends TestCase
         $this->assertSame(0, Institution::count());
     }
 
+    public function test_top_level_identity_discovery_serializes_candidate_persistence_per_source(): void
+    {
+        Storage::fake('local');
+        $html = '<html><head><title>Government College University, Lahore — HEC</title></head><body>'
+            .'<h1>Government College University, Lahore</h1><p>Government College University, Lahore is a public university.</p>'
+            .'</body></html>';
+        Http::fake([self::URL => Http::sequence()
+            ->push($html, 200, ['Content-Type' => 'text/html'])
+            ->push($html.'<footer>Updated page chrome.</footer>', 200, ['Content-Type' => 'text/html'])]);
+
+        $service = app(InstituteDiscoveryAgentService::class);
+        $first = $service->run(self::PROFILE);
+        $second = $service->run(self::PROFILE);
+
+        $source = \App\Models\Source::query()->findOrFail($first['source_id']);
+        $this->assertSame($source->id, $second['source_id']);
+        $this->assertNotSame($first['snapshot_id'], $second['snapshot_id']);
+        $this->assertSame(1, ImportRow::query()->where('import_batch_id', $first['batch_id'])->where('status', 'candidate')->count());
+        $this->assertSame(1, ImportRow::query()->where('import_batch_id', $second['batch_id'])->where('status', 'duplicate')->count());
+        $this->assertSame(2, ImportBatch::query()->where('source_id', $source->id)->where('entity_type', 'institution')->count());
+        $this->assertSame(1, ImportRow::query()->whereHas('batch', fn ($query) => $query->where('source_id', $source->id)->where('entity_type', 'institution'))->where('status', 'candidate')->count());
+        $this->assertSame(1, ImportRow::query()->whereHas('batch', fn ($query) => $query->where('source_id', $source->id)->where('entity_type', 'institution'))->where('status', 'duplicate')->count());
+        $this->assertSame(0, Institution::query()->count());
+    }
+
     public function test_missing_institution_identity_configuration_fails_before_source_or_batch_writes(): void
     {
         config()->set('institute_agent.profiles.'.self::PROFILE.'.institution_identity', [
