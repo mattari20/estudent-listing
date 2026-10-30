@@ -771,7 +771,7 @@ jobs:
             $app = require __DIR__.'/bootstrap/app.php';
             $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
             $disk = \Illuminate\Support\Facades\Storage::disk('local');
-            $path = $disk->path('private/source-qualification');
+            $path = $disk->path('source-qualification');
             $parent = dirname($path);
             $publicRoot = realpath(public_path());
             echo json_encode([
