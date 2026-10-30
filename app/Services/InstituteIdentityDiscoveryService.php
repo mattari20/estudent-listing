@@ -94,7 +94,7 @@ class InstituteIdentityDiscoveryService
         // Serialize identity candidate persistence per source, matching the generic
         // discovery agent's idempotency boundary. Concurrent scheduled/manual runs
         // must not both observe an absent batch and create parallel identity rows.
-        return \Illuminate\\Support\\Facades\\DB::transaction(function () use ($profile, $source, $snapshot, $definition): array {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($profile, $source, $snapshot, $definition): array {
             $lockedSource = Source::query()->whereKey($source->id)->lockForUpdate()->firstOrFail();
 
             return $this->stageSnapshotLocked($profile, $lockedSource, $snapshot, $definition);
