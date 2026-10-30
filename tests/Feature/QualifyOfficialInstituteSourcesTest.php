@@ -166,7 +166,7 @@ class QualifyOfficialInstituteSourcesTest extends TestCase
         $before = [];
         foreach ($tables as $table) {
             if (Schema::hasTable($table)) {
-                $before[$table] = \\Illuminate\\Support\\Facades\\DB::table($table)->count();
+                $before[$table] = \Illuminate\Support\Facades\DB::table($table)->count();
             }
         }
 
@@ -180,7 +180,7 @@ class QualifyOfficialInstituteSourcesTest extends TestCase
         $this->assertSame(0, $exit, Artisan::output());
         $after = [];
         foreach ($before as $table => $count) {
-            $after[$table] = \\Illuminate\\Support\\Facades\\DB::table($table)->count();
+            $after[$table] = \Illuminate\Support\Facades\DB::table($table)->count();
         }
         $this->assertSame($before, $after);
 
