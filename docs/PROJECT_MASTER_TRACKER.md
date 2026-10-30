@@ -652,3 +652,16 @@ See [Step 1 recovery status report](docs/audits/step1-recovery-status-2026-10-29
 - PR #930 Test #41005777490 and Laravel CI #41005777599 each passed with 739 tests / 3,332 assertions. Laravel changed-file formatting passed. Test workflow frontend asset build passed. Project Controller #41005777517 passed workflow syntax, offline fixtures and read-only inventory checks.
 - Final code inspection on `main` confirms `InstituteIdentityDiscoveryService` retains `DB::transaction`, `Source::lockForUpdate`, and `ImportDuplicateDetectorService::findInstitution`. No direct production write or canonical Institution creation was introduced.
 - No production deployment, source activation, import, approval, promotion, publication, migration or schedule change was performed. Phase 5A remains OPEN pending revision parity, authorized batch-19 private evidence comparison and human GCU identity disposition. Phase 5B remains IN PROGRESS: all qualified source URLs still require live application retrieval/extraction evidence, campus-parent qualification and explicit activation authorization. Twenty HEC identity profiles remain disabled.
+
+
+## Execution update — 2026-10-30: Phase 5B.1 read-only qualification implementation
+
+- Verified PR #931 was open at initial inspection despite a provisional `merge_commit_sha`; all three checks subsequently completed successfully. PR #931 was explicitly merged and confirmed closed/merged at `b16144c73592ba4217d7d533a410ca91fef263a7`. This is the Phase 5B.1 starting `main` SHA.
+- PRs #926–#930 verified merged. PR #930 direct identity regressions remain present; Test and Laravel CI passed 739 tests / 3,332 assertions each.
+- Feature branch `feat/phase5b1-readonly-source-qualification-20261030` adds the staged source inventory, read-only qualification command, compatible final-URL metadata on the existing safe retriever, and tests for no database writes, raw response hashing, deterministic identity extraction, non-HTML responses and unsafe URL rejection.
+- Command contract: no Eloquent/database access; in-memory extraction; HTTP retrieval through `SafeSourceHttpRetriever`; no snapshots/evidence/batches/rows/decisions/policies/profile changes/canonical writes; private JSON output under local `storage/app/private`; no raw response bodies in report.
+- HEC campus candidates remain blocked pending explicit parent mapping. Provincial/ICT live pages remain blocked until dedicated deterministic extractors and source-specific authority/coverage classification are implemented.
+- CI has not yet run on this feature branch at this tracker update. Do not merge until focused tests, full Laravel tests, formatting, frontend build (where applicable), and Project Controller pass on the exact PR head.
+- Live qualification is not executed from this GitHub-only connected environment. No actual HTTP response tuple is claimed. A runtime/operator session must run the command after CI and preserve the private report.
+- No production or database writes, source activation, imports, migration, deployment, approvals, promotions, publications or schedule changes were performed.
+- Phase 5B.1 remains IN PROGRESS; Phase 5A remains OPEN.
