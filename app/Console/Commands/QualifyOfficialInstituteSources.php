@@ -14,7 +14,8 @@ class QualifyOfficialInstituteSources extends Command
         {--timeout=15 : Per-source total timeout in seconds}
         {--connect-timeout=5 : Per-source connection timeout in seconds}
         {--delay-ms=1000 : Delay between independent sources}
-        {--output= : Optional private report filename}';
+        {--output= : Optional private report filename}
+        {--source= : Optional configured source id; restrict this run to one source in the selected stage}';
 
     protected $description = 'Read-only live qualification of configured official institute sources; never persists discovery data.';
 
@@ -25,6 +26,21 @@ class QualifyOfficialInstituteSources extends Command
         if (! is_array($inventory) || $inventory === []) {
             $this->error('Unknown or empty qualification stage: '.$stage);
             return self::INVALID;
+        }
+
+        $sourceId = trim((string) $this->option('source'));
+        if ($sourceId !== '') {
+            $matchingDefinitions = array_values(array_filter(
+                $inventory,
+                static fn ($definition): bool => is_array($definition) && ($definition['id'] ?? null) === $sourceId
+            ));
+
+            if (count($matchingDefinitions) !== 1) {
+                $this->error('Unknown or ambiguous source id for qualification stage: '.$sourceId);
+                return self::INVALID;
+            }
+
+            $inventory = $matchingDefinitions;
         }
 
         $timeout = max(3, min(30, (int) $this->option('timeout')));
@@ -144,6 +160,7 @@ class QualifyOfficialInstituteSources extends Command
             'schema_version' => 1,
             'mode' => 'read_only_in_memory_qualification',
             'stage' => $stage,
+            'source_filter' => $sourceId !== '' ? $sourceId : null,
             'generated_at' => now()->toIso8601String(),
             'duration_ms' => (int) round((microtime(true) - $started) * 1000),
             'source_count' => count($results),
