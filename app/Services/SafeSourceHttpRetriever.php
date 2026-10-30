@@ -39,7 +39,7 @@ class SafeSourceHttpRetriever
                 'on_headers' => static function ($response): void {
                     $contentLength = (int) $response->getHeaderLine('Content-Length');
                     if ($contentLength > 5 * 1024 * 1024) {
-                        throw new \\RuntimeException('Source response exceeds the 5 MiB retrieval limit.');
+                        throw new \RuntimeException('Source response exceeds the 5 MiB retrieval limit.');
                     }
                 },
             ];
