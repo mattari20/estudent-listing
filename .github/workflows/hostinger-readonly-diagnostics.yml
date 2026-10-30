@@ -824,6 +824,47 @@ jobs:
                 echo "qualification_class_autoload_error_sha256=$(printf '%s' "$AUTOLOAD_STATUS" | sha256sum | awk '{print $1}')"
               fi
               rm -f "$LIST_OUTPUT" "$LIST_ERROR"
+              echo "=== Laravel console command path and reflection diagnosis ==="
+              "$PHP_EXECUTABLE_REAL" <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $kernel = $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class);
+            $kernel->bootstrap();
+            $path = base_path('app/Console/Commands');
+            $file = $path.'/QualifyOfficialInstituteSources.php';
+            $class = 'App'.chr(92).'Console'.chr(92).'Commands'.chr(92).'QualifyOfficialInstituteSources';
+            $reflection = null;
+            $reflectionError = null;
+            try {
+                $reflection = new ReflectionClass($class);
+            } catch (Throwable $exception) {
+                $reflectionError = class_basename($exception);
+            }
+            $commandType = $reflection ? $reflection->isSubclassOf(\\Illuminate\\Console\\Command::class) : false;
+            $kernelMethods = get_class_methods($kernel);
+            $report = [
+                'check' => 'qualification_command_registration_path',
+                'framework_version' => $app->version(),
+                'kernel_class' => get_class($kernel),
+                'app_commands_directory_exists' => is_dir($path),
+                'command_file_exists' => is_file($file),
+                'command_file_readable' => is_readable($file),
+                'command_class_exists' => class_exists($class),
+                'command_class_reflection_created' => $reflection instanceof ReflectionClass,
+                'command_class_is_console_command' => $commandType,
+                'command_class_is_abstract' => $reflection?->isAbstract(),
+                'reflection_error_class' => $reflectionError,
+                'kernel_bootstrapped' => method_exists($kernel, 'bootstrap'),
+                'kernel_loaded_commands' => $kernel->all() !== [],
+                'artisan_command_registered' => \Illuminate\Support\Facades\Artisan::all() !== [] && \Illuminate\Support\Facades\Artisan::has('institutes:qualify-official-sources'),
+                'artisan_loaded_command_names_count' => count(\Illuminate\Support\Facades\Artisan::all()),
+                'command_directory_files_count' => count(glob($path.'/*.php') ?: []),
+                'app_namespace' => $app->getNamespace(),
+                'bootstrap_cache_entries' => array_values(array_filter(glob(base_path('bootstrap/cache/*.php')) ?: [], fn ($entry) => basename($entry) !== '.gitignore')),
+            ];
+            echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
             fi
             echo "=== Qualification private report storage probe ==="
             "$PHP_EXECUTABLE_REAL" <<'PHP'
