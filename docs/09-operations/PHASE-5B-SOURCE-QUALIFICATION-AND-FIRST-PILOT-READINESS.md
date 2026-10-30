@@ -267,3 +267,15 @@ Rationale: substantial governed discovery, snapshot/evidence, duplicate matching
 - All 20 additional HEC profiles remain disabled.
 - The separate `institution_field_approvals` schema warning remains an independent tracked blocker and was not repaired.
 - **GCU pilot status: BLOCKED pending controlled production deployment, production `--source` help verification, and the first one-source GCU report.**
+
+
+## Phase 5B.14 — governed one-time GCU qualification runner (2026-10-30)
+
+- Added dedicated manual workflow `.github/workflows/hostinger-gcu-single-source-qualification.yml` on branch `feat/phase5b14-gcu-qualified-runner-20261030`. It is `workflow_dispatch` only, takes one required boolean confirmation defaulting false, has read-only repository permissions, a dedicated non-cancelling concurrency group, and bounded job/SSH timeouts.
+- Scope is hard-coded: Hostinger Institutes directory `/home/u537436044/domains/estudent.pk/public_html/institutes`; PHP `/opt/alt/php85/usr/bin/php`; stage `hec-universities`; source `gcu-lahore`; report `storage/app/private/source-qualification/gcu-lahore-phase-5b14-20261030.json`. No user-supplied shell, paths, stage, source or URL values are accepted.
+- The SSH step is gated by explicit `confirm_gcu_qualification=true`; before the source request it verifies Artisan exists, the production checkout is a Git worktree, application-code parity against the approved revision resolved from main, native command help and all required options, ten stage entries, exactly one GCU ID/profile mapping, exact configured HEC URL, command source invariants, local disk root, private/public path separation and absence of an existing fixed report.
+- The live command appears once, with fixed options and no retry loop or alternate source. Its output is captured; the report must be non-empty, valid JSON, filtered to `gcu-lahore`, and contain exactly one matching result before upload. The report remains in private storage with restrictive file permissions; an artifact copy is uploaded as `gcu-lahore-qualification-report` for seven days.
+- Workflow development/CI does not trigger this workflow and has made no HEC/GCU request. The report path is unique to this runner; it refuses to overwrite it. The artifact upload step runs only after explicit confirmation.
+- Validation caveat: do not treat a successful extraction as final identity qualification. The current qualification command reports source retrieval/extraction; canonical/staged identity cross-check and human review remain separate.
+- This workflow is a controlled execution mechanism, not proof a live request has happened. Actual qualification requires a separate manual dispatch after review/merge, with confirmation true.
+- Phase 5B.14 implementation is pending exact-head workflow validation, Laravel CI/Test, review and merge. Phase 5B.13 code safety audit remains the prerequisite baseline; no new production execution occurred.
