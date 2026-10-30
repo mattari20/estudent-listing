@@ -1,0 +1,190 @@
+name: Hostinger GCU Single-Source Qualification
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_gcu_qualification:
+        description: "Explicitly authorize exactly one GCU Lahore source qualification request."
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hostinger-gcu-single-source-qualification
+  cancel-in-progress: false
+
+jobs:
+  resolve-target:
+    name: Resolve approved application-code revision
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      target_revision: ${{ steps.revision.outputs.target_revision }}
+    steps:
+      - name: Checkout main with full history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Resolve latest application-code revision
+        id: revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git log -1 --format=%H -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          test -n "$revision"
+          echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "Approved application-code revision: $revision"
+
+  qualify:
+    name: Preflight and one GCU Lahore request
+    needs: resolve-target
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Refuse execution without explicit confirmation
+        shell: bash
+        env:
+          CONFIRM_GCU_QUALIFICATION: ${{ inputs.confirm_gcu_qualification }}
+        run: |
+          set -euo pipefail
+          if [[ "$CONFIRM_GCU_QUALIFICATION" != "true" ]]; then
+            echo "::error::confirm_gcu_qualification must be true. No SSH connection or source request was made."
+            exit 2
+          fi
+          echo "Explicit one-time GCU qualification confirmation received."
+
+      - name: Run fixed-scope production preflight and exactly one qualification invocation
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
+          CONFIRM_GCU_QUALIFICATION: ${{ inputs.confirm_gcu_qualification }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          envs: TARGET_REVISION,CONFIRM_GCU_QUALIFICATION
+          command_timeout: 5m
+          script: |
+            set -eu
+
+            PROJECT_PATH='/home/u537436044/domains/estudent.pk/public_html/institutes'
+            PHP='/opt/alt/php85/usr/bin/php'
+            REPORT_RELATIVE='source-qualification/gcu-lahore-phase-5b14-20261030.json'
+            fail() { echo "ERROR: $1"; exit 10; }
+
+            [ "$CONFIRM_GCU_QUALIFICATION" = 'true' ] || fail 'explicit confirmation is false'
+            [ -f "$PROJECT_PATH/artisan" ] || fail 'production artisan file is missing'
+            [ -x "$PHP" ] || fail 'approved PHP executable is not executable'
+            cd "$PROJECT_PATH"
+            git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail 'production project is not a Git work tree'
+
+            PREVIOUS_REVISION="$(git rev-parse HEAD)"
+            echo "production_git_revision=$PREVIOUS_REVISION"
+            echo "approved_application_revision=$TARGET_REVISION"
+
+            if [ -f .git/shallow ]; then
+              git fetch --quiet --no-tags --unshallow origin main || fail 'could not obtain Git history'
+            else
+              git fetch --quiet --no-tags origin main || fail 'could not refresh origin/main'
+            fi
+            git cat-file -e "$TARGET_REVISION^{commit}" 2>/dev/null || fail 'approved revision is unavailable locally'
+            git merge-base --is-ancestor "$TARGET_REVISION" FETCH_HEAD || fail 'approved revision is not reachable from origin/main'
+            APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
+            git diff --quiet "$TARGET_REVISION" "$PREVIOUS_REVISION" -- $APP_CODE_PATHS || fail 'application-code parity mismatch'
+            git diff --quiet HEAD -- $APP_CODE_PATHS || fail 'production tracked application code has modifications'
+            git diff --cached --quiet HEAD -- $APP_CODE_PATHS || fail 'production application code has staged modifications'
+            echo "application_code_parity=VERIFIED"
+            echo "deployed_git_revision=$PREVIOUS_REVISION"
+            echo "verified_target_application_revision=$TARGET_REVISION"
+
+            "$PHP" artisan help institutes:qualify-official-sources --no-ansi > /tmp/gcu-qualification-help.txt 2> /tmp/gcu-qualification-help.stderr || fail 'qualification command help failed'
+            grep -Eq -- '--source([=[:space:]]|$)' /tmp/gcu-qualification-help.txt || fail 'production help does not expose --source'
+            for option in stage timeout connect-timeout delay-ms output; do
+              grep -Eq -- "--${option}([=[:space:]]|$)" /tmp/gcu-qualification-help.txt || fail "production help is missing --${option}"
+            done
+            echo "qualification_command_help=VERIFIED"
+            echo "qualification_source_option=AVAILABLE"
+            rm -f /tmp/gcu-qualification-help.txt /tmp/gcu-qualification-help.stderr
+
+            "$PHP" -r '
+              $command = file_get_contents("app/Console/Commands/QualifyOfficialInstituteSources.php");
+              $inventory = require "config/institute_source_qualification.php";
+              $profiles = require "config/institute_agent.php";
+              $filesystems = require "config/filesystems.php";
+              if (! is_string($command) || ! is_array($inventory) || ! is_array($profiles) || ! is_array($filesystems)) exit(20);
+              $stage = $inventory["hec-universities"] ?? null;
+              if (! is_array($stage) || count($stage) !== 10) exit(21);
+              $matches = array_values(array_filter($stage, static fn ($row) => is_array($row) && ($row["id"] ?? null) === "gcu-lahore"));
+              if (count($matches) !== 1 || ($matches[0]["profile"] ?? null) !== "gcu-lahore-institution-identity") exit(22);
+              $profile = $profiles["profiles"]["gcu-lahore-institution-identity"] ?? null;
+              if (! is_array($profile) || ($profile["source"]["url"] ?? null) !== "https://www.hec.gov.pk/english/universities/Pages/Punjab/Government-College-University%2C-Lahore.aspx") exit(23);
+              if (! str_contains($command, "$"."inventory = $"."matchingDefinitions;")
+                  || ! str_contains($command, "count($"."matchingDefinitions) !== 1")
+                  || ! str_contains($command, "$"."retriever->getWithMetadata(")
+                  || ! str_contains($command, "Storage::disk('''local''')->put(")
+                  || ! str_contains($command, "does not access Eloquent models or database services")) exit(24);
+              if (str_contains($command, "DB::") || str_contains($command, "Institution::") || str_contains($command, "Import") || str_contains($command, "Approval") || str_contains($command, "Promotion") || str_contains($command, "publish")) exit(25);
+              if (($filesystems["disks"]["local"]["root"] ?? null) !== storage_path("app/private")) exit(26);
+              echo "configured_stage_count=10\nselected_source_count=1\nselected_source_id=gcu-lahore\nsource_url_verified=true\ncommand_scope_and_report_path_verified=true\nlocal_disk_root=storage/app/private\n";
+            ' || fail 'deployed source configuration or command safety invariant failed'
+
+            PRIVATE_ROOT="$(realpath -m storage/app/private)"
+            PUBLIC_ROOT="$(realpath -m public)"
+            REPORT_DIR="$PRIVATE_ROOT/source-qualification"
+            REPORT_PATH="$REPORT_DIR/gcu-lahore-phase-5b14-20261030.json"
+            case "$REPORT_DIR/" in "$PUBLIC_ROOT/"*) fail 'private report directory resolves inside public web root' ;; esac
+            case "$REPORT_PATH" in "$PUBLIC_ROOT"/*) fail 'report path is inside public web root' ;; esac
+            [ ! -e "$REPORT_PATH" ] || fail 'fixed report already exists; refusing overwrite'
+            mkdir -p "$REPORT_DIR"
+            [ -d "$REPORT_DIR" ] && [ -w "$REPORT_DIR" ] || fail 'private report directory is not writable'
+            [ ! -e "$REPORT_PATH" ] || fail 'report appeared before invocation; refusing overwrite'
+            echo "private_report_path=$REPORT_PATH"
+            echo "private_report_outside_public_root=true"
+            echo "report_overwrite_refused_if_present=true"
+
+            echo "=== BEGIN SINGLE GCU QUALIFICATION INVOCATION ==="
+            set +e
+            "$PHP" artisan institutes:qualify-official-sources               --stage=hec-universities               --source=gcu-lahore               --timeout=15               --connect-timeout=5               --delay-ms=0               --output=source-qualification/gcu-lahore-phase-5b14-20261030.json               --no-ansi > /tmp/gcu-qualification-console.log 2>&1
+            COMMAND_STATUS=$?
+            set -e
+            sed -E 's#https?://[^[:space:]]+#[SOURCE_URL_REDACTED]#g' /tmp/gcu-qualification-console.log
+            echo "qualification_command_exit_code=$COMMAND_STATUS"
+            echo "=== END SINGLE GCU QUALIFICATION INVOCATION ==="
+
+            [ -s "$REPORT_PATH" ] || fail 'qualification report was not written or is empty'
+            "$PHP" -r '
+              $data = json_decode(file_get_contents($argv[1]), true);
+              if (! is_array($data) || json_last_error() !== JSON_ERROR_NONE) exit(30);
+              if (($data["stage"] ?? null) !== "hec-universities") exit(31);
+              if (($data["source_filter"] ?? null) !== "gcu-lahore") exit(32);
+              if (($data["source_count"] ?? null) !== 1) exit(33);
+              if (count($data["results"] ?? []) !== 1 || ($data["results"][0]["source_id"] ?? null) !== "gcu-lahore") exit(34);
+              echo "report_json=VALID\nsource_count=1\nsource_filter=gcu-lahore\nreport_readback=SUCCESS\n";
+            ' "$REPORT_PATH" || fail 'report is invalid or does not prove exactly one GCU source'
+            chmod 600 "$REPORT_PATH"
+            [ "$COMMAND_STATUS" -eq 0 ] || fail "qualification command exited $COMMAND_STATUS; report retained for inspection"
+            echo "qualification_report_written=true"
+            echo "qualification_report_path=$REPORT_PATH"
+            echo "database_migrations=NOT_RUN"
+            echo "production_data_mutations=NOT_RUN"
+            echo "No import, approval, promotion, publication or source-stage command was invoked."
+
+            mkdir -p "$HOME/gcu-qualification-artifact"
+            cp "$REPORT_PATH" "$HOME/gcu-qualification-artifact/gcu-lahore-phase-5b14-20261030.json"
+            cp /tmp/gcu-qualification-console.log "$HOME/gcu-qualification-artifact/qualification-console-sanitized.txt"
+            chmod 600 "$HOME/gcu-qualification-artifact/"*
+            echo "artifact_staging=READY"
+
+      - name: Upload controlled GCU qualification report
+        if: ${{ inputs.confirm_gcu_qualification }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: gcu-lahore-qualification-report
+          path: /home/runner/gcu-qualification-artifact/
+          if-no-files-found: error
+          retention-days: 7
