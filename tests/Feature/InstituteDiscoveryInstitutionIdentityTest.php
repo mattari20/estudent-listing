@@ -80,10 +80,14 @@ class InstituteDiscoveryInstitutionIdentityTest extends TestCase
 
         $service = app(InstituteIdentityDiscoveryService::class);
         $definition = config('institute_agent.profiles.'.self::PROFILE);
-        $firstSource = \App\Models\Source::query()->updateOrCreate(
-            ['url' => self::URL],
-            ['source_type' => 'official', 'name' => 'HEC GCU identity', 'authority_scope' => 'HEC identity', 'status' => 'active']
-        );
+        $firstSource = Source::create([
+            'source_type' => 'official',
+            'name' => 'HEC GCU identity',
+            'url' => self::URL,
+            'authority_scope' => 'HEC identity',
+            'status' => 'active',
+        ]);
+
         $first = $service->run(self::PROFILE, $firstSource, $definition);
         $second = $service->run(self::PROFILE, $firstSource, $definition);
 
