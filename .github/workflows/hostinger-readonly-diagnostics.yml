@@ -758,7 +758,34 @@ jobs:
                 exit(21);
             }
             PHP
-            echo "=== Hostinger scheduler command and PHP executable (read-only) ==="
+            echo "=== Qualification command availability (read-only) ==="
+            if php artisan list --raw --no-ansi | grep -Fxq 'institutes:qualify-official-sources'; then
+              echo "qualification_command=AVAILABLE"
+            else
+              echo "qualification_command=NOT_AVAILABLE"
+            fi
+            echo "=== Qualification private report storage path (read-only) ==="
+            php <<'PHP'
+            <?php
+            require __DIR__.'/vendor/autoload.php';
+            $app = require __DIR__.'/bootstrap/app.php';
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $disk = \Illuminate\Support\Facades\Storage::disk('local');
+            $path = $disk->path('private/source-qualification');
+            $parent = dirname($path);
+            $publicRoot = realpath(public_path());
+            echo json_encode([
+                'check' => 'qualification_private_storage',
+                'disk' => 'local',
+                'resolved_path' => $path,
+                'directory_exists' => is_dir($path),
+                'directory_writable' => is_dir($path) && is_writable($path),
+                'parent_directory_writable' => is_dir($parent) && is_writable($parent),
+                'inside_public_root' => $publicRoot !== false && str_starts_with($path, rtrim($publicRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR),
+                'mutation_performed' => false,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+            PHP
+
             PHP_EXECUTABLE="$(command -v php || true)"
             if [ -n "$PHP_EXECUTABLE" ]; then
               PHP_EXECUTABLE_REAL="$(readlink -f "$PHP_EXECUTABLE" 2>/dev/null || printf '%s' "$PHP_EXECUTABLE")"
@@ -812,17 +839,17 @@ jobs:
             if ! git -C "$PARITY_REPO" cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
               git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION" || PARITY_FETCH_FAILED=1
             fi
+            APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
+            DEPLOYMENT_DRIFT=1
+            PARITY_MATCH=0
             if [ "$PARITY_FETCH_FAILED" -eq 0 ] &&
-              git -C "$PARITY_REPO" cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null &&
               git -C "$PARITY_REPO" merge-base --is-ancestor "$EXPECTED_REVISION" origin/main 2>/dev/null; then
-              APP_CODE_PATHS='app bootstrap config database resources routes composer.json composer.lock public artisan'
               git -C "$PARITY_REPO" checkout --quiet --detach "$EXPECTED_REVISION"
               EXPECTED_PATH_LIST="$PARITY_REPO/expected-application-paths.txt"
               if ! git -C "$PARITY_REPO" ls-tree -r --name-only "$EXPECTED_REVISION" -- $APP_CODE_PATHS > "$EXPECTED_PATH_LIST"; then
                 echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
                 echo "application_code_parity=reference_path_list_failed"
                 DEPLOYMENT_DRIFT=1
-                PARITY_MATCH=0
               else
                 PARITY_MATCH=1
                 while IFS= read -r APP_PATH; do
@@ -837,22 +864,23 @@ jobs:
                   fi
                 done < "$EXPECTED_PATH_LIST"
                 rm -f "$EXPECTED_PATH_LIST"
-              fi
-              if [ "$PARITY_MATCH" -eq 1 ]; then
-                echo "deployment_revision_status=APPLICATION_CODE_MATCH"
-                echo "application_code_parity=match"
-                echo "application_code_parity_method=isolated_expected_tree_vs_deployed_file_content"
-                DEPLOYMENT_DRIFT=0
-              else
-                echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
-                echo "application_code_parity=mismatch_or_unverifiable"
-                DEPLOYMENT_DRIFT=1
+                if [ "$PARITY_MATCH" -eq 1 ]; then
+                  echo "deployment_revision_status=APPLICATION_CODE_MATCH"
+                  echo "application_code_parity=match"
+                  echo "application_code_parity_method=isolated_expected_tree_vs_deployed_file_content"
+                  DEPLOYMENT_DRIFT=0
+                else
+                  echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
+                  echo "application_code_parity=mismatch_or_unverifiable"
+                  DEPLOYMENT_DRIFT=1
+                fi
               fi
             else
               echo "deployment_revision_status=APPLICATION_CODE_DRIFT_OR_UNVERIFIABLE"
               echo "application_code_parity=reference_fetch_or_ancestry_unverifiable"
               DEPLOYMENT_DRIFT=1
             fi
+
             echo "=== Relevant migration history (read-only, bounded, isolated clone) ==="
             git -C "$PARITY_REPO" log --all --format='%H %cs %s' -S'duplicate_rows' -- database/migrations | head -n 20 || true
             git -C "$PARITY_REPO" log --all --format='%H %cs %s' -S'import_batches' -- database/migrations | head -n 30 || true
