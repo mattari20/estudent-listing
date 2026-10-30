@@ -22,7 +22,7 @@ Qualification labels:
 
 - **Authority lead:** authoritative government/regulator ownership and relevant identity scope are evidenced by the official public directory.
 - **Profile fixture-tested:** the configured profile has been exercised using synthetic HTML, fixture hashes, and isolated application tests.
-- **Live application-qualified:** the deployed application retriever has captured the actual HTTP status, content type, raw response fingerprint, source snapshot and deterministic extraction output from the official endpoint.
+- **Live application-qualified:** the application SafeSourceHttpRetriever has captured the actual HTTP status, content type, final URL and raw response fingerprint from the official endpoint, with deterministic extraction evaluated in memory and its result stored in a private qualification report. This read-only qualification does not create a SourceSnapshot or other database record.
 - **Pilot-ready:** live qualification, duplicate/campus resolution, evidence provenance, approval workflow, deployment/schema readiness, and bounded human review are all satisfied.
 
 No source in this report is marked live application-qualified or pilot-ready.
@@ -143,7 +143,7 @@ Rationale: substantial governed discovery, snapshot/evidence, duplicate matching
 2. Resolve the explicit production deployment authorization and then run the existing controlled deployment workflow; do not deploy merely to clear a report gate.
 3. Run the existing read-only diagnostics after the authorized deployment to verify deployed app-code parity and current schema readiness.
 4. In a separate authorized operator session, retrieve and validate the private GCU batch-19 manifest/CSV and compare six snapshot bodies. Record a human decision without automatic promotion.
-5. Build a safe, read-only live source qualification command/report that processes source URLs one-by-one through the existing SafeSourceHttpRetriever, writes only the existing source retrieval/snapshot audit structures where currently designed, and emits per-source HTTP status/content type/content hash/extraction counts/blockers. Run only after parity/schema gates are satisfied and the controlled retrieval scope is separately approved.
+5. Build and run the isolated read-only qualification command through the existing SafeSourceHttpRetriever. It must write only a private execution report, not source retrieval/snapshot/evidence database rows. Use the report's actual HTTP status/content type/final URL/raw hash and in-memory extraction outcomes to decide the next qualification gate.
 6. Qualify HEC university and campus directories plus relevant provincial sources. Activate profiles only after all individual source gates pass and a separate explicit authorization is given.
 7. Execute a bounded 5–10 identity-only pilot into private review staging, then inspect duplicate and campus outcomes before any human approval/import decision.
 
