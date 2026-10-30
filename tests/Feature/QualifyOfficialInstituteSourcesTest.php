@@ -51,8 +51,13 @@ class QualifyOfficialInstituteSourcesTest extends TestCase
 
         $tables = [
             'sources', 'source_snapshots', 'evidences', 'import_batches', 'import_rows',
-            'source_retrieval_runs', 'source_monitoring_policies', 'assertions',
-            'institutions', 'campuses', 'identity_match_candidates', 'identity_conflicts',
+            'source_retrieval_runs', 'source_monitoring_policies', 'source_change_observations',
+            'source_change_assertion_links', 'monitoring_alerts', 'assertions', 'identity_match_candidates',
+            'identity_resolution_decisions', 'identity_conflicts', 'verification_decisions',
+            'provenance_review_events', 'import_promotion_decisions', 'import_promotion_events',
+            'institution_field_approvals', 'official_source_refresh_events',
+            'structured_enrichment_promotion_events', 'data_quality_events', 'change_events',
+            'institutions', 'campuses', 'programs', 'program_offerings',
         ];
         $before = [];
         foreach ($tables as $table) {
