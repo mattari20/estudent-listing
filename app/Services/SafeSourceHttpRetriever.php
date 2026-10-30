@@ -34,7 +34,19 @@ class SafeSourceHttpRetriever
             $validatedAddresses = $guard->validate($currentUrl);
             $currentParts = parse_url($currentUrl);
             $normalizedHost = trim((string) ($currentParts['host'] ?? ''), '[]');
-            $requestOptions = ['allow_redirects' => false];
+            $requestOptions = [
+                'allow_redirects' => false,
+                'on_headers' => static function ($response): void {
+                    $contentLength = (int) $response->getHeaderLine('Content-Length');
+                    if ($contentLength > 5 * 1024 * 1024) {
+                        throw new \\RuntimeException('Source response exceeds the 5 MiB retrieval limit.');
+                    }
+                },
+            ];
+            $curlOptions = [];
+            if (extension_loaded('curl') && defined('CURLOPT_MAXFILESIZE_LARGE')) {
+                $curlOptions[CURLOPT_MAXFILESIZE_LARGE] = 5 * 1024 * 1024;
+            }
 
             if (! filter_var($normalizedHost, FILTER_VALIDATE_IP)) {
                 if (! extension_loaded('curl') || ! defined('CURLOPT_RESOLVE')) {
@@ -49,9 +61,10 @@ class SafeSourceHttpRetriever
                 $curlAddress = filter_var($validatedAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)
                     ? '['.$validatedAddress.']'
                     : $validatedAddress;
-                $requestOptions['curl'] = [
-                    CURLOPT_RESOLVE => [$normalizedHost.':'.$port.':'.$curlAddress],
-                ];
+                $curlOptions[CURLOPT_RESOLVE] = [$normalizedHost.':'.$port.':'.$curlAddress];
+            }
+            if ($curlOptions !== []) {
+                $requestOptions['curl'] = $curlOptions;
             }
 
             $response = Http::timeout($timeout)
