@@ -832,138 +832,136 @@ jobs:
               exit 25
             fi
             echo "=== Laravel console command path and reflection diagnosis ==="
-              DIAGNOSTIC_TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/estudent-kernel.XXXXXX")"
-              KERNEL_SCRIPT="$DIAGNOSTIC_TMP_DIR/inspect-console-kernel.php"
-              KERNEL_REPORT="$DIAGNOSTIC_TMP_DIR/report.json"
-              KERNEL_ERROR="$DIAGNOSTIC_TMP_DIR/inspection.stderr"
-              KERNEL_VALIDATION_ERROR="$DIAGNOSTIC_TMP_DIR/validation.stderr"
-              cleanup_kernel_diagnostic() {
-                rm -rf -- "$DIAGNOSTIC_TMP_DIR"
-              }
-              trap cleanup_kernel_diagnostic EXIT HUP INT TERM
-              cat > "$KERNEL_SCRIPT" <<'PHP'
-              <?php
-              declare(strict_types=1);
+            DIAGNOSTIC_TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/estudent-kernel.XXXXXX")"
+            KERNEL_SCRIPT="$DIAGNOSTIC_TMP_DIR/inspect-console-kernel.php"
+            KERNEL_REPORT="$DIAGNOSTIC_TMP_DIR/report.json"
+            KERNEL_ERROR="$DIAGNOSTIC_TMP_DIR/inspection.stderr"
+            KERNEL_VALIDATION_ERROR="$DIAGNOSTIC_TMP_DIR/validation.stderr"
+            cleanup_kernel_diagnostic() {
+              rm -rf -- "$DIAGNOSTIC_TMP_DIR"
+            }
+            trap cleanup_kernel_diagnostic EXIT HUP INT TERM
+            cat > "$KERNEL_SCRIPT" <<'PHP'
+            <?php
+            declare(strict_types=1);
 
-              $base = getcwd();
-              $report = [
-                  'check' => 'qualification_command_registration_path',
-                  'diagnostic_version' => 'phase-5b9-temp-script-v1',
-                  'generated_at' => date(DATE_ATOM),
-                  'php_version' => PHP_VERSION,
-                  'bootstrap_succeeded' => false,
-                  'kernel_class' => null,
-                  'kernel_bootstrapped' => false,
-                  'artisan_registry_command_names' => [],
-                  'artisan_command_registered' => false,
-                  'command_directory_exists' => false,
-                  'command_directory_readable' => false,
-                  'command_file_exists' => false,
-                  'command_file_readable' => false,
-                  'command_class' => 'App\\Console\\Commands\\QualifyOfficialInstituteSources',
-                  'command_class_exists' => false,
-                  'command_class_reflection_created' => false,
-                  'command_class_file' => null,
-                  'command_class_namespace' => null,
-                  'command_class_parent' => null,
-                  'command_class_is_console_command' => false,
-                  'command_class_is_abstract' => null,
-                  'reflection_error_class' => null,
-                  'bootstrap_registration_method' => 'NOT_DETECTED',
-                  'bootstrap_cache_entries' => [],
-                  'diagnostic_error_category' => null,
-                  'diagnostic_error_class' => null,
-              ];
+            $base = getcwd();
+            $report = [
+                'check' => 'qualification_command_registration_path',
+                'diagnostic_version' => 'phase-5b9-temp-script-v1',
+                'generated_at' => date(DATE_ATOM),
+                'php_version' => PHP_VERSION,
+                'bootstrap_succeeded' => false,
+                'kernel_class' => null,
+                'kernel_bootstrapped' => false,
+                'artisan_registry_command_names' => [],
+                'artisan_command_registered' => false,
+                'command_directory_exists' => false,
+                'command_directory_readable' => false,
+                'command_file_exists' => false,
+                'command_file_readable' => false,
+                'command_class' => 'App\\Console\\Commands\\QualifyOfficialInstituteSources',
+                'command_class_exists' => false,
+                'command_class_reflection_created' => false,
+                'command_class_file' => null,
+                'command_class_namespace' => null,
+                'command_class_parent' => null,
+                'command_class_is_console_command' => false,
+                'command_class_is_abstract' => null,
+                'reflection_error_class' => null,
+                'bootstrap_registration_method' => 'NOT_DETECTED',
+                'bootstrap_cache_entries' => [],
+                'diagnostic_error_category' => null,
+                'diagnostic_error_class' => null,
+            ];
 
-              try {
-                  require $base.'/vendor/autoload.php';
-                  $app = require $base.'/bootstrap/app.php';
-                  $report['bootstrap_succeeded'] = true;
-                  $kernelContract = 'Illuminate\\Contracts\\Console\\Kernel';
-                  $kernel = $app->make($kernelContract);
-                  $report['kernel_class'] = get_class($kernel);
-                  $kernel->bootstrap();
-                  $report['kernel_bootstrapped'] = true;
-                  $report['framework_version'] = $app->version();
+            try {
+                require $base.'/vendor/autoload.php';
+                $app = require $base.'/bootstrap/app.php';
+                $report['bootstrap_succeeded'] = true;
+                $kernelContract = 'Illuminate\\Contracts\\Console\\Kernel';
+                $kernel = $app->make($kernelContract);
+                $report['kernel_class'] = get_class($kernel);
+                $kernel->bootstrap();
+                $report['kernel_bootstrapped'] = true;
+                $report['framework_version'] = $app->version();
 
-                  $commandDirectory = $base.'/app/Console/Commands';
-                  $commandFile = $commandDirectory.'/QualifyOfficialInstituteSources.php';
-                  $report['configured_command_directory'] = $commandDirectory;
-                  $report['command_directory_exists'] = is_dir($commandDirectory);
-                  $report['command_directory_readable'] = is_readable($commandDirectory);
-                  $report['command_directory_file_count'] = count(glob($commandDirectory.'/*.php') ?: []);
-                  $report['command_file_path'] = $commandFile;
-                  $report['command_file_exists'] = is_file($commandFile);
-                  $report['command_file_readable'] = is_readable($commandFile);
+                $commandDirectory = $base.'/app/Console/Commands';
+                $commandFile = $commandDirectory.'/QualifyOfficialInstituteSources.php';
+                $report['configured_command_directory'] = $commandDirectory;
+                $report['command_directory_exists'] = is_dir($commandDirectory);
+                $report['command_directory_readable'] = is_readable($commandDirectory);
+                $report['command_directory_file_count'] = count(glob($commandDirectory.'/*.php') ?: []);
+                $report['command_file_path'] = $commandFile;
+                $report['command_file_exists'] = is_file($commandFile);
+                $report['command_file_readable'] = is_readable($commandFile);
 
-                  $bootstrapSource = @file_get_contents($base.'/bootstrap/app.php');
-                  $report['bootstrap_registration_method'] = is_string($bootstrapSource) && strpos($bootstrapSource, '->withCommands(') !== false
-                      ? 'ApplicationBuilder::withCommands'
-                      : 'NOT_DETECTED';
-                  $report['bootstrap_cache_entries'] = array_values(array_map(
-                      'basename',
-                      array_filter(glob($base.'/bootstrap/cache/*.php') ?: [], static fn (string $entry): bool => basename($entry) !== '.gitignore')
-                  ));
+                $bootstrapSource = @file_get_contents($base.'/bootstrap/app.php');
+                $report['bootstrap_registration_method'] = is_string($bootstrapSource) && strpos($bootstrapSource, '->withCommands(') !== false
+                ? 'ApplicationBuilder::withCommands'
+                : 'NOT_DETECTED';
+                $report['bootstrap_cache_entries'] = array_values(array_map(
+                'basename',
+                array_filter(glob($base.'/bootstrap/cache/*.php') ?: [], static fn (string $entry): bool => basename($entry) !== '.gitignore')
+                ));
 
-                  $class = $report['command_class'];
-                  $report['command_class_exists'] = class_exists($class);
-                  if ($report['command_class_exists']) {
-                      $reflection = new ReflectionClass($class);
-                      $report['command_class_reflection_created'] = true;
-                      $report['command_class_file'] = $reflection->getFileName();
-                      $report['command_class_namespace'] = $reflection->getNamespaceName();
-                      $parent = $reflection->getParentClass();
-                      $report['command_class_parent'] = $parent ? $parent->getName() : null;
-                      $report['command_class_is_console_command'] = $reflection->isSubclassOf('Illuminate\\Console\\Command');
-                      $report['command_class_is_abstract'] = $reflection->isAbstract();
-                  }
+                $class = $report['command_class'];
+                $report['command_class_exists'] = class_exists($class);
+                if ($report['command_class_exists']) {
+                $reflection = new ReflectionClass($class);
+                $report['command_class_reflection_created'] = true;
+                $report['command_class_file'] = $reflection->getFileName();
+                $report['command_class_namespace'] = $reflection->getNamespaceName();
+                $parent = $reflection->getParentClass();
+                $report['command_class_parent'] = $parent ? $parent->getName() : null;
+                $report['command_class_is_console_command'] = $reflection->isSubclassOf('Illuminate\\Console\\Command');
+                $report['command_class_is_abstract'] = $reflection->isAbstract();
+                }
 
-                  $artisan = 'Illuminate\\Support\\Facades\\Artisan';
-                  $registry = $artisan::all();
-                  $report['artisan_registry_command_names'] = array_values(array_map('strval', array_keys($registry)));
-                  $report['artisan_registry_command_count'] = count($registry);
-                  $report['artisan_command_registered'] = $artisan::has('institutes:qualify-official-sources');
-                  $report['kernel_loaded_commands_count'] = count($kernel->all());
-              } catch (Throwable $exception) {
-                  $report['diagnostic_error_class'] = get_class($exception);
-                  $report['diagnostic_error_category'] = $exception instanceof Error ? 'PHP_ERROR' : 'THROWABLE';
-                  if (! $report['command_class_reflection_created'] && $report['command_class_exists']) {
-                      $report['reflection_error_class'] = get_class($exception);
-                  }
-              }
+                $artisan = 'Illuminate\\Support\\Facades\\Artisan';
+                $registry = $artisan::all();
+                $report['artisan_registry_command_names'] = array_values(array_map('strval', array_keys($registry)));
+                $report['artisan_registry_command_count'] = count($registry);
+                $report['artisan_command_registered'] = $artisan::has('institutes:qualify-official-sources');
+                $report['kernel_loaded_commands_count'] = count($kernel->all());
+            } catch (Throwable $exception) {
+                $report['diagnostic_error_class'] = get_class($exception);
+                $report['diagnostic_error_category'] = $exception instanceof Error ? 'PHP_ERROR' : 'THROWABLE';
+                if (! $report['command_class_reflection_created'] && $report['command_class_exists']) {
+                $report['reflection_error_class'] = get_class($exception);
+                }
+            }
 
-              echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), PHP_EOL;
-              if (! $report['bootstrap_succeeded'] || ! $report['kernel_bootstrapped'] || $report['diagnostic_error_class'] !== null) {
-                  exit(31);
-              }
-              PHP
-              set +e
-              "$PHP_EXECUTABLE_REAL" "$KERNEL_SCRIPT" >"$KERNEL_REPORT" 2>"$KERNEL_ERROR"
-              KERNEL_STATUS=$?
-              set -e
-              echo "qualification_kernel_inspection_exit=$KERNEL_STATUS"
-              if [ -s "$KERNEL_ERROR" ]; then
-                echo "qualification_kernel_inspection_stderr_sha256=$(sha256sum "$KERNEL_ERROR" | awk '{print $1}')"
-              else
-                echo "qualification_kernel_inspection_stderr=EMPTY"
-              fi
-              if [ "$KERNEL_STATUS" -eq 0 ] && "$PHP_EXECUTABLE_REAL" -r '$v=json_decode(file_get_contents($argv[1]),true); $required=["check","diagnostic_version","generated_at","php_version","framework_version","bootstrap_succeeded","kernel_class","kernel_bootstrapped","artisan_registry_command_names","artisan_command_registered","command_directory_exists","command_directory_readable","command_file_exists","command_file_readable","command_class_exists","command_class_reflection_created","command_class_namespace","command_class_parent","command_class_is_console_command","bootstrap_cache_entries"]; exit(is_array($v) && ($v["check"] ?? "") === "qualification_command_registration_path" && ($v["diagnostic_version"] ?? "") === "phase-5b9-temp-script-v1" && count(array_filter($required, fn($key)=>array_key_exists($key,$v))) === count($required) ? 0 : 1);' "$KERNEL_REPORT" 2>"$KERNEL_VALIDATION_ERROR"; then
-                cat "$KERNEL_REPORT"
-                echo "qualification_kernel_inspection_json=VALID"
-                echo "qualification_kernel_inspection_json_validation_exit=0"
-              else
-                VALIDATION_STATUS=$?
-                echo "qualification_kernel_inspection_json=INVALID_OR_MISSING"
-                echo "qualification_kernel_inspection_json_validation_exit=$VALIDATION_STATUS"
-                echo "qualification_kernel_inspection_report_present=$([ -s "$KERNEL_REPORT" ] && echo true || echo false)"
-                if [ -s "$KERNEL_VALIDATION_ERROR" ]; then
-                  echo "qualification_kernel_inspection_validation_stderr_sha256=$(sha256sum "$KERNEL_VALIDATION_ERROR" | awk '{print $1}')"
-                fi
-                exit 24
-              fi
+            echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), PHP_EOL;
+            if (! $report['bootstrap_succeeded'] || ! $report['kernel_bootstrapped'] || $report['diagnostic_error_class'] !== null) {
+                exit(31);
+            }
+            PHP
+            set +e
+            "$PHP_EXECUTABLE_REAL" "$KERNEL_SCRIPT" >"$KERNEL_REPORT" 2>"$KERNEL_ERROR"
+            KERNEL_STATUS=$?
+            set -e
+            echo "qualification_kernel_inspection_exit=$KERNEL_STATUS"
+            if [ -s "$KERNEL_ERROR" ]; then
+              echo "qualification_kernel_inspection_stderr_sha256=$(sha256sum "$KERNEL_ERROR" | awk '{print $1}')"
+            else
+              echo "qualification_kernel_inspection_stderr=EMPTY"
             fi
-
-            # Private source-qualification storage was verified previously; this diagnosis does not repeat its write probe.
+            if [ "$KERNEL_STATUS" -eq 0 ] && "$PHP_EXECUTABLE_REAL" -r '$v=json_decode(file_get_contents($argv[1]),true); $required=["check","diagnostic_version","generated_at","php_version","framework_version","bootstrap_succeeded","kernel_class","kernel_bootstrapped","artisan_registry_command_names","artisan_command_registered","command_directory_exists","command_directory_readable","command_file_exists","command_file_readable","command_class_exists","command_class_reflection_created","command_class_namespace","command_class_parent","command_class_is_console_command","bootstrap_cache_entries"]; exit(is_array($v) && ($v["check"] ?? "") === "qualification_command_registration_path" && ($v["diagnostic_version"] ?? "") === "phase-5b9-temp-script-v1" && count(array_filter($required, fn($key)=>array_key_exists($key,$v))) === count($required) ? 0 : 1);' "$KERNEL_REPORT" 2>"$KERNEL_VALIDATION_ERROR"; then
+              cat "$KERNEL_REPORT"
+              echo "qualification_kernel_inspection_json=VALID"
+              echo "qualification_kernel_inspection_json_validation_exit=0"
+            else
+              VALIDATION_STATUS=$?
+              echo "qualification_kernel_inspection_json=INVALID_OR_MISSING"
+              echo "qualification_kernel_inspection_json_validation_exit=$VALIDATION_STATUS"
+              echo "qualification_kernel_inspection_report_present=$([ -s "$KERNEL_REPORT" ] && echo true || echo false)"
+              if [ -s "$KERNEL_VALIDATION_ERROR" ]; then
+                echo "qualification_kernel_inspection_validation_stderr_sha256=$(sha256sum "$KERNEL_VALIDATION_ERROR" | awk '{print $1}')"
+              fi
+              exit 24
+            fi
+ 
             PHP_EXECUTABLE="$(command -v php || true)"
             if [ -n "$PHP_EXECUTABLE" ]; then
               PHP_EXECUTABLE_REAL="$(readlink -f "$PHP_EXECUTABLE" 2>/dev/null || printf '%s' "$PHP_EXECUTABLE")"
