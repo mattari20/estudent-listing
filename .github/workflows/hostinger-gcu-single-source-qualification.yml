@@ -58,6 +58,7 @@ jobs:
           echo "Explicit one-time GCU qualification confirmation received."
 
       - name: Run fixed-scope production preflight and exactly one qualification invocation
+        id: gcu_ssh
         uses: appleboy/ssh-action@v1.2.0
         env:
           TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
@@ -180,17 +181,30 @@ jobs:
             echo "production_data_mutations=NOT_RUN"
             echo "No import, approval, promotion, publication or source-stage command was invoked."
 
-            mkdir -p "$HOME/gcu-qualification-artifact"
-            cp "$REPORT_PATH" "$HOME/gcu-qualification-artifact/gcu-lahore-phase-5b14-20261030.json"
-            cp /tmp/gcu-qualification-console.log "$HOME/gcu-qualification-artifact/qualification-console-sanitized.txt"
-            chmod 600 "$HOME/gcu-qualification-artifact/"*
+            # Return report bytes via the SSH action output only after validating them.
+            # Base64 transport avoids shell quoting; content is not printed to SSH logs.
+            REPORT_B64="$(base64 < "$REPORT_PATH" | tr -d '\\n')"
+            echo "::set-output name=report_b64::$REPORT_B64"
             echo "artifact_staging=READY"
+
+      - name: Materialize validated report for artifact upload
+        if: ${{ inputs.confirm_gcu_qualification }}
+        shell: bash
+        env:
+          REPORT_B64: ${{ steps.gcu_ssh.outputs.report_b64 }}
+        run: |
+          set -euo pipefail
+          test -n "$REPORT_B64"
+          mkdir -p gcu-qualification-artifact
+          printf '%s' "$REPORT_B64" | base64 --decode > gcu-qualification-artifact/gcu-lahore-phase-5b14-20261030.json
+          test -s gcu-qualification-artifact/gcu-lahore-phase-5b14-20261030.json
+          php -r '$d=json_decode(file_get_contents($argv[1]), true); if (!is_array($d) || ($d["source_filter"] ?? null) !== "gcu-lahore" || ($d["source_count"] ?? null) !== 1) exit(1);' gcu-qualification-artifact/gcu-lahore-phase-5b14-20261030.json
 
       - name: Upload controlled GCU qualification report
         if: ${{ inputs.confirm_gcu_qualification }}
         uses: actions/upload-artifact@v4
         with:
           name: gcu-lahore-qualification-report
-          path: /home/runner/gcu-qualification-artifact/
+          path: gcu-qualification-artifact/gcu-lahore-phase-5b14-20261030.json
           if-no-files-found: error
           retention-days: 7
