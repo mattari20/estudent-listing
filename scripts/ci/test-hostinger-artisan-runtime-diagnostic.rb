@@ -76,26 +76,38 @@ lint_out, lint_status = Open3.capture2e(php, "-l", script_path)
 assert_contract(lint_status.success?, "PHP diagnostic syntax invalid: #{lint_out}")
 
 Dir.mktmpdir("phase-5b21-contract-") do |dir|
-  report = File.join(dir, "runtime.json")
-  repo = File.join(dir, "empty-repo")
-  Dir.mkdir(repo)
-  env = {
-    "PHASE_5B18_TARGET_REVISION" => "invalid-revision-for-partial-test",
-    "PHASE_5B18_PARITY_REPO" => repo
-  }
-  _out, status = Open3.capture2e(env, php, script_path, "--report=#{report}")
-  assert_contract(File.file?(report), "partial JSON report must exist after inspection failures (exit #{status.exitstatus})")
-  payload = JSON.parse(File.read(report))
+  empty_repo = File.join(dir, "empty-repo")
+  Dir.mkdir(empty_repo)
+  valid_report = File.join(dir, "missing-env.json")
+  _out, missing_env_status = Open3.capture2e({ "PHASE_5B18_TARGET_REVISION" => nil, "PHASE_5B18_PARITY_REPO" => nil }, php, script_path, "--report=#{valid_report}")
+  assert_contract(File.file?(valid_report), "missing environment must produce a partial report")
+  missing_env = JSON.parse(File.read(valid_report))
+  assert_contract(missing_env["overall_status"] == "FAIL", "missing environment must fail overall status")
+  assert_contract(missing_env["errors"].any? { |error| error["exception_class"] == "RuntimeException" }, "exception class must be preserved")
+  assert_contract(missing_env_status.exitstatus != 0, "missing environment must preserve nonzero exit")
+  File.delete(valid_report)
+
+  partial_report = File.join(dir, "partial-report.json")
+  env = { "PHASE_5B18_TARGET_REVISION" => "invalid-revision-for-partial-test", "PHASE_5B18_PARITY_REPO" => empty_repo }
+  _out, partial_status = Open3.capture2e(env, php, script_path, "--report=#{partial_report}")
+  assert_contract(File.file?(partial_report), "partial JSON report must exist after inspection failure")
+  payload = JSON.parse(File.read(partial_report))
   assert_contract(payload["overall_status"] == "FAIL", "inspection failures must mark report FAIL")
-  assert_contract(payload["steps"].is_a?(Hash) && payload["errors"].is_a?(Array), "partial report must preserve step-level errors")
+  assert_contract(payload["steps"].is_a?(Hash) && payload["errors"].is_a?(Array), "partial report must preserve step results and errors")
   assert_contract(payload["errors"].any? { |error| error["step"] == "source_hashes" }, "failed step name must be recorded")
-  assert_contract((File.stat(report).mode & 0o777) == 0o600, "report permissions must be 0600")
-  size = File.size(report)
-  assert_contract(size <= 262_144, "report exceeds 256 KiB")
-  original = File.binread(report)
-  _second_out, second_status = Open3.capture2e(env, php, script_path, "--report=#{report}")
+  assert_contract((File.stat(partial_report).mode & 0o777) == 0o600, "report permissions must be 0600")
+  assert_contract(File.size(partial_report) <= 262_144, "report exceeds 256 KiB")
+  original = File.binread(partial_report)
+  _again, second_status = Open3.capture2e(env, php, script_path, "--report=#{partial_report}")
   assert_contract(second_status.exitstatus == 65, "existing report must not be overwritten")
-  assert_contract(File.binread(report) == original, "no-overwrite guard must preserve existing report")
+  assert_contract(File.binread(partial_report) == original, "no-overwrite guard must preserve the original report")
+  assert_contract(Dir.children(dir).none? { |name| name.include?(".tmp.") }, "temporary report files must be cleaned up")
+
+  malformed = File.join(dir, "malformed.php")
+  File.write(malformed, "<?php function broken( {")
+  malformed_output, malformed_status = Open3.capture2e(php, "-l", malformed)
+  assert_contract(!malformed_status.success?, "malformed PHP must fail lint")
+  assert_contract(malformed_output.match?(/Parse error|syntax error/i), "PHP parser evidence must be preserved")
 end
 
 puts "Hostinger Artisan runtime diagnostic contract: PASS"
