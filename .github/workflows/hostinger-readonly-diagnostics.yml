@@ -71,6 +71,288 @@ jobs:
               exit 3
             fi
             cd "$PROJECT_PATH"
+
+            # Phase 5B.18: read-only Artisan runtime inspection. This block deliberately
+            # does not invoke the source-qualification command or make HTTP requests.
+            echo "=== Phase 5B.18 read-only Artisan runtime diagnosis ==="
+            DIAG_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/estudent-artisan-diag.XXXXXX")"
+            DIAG_SCRIPT="$DIAG_ROOT/runtime-diagnostic.php"
+            DIAG_REPORT="$DIAG_ROOT/runtime-diagnostic.json"
+            DIAG_ERROR="$DIAG_ROOT/runtime-diagnostic.stderr"
+            DIAG_FINAL='storage/app/private/diagnostics/phase-5b18-artisan-runtime.json'
+            cleanup_phase_5b18() { rm -rf "$DIAG_ROOT"; }
+            trap cleanup_phase_5b18 EXIT
+            mkdir -p "$(dirname "$DIAG_FINAL")"
+            if [ -e "$DIAG_FINAL" ]; then
+              echo "phase_5b18_report=EXISTS_REFUSED_TO_OVERWRITE"
+              exit 24
+            fi
+            cat > "$DIAG_SCRIPT" <<'PHP'
+            <?php
+            declare(strict_types=1);
+
+            use Illuminate\Console\Command;
+
+            $report = [
+                'schema_version' => 1,
+                'phase' => '5B.18',
+                'checked_at_utc' => gmdate(DATE_ATOM),
+                'mutation_performed' => false,
+                'source_requests_performed' => false,
+                'qualification_command_executed' => false,
+                'steps' => [],
+                'php' => [],
+                'laravel' => [],
+                'artisan' => [],
+                'command' => [],
+                'files' => [],
+                'autoload' => [],
+                'bootstrap_cache' => [],
+                'parity' => [],
+                'errors' => [],
+            ];
+            $step = static function (string $name, callable $callback) use (&$report): void {
+                try {
+                    $report['steps'][$name] = ['status' => 'PASS', 'result' => $callback()];
+                } catch (Throwable $e) {
+                    $report['steps'][$name] = ['status' => 'FAIL', 'error_class' => get_class($e)];
+                    $report['errors'][] = ['step' => $name, 'error_class' => get_class($e)];
+                }
+            };
+            $hash = static function (string $path): ?string {
+                return is_file($path) ? hash_file('sha256', $path) : null;
+            };
+            $safePath = static function (string $path): string {
+                $real = realpath($path);
+                return $real === false ? $path : $real;
+            };
+            $base = getcwd() ?: '';
+            $expectedCommand = 'App\\Console\\Commands\\QualifyOfficialInstituteSources';
+            $commandName = 'institutes:qualify-official-sources';
+            $report['php'] = [
+                'binary' => PHP_BINARY,
+                'version' => PHP_VERSION,
+                'sapi' => PHP_SAPI,
+                'working_directory' => $base,
+                'artisan_entrypoint' => $safePath($base.'/artisan'),
+            ];
+
+            $step('expected_source_files', static function () use ($base, $hash, &$report): array {
+                $paths = ['artisan', 'bootstrap/app.php', 'app/Console/Commands/QualifyOfficialInstituteSources.php'];
+                $out = [];
+                foreach ($paths as $path) {
+                    $full = $base.'/'.$path;
+                    $out[$path] = ['exists' => is_file($full), 'sha256' => $hash($full), 'realpath' => realpath($full) ?: null];
+                }
+                $report['files']['expected_source'] = $out;
+                return $out;
+            });
+
+            $step('framework_bootstrap', static function () use ($base, &$report): array {
+                require_once $base.'/vendor/autoload.php';
+                $app = require $base.'/bootstrap/app.php';
+                $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+                $version = $app->version();
+                $report['laravel'] = [
+                    'version' => $version,
+                    'application_class' => get_class($app),
+                    'base_path' => $app->basePath(),
+                    'bootstrap_success' => true,
+                    'commands_directory_configured' => is_dir($base.'/app/Console/Commands'),
+                ];
+                return $report['laravel'];
+            });
+
+            $step('artisan_registry', static function () use ($commandName, $expectedCommand, &$report): array {
+                $commands = \Illuminate\Support\Facades\Artisan::all();
+                $names = array_keys($commands);
+                sort($names, SORT_STRING);
+                $registered = $commands[$commandName] ?? null;
+                $result = [
+                    'registered_command_names' => $names,
+                    'registered_command_count' => count($names),
+                    'qualification_command_registered' => $registered !== null,
+                ];
+                if ($registered instanceof Command) {
+                    $result['command_class'] = get_class($registered);
+                    $result['expected_command_class'] = $expectedCommand;
+                    $result['class_matches_expected'] = get_class($registered) === $expectedCommand;
+                    $reflection = new ReflectionClass($registered);
+                    $result['reflection_source_file'] = $reflection->getFileName() ?: null;
+                    $result['reflection_source_realpath'] = $reflection->getFileName() ? (realpath($reflection->getFileName()) ?: $reflection->getFileName()) : null;
+                    $result['signature'] = $registered->getDefinition()->getSynopsis();
+                    $definition = $registered->getDefinition();
+                    $optionNames = [];
+                    foreach ($definition->getOptions() as $option) {
+                        $optionNames[] = '--'.$option->getName();
+                    }
+                    sort($optionNames, SORT_STRING);
+                    $result['options'] = $optionNames;
+                    $result['source_option_present'] = in_array('--source', $optionNames, true);
+                    $result['command_source_sha256'] = $result['reflection_source_file'] ? hash_file('sha256', $result['reflection_source_file']) : null;
+                } elseif ($registered !== null) {
+                    $result['command_class'] = get_debug_type($registered);
+                    $result['registered_value_not_illuminate_command'] = true;
+                }
+                $report['command'] = $result;
+                return $result;
+            });
+
+            $step('composer_autoload', static function () use ($base, $expectedCommand, &$report, $hash): array {
+                $loader = require_once $base.'/vendor/autoload.php';
+                $classFile = method_exists($loader, 'findFile') ? $loader->findFile($expectedCommand) : null;
+                $files = [];
+                foreach (['vendor/autoload.php', 'vendor/composer/autoload_real.php', 'vendor/composer/autoload_psr4.php', 'vendor/composer/autoload_classmap.php', 'vendor/composer/autoload_static.php'] as $path) {
+                    $full = $base.'/'.$path;
+                    $files[$path] = ['exists' => is_file($full), 'sha256' => $hash($full)];
+                }
+                $report['autoload'] = [
+                    'loader_class' => get_class($loader),
+                    'expected_class_resolved' => is_string($classFile) && $classFile !== '',
+                    'resolved_class_file' => is_string($classFile) ? $classFile : null,
+                    'resolved_class_realpath' => is_string($classFile) ? (realpath($classFile) ?: $classFile) : null,
+                    'resolved_class_sha256' => is_string($classFile) ? $hash($classFile) : null,
+                    'metadata_files' => $files,
+                ];
+                return $report['autoload'];
+            });
+
+            $step('bootstrap_cache', static function () use ($base, $hash, &$report): array {
+                $root = $base.'/bootstrap/cache';
+                $items = [];
+                foreach (glob($root.'/*') ?: [] as $path) {
+                    if (! is_file($path)) { continue; }
+                    $items[] = [
+                        'name' => basename($path),
+                        'size_bytes' => filesize($path),
+                        'modified_at_utc' => gmdate(DATE_ATOM, filemtime($path)),
+                        'sha256' => $hash($path),
+                    ];
+                }
+                $report['bootstrap_cache'] = [
+                    'directory_exists' => is_dir($root),
+                    'files' => array_slice($items, 0, 100),
+                    'file_count' => count($items),
+                ];
+                return $report['bootstrap_cache'];
+            });
+
+            $step('relevant_file_inventory', static function () use ($base, $hash, &$report): array {
+                $roots = ['app/Console', 'bootstrap', 'config', 'vendor/composer'];
+                $out = [];
+                foreach ($roots as $root) {
+                    $rootPath = $base.'/'.$root;
+                    $files = [];
+                    if (is_dir($rootPath)) {
+                        $iterator = new RecursiveIteratorIterator(
+                            new RecursiveDirectoryIterator($rootPath, FilesystemIterator::SKIP_DOTS)
+                        );
+                        foreach ($iterator as $file) {
+                            if (!$file->isFile()) { continue; }
+                            $path = substr($file->getPathname(), strlen($base) + 1);
+                            $files[] = [
+                                'path' => $path,
+                                'size_bytes' => $file->getSize(),
+                                'sha256' => $hash($file->getPathname()),
+                                'modified_at_utc' => gmdate(DATE_ATOM, $file->getMTime()),
+                            ];
+                            if (count($files) >= 500) { break; }
+                        }
+                    }
+                    $out[$root] = $files;
+                }
+                $report['files']['runtime_inventory'] = $out;
+                return ['roots' => array_map('count', $out)];
+            });
+
+            $step('two_way_tracked_file_parity', static function () use ($base, &$report, $hash): array {
+                $target = getenv('PHASE_5B18_TARGET_REVISION') ?: '';
+                if (!preg_match('/^[a-f0-9]{40}$/', $target)) {
+                    throw new RuntimeException('expected revision unavailable');
+                }
+                $repo = getenv('PHASE_5B18_PARITY_REPO') ?: '';
+                $list = [];
+                exec('git -C '.escapeshellarg($repo).' ls-tree -r --name-only '.escapeshellarg($target).' -- app bootstrap config database resources routes composer.json composer.lock public artisan 2>/dev/null', $list, $code);
+                if ($code !== 0) { throw new RuntimeException('expected file list unavailable'); }
+                $expected = array_values(array_filter($list, static fn ($p) => $p !== ''));
+                $missing = [];
+                $different = [];
+                foreach ($expected as $path) {
+                    $full = $base.'/'.$path;
+                    if (!is_file($full) && !is_link($full)) { $missing[] = $path; continue; }
+                    $expectedHash = trim((string) shell_exec('git -C '.escapeshellarg($repo).' show '.escapeshellarg($target.':'.$path).' 2>/dev/null | sha256sum'));
+                    $expectedHash = explode(' ', $expectedHash)[0] ?? '';
+                    $actualHash = $hash($full);
+                    if ($actualHash !== $expectedHash) { $different[] = ['path' => $path, 'expected_sha256' => $expectedHash, 'actual_sha256' => $actualHash]; }
+                }
+                $trackedRoots = ['app', 'bootstrap', 'config', 'database', 'resources', 'routes', 'public'];
+                $unexpected = [];
+                foreach ($trackedRoots as $root) {
+                    $iterator = is_dir($base.'/'.$root) ? new RecursiveIteratorIterator(new RecursiveDirectoryIterator($base.'/'.$root, FilesystemIterator::SKIP_DOTS)) : [];
+                    foreach ($iterator as $file) {
+                        if (!$file->isFile() && !$file->isLink()) { continue; }
+                        $relative = substr($file->getPathname(), strlen($base) + 1);
+                        if (!in_array($relative, $expected, true)) {
+                            $unexpected[] = $relative;
+                            if (count($unexpected) >= 1000) { break 2; }
+                        }
+                    }
+                }
+                $report['parity'] = [
+                    'expected_revision' => $target,
+                    'expected_tracked_file_count' => count($expected),
+                    'missing_expected_files' => array_slice($missing, 0, 300),
+                    'different_expected_files' => array_slice($different, 0, 300),
+                    'unexpected_extra_files' => array_slice($unexpected, 0, 300),
+                    'unexpected_extra_file_count_captured' => count($unexpected),
+                    'tracked_parity_complete' => $missing === [] && $different === [] && $unexpected === [],
+                ];
+                return $report['parity'];
+            });
+
+            $json = json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+            if (!is_string($json)) {
+                fwrite(STDERR, "diagnostic report encoding failed".PHP_EOL);
+                exit(90);
+            }
+            $reportPath = $argv[1] ?? '';
+            if ($reportPath === '' || file_exists($reportPath)) {
+                fwrite(STDERR, "diagnostic output path unavailable".PHP_EOL);
+                exit(91);
+            }
+            if (file_put_contents($reportPath, $json, LOCK_EX) === false) {
+                fwrite(STDERR, "diagnostic report write failed".PHP_EOL);
+                exit(92);
+            }
+            PHP
+
+            PHASE_5B18_TARGET_REVISION="$EXPECTED_REVISION" PHASE_5B18_PARITY_REPO="$PARITY_REPO" "$PHP_BIN" "$DIAG_SCRIPT" "$DIAG_REPORT" 2> "$DIAG_ERROR" || DIAG_EXIT=$?
+            DIAG_EXIT="${DIAG_EXIT:-0}"
+            if [ -s "$DIAG_ERROR" ]; then
+              echo "phase_5b18_diagnostic_stderr_present=true"
+            else
+              echo "phase_5b18_diagnostic_stderr_present=false"
+            fi
+            if [ -f "$DIAG_REPORT" ]; then
+              DIAG_BYTES="$(wc -c < "$DIAG_REPORT" | tr -d ' ')"
+              DIAG_SHA="$(sha256sum "$DIAG_REPORT" | awk '{print $1}')"
+              if [ "$DIAG_BYTES" -le 262144 ]; then
+                install -m 600 "$DIAG_REPORT" "$DIAG_FINAL"
+                echo "phase_5b18_report=WRITTEN"
+                echo "phase_5b18_report_bytes=$DIAG_BYTES"
+                echo "phase_5b18_report_sha256=$DIAG_SHA"
+              else
+                echo "phase_5b18_report=TOO_LARGE"
+                DIAG_EXIT=93
+              fi
+            else
+              echo "phase_5b18_report=MISSING"
+              DIAG_EXIT=94
+            fi
+            echo "phase_5b18_diagnostic_exit_code=$DIAG_EXIT"
+            [ "$DIAG_EXIT" -eq 0 ] || exit "$DIAG_EXIT"
+
+            echo "=== Existing read-only diagnostics continue unchanged ==="
             echo "=== Application environment ==="
             php artisan env
             echo "=== Deployed API route registration (read-only; bounded) ==="
