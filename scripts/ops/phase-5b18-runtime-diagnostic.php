@@ -155,6 +155,40 @@ $step('bootstrap_and_command_registry', static function () use ($base, &$report)
     }
 });
 
+$step('native_artisan_inspection', static function () use ($base, &$report): void {
+    $php = PHP_BINARY;
+    $listOutput = [];
+    $listCode = 0;
+    exec(escapeshellarg($php) . ' ' . escapeshellarg($base . '/artisan') . ' list --raw --no-ansi 2>&1', $listOutput, $listCode);
+    $listMatch = false;
+    foreach ($listOutput as $line) {
+        if (preg_match('/^institutes:qualify-official-sources(?:\\s|$)/', $line) === 1) {
+            $listMatch = true;
+            break;
+        }
+    }
+
+    $helpOutput = [];
+    $helpCode = 0;
+    exec(escapeshellarg($php) . ' ' . escapeshellarg($base . '/artisan') . ' help institutes:qualify-official-sources --no-ansi 2>&1', $helpOutput, $helpCode);
+    $helpText = implode("\\n", $helpOutput);
+    $sourcePresent = preg_match('/--source(?:[=\\s]|$)/', $helpText) === 1;
+
+    $report['artisan']['native_list'] = [
+        'exit_code' => $listCode,
+        'qualification_command_listed' => $listMatch,
+        'output_excerpt' => array_slice($listOutput, 0, 30),
+    ];
+    $report['artisan']['native_help'] = [
+        'exit_code' => $helpCode,
+        'command_help_succeeded' => $helpCode === 0,
+        'source_option_present' => $sourcePresent,
+        'options_excerpt' => array_slice($helpOutput, 0, 80),
+    ];
+    if ($listCode !== 0 || $helpCode !== 0 || !$listMatch) {
+        throw new RuntimeException('native_artisan_list_or_help_failed');
+    }
+});
 $step('bootstrap_cache_inventory', static function () use ($base, $sha256, &$report): void {
     $root = $base . '/bootstrap/cache';
     $files = [];
@@ -275,7 +309,7 @@ $step('runtime_inventory', static function () use ($base, $sha256, &$report): vo
     $report['files']['runtime_inventory'] = $inventory;
 });
 
-$requiredSteps = ['source_hashes', 'composer_autoload', 'bootstrap_and_command_registry', 'bootstrap_cache_inventory', 'two_way_file_parity', 'runtime_inventory'];
+$requiredSteps = ['source_hashes', 'composer_autoload', 'bootstrap_and_command_registry', 'native_artisan_inspection', 'bootstrap_cache_inventory', 'two_way_file_parity', 'runtime_inventory'];
 $report['overall_status'] = 'PASS';
 foreach ($requiredSteps as $requiredStep) {
     if (($report['steps'][$requiredStep] ?? 'FAIL') !== 'PASS') {
