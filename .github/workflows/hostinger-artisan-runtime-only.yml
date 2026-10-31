@@ -283,6 +283,7 @@ jobs:
           HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
           HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
           REMOTE_DIR: ${{ steps.transfer.outputs.remote_dir }}
+          ARTIFACT_PRESERVED: ${{ steps.evidence.outcome == 'success' }}
         run: |
           set -euo pipefail
           [[ "$REMOTE_DIR" =~ ^/home/u537436044/domains/estudent\.pk/public_html/institutes/\.phase-5b27-runtime/run\.[A-Za-z0-9]+$ ]]
