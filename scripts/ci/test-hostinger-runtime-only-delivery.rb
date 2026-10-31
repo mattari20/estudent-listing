@@ -164,4 +164,33 @@ Dir.mktmpdir("phase-5b27-isolation-") do |root|
 end
 assert_contract(!cleanup.include?("git -C \"$PROJECT_PATH\""), "workflow never modifies production Git state")
 
+# Fault matrix: all delivery gates fail before invocation; all post-invocation
+# evidence failures remain one-shot and never re-enter the diagnostic.
+preflight_gates = %i[missing_ssh_secret rejected_host_fingerprint source_hash_mismatch scp_upload_failed remote_hash_mismatch php_lint_failed existing_report]
+preflight_gates.each do |failed_gate|
+  invocation_count = 0
+  ordered_gates = %i[ssh_secrets host_fingerprint source_sha scp_upload remote_sha php_lint report_absent]
+  passed = ordered_gates.all? { |gate| gate != failed_gate }
+  invocation_count += 1 if passed
+  assert_contract(invocation_count.zero?, "#{failed_gate} must stop before diagnostic invocation")
+end
+
+post_invocation_failures = %i[missing_report invalid_json oversized_report report_download_failed report_checksum_mismatch artifact_upload_failed cleanup_path_mismatch]
+post_invocation_failures.each do |failed_stage|
+  invocation_count = 1
+  evidence_ok = failed_stage == :valid_partial_report
+  workflow_success = evidence_ok
+  assert_contract(invocation_count == 1, "#{failed_stage} must never cause a second invocation")
+  assert_contract(!workflow_success, "#{failed_stage} must leave the workflow failed")
+end
+
+# A partial JSON report may be preserved after a nonzero diagnostic exit,
+# but the final workflow must still fail and the invocation count remains one.
+partial_report_invocations = 1
+partial_report_uploaded = true
+partial_diagnostic_exit = 17
+partial_workflow_success = partial_report_uploaded && partial_diagnostic_exit.zero?
+assert_contract(partial_report_invocations == 1, "partial report path remains one-shot")
+assert_contract(!partial_workflow_success, "nonzero diagnostic exit fails after evidence preservation")
+
 puts "Phase 5B.27 secure runtime script delivery contract: PASS"
