@@ -44,6 +44,10 @@ assert_contract(source.include?("D='$REMOTE_DIR'") && source.include?("realpath 
 assert_contract(source.include?("steps.execute.outputs.remote_ssh_exit != '0'") && source.include?("steps.metadata.outputs.diagnostic_exit_code == ''"), "SSH failure or missing report evidence must fail the workflow")
 
 # Failure evidence is retrieved after the SSH command, without repeating PHP execution.
+assert_contract(source.include?('mktemp -d \\"/tmp/estudent-runtime-parity.XXXXXXXX\\"'), "parity temp path is an absolute /tmp path without a literal backslash")
+assert_contract(!source.include?('mktemp -d \\"\\/tmp/estudent-runtime-parity.XXXXXXXX\\"'), "parity temp path must not contain an escaped slash")
+assert_contract(source.include?("phase-5b27-remote.sanitized.log") && source.include?("tail -n 160"), "sanitized full remote failure output is surfaced")
+assert_contract(source.include?("phase-5b29a-remote-execution-evidence") && source.include?("retention-days: 7"), "sanitized remote failure evidence is retained as a seven-day artifact")
 assert_contract(source.include?("remote_ssh_exit=$STATUS"), "remote exit is captured")
 assert_contract(source.include?("always() && steps.transfer.outputs.remote_dir != ''"), "report retrieval is attempted after remote failure")
 assert_contract(source.include?("no retry") || source.include?("No retry"), "failed execution is never retried")
