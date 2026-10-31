@@ -94,7 +94,8 @@ end
 
 cleanup = cleanup_step.fetch("run")
 assert_contract(cleanup.include?("phase-5b18-runtime-diagnostic.php") && cleanup.include?("runtime-diagnostic-lint.txt"), "cleanup targets only temporary script and lint")
-assert_contract(!cleanup.include?("rm -f --") || !cleanup.match?(/rm -f --[^\\n]*(?:phase-5b18-artisan-runtime|runtime-diagnostic\\.stderr)/), "cleanup preserves report and stderr")
+assert_contract(!cleanup.match?(/rm -f --[^\\n]*phase-5b18-artisan-runtime/), "cleanup never deletes the final JSON report")
+assert_contract(cleanup.include?("ARTIFACT_PRESERVED") && cleanup.include?("runtime-diagnostic.stderr"), "remote stderr is removed only after artifact preservation")
 assert_contract(cleanup.include?("realpath -e") && cleanup.include?("run.[A-Za-z0-9]"), "cleanup validates real temporary path")
 assert_contract(cleanup.include?("D='$REMOTE_DIR'"), "cleanup uses only this run's REMOTE_DIR output")
 assert_contract(!cleanup.include?("current-run-path") && !cleanup.include?("MARKER="), "cleanup never trusts shared marker")
