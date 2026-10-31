@@ -186,7 +186,7 @@ $step('native_artisan_inspection', static function () use ($base, &$report): voi
     $helpCode = 0;
     exec(escapeshellarg($php) . ' ' . escapeshellarg($artisan) . ' help institutes:qualify-official-sources --no-ansi 2>&1', $helpOutput, $helpCode);
     $helpText = implode("\n", $helpOutput);
-    $sourcePresent = preg_match('/(?:^|\s)--source(?:[=\s]|$)/m', $helpText) === 1;
+    $sourcePresent = preg_match('/(?:^|\s)--source(?:[=\s\[]|$)/m', $helpText) === 1;
 
     $report['artisan']['native_list'] = [
         'command' => 'list --raw --no-ansi',
