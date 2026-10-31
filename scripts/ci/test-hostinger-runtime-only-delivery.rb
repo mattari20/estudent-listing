@@ -166,13 +166,21 @@ assert_contract(!cleanup.include?("git -C \"$PROJECT_PATH\""), "workflow never m
 
 # Fault matrix: all delivery gates fail before invocation; all post-invocation
 # evidence failures remain one-shot and never re-enter the diagnostic.
-preflight_gates = %i[missing_ssh_secret rejected_host_fingerprint source_hash_mismatch scp_upload_failed remote_hash_mismatch php_lint_failed existing_report]
-preflight_gates.each do |failed_gate|
+preflight_gates = {
+  missing_ssh_secret: :ssh_secrets,
+  rejected_host_fingerprint: :host_fingerprint,
+  source_hash_mismatch: :source_sha,
+  scp_upload_failed: :scp_upload,
+  remote_hash_mismatch: :remote_sha,
+  php_lint_failed: :php_lint,
+  existing_report: :report_absent
+}
+preflight_gates.each do |scenario, failed_gate|
   invocation_count = 0
   ordered_gates = %i[ssh_secrets host_fingerprint source_sha scp_upload remote_sha php_lint report_absent]
-  passed = ordered_gates.all? { |gate| gate != failed_gate }
+  passed = ordered_gates.none? { |gate| gate == failed_gate }
   invocation_count += 1 if passed
-  assert_contract(invocation_count.zero?, "#{failed_gate} must stop before diagnostic invocation")
+  assert_contract(invocation_count.zero?, "#{scenario} must stop before diagnostic invocation")
 end
 
 post_invocation_failures = %i[missing_report invalid_json oversized_report report_download_failed report_checksum_mismatch artifact_upload_failed cleanup_path_mismatch]
