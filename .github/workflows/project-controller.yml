@@ -14,6 +14,7 @@ on:
       - ".github/workflows/project-controller.yml"
       - "docs/PROJECT_MASTER_TRACKER.md"
       - "docs/AUTONOMOUS_STEP_EXECUTION_PROTOCOL.md"
+      - "docs/PHASE_5B28_RUNTIME_WORKFLOW.md"
   push:
     branches:
       - main
@@ -23,6 +24,7 @@ on:
       - ".github/workflows/project-controller.yml"
       - "docs/PROJECT_MASTER_TRACKER.md"
       - "docs/AUTONOMOUS_STEP_EXECUTION_PROTOCOL.md"
+      - "docs/PHASE_5B28_RUNTIME_WORKFLOW.md"
 
 permissions:
   contents: read
