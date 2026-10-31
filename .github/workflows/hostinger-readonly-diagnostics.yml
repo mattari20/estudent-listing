@@ -109,7 +109,9 @@ $run('two_way_file_parity',static function() use($base,$repo,$target,$sha,&$repo
 $run('runtime_inventory',static function() use($base,$sha,&$report): void {$out=[];foreach(['app/Console','bootstrap','config','vendor/composer'] as $root){$dir=$base.'/'.$root;if(!is_dir($dir))continue;$it=new \\RecursiveIteratorIterator(new \\RecursiveDirectoryIterator($dir,\\FilesystemIterator::SKIP_DOTS));foreach($it as $file){if(!$file->isFile())continue;$out[]=['path'=>substr($file->getPathname(),strlen($base)+1),'sha256'=>$sha($file->getPathname()),'size_bytes'=>$file->getSize()];if(count($out)>=500)break 2;}}$report['files']['runtime_inventory']=$out;});
 $json=json_encode($report,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_INVALID_UTF8_SUBSTITUTE);$dest=$argv[1]??'';if(!is_string($json)||$dest===''||file_exists($dest))exit(90);if(file_put_contents($dest,$json,LOCK_EX)===false)exit(91);
 PHP
-            PHASE_5B18_TARGET_REVISION="$EXPECTED_REVISION" PHASE_5B18_PARITY_REPO="$PARITY_REPO" "$PHP_BIN" "$DIAG_SCRIPT" "$DIAG_REPORT" 2> "$DIAG_ROOT/runtime-diagnostic.stderr" || DIAG_EXIT=$?
+            export PHASE_5B18_TARGET_REVISION="$EXPECTED_REVISION"
+            export PHASE_5B18_PARITY_REPO="$PARITY_REPO"
+            "$PHP_BIN" "$DIAG_SCRIPT" "$DIAG_REPORT" 2> "$DIAG_ROOT/runtime-diagnostic.stderr" || DIAG_EXIT=$?
             DIAG_EXIT="${DIAG_EXIT:-0}"
             if [ -f "$DIAG_REPORT" ]; then
               DIAG_BYTES="$(wc -c < "$DIAG_REPORT" | tr -d ' ')"
