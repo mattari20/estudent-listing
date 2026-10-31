@@ -119,12 +119,17 @@ jobs:
             test \"\$(stat -c %a \"\$SCRIPT\")\" = 600 || fail script_permissions
             ACTUAL=\"\$(sha256sum \"\$SCRIPT\" | awk '{print \$1}')\"
             test \"\$ACTUAL\" = \"\$EXPECTED\" || fail script_checksum_mismatch
-            PRIVATE=\"\$(realpath -m \"\$PROJECT/storage/app/private\")\"
+            test -d \"\$PROJECT/storage/app/private\" || fail private_root_missing
+            PRIVATE=\"\$(realpath -e \"\$PROJECT/storage/app/private\")\"
             PUBLIC=\"\$(realpath -e \"\$PROJECT/public\")\"
             case \"\$PRIVATE/\" in \"\$PUBLIC/\"*) fail private_root_inside_public ;; esac
+            case \"\$PUBLIC/\" in \"\$PRIVATE/\"*) fail public_root_inside_private ;; esac
             REPORT_DIR=\"\$PROJECT/storage/app/private/diagnostics\"
             test ! -e \"\$REPORT\" || fail report_exists_no_overwrite
             mkdir -p \"\$REPORT_DIR\"
+            test -d \"\$REPORT_DIR\" || fail report_directory_missing
+            REPORT_DIR_REAL=\"\$(realpath -e \"\$REPORT_DIR\")\"
+            case \"\$REPORT_DIR_REAL/\" in \"\$PUBLIC/\"*) fail report_directory_inside_public ;; esac
             chmod 700 \"\$REPORT_DIR\"
             test ! -e \"\$REPORT\" || fail report_appeared_no_overwrite
             test \"\$APPROVED\" = '3b0b1bc40206bb665f34064f265c2975f5ea19ef' || fail approved_revision_mismatch
