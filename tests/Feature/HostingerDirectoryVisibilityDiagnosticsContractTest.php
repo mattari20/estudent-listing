@@ -47,11 +47,13 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin +refs/heads/main:refs/remotes/origin/main', $workflow);
         $this->assertStringNotContainsString('git fetch --quiet --no-tags --unshallow origin main', $workflow);
         $this->assertStringContainsString('Deployed API route registration (read-only; bounded)', $workflow);
-        $this->assertStringContainsString('php artisan route:list --json --no-ansi', $workflow);
+        $this->assertStringContainsString('"$PHP_BIN" artisan route:list --json --no-ansi', $workflow);
         $this->assertStringContainsString('institution_api_route_registration', $workflow);
+        $this->assertStringContainsString("PHP_BIN='/opt/alt/php85/usr/bin/php'", $workflow);
+        $this->assertStringContainsString('phase_5b18_php_binary=$PHP_BIN', $workflow);
         $this->assertStringContainsString('Deployed API route registration (read-only; bounded)', $workflow);
         $this->assertStringContainsString('institution_api_route_registration', $workflow);
-        $this->assertStringContainsString('php artisan route:list --json --no-ansi', $workflow);
+        $this->assertStringContainsString('"$PHP_BIN" artisan route:list --json --no-ansi', $workflow);
         $this->assertStringContainsString('artisan schedule:run', $workflow);
         $this->assertStringContainsString('git -C "$PARITY_REPO" log --all --format=\'%H %cs %s\' -S\'duplicate_rows\' -- database/migrations', $workflow);
         $this->assertStringContainsString('git -C "$PARITY_REPO" log --all --format=\'%H %cs %s\' -S\'import_batches\' -- database/migrations', $workflow);
