@@ -51,7 +51,8 @@ assert_contract(source.include?("runtime-diagnostic.stderr"), "stderr evidence i
 assert_contract(source.include?("steps.evidence.outcome == 'success'"), "remote evidence cleanup requires a successful artifact upload")
 assert_contract(source.include?("ARTIFACT_PRESERVED"), "cleanup must retain remote evidence if artifact upload fails")
 assert_contract(source.include?("exit 1"), "missing evidence or nonzero diagnostic must fail the workflow")
-assert_contract(source.include?("ssh-keyscan") && source.include?("EXPECTED_HOST_FINGERPRINT"), "host fingerprint rejection is enforced")
+assert_contract(source.include?("ssh-keyscan") && source.include?("EXPECTED_HOST_FINGERPRINT") && source.include?("grep -Fxq"), "host fingerprint rejection is enforced")
+assert_contract(source.include?('[[ -n "$SSH_PRIVATE_KEY"') && source.include?("HOSTINGER_SSH_USER"), "missing SSH credentials fail closed")
 assert_contract(source.include?("HOSTINGER_SSH_PRIVATE_KEY") && source.include?("HOSTINGER_SSH_HOST") && source.include?("HOSTINGER_SSH_PORT"), "missing SSH secrets fail before transfer")
 assert_contract(source.include?("test -s") && source.include?("report_missing_no_retry"), "missing report stops without retry")
 assert_contract(source.include?("report_exceeds_256KiB"), "oversized report is rejected")
@@ -111,6 +112,20 @@ Dir.mktmpdir("phase-5b27-shell-") do |dir|
   assert_contract(status.success?, "remote command quoting/evaluation: #{remote_shell}")
   output, status = Open3.capture2e("bash", "-n", stdin_data: remote_shell)
   assert_contract(status.success?, "embedded remote bash syntax: #{output}")
+
+  cleanup_lines = cleanup_step.fetch("run").lines
+  cleanup_assignment = cleanup_lines.find { |line| line.include?('REMOTE_COMMAND="set -eu; B=') }
+  assert_contract(cleanup_assignment, "cleanup remote command assignment is present")
+  cleanup_harness = <<~BASH
+    REMOTE_DIR='/home/u537436044/domains/estudent.pk/public_html/institutes/.phase-5b27-runtime/run.ABCDEFGH'
+    ARTIFACT_PRESERVED='true'
+    #{cleanup_assignment}
+    printf '%s' "$REMOTE_COMMAND"
+  BASH
+  cleanup_shell, status = Open3.capture2e("bash", "-c", cleanup_harness)
+  assert_contract(status.success?, "cleanup command quoting/evaluation: #{cleanup_shell}")
+  output, status = Open3.capture2e("bash", "-n", stdin_data: cleanup_shell)
+  assert_contract(status.success?, "embedded cleanup bash syntax: #{output}")
 end
 
 cleanup = cleanup_step.fetch("run")
