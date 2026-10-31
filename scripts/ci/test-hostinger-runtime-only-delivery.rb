@@ -90,6 +90,27 @@ Dir.mktmpdir("phase-5b27-shell-") do |dir|
     output, status = Open3.capture2e("bash", "-n", path)
     assert_contract(status.success?, "runner shell syntax #{index}: #{output}")
   end
+
+  # Evaluate only the REMOTE_COMMAND assignment with inert test values, then
+  # parse the resulting remote shell. No SSH or production command is run.
+  run_lines = remote_step.fetch("run").lines
+  start_index = run_lines.index { |line| line.include?('REMOTE_COMMAND="set -eu') }
+  end_index = run_lines.each_index.find { |index| index > start_index && run_lines[index].strip == '"' }
+  assert_contract(start_index && end_index, "remote command assignment boundaries are identifiable")
+  assignment = run_lines[start_index..end_index].join
+  harness = <<~BASH
+    PROJECT_PATH='/home/u537436044/domains/estudent.pk/public_html/institutes'
+    PHP_BIN='/opt/alt/php85/usr/bin/php'
+    REMOTE_DIR='/home/u537436044/domains/estudent.pk/public_html/institutes/.phase-5b27-runtime/run.ABCDEFGH'
+    TARGET_REVISION='3b0b1bc40206bb665f34064f265c2975f5ea19ef'
+    SCRIPT_SHA256='#{'a' * 64}'
+    #{assignment}
+    printf '%s' "$REMOTE_COMMAND"
+  BASH
+  remote_shell, status = Open3.capture2e("bash", "-c", harness)
+  assert_contract(status.success?, "remote command quoting/evaluation: #{remote_shell}")
+  output, status = Open3.capture2e("bash", "-n", stdin_data: remote_shell)
+  assert_contract(status.success?, "embedded remote bash syntax: #{output}")
 end
 
 cleanup = cleanup_step.fetch("run")
