@@ -42,9 +42,9 @@ assert_contract(!source.match?(/artisan\s+institutes:qualify-official-sources\s+
 assert_contract(php_source.include?("list --raw --no-ansi") && php_source.include?("help institutes:qualify-official-sources --no-ansi"), "native Artisan list/help inspection must remain available")
 assert_contract(php_source.include?('(?:\s|$)'), "native list must match the exact command name")
 assert_contract(php_source.include?('implode("\n", $helpOutput)'), "native help lines must be joined with real newlines")
-assert_contract(php_source.include?("'exit_code' => $listCode") && php_source.include?("'exit_code' => $helpCode"), "native command exit codes must be recorded")
-assert_contract(php_source.include?("'output_excerpt' => $sanitize") && php_source.include?("'options_excerpt' => $sanitize"), "native output must be bounded and sanitized")
-assert_contract(php_source.include?("'source_option_present' => $sourcePresent"), "native --source detection must be recorded")
+assert_contract(php_source.include?(%q{'exit_code' => $listCode}) && php_source.include?(%q{'exit_code' => $helpCode}), "native command exit codes must be recorded")
+assert_contract(php_source.include?(%q{'output_excerpt' => $sanitize}) && php_source.include?(%q{'options_excerpt' => $sanitize}), "native output must be bounded and sanitized")
+assert_contract(php_source.include?(%q{'source_option_present' => $sourcePresent}), "native --source detection must be recorded")
 assert_contract(source.include?("scripts/ops/phase-5b18-runtime-diagnostic.php"), "workflow must execute the committed diagnostic script")
 
 php_required = [
@@ -64,9 +64,9 @@ php_required = [
   "reflection_source_file",
   "native_help",
   "source_option_present",
-  "fopen($temporary, 'x')",
-  "rename($temporary, $reportPath)",
-  "chmod($reportPath, 0600)",
+  %q{fopen($temporary, 'x')},
+  %q{rename($temporary, $reportPath)},
+  %q{chmod($reportPath, 0600)},
   "refusing to overwrite report",
   "source_requests_performed",
   "qualification_command_executed"
@@ -75,7 +75,7 @@ php_required.each { |fragment| assert_contract(php_source.include?(fragment), "P
 
 assert_contract(php_source.include?("getenv('PHASE_5B18_TARGET_REVISION')"), "expected revision must be read from environment")
 assert_contract(php_source.include?("getenv('PHASE_5B18_PARITY_REPO')"), "isolated repository must be read from environment")
-assert_contract(!php_source.include?("exec(escapeshellarg($php) . ' ' . escapeshellarg($artisan) . ' institutes:qualify-official-sources"), "PHP diagnostic must not execute qualification")
+assert_contract(!php_source.include?(%q{exec(escapeshellarg($php) . ' ' . escapeshellarg($artisan) . ' institutes:qualify-official-sources}), "PHP diagnostic must not execute qualification")
 
 # Exercise script lint, partial-report generation, no-overwrite, atomic report and mode bits
 php = ENV.fetch("PHP_BIN", "php")
