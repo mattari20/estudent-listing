@@ -159,8 +159,10 @@ Dir.mktmpdir("phase-5b21-native-") do |dir|
   native = with_source.dig("artisan", "native_help")
   assert_contract(native && native["source_option_present"] == true, "--source must be detected when present")
   assert_contract(with_source.dig("steps", "native_artisan_inspection") == "PASS", "native list/help success must be recorded")
+  assert_contract(with_source.dig("steps", "composer_autoload") == "FAIL", "missing Composer autoload must be captured as a failed step")
   list_lines = with_source.dig("artisan", "native_list", "output_excerpt").join("\n")
   assert_contract(!list_lines.include?("SHOULD_NOT_LEAK") && list_lines.include?("[REDACTED]"), "native output secrets must be redacted")
+  assert_contract(File.size(File.join(dir, "source-present.json")) <= 262_144, "native partial report must remain within 256 KiB")
   assert_contract(with_source_status.exitstatus != 0, "overall diagnostic remains failed when fixture lacks the deployed application")
 
   without_source, = run_native.call("source-absent", { "FAKE_SOURCE_OPTION" => "no" })
