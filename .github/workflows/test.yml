@@ -76,6 +76,8 @@ jobs:
         run: ruby scripts/ci/test-hostinger-artisan-runtime-diagnostic.rb
       - name: Validate private Phase 5B.18 runtime script delivery workflow
         run: ruby scripts/ci/test-hostinger-runtime-only-delivery.rb
+      - name: PHP 8.5 lint approved Phase 5B.18 diagnostic source
+        run: php -l scripts/ops/phase-5b18-runtime-diagnostic.php
 
       - name: Lint guarded production schema diagnostic
         run: php -l scripts/ops/official-source-refresh-diagnostic.php
