@@ -81,8 +81,8 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('refusing to overwrite report', $diagnostic);
         $this->assertStringContainsString("list --raw --no-ansi", $diagnostic);
         $this->assertStringContainsString("help institutes:qualify-official-sources --no-ansi", $diagnostic);
-        $this->assertStringContainsString("preg_match('/^institutes:qualify-official-sources(?:\\\\s|$)/'", $diagnostic);
-        $this->assertStringContainsString('implode("\\\\n", $helpOutput)', $diagnostic);
+        $this->assertStringContainsString('preg_match(\'/^institutes:qualify-official-sources(?:\s|$)/\'', $diagnostic);
+        $this->assertStringContainsString('implode("\n", $helpOutput)', $diagnostic);
         $this->assertStringContainsString("'exit_code' => $listCode", $diagnostic);
         $this->assertStringContainsString("'exit_code' => $helpCode", $diagnostic);
         $this->assertStringContainsString("'source_option_present' => $sourcePresent", $diagnostic);
