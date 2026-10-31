@@ -225,6 +225,21 @@ jobs:
           mv "$PARTIAL" "$DEST"
           trap - EXIT
 
+      - name: Download preserved diagnostic stderr
+        if: ${{ always() && steps.metadata.outputs.report_sha256 != '' }}
+        shell: bash
+        env:
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          REMOTE_DIR: ${{ steps.transfer.outputs.remote_dir }}
+        run: |
+          set -euo pipefail
+          mkdir -p phase-5b27-report
+          KEY_PATH="$RUNNER_TEMP/phase-5b27-hostinger-id"; KNOWN_HOSTS="$RUNNER_TEMP/phase-5b27-known-hosts"
+          timeout 60s scp -q -P "$HOSTINGER_PORT" -i "$KEY_PATH" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" "$HOSTINGER_USER@$HOSTINGER_HOST:$REMOTE_DIR/runtime-diagnostic.stderr" phase-5b27-report/runtime-diagnostic.stderr
+          test -f phase-5b27-report/runtime-diagnostic.stderr
+
       - name: Validate transferred report before artifact upload
         id: validate
         if: ${{ always() && steps.metadata.outputs.report_sha256 != '' }}
@@ -243,12 +258,13 @@ jobs:
           php -r '$d=json_decode((string)file_get_contents($argv[1]),true);if(!is_array($d)||json_last_error()!==JSON_ERROR_NONE)exit(1);' "$FILE"
           echo "Validated report bytes=$BYTES sha256=$SHA"
 
-      - name: Upload validated report artifact
+      - name: Upload validated report and stderr evidence
+        id: evidence
         if: ${{ always() && steps.validate.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: phase-5b18-artisan-runtime-report
-          path: phase-5b27-report/phase-5b18-artisan-runtime.json
+          path: phase-5b27-report/
           if-no-files-found: error
           retention-days: 7
 
@@ -271,5 +287,5 @@ jobs:
           set -euo pipefail
           [[ "$REMOTE_DIR" =~ ^/home/u537436044/domains/estudent\.pk/public_html/institutes/\.phase-5b27-runtime/run\.[A-Za-z0-9]+$ ]]
           KEY_PATH="$RUNNER_TEMP/phase-5b27-hostinger-id"; KNOWN_HOSTS="$RUNNER_TEMP/phase-5b27-known-hosts"
-          REMOTE_COMMAND="set -eu; B='/home/u537436044/domains/estudent.pk/public_html/institutes/.phase-5b27-runtime'; D='$REMOTE_DIR'; case \"\$D\" in \"\$B\"/run.[A-Za-z0-9]*) ;; *) echo cleanup_path_prefix_rejected; exit 31 ;; esac; test -d \"\$D\"; CANON=\$(realpath -e \"\$D\"); test \"\$CANON\" = \"\$D\"; case \"\$CANON\" in \"\$B\"/run.[A-Za-z0-9]*) ;; *) echo cleanup_canonical_path_rejected; exit 32 ;; esac; test \"\$(stat -c %a \"\$CANON\")\" = 700; if [ -f \"\$CANON/parity-path.txt\" ]; then P=\$(cat \"\$CANON/parity-path.txt\"); case \"\$P\" in /tmp/estudent-runtime-parity.[A-Za-z0-9]*) test \"\$(realpath -e \"\$P\")\" = \"\$P\"; rm -rf -- \"\$P\" ;; *) echo cleanup_parity_path_rejected; exit 33 ;; esac; fi; rm -f -- \"\$CANON/phase-5b18-runtime-diagnostic.php\" \"\$CANON/runtime-diagnostic-lint.txt\" \"\$CANON/parity-path.txt\"; test ! -e \"\$CANON/phase-5b18-runtime-diagnostic.php\"; echo cleanup_script_removed; rmdir -- \"\$CANON\" || { echo cleanup_directory_retained_for_evidence; exit 34; }"
+          REMOTE_COMMAND="set -eu; B='/home/u537436044/domains/estudent.pk/public_html/institutes/.phase-5b27-runtime'; D='$REMOTE_DIR'; case \"\$D\" in \"\$B\"/run.[A-Za-z0-9]*) ;; *) echo cleanup_path_prefix_rejected; exit 31 ;; esac; test -d \"\$D\"; CANON=\$(realpath -e \"\$D\"); test \"\$CANON\" = \"\$D\"; case \"\$CANON\" in \"\$B\"/run.[A-Za-z0-9]*) ;; *) echo cleanup_canonical_path_rejected; exit 32 ;; esac; test \"\$(stat -c %a \"\$CANON\")\" = 700; if [ -f \"\$CANON/parity-path.txt\" ]; then P=\$(cat \"\$CANON/parity-path.txt\"); case \"\$P\" in /tmp/estudent-runtime-parity.[A-Za-z0-9]*) test \"\$(realpath -e \"\$P\")\" = \"\$P\"; rm -rf -- \"\$P\" ;; *) echo cleanup_parity_path_rejected; exit 33 ;; esac; fi; rm -f -- \"\$CANON/phase-5b18-runtime-diagnostic.php\" \"\$CANON/runtime-diagnostic-lint.txt\" \"\$CANON/parity-path.txt\"; test ! -e \"\$CANON/phase-5b18-runtime-diagnostic.php\"; if [ '$ARTIFACT_PRESERVED' = 'true' ]; then rm -f -- \"\$CANON/runtime-diagnostic.stderr\" \"\$CANON/report-metadata.txt\"; rmdir -- \"\$CANON\"; else echo cleanup_evidence_retained; fi"
           timeout 60s ssh -i "$KEY_PATH" -p "$HOSTINGER_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" "$HOSTINGER_USER@$HOSTINGER_HOST" "$REMOTE_COMMAND" || { echo '::error::Per-run cleanup failed; report and stderr were not deleted.'; exit 1; }
