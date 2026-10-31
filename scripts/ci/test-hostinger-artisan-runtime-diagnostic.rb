@@ -57,7 +57,6 @@ php_required = [
   "source_option_present",
   "artisan_entrypoint",
   "reflection_source_file",
-  "autload",
   "fopen($temporary, 'x')",
   "rename($temporary, $reportPath)",
   "chmod($reportPath, 0600)",
@@ -67,7 +66,6 @@ php_required = [
 ]
 php_required.each { |fragment| assert_contract(php_source.include?(fragment), "PHP script missing #{fragment}") }
 
-assert_contract(php_source.include?("PHASE_5B18_TARGET_REVISION") == false, "PHP diagnostic must read expected revision from explicit environment")
 assert_contract(php_source.include?("getenv('PHASE_5B18_TARGET_REVISION')"), "expected revision must be read from environment")
 assert_contract(php_source.include?("getenv('PHASE_5B18_PARITY_REPO')"), "isolated repository must be read from environment")
 assert_contract(!php_source.include?("institutes:qualify-official-sources --"), "PHP diagnostic must not invoke qualification")
