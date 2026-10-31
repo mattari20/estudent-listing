@@ -1,19 +1,23 @@
 # Phase 5B.18 — Expanded Read-only Production Artisan Runtime Diagnosis
 
-Status: diagnostic implementation prepared; production execution pending workflow run.
+Status: diagnostic implementation prepared; production execution pending a reviewed merge and a later manual workflow dispatch.
 
-Base main revision: `1ef5a78fcd06d1d723e09a0ba1274bb73e2b54d6`.
+## Failure evidence and correction (Phase 5B.21)
 
-## Scope
+The 2026-10-31 Hostinger diagnostic run [#765](https://github.com/mattari20/estudent-listing/actions/runs/41171997967) connected to production, began the runtime diagnostic, and exited with report status 94 because the JSON report did not appear. The old workflow redirected PHP stderr into a file under a temporary directory and then removed that directory in its EXIT trap, so the parser/runtime error was not retained in the GitHub job log. The previous embedded PHP source also contained incorrectly doubled namespace separators in executable references.
 
-The Hostinger Read-only Diagnostics workflow now includes a read-only runtime inspection before its pre-existing diagnostics. It uses `/opt/alt/php85/usr/bin/php`, fetches the expected source revision into an isolated temporary Git repository, and inspects runtime Composer resolution, Laravel bootstrap, command registry, reflection source/signature, bootstrap cache inventory, and expected-versus-actual application files. It records unexpected extra files without deleting or modifying them.
+The diagnostic is now a committed PHP script at `scripts/ops/phase-5b18-runtime-diagnostic.php`, linted before execution. It writes a bounded partial JSON report even when an inspection step fails, records step names and exception classes, and exits nonzero when required evidence is incomplete. Report creation uses an exclusive temporary file, mode 0600, and an atomic rename; an existing report is never overwritten. The SSH wrapper retains PHP stderr in a mode-700 temporary directory and emits a bounded sanitized excerpt on failure before cleanup. The temporary script is no longer generated inline. Temporary parity Git data remains isolated from the live production repository.
 
-The bounded report destination is `storage/app/private/diagnostics/phase-5b18-artisan-runtime.json`. Existing reports are never overwritten. Temporary diagnostic files and the isolated parity repository are removed at exit. The report is installed with mode 600 and capped at 256 KiB.
+The regression contract lints and executes the PHP script against a controlled temporary fixture, checks partial report creation, failure evidence, mode 0600, the 256 KiB limit, and refusal to overwrite.
 
-## Strict non-goals
+## Report
 
-The diagnostic does not execute `institutes:qualify-official-sources`, perform HTTP requests, write database records, run migrations, clear caches, modify production application files, or mutate production Git refs/index/working tree. Existing database/schema diagnostic steps are retained.
+The intended report destination remains `storage/app/private/diagnostics/phase-5b18-artisan-runtime.json`. It records PHP/Laravel runtime identity, Artisan registration and reflected definition, Composer class resolution and hashes, bootstrap cache inventory, expected/deployed source hashes, missing/different files, unexpected extras, two-way parity, step results and exception classes.
+
+## Safety boundaries
+
+The diagnostic never invokes `institutes:qualify-official-sources`, never contacts GCU/HEC, does not run migrations or write database records, does not clear caches, and does not change production application files or production Git refs/index/working tree.
 
 ## Execution gate
 
-No Hostinger run ID or runtime diagnosis is asserted by this documentation. The workflow's read-only diagnostic step must execute and its JSON/logs must be inspected before assigning a production root cause. Do not dispatch the GCU qualification workflow until production Artisan help explicitly includes `--source`.
+No production rerun is part of Phase 5B.21 development. After this focused PR passes CI and is merged through normal review, perform exactly one manually triggered run of the existing Hostinger Read-only Diagnostics workflow. Preserve any existing report and do not rerun automatically to overwrite it. Do not dispatch GCU qualification until actual production Artisan evidence establishes the loaded command's `--source` option.
