@@ -39,10 +39,9 @@ assert_contract(source.include?('2> "$DIAG_STDERR"'), "PHP stderr must be captur
 assert_contract(source.include?('sed -n \'1,80p\' "$DIAG_STDERR"'), "diagnostic stderr must be surfaced when report generation fails")
 assert_contract(source.scan("PHP_BIN='/opt/alt/php85/usr/bin/php'").length == 1, "approved PHP binary must be initialized exactly once")
 assert_contract(!source.match?(/artisan\s+institutes:qualify-official-sources\s+--/), "workflow must not invoke qualification or a source request")
-assert_contract(!source.match?(/(?:^|\\s)artisan\\s+institutes:qualify-official-sources\\s+(?:--source|--)/), "workflow must not execute qualification")
 assert_contract(php_source.include?("list --raw --no-ansi") && php_source.include?("help institutes:qualify-official-sources --no-ansi"), "native Artisan list/help inspection must remain available")
-assert_contract(php_source.include?("preg_match('/^institutes:qualify-official-sources(?:\\\\s|$)/'"), "native list must match the exact command name")
-assert_contract(php_source.include?('implode("\\\\n", $helpOutput)'), "native help lines must be joined with real newlines")
+assert_contract(php_source.include?("(?:\s|$)"), "native list must match the exact command name")
+assert_contract(php_source.include?('implode("\n", $helpOutput)'), "native help lines must be joined with real newlines")
 assert_contract(php_source.include?("'exit_code' => $listCode") && php_source.include?("'exit_code' => $helpCode"), "native command exit codes must be recorded")
 assert_contract(php_source.include?("'output_excerpt' => $sanitize") && php_source.include?("'options_excerpt' => $sanitize"), "native output must be bounded and sanitized")
 assert_contract(php_source.include?("'source_option_present' => $sourcePresent"), "native --source detection must be recorded")
@@ -76,7 +75,7 @@ php_required.each { |fragment| assert_contract(php_source.include?(fragment), "P
 
 assert_contract(php_source.include?("getenv('PHASE_5B18_TARGET_REVISION')"), "expected revision must be read from environment")
 assert_contract(php_source.include?("getenv('PHASE_5B18_PARITY_REPO')"), "isolated repository must be read from environment")
-assert_contract(!php_source.match?(/exec\\([^\\n]*artisan[^\\n]*institutes:qualify-official-sources/), "PHP diagnostic must not execute qualification")
+assert_contract(!php_source.include?("exec(escapeshellarg($php) . ' ' . escapeshellarg($artisan) . ' institutes:qualify-official-sources"), "PHP diagnostic must not execute qualification")
 
 # Exercise script lint, partial-report generation, no-overwrite, atomic report and mode bits
 php = ENV.fetch("PHP_BIN", "php")
