@@ -31,6 +31,9 @@ assert_contract(workflow_source.include?("chmod 700") && workflow_source.include
 assert_contract(workflow_source.include?("phase-5b18-artisan-runtime.json") && workflow_source.include?("262144"), "fixed private report path and 256 KiB cap are required")
 assert_contract(workflow_source.include?("\"\\$PHP\" -l \"\\$SCRIPT\""), "remote lint must occur")
 assert_contract(workflow_source.include?("phase_5b27_diagnostic_invocations=1"), "one-run marker must exist")
+assert_contract(workflow_source.include?("steps.transfer.outputs.remote_dir !="), "partial report retrieval must run after remote execution result")
+assert_contract(workflow_source.include?("no automatic retry") || workflow_source.include?("no retry"), "no automatic rerun may follow failure")
+assert_contract(workflow_source.include?("runtime-diagnostic.stderr"), "stderr evidence must be preserved privately")
 assert_contract(workflow_source.scan(/\$PHP.*\$SCRIPT.*--report=/).length == 1, "only one diagnostic invocation is allowed")
 assert_contract(!workflow_source.match?(/artisan\s+institutes:qualify-official-sources/), "qualification must not be run")
 assert_contract(!workflow_source.match?(/artisan\s+migrate/), "migrations must be excluded")
@@ -41,7 +44,7 @@ assert_contract(workflow_source.include?("storage/app/private") && workflow_sour
 assert_contract(workflow_source.include?("mktemp -d") && workflow_source.include?("rmdir --"), "temporary directory must be unique and safely removed")
 assert_contract(workflow_source.index("name: Validate transferred report before artifact upload") < workflow_source.index("name: Upload validated report artifact"), "artifact upload must follow validation")
 assert_contract(workflow_source.include?("retention-days: 7"), "artifact retention must be seven days")
-assert_contract(workflow_source.include?("EXPECTED_BYTES") && workflow_source.include?("EXPECTED_SHA256") && workflow_source.include?("REMOTE_SHA") == false, "report metadata validation required")
+assert_contract(workflow_source.include?("EXPECTED_BYTES") && workflow_source.include?("EXPECTED_SHA256") && workflow_source.include?("report_sha256"), "report metadata validation required")
 assert_contract(php_source.include?("'qualification_command_executed' => false") && php_source.include?("'source_requests_performed' => false"), "approved PHP diagnostic non-execution flags must remain")
 
 steps = workflow.fetch("jobs").fetch("runtime-diagnostic").fetch("steps")
