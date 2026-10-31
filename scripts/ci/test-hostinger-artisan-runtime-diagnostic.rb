@@ -117,4 +117,75 @@ Dir.mktmpdir("phase-5b21-contract-") do |dir|
   assert_contract(malformed_output.match?(/Parse error|syntax error/i), "PHP parser evidence must be preserved")
 end
 
+
+# Exercise native Artisan evidence independently from Laravel's separately bootstrapped registry.
+Dir.mktmpdir("phase-5b21-native-") do |dir|
+  artisan = File.join(dir, "artisan")
+  File.write(artisan, "<?php // native command fixture\n")
+  fake_php = File.join(dir, "fake-php")
+  File.write(fake_php, <<~SH)
+    #!/bin/sh
+    if [ "$2" = "list" ]; then
+      printf '%s\n' 'institutes:qualify-official-sources'
+      printf '%s\n' 'token=SHOULD_NOT_LEAK'
+      exit "\${FAKE_LIST_EXIT:-0}"
+    fi
+    if [ "$2" = "help" ]; then
+      printf '%s\n' 'Usage: institutes:qualify-official-sources'
+      if [ "\${FAKE_SOURCE_OPTION:-yes}" = "yes" ]; then
+        printf '%s\n' '  --source[=SOURCE]'
+      fi
+      exit "\${FAKE_HELP_EXIT:-0}"
+    fi
+    exit 99
+  SH
+  FileUtils.chmod(0o700, fake_php)
+
+  run_native = lambda do |name, extra_env = {}|
+    report_path = File.join(dir, "#{name}.json")
+    env = {
+      "PHASE_5B18_TARGET_REVISION" => "fixture-revision",
+      "PHASE_5B18_PARITY_REPO" => dir,
+      "PHASE_5B18_NATIVE_PHP" => fake_php,
+      "PHASE_5B18_ARTISAN_PATH" => artisan
+    }.merge(extra_env)
+    output, status = Open3.capture2e(env, php, script_path, "--report=#{report_path}", chdir: dir)
+    assert_contract(File.file?(report_path), "#{name}: partial JSON report must be written")
+    payload = JSON.parse(File.read(report_path))
+    [payload, status, output]
+  end
+
+  with_source, with_source_status, = run_native.call("source-present")
+  native = with_source.dig("artisan", "native_help")
+  assert_contract(native && native["source_option_present"] == true, "--source must be detected when present")
+  assert_contract(with_source.dig("steps", "native_artisan_inspection") == "PASS", "native list/help success must be recorded")
+  list_lines = with_source.dig("artisan", "native_list", "output_excerpt").join("\n")
+  assert_contract(!list_lines.include?("SHOULD_NOT_LEAK") && list_lines.include?("[REDACTED]"), "native output secrets must be redacted")
+  assert_contract(with_source_status.exitstatus != 0, "overall diagnostic remains failed when fixture lacks the deployed application")
+
+  without_source, = run_native.call("source-absent", { "FAKE_SOURCE_OPTION" => "no" })
+  assert_contract(without_source.dig("artisan", "native_help", "source_option_present") == false, "--source absence must be recorded")
+
+  list_failure, list_status, = run_native.call("list-failure", { "FAKE_LIST_EXIT" => "7" })
+  assert_contract(list_failure.dig("artisan", "native_list", "exit_code") == 7, "native list exit status must be preserved")
+  assert_contract(list_failure.dig("steps", "native_artisan_inspection") == "FAIL" && list_status.exitstatus != 0, "native list failure must fail its step and process")
+
+  help_failure, help_status, = run_native.call("help-failure", { "FAKE_HELP_EXIT" => "9" })
+  assert_contract(help_failure.dig("artisan", "native_help", "exit_code") == 9, "native help exit status must be preserved")
+  assert_contract(help_failure.dig("steps", "native_artisan_inspection") == "FAIL" && help_status.exitstatus != 0, "native help failure must fail its step and process")
+
+  vendor = File.join(dir, "vendor")
+  Dir.mkdir(vendor)
+  File.write(File.join(vendor, "autoload.php"), <<~PHP)
+    <?php
+    class PhaseFiveBTestLoader {
+      public function findFile(string $class): false { return false; }
+    }
+    return new PhaseFiveBTestLoader();
+  PHP
+  bootstrap_failure, = run_native.call("bootstrap-failure")
+  assert_contract(bootstrap_failure.dig("steps", "composer_autoload") == "PASS", "fixture Composer autoload must pass before bootstrap test")
+  assert_contract(bootstrap_failure.dig("steps", "bootstrap_and_command_registry") == "FAIL", "Laravel bootstrap failure must be captured")
+end
+
 puts "Hostinger Artisan runtime diagnostic contract: PASS"
