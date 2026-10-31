@@ -74,8 +74,8 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('phase-5b18-artisan-runtime.json', $workflow);
         $this->assertStringContainsString('REPORT_LIMIT_BYTES = 262144', $diagnostic);
         $this->assertStringContainsString("'overall_status' => 'FAIL'", $diagnostic);
-        $this->assertStringContainsString("'exception_class' => get_class($exception)", $diagnostic);
-        $this->assertStringContainsString("fopen($temporary, 'x')", $diagnostic);
+        $this->assertStringContainsString("'exception_class' => get_class(\$exception)", $diagnostic);
+        $this->assertStringContainsString("fopen(\$temporary, 'x')", $diagnostic);
         $this->assertStringContainsString('rename($temporary, $reportPath)', $diagnostic);
         $this->assertStringContainsString('chmod($reportPath, 0600)', $diagnostic);
         $this->assertStringContainsString('refusing to overwrite report', $diagnostic);
