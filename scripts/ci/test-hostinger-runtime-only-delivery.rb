@@ -4,6 +4,7 @@
 require "yaml"
 require "open3"
 require "tmpdir"
+require "fileutils"
 
 root = File.expand_path("../..", __dir__)
 workflow_path = File.join(root, ".github/workflows/hostinger-artisan-runtime-only.yml")
@@ -39,6 +40,9 @@ assert_contract(source.include?('\\$PHP\\" -l \\"\\$SCRIPT\\"'), "PHP lint happe
 assert_contract(source.include?("script_checksum_mismatch") && source.include?("source_revision_hash_mismatch"), "checksum mismatch blocks execution")
 assert_contract(source.include?("scp -q") && source.include?("timeout 120s scp"), "transfer is authenticated and bounded")
 assert_contract(source.include?("REMOTE_DIR") && source.include?("mktemp -d"), "each transfer uses a unique temp directory")
+assert_contract(!source.include?("current-run-path") && !source.include?("MARKER="), "no shared current-run marker may be read or written")
+assert_contract(source.include?("D='$REMOTE_DIR'") && source.include?("realpath -e") && source.include?("cleanup_canonical_path_rejected"), "cleanup must validate this run's exact canonical REMOTE_DIR")
+assert_contract(source.include?("steps.execute.outputs.remote_ssh_exit != '0'") && source.include?("steps.metadata.outputs.diagnostic_exit_code == ''"), "SSH failure or missing report evidence must fail the workflow")
 
 # Failure evidence is retrieved after the SSH command, without repeating PHP execution.
 assert_contract(source.include?("remote_ssh_exit=$STATUS"), "remote exit is captured")
@@ -82,7 +86,35 @@ end
 cleanup = cleanup_step.fetch("run")
 assert_contract(cleanup.include?("phase-5b18-runtime-diagnostic.php") && cleanup.include?("runtime-diagnostic-lint.txt"), "cleanup targets only temporary script and lint")
 assert_contract(!cleanup.include?("rm -f --") || !cleanup.match?(/rm -f --[^\\n]*(?:phase-5b18-artisan-runtime|runtime-diagnostic\\.stderr)/), "cleanup preserves report and stderr")
-assert_contract(cleanup.include?("realpath -e") && cleanup.include?("run.*"), "cleanup validates real temporary path")
+assert_contract(cleanup.include?("realpath -e") && cleanup.include?("run.[A-Za-z0-9]"), "cleanup validates real temporary path")
+assert_contract(cleanup.include?("D='$REMOTE_DIR'"), "cleanup uses only this run's REMOTE_DIR output")
+assert_contract(!cleanup.include?("current-run-path") && !cleanup.include?("MARKER="), "cleanup never trusts shared marker")
+assert_contract(!cleanup.match?(/rm -rf[^;]*institutes/), "cleanup never recursively deletes application paths")
+
+# Simulate two independent workflow runs. Cleaning A must not alter B.
+Dir.mktmpdir("phase-5b27-isolation-") do |root|
+  base = File.join(root, ".phase-5b27-runtime")
+  FileUtils.mkdir_p(base)
+  run_a = File.join(base, "run.AAAAAAAA")
+  run_b = File.join(base, "run.BBBBBBBB")
+  [run_a, run_b].each do |dir|
+    FileUtils.mkdir_p(dir, mode: 0o700)
+    File.write(File.join(dir, "phase-5b18-runtime-diagnostic.php"), "<?php // temporary")
+    File.write(File.join(dir, "runtime-diagnostic.stderr"), "preserved evidence")
+  end
+  cleanup_one = lambda do |remote_dir|
+    canonical = File.realpath(remote_dir)
+    expected_prefix = "#{File.realpath(base)}/run."
+    raise "unsafe path" unless canonical.start_with?(expected_prefix)
+    FileUtils.rm_f(File.join(canonical, "phase-5b18-runtime-diagnostic.php"))
+    FileUtils.rm_f(File.join(canonical, "runtime-diagnostic-lint.txt"))
+  end
+  cleanup_one.call(run_a)
+  assert_contract(!File.exist?(File.join(run_a, "phase-5b18-runtime-diagnostic.php")), "run A script removed")
+  assert_contract(File.exist?(File.join(run_b, "phase-5b18-runtime-diagnostic.php")), "run A cleanup must not delete run B script")
+  assert_contract(File.exist?(File.join(run_a, "runtime-diagnostic.stderr")), "cleanup preserves run A stderr")
+  assert_contract(File.exist?(File.join(run_b, "runtime-diagnostic.stderr")), "cleanup preserves run B stderr")
+end
 assert_contract(!cleanup.include?("git -C \"$PROJECT_PATH\""), "workflow never modifies production Git state")
 
 puts "Phase 5B.27 secure runtime script delivery contract: PASS"
