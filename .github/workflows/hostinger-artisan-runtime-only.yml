@@ -161,7 +161,10 @@ jobs:
           STATUS=$?
           set -e
           sed -E 's/(password|secret|token|authorization)([=:][[:space:]]*)[^[:space:]]+/\1\2[REDACTED]/Ig' "$RUNNER_TEMP/phase-5b27-remote.log" | grep -E '^(phase_5b27_|ERROR:)' || true
-          [[ $STATUS -eq 0 ]] || { echo '::error::Remote diagnostic failed; no automatic retry.'; exit "$STATUS"; }
+          echo "remote_ssh_exit=$STATUS" >> "$GITHUB_OUTPUT"
+          if [[ $STATUS -ne 0 ]]; then
+            echo "::warning::Remote diagnostic failed with exit $STATUS. No retry will be attempted; retrieve any preserved report."
+          fi
 
       - name: Retrieve private report metadata
         id: metadata
@@ -239,6 +242,12 @@ jobs:
           path: phase-5b27-report/phase-5b18-artisan-runtime.json
           if-no-files-found: error
           retention-days: 7
+
+      - name: Mark diagnostic failure after preserving report
+        if: ${{ always() && steps.metadata.outputs.diagnostic_exit_code != '' && steps.metadata.outputs.diagnostic_exit_code != '0' }}
+        shell: bash
+        run: |
+          echo "::error::The one-shot production runtime diagnostic returned a nonzero exit. Its report was preserved and transferred where available; no retry occurred."
 
       - name: Cleanup only this run temporary remote files
         if: ${{ always() && steps.transfer.outputs.remote_dir != '' }}
