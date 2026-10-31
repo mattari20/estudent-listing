@@ -252,11 +252,12 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Mark diagnostic failure after preserving report
-        if: ${{ always() && steps.metadata.outputs.diagnostic_exit_code != '' && steps.metadata.outputs.diagnostic_exit_code != '0' }}
+      - name: Mark missing evidence or diagnostic failure
+        if: ${{ always() && (steps.execute.outputs.remote_ssh_exit != '0' || steps.metadata.outputs.diagnostic_exit_code == '' || steps.metadata.outputs.diagnostic_exit_code != '0') }}
         shell: bash
         run: |
-          echo "::error::The one-shot production runtime diagnostic returned a nonzero exit. Its report was preserved and transferred where available; no retry occurred."
+          echo "::error::Runtime diagnostic failed or required evidence is missing. No retry occurred; inspect preserved private report and stderr."
+          exit 1
 
       - name: Cleanup only this run temporary remote files
         if: ${{ always() && steps.transfer.outputs.remote_dir != '' }}
@@ -271,4 +272,4 @@ jobs:
           [[ "$REMOTE_DIR" =~ ^/home/u537436044/domains/estudent\.pk/public_html/institutes/\.phase-5b27-runtime/run\.[A-Za-z0-9]+$ ]]
           KEY_PATH="$RUNNER_TEMP/phase-5b27-hostinger-id"; KNOWN_HOSTS="$RUNNER_TEMP/phase-5b27-known-hosts"
           REMOTE_COMMAND="set -eu; B='/home/u537436044/domains/estudent.pk/public_html/institutes/.phase-5b27-runtime'; D='$REMOTE_DIR'; case \"\$D\" in \"\$B\"/run.[A-Za-z0-9]*) ;; *) echo cleanup_path_prefix_rejected; exit 31 ;; esac; test -d \"\$D\"; CANON=\$(realpath -e \"\$D\"); test \"\$CANON\" = \"\$D\"; case \"\$CANON\" in \"\$B\"/run.[A-Za-z0-9]*) ;; *) echo cleanup_canonical_path_rejected; exit 32 ;; esac; test \"\$(stat -c %a \"\$CANON\")\" = 700; if [ -f \"\$CANON/parity-path.txt\" ]; then P=\$(cat \"\$CANON/parity-path.txt\"); case \"\$P\" in /tmp/estudent-runtime-parity.[A-Za-z0-9]*) test \"\$(realpath -e \"\$P\")\" = \"\$P\"; rm -rf -- \"\$P\" ;; *) echo cleanup_parity_path_rejected; exit 33 ;; esac; fi; rm -f -- \"\$CANON/phase-5b18-runtime-diagnostic.php\" \"\$CANON/runtime-diagnostic-lint.txt\" \"\$CANON/parity-path.txt\"; test ! -e \"\$CANON/phase-5b18-runtime-diagnostic.php\"; echo cleanup_script_removed; rmdir -- \"\$CANON\" || { echo cleanup_directory_retained_for_evidence; exit 34; }"
-          timeout 60s ssh -i "$KEY_PATH" -p "$HOSTINGER_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" "$HOSTINGER_USER@$HOSTINGER_HOST" "$REMOTE_COMMAND" || echo '::warning::Temporary script cleanup failed; preserve report and stderr and inspect manually.'
+          timeout 60s ssh -i "$KEY_PATH" -p "$HOSTINGER_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" "$HOSTINGER_USER@$HOSTINGER_HOST" "$REMOTE_COMMAND" || { echo '::error::Per-run cleanup failed; report and stderr were not deleted.'; exit 1; }
