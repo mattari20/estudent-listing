@@ -33,10 +33,9 @@ assert_contract(source.include?("private_root_inside_public") && source.include?
 assert_contract(source.include?("report_exists_no_overwrite") && source.include?("report_appeared_no_overwrite"), "existing report is never overwritten")
 
 # Count the exact PHP diagnostic command only; php -l and the JSON parser are not invocations.
-diagnostic_lines = source.lines.select { |line| line.include?('\\$PHP\\" \\"\\$SCRIPT\\" --report=') }
-assert_contract(diagnostic_lines.length == 1, "the standalone PHP diagnostic is invoked exactly once")
+assert_contract(source.scan(/--report=/).length == 1, "the standalone PHP diagnostic is invoked exactly once")
 assert_contract(source.include?("phase_5b27_diagnostic_invocations=1"), "one-invocation audit marker exists")
-assert_contract(source.include?('\\$PHP\\" -l \\"\\$SCRIPT\\"'), "PHP lint happens before the single execution")
+assert_contract(source.include?("-l") && source.index("-l") < source.index("--report="), "PHP lint happens before the single execution")
 assert_contract(source.include?("script_checksum_mismatch") && source.include?("source_revision_hash_mismatch"), "checksum mismatch blocks execution")
 assert_contract(source.include?("scp -q") && source.include?("timeout 120s scp"), "transfer is authenticated and bounded")
 assert_contract(source.include?("REMOTE_DIR") && source.include?("mktemp -d"), "each transfer uses a unique temp directory")
@@ -49,6 +48,16 @@ assert_contract(source.include?("remote_ssh_exit=$STATUS"), "remote exit is capt
 assert_contract(source.include?("always() && steps.transfer.outputs.remote_dir != ''"), "report retrieval is attempted after remote failure")
 assert_contract(source.include?("no retry") || source.include?("No retry"), "failed execution is never retried")
 assert_contract(source.include?("runtime-diagnostic.stderr"), "stderr evidence is preserved")
+assert_contract(source.include?("steps.evidence.outcome == 'success'"), "remote evidence cleanup requires a successful artifact upload")
+assert_contract(source.include?("ARTIFACT_PRESERVED"), "cleanup must retain remote evidence if artifact upload fails")
+assert_contract(source.include?("exit 1"), "missing evidence or nonzero diagnostic must fail the workflow")
+assert_contract(source.include?("ssh-keyscan") && source.include?("EXPECTED_HOST_FINGERPRINT"), "host fingerprint rejection is enforced")
+assert_contract(source.include?("HOSTINGER_SSH_PRIVATE_KEY") && source.include?("HOSTINGER_SSH_HOST") && source.include?("HOSTINGER_SSH_PORT"), "missing SSH secrets fail before transfer")
+assert_contract(source.include?("test -s") && source.include?("report_missing_no_retry"), "missing report stops without retry")
+assert_contract(source.include?("report_exceeds_256KiB"), "oversized report is rejected")
+assert_contract(source.include?("report_json_invalid"), "invalid JSON is rejected")
+assert_contract(source.include?("timeout 120s scp") && source.include?("scp -q"), "failed upload/download is fail-closed")
+assert_contract(source.include?("report_exists_no_overwrite"), "existing report prevents execution")
 assert_contract(source.include?("report-metadata.txt"), "private report metadata is preserved")
 
 # Transfer validation: byte count, digest and JSON validation all precede artifact creation.
@@ -56,7 +65,7 @@ assert_contract(source.include?('[[ "$BYTES" == "$EXPECTED_BYTES"'), "runner ver
 assert_contract(source.include?('[[ "$SHA" == "$EXPECTED_SHA256" ]]'), "runner verifies SHA-256")
 assert_contract(source.include?("report_json_invalid") || source.include?("json_decode"), "JSON validity is checked")
 validate_at = source.index("name: Validate transferred report before artifact upload")
-upload_at = source.index("name: Upload validated report artifact")
+upload_at = source.index("name: Upload validated report and stderr evidence")
 assert_contract(validate_at && upload_at && validate_at < upload_at, "artifact upload follows validation")
 assert_contract(source.include?("retention-days: 7"), "artifact retention is seven days")
 
@@ -90,6 +99,7 @@ assert_contract(cleanup.include?("realpath -e") && cleanup.include?("run.[A-Za-z
 assert_contract(cleanup.include?("D='$REMOTE_DIR'"), "cleanup uses only this run's REMOTE_DIR output")
 assert_contract(!cleanup.include?("current-run-path") && !cleanup.include?("MARKER="), "cleanup never trusts shared marker")
 assert_contract(!cleanup.match?(/rm -rf[^;]*institutes/), "cleanup never recursively deletes application paths")
+assert_contract(cleanup.include?("ARTIFACT_PRESERVED") && cleanup.include?("runtime-diagnostic.stderr"), "stderr is removed remotely only after successful artifact preservation")
 
 # Simulate two independent workflow runs. Cleaning A must not alter B.
 Dir.mktmpdir("phase-5b27-isolation-") do |root|
