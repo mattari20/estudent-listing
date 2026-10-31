@@ -50,7 +50,7 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString("\"$PHP_BIN\" artisan route:list --json --no-ansi", $workflow);
         $this->assertStringContainsString('institution_api_route_registration', $workflow);
         $this->assertStringContainsString("PHP_BIN='/opt/alt/php85/usr/bin/php'", $workflow);
-        $this->assertStringContainsString("phase_5b18_php_binary=$PHP_BIN", $workflow);
+        $this->assertStringContainsString('phase_5b18_php_binary=$PHP_BIN', $workflow);
         $this->assertStringContainsString('Deployed API route registration (read-only; bounded)', $workflow);
         $this->assertStringContainsString('institution_api_route_registration', $workflow);
         $this->assertStringContainsString('php artisan route:list --json --no-ansi', $workflow);
