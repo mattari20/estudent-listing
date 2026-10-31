@@ -760,3 +760,90 @@ See [Step 1 recovery status report](docs/audits/step1-recovery-status-2026-10-29
 - Artifact upload remains last, fail-closed, and seven-day retention. No retry path or second Artisan invocation exists; the Artisan command remains exactly once. The private Hostinger report is not removed if download or upload fails.
 - Production revision preflight continues using a disposable Git repository; production refs/index/working tree are not modified. Added a Ruby workflow syntax/contract test and wired it into the Test workflow.
 - No GCU/HEC request, workflow dispatch, production deployment, migration, database write, import, approval, promotion or publication occurred. Await exact-head Test, Laravel CI, Project Controller, workflow contract results and human review; do not merge automatically.
+
+
+---
+
+## Step 5 — Consolidated project completion strategy and stable roadmap (2026-10-31)
+
+**Strategy:** `docs/PROJECT_COMPLETION_MASTER_STRATEGY.md`  
+**Strategy PR:** to be recorded after creation; documentation-only.  
+**Baseline main SHA:** `b878416826bdf62c26ad27d040f254461d3cf126`  
+**Status:** strategy prepared; implementation NOT STARTED; no production action authorized.
+
+### Current audit PR and CI position
+
+The four audit PRs #954–#957 were verified open and unmerged at strategy preparation. Their exact-head Test and Laravel CI runs completed successfully:
+
+| PR | Head SHA | Test | Laravel CI |
+|---|---|---|---|
+| #954 | `c23c52807cf881a17206721315789a7db98096e5` | #41180827573 success | #41180827589 success |
+| #955 | `ffc2dd06659f1bac9227d5ddb3a2213e55776896` | #41181645272 success | #41181645302 success |
+| #956 | `1f0d9f814e427378c1fab136103ff990915b7097` | #41182142012 success | #41182141971 success |
+| #957 | `1b8f7cfeefb88c66d7d8c45b90de29f3b3705b31` | #41182959103 success | #41182959162 success |
+
+These are documentation PR checks, not production acceptance. The latest main SHA returned was `b878416826bdf62c26ad27d040f254461d3cf126`.
+
+### Stable roadmap task register
+
+Status key: NOT STARTED; BLOCKED; PARTIAL; IMPLEMENTED / PRODUCTION UNVERIFIED; DEFERRED. Priority: P0 critical prerequisite; P1 high; P2 planned; P3 deferred.
+
+| Task ID | Priority | Task / acceptance evidence | Status | Dependency | Planned phase / PR | Owner role | Effort | Next action |
+|---|---|---|---|---|---|---|---:|---|
+| BASE-01 | P0 | Review four audits, strategy and PR/check evidence | COMPLETE AS DOCUMENTATION | None | Phase 0 / Step 5 PR | Project owner | 1–2d | Review strategy PR |
+| BASE-02 | P0 | Keep one authoritative tracker with dated status and stable IDs | PARTIAL | BASE-01 | Phase 0 / Step 5 PR | Project owner | 0.5d | Maintain append-only |
+| OPS-01 | P0 | Verify deployed revision, PHP/Laravel runtime and Artisan registration | BLOCKED | Authorized read-only access | Phase 1 / runtime evidence | Hosting operator | 1–2d | Approve evidence scope |
+| OPS-02 | P0 | Verify DB schema, required tables/indexes and migration ledger | BLOCKED | OPS-01; authorized read-only report | Phase 1 / diagnostic PR | DB operator | 1–2d | Define report contract |
+| OPS-03 | P0 | Identify Hostinger cron exact command, cadence, timezone and enabled state | BLOCKED | hPanel read-only access | Phase 1 / ops evidence | Hosting operator | 0.5–1d | Capture current cron evidence |
+| OPS-04 | P0 | Identify queue worker/Supervisor, consumer, failed jobs and recovery | BLOCKED | Hosting/process evidence | Phase 1 / ops evidence | Hosting operator | 1–2d | Identify worker owner |
+| AUTO-01 | P0 | Inventory active GitHub runs and workflow enabled state before freeze | BLOCKED | GitHub Actions read access | Phase 1 / ops evidence | Automation owner | 0.5–1d | Obtain current run inventory |
+| AUTO-02 | P0 | Resolve GitHub/Laravel duplicate scheduler with one owner or shared lock | BLOCKED | OPS-03; AUTO-01 | Phase 1 / dedicated PR | Backend/automation engineer | 2–4d | Design lock/ownership |
+| AUTO-03 | P0 | Remove parity fetches from deployed checkout across affected workflows | PARTIAL | Current workflow inventory | Phase 1 / dedicated PRs | Automation engineer | 2–3d | Re-audit exact files |
+| OPS-05 | P1 | Prove SELECT-only grants for offering-gap preflight | BLOCKED | Hosting DB grants evidence | Phase 1 / ops evidence | DB operator | 0.5–1d | Keep scheduled use gated |
+| SEC-01 | P0 | Include master_admin in first-admin setup guard; regression test | BLOCKED | Current main code recheck | Phase 2 / security PR | Backend engineer | 1d | Implement guard/test |
+| SEC-02 | P0 | HTML-safe JSON-LD encoding; script-context XSS regression | BLOCKED | Current main code recheck | Phase 2 / security PR | Backend engineer | 1d | Implement safe encoding |
+| SEC-03 | P0 | Server-authorize evidence verification states and subject refs | BLOCKED | Permission policy review | Phase 2 / security PR | Backend engineer | 2–3d | Define allowed transitions |
+| SEC-04 | P0 | Align public academic-state allowlists across HTML/API/search | BLOCKED | Publication policy | Phase 2 / security PR | Backend engineer | 2d | Define central allowlist |
+| SEC-05 | P0 | Neutralize spreadsheet formula injection in review CSV | BLOCKED | Export behavior tests | Phase 2 / security PR | Backend engineer | 1d | Add safe CSV writer |
+| QA-01 | P0 | Include tests/Unit in PHPUnit/composer test and prove execution | BLOCKED | Test config review | Phase 2 / QA PR | QA engineer | 1d | Update suite config |
+| DB-01 | P1 | Validate duplicate_rows existing-schema equivalence | BLOCKED | Isolated MySQL tests | Phase 2 / migration PR | Backend/DB engineer | 1–2d | Add type/nullability tests |
+| DB-02 | P1 | Validate official refresh schema/index/ledger equivalence | BLOCKED | Isolated MySQL tests | Phase 2 / migration PR | Backend/DB engineer | 2d | Strengthen schema contract |
+| QA-02 | P2 | Make Pint CI check non-mutating | PARTIAL | CI workflow review | Phase 2 / QA PR | QA engineer | 0.5d | Separate format from check |
+| GCU-01 | P0 | Retrieve protected historical export and snapshots for rows #348–353 / batches #19–23 | BLOCKED | OPS-01; protected access authorization | Phase 3 / evidence report | Data steward | 1–3d | Obtain approved evidence |
+| GCU-02 | P0 | Reconcile historical row/batch IDs, hashes and provenance without mutation | BLOCKED | GCU-01 | Phase 3 / evidence report | Data steward | 1–2d | Produce reconciliation matrix |
+| GCU-03 | P1 | Verify GCU source qualification prerequisites and evidence | BLOCKED | GCU-01/02; separate authorization | Phase 3 / qualification report | Source steward | 1–2d | Review readiness only |
+| GCU-04 | P1 | Complete row-level human candidate review and conflict log | NOT STARTED | GCU-02; Phase 2 governance | Phase 4 / review work | Independent reviewers | 3–10d human | Prepare review protocol |
+| GOV-01 | P1 | Verify field approvals, proposer/reviewer separation and audit history in production | BLOCKED | OPS-02; Phase 2 fixes | Phase 4 / governance PR | Governance owner | 2–3d | Define acceptance tests |
+| DISC-01 | P1 | Enumerate unknown institutions from qualified official directories | NOT STARTED | GCU accepted; SRC qualification | Phase 5 / extractor PR | Data engineering | 3–5d | Design deterministic enumeration |
+| DISC-02 | P2 | Extract campuses and resolve parent/affiliate relationships | PARTIAL | DISC-01 | Phase 5 / extractor PR | Data engineering | 3–5d | Define relationship fixtures |
+| DISC-03 | P2 | Implement programme-campus offering discovery and provenance | NOT STARTED | DATA model review; DISC-02 | Phase 5 / model + pipeline PR | Data engineering | 4–8d | Design entity/pipeline contract |
+| SRC-01 | P1 | Establish seven-jurisdiction source/category coverage matrix | PARTIAL | Source register review | Phase 6 / docs PR | Source steward | 1–2d | Inventory authority gaps |
+| SRC-02 | P1 | Qualify one official source at a time with authority/access/retrieval evidence | BLOCKED | OPS-01/02; SRC-01; separate approval | Phase 6 / per-source PR | Source steward | 1–2d/source | Prioritize source family |
+| SRC-03 | P2 | Add province/authority-specific extractors and drift tests | NOT STARTED | SRC-02; DISC-01 | Phase 6 / per-source PR | Data engineering | 2–5d/source | Build golden fixtures |
+| AI-01 | P3 | Verify provider/model compatibility and cost/timeout/retry limits | DEFERRED | Stable deterministic pipeline | Phase 7 / AI guard PR | AI engineer | 2–3d | Keep AI disabled |
+| AI-02 | P3 | Verify every AI excerpt against exact captured snapshot | BLOCKED | AI-01; snapshot normalizer | Phase 7 / grounding PR | AI engineer | 2–3d | Implement grounding validator |
+| AI-03 | P3 | Prove AI cannot decide identity, approve, promote or publish | NOT STARTED | GOV-01; AI-01/02 | Phase 7 / governance tests | Security/QA | 1–2d | Add permission boundary tests |
+| AUTO-04 | P1 | Add end-to-end run ledger, idempotency, retry/backoff and alerts | PARTIAL | AUTO-02; OPS-04 | Phase 8 / automation PR | Automation engineer | 3–5d | Design run identity |
+| AUTO-05 | P1 | Resume one approved source with bounded monitoring/staging | BLOCKED | Phase 1–7 gates; explicit authorization | Phase 8 / one-source PR | Operations + source steward | 1–2d/source | No activation before approval |
+| PUB-01 | P1 | Verify public HTML/API/search/detail empty and populated behavior | BLOCKED | OPS-01/02; SEC-04; approved data | Phase 9 / public QA PR | QA engineer | 2–3d | Define route acceptance |
+| PUB-02 | P2 | Performance, accessibility, SEO and geographic search acceptance | PARTIAL | PUB-01; data coverage | Phase 9 / QA PRs | QA/Frontend | 3–5d | Prepare test plan |
+| GOV-02 | P2 | Assign named source/operations owner, runbooks and maintenance cadence | NOT STARTED | Phase 1 operating model | Phase 9 / handover docs | Project owner | 1–2d | Assign accountable roles |
+| GOV-03 | P2 | Test backup restoration and evidence-retention recovery | BLOCKED | Hosting backup evidence | Phase 9 / operations acceptance | Hosting operator | 1–2d | Obtain backup/restore evidence |
+
+### Phase gates and stop rules
+
+- Phase 0 is documentation complete when the Step 5 strategy PR and tracker extension pass review and exact-head CI.
+- Phase 1 is not complete until current deployed revision/runtime/schema/cron/queue/active-run evidence is reviewed and cross-runner concurrency is controlled.
+- Phase 2 is not complete until all P0 security findings and required regressions pass.
+- Phase 3 cannot modify historical GCU rows or batches; it only establishes their protected evidence lineage.
+- Phase 4 requires explicit row-level human decisions; approval, promotion and publication remain separate.
+- Phases 5–6 add deterministic extractors and qualified sources one at a time; all new profiles remain disabled until accepted.
+- Phase 7 AI remains disabled unless a separate explicit approval is given after grounding/cost/governance tests.
+- Phase 8 requires explicit per-category authorization for retrieval, monitoring and candidate staging.
+- Phase 9 requires approved canonical records and production acceptance evidence.
+
+### Next recommended prompt
+
+After user review and explicit approval of the Step 5 strategy PR, start with **Phase 1A — Production Observability Evidence Acquisition Plan and Read-only Diagnostic Delivery Verification**. First re-verify main and PR #953 exact-head checks; prepare a read-only evidence request for deployed revision/runtime/schema, Hostinger cron, queue worker and active GitHub runs. Do not execute production commands, change cron/workflows, run migrations, contact sources, stage candidates or alter historical GCU records without separate explicit authorization.
+
+**Safety:** no production or automation operation was performed as part of this strategy update. Step 5 is a documentation deliverable only; implementation remains NOT STARTED.
