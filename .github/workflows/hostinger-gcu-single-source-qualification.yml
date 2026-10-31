@@ -55,7 +55,40 @@ jobs:
             exit 2
           }
 
+      - name: Prepare pinned Hostinger SSH identity for authenticated report pull
+        if: ${{ inputs.confirm_gcu_qualification }}
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          EXPECTED_HOST_FINGERPRINT: ${{ secrets.HOSTINGER_SSH_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          [[ -n "$SSH_PRIVATE_KEY" && -n "$HOSTINGER_HOST" && -n "$HOSTINGER_PORT" && -n "$EXPECTED_HOST_FINGERPRINT" ]] || {
+            echo "::error::Hostinger SSH credentials and the pinned HOSTINGER_SSH_FINGERPRINT secret are required."
+            exit 2
+          }
+          [[ "$EXPECTED_HOST_FINGERPRINT" == SHA256:* ]] || {
+            echo "::error::HOSTINGER_SSH_FINGERPRINT must be an OpenSSH SHA256 fingerprint."
+            exit 2
+          }
+          KEY_PATH="$RUNNER_TEMP/gcu-hostinger-id"
+          KNOWN_HOSTS="$RUNNER_TEMP/gcu-hostinger-known-hosts"
+          install -m 600 /dev/null "$KEY_PATH"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          timeout 20s ssh-keyscan -T 10 -p "$HOSTINGER_PORT" -t ed25519,ecdsa,rsa "$HOSTINGER_HOST" 2>/dev/null > "$KNOWN_HOSTS"
+          test -s "$KNOWN_HOSTS"
+          ACTUAL_FINGERPRINTS="$(ssh-keygen -lf "$KNOWN_HOSTS" -E sha256 | awk '{print $2}' | sort -u)"
+          grep -Fxq "$EXPECTED_HOST_FINGERPRINT" <<< "$ACTUAL_FINGERPRINTS" || {
+            echo "::error::Hostinger SSH host key did not match the pinned fingerprint."
+            exit 2
+          }
+          echo "Hostinger SSH host key fingerprint verified."
+
       - name: Preflight and execute the fixed one-source command
+        id: gcu_ssh
         uses: appleboy/ssh-action@v1.2.0
         env:
           TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
@@ -65,6 +98,7 @@ jobs:
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          fingerprint: ${{ secrets.HOSTINGER_SSH_FINGERPRINT }}
           envs: TARGET_REVISION,CONFIRM_GCU_QUALIFICATION
           command_timeout: 5m
           script: |
@@ -200,32 +234,71 @@ jobs:
             echo "production_data_mutations=NOT_RUN"
             echo "qualification_command_invocations=1"
 
-      - name: Transfer report with bounded SCP
+      - name: Read fixed private report metadata from Hostinger
+        id: report_metadata
         if: ${{ inputs.confirm_gcu_qualification }}
         timeout-minutes: 2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
-          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          source: "/home/u537436044/domains/estudent.pk/public_html/institutes/storage/app/private/source-qualification/gcu-lahore-phase-5b14-20261030.json"
-          target: "./gcu-qualification-transfer/"
-          strip_components: 0
-          overwrite: false
+        shell: bash
+        env:
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/gcu-hostinger-id"
+          KNOWN_HOSTS="$RUNNER_TEMP/gcu-hostinger-known-hosts"
+          REMOTE_REPORT='/home/u537436044/domains/estudent.pk/public_html/institutes/storage/app/private/source-qualification/gcu-lahore-phase-5b14-20261030.json'
+          REMOTE_COMMAND="set -eu; FILE='$REMOTE_REPORT'; test -s \"\$FILE\"; SIZE=\$(wc -c < \"\$FILE\" | tr -d ' '); case \"\$SIZE\" in ''|*[!0-9]*) exit 21 ;; esac; [ \"\$SIZE\" -le 1048576 ] || exit 22; SHA=\$(sha256sum \"\$FILE\" | awk '{print \$1}'); printf '%s %s\\n' \"\$SIZE\" \"\$SHA\""
+          METADATA="$(timeout 120s ssh -i "$KEY_PATH" -p "$HOSTINGER_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" -o ConnectTimeout=15 -o ServerAliveInterval=10 -o ServerAliveCountMax=6 "$HOSTINGER_USER@$HOSTINGER_HOST" "$REMOTE_COMMAND")"
+          read -r EXPECTED_SIZE EXPECTED_SHA256 <<< "$METADATA"
+          [[ "$EXPECTED_SIZE" =~ ^[0-9]+$ ]] && (( EXPECTED_SIZE > 0 && EXPECTED_SIZE <= 1048576 ))
+          [[ "$EXPECTED_SHA256" =~ ^[a-fA-F0-9]{64}$ ]]
+          [[ "$(wc -w <<< "$METADATA" | tr -d ' ')" == 2 ]]
+          echo "expected_size=$EXPECTED_SIZE" >> "$GITHUB_OUTPUT"
+          echo "expected_sha256=$EXPECTED_SHA256" >> "$GITHUB_OUTPUT"
+          echo "Hostinger private report metadata verified (size and SHA-256 only)."
+
+      - name: Download report from Hostinger with bounded authenticated SCP pull
+        if: ${{ inputs.confirm_gcu_qualification }}
+        timeout-minutes: 2
+        shell: bash
+        env:
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/gcu-hostinger-id"
+          KNOWN_HOSTS="$RUNNER_TEMP/gcu-hostinger-known-hosts"
+          REMOTE_REPORT='/home/u537436044/domains/estudent.pk/public_html/institutes/storage/app/private/source-qualification/gcu-lahore-phase-5b14-20261030.json'
+          DEST_DIR='gcu-qualification-transfer'
+          DEST_FILE="$DEST_DIR/gcu-lahore-phase-5b14-20261030.json"
+          PARTIAL_FILE="$RUNNER_TEMP/gcu-lahore-phase-5b14-20261030.json.partial"
+          mkdir -p "$DEST_DIR"
+          [[ ! -e "$DEST_FILE" ]] || {
+            echo "::error::Runner destination already exists; overwrite is forbidden."
+            exit 2
+          }
+          rm -f "$PARTIAL_FILE"
+          trap 'rm -f "$PARTIAL_FILE"' EXIT
+          timeout 120s scp -q -P "$HOSTINGER_PORT" -i "$KEY_PATH" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" -o ConnectTimeout=15 -o ServerAliveInterval=10 -o ServerAliveCountMax=6 "$HOSTINGER_USER@$HOSTINGER_HOST:$REMOTE_REPORT" "$PARTIAL_FILE"
+          test -s "$PARTIAL_FILE"
+          mv "$PARTIAL_FILE" "$DEST_FILE"
+          trap - EXIT
+          echo "Hostinger-to-runner report download completed."
 
       - name: Verify transferred report integrity and exact source scope
         if: ${{ inputs.confirm_gcu_qualification }}
         shell: bash
         env:
-          EXPECTED_SHA256: ${{ steps.gcu_ssh.outputs.report_expected_sha256 }}
-          EXPECTED_SIZE: ${{ steps.gcu_ssh.outputs.report_expected_size }}
+          EXPECTED_SHA256: ${{ steps.report_metadata.outputs.expected_sha256 }}
+          EXPECTED_SIZE: ${{ steps.report_metadata.outputs.expected_size }}
         run: |
           set -euo pipefail
           FILE='gcu-qualification-transfer/gcu-lahore-phase-5b14-20261030.json'
           test -s "$FILE"
           SIZE="$(wc -c < "$FILE" | tr -d ' ')"
-          [[ "$SIZE" =~ ^[0-9]+$ ]] && (( SIZE <= 1048576 ))
+          [[ "$SIZE" =~ ^[0-9]+$ ]] && (( SIZE > 0 && SIZE <= 1048576 ))
           [[ "$SIZE" == "$EXPECTED_SIZE" ]]
           ACTUAL_SHA256="$(sha256sum "$FILE" | awk '{print $1}')"
           [[ "$ACTUAL_SHA256" == "$EXPECTED_SHA256" ]]

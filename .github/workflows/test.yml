@@ -70,6 +70,8 @@ jobs:
         run: ruby scripts/ci/test-duplicate-rows-migration-workflow.rb
       - name: Validate scheduled discovery dependency conditions
         run: ruby scripts/ci/test-scheduled-discovery-workflow.rb
+      - name: Validate bounded Hostinger-to-runner GCU report transfer contract
+        run: ruby scripts/ci/test-gcu-qualification-workflow.rb
 
       - name: Lint guarded production schema diagnostic
         run: php -l scripts/ops/official-source-refresh-diagnostic.php
