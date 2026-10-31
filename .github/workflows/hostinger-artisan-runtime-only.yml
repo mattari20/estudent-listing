@@ -133,7 +133,7 @@ jobs:
             chmod 700 \"\$REPORT_DIR\"
             test ! -e \"\$REPORT\" || fail report_appeared_no_overwrite
             test \"\$APPROVED\" = '3b0b1bc40206bb665f34064f265c2975f5ea19ef' || fail approved_revision_mismatch
-            PARITY=\"\$(mktemp -d \"\/tmp/estudent-runtime-parity.XXXXXXXX\")\"
+            PARITY=\"\$(mktemp -d \"/tmp/estudent-runtime-parity.XXXXXXXX\")\"
             chmod 700 \"\$PARITY\"
             printf '%s\\n' \"\$PARITY\" > \"\$DIR/parity-path.txt\"; chmod 600 \"\$DIR/parity-path.txt\"
             git -C \"\$PARITY\" init -q
@@ -166,7 +166,10 @@ jobs:
           timeout 300s ssh -i "$KEY_PATH" -p "$HOSTINGER_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" -o ConnectTimeout=15 "$HOSTINGER_USER@$HOSTINGER_HOST" "$REMOTE_COMMAND" > "$RUNNER_TEMP/phase-5b27-remote.log" 2>&1
           STATUS=$?
           set -e
-          sed -E 's/(password|secret|token|authorization)([=:][[:space:]]*)[^[:space:]]+/\1\2[REDACTED]/Ig' "$RUNNER_TEMP/phase-5b27-remote.log" | grep -E '^(phase_5b27_|ERROR:)' || true
+          sed -E 's/(password|secret|token|authorization)([=:][[:space:]]*)[^[:space:]]+/\\1\\2[REDACTED]/Ig' "$RUNNER_TEMP/phase-5b27-remote.log" > "$RUNNER_TEMP/phase-5b27-remote.sanitized.log"
+          echo "----- Sanitized remote execution output (last 160 lines) -----"
+          tail -n 160 "$RUNNER_TEMP/phase-5b27-remote.sanitized.log"
+          echo "----- End remote execution output -----"
           echo "remote_ssh_exit=$STATUS" >> "$GITHUB_OUTPUT"
           if [[ $STATUS -ne 0 ]]; then
             echo "::warning::Remote diagnostic failed with exit $STATUS. No retry will be attempted; retrieve any preserved report."
@@ -266,6 +269,25 @@ jobs:
         with:
           name: phase-5b18-artisan-runtime-report
           path: phase-5b27-report/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Preserve sanitized remote execution failure evidence
+        id: remote_log_evidence
+        if: ${{ always() && steps.execute.outcome != 'skipped' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$RUNNER_TEMP/phase-5b27-remote.sanitized.log"
+          mkdir -p phase-5b29a-evidence
+          cp "$RUNNER_TEMP/phase-5b27-remote.sanitized.log" phase-5b29a-evidence/remote-execution.log
+
+      - name: Upload sanitized remote execution failure evidence
+        if: ${{ always() && steps.remote_log_evidence.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-5b29a-remote-execution-evidence
+          path: phase-5b29a-evidence/remote-execution.log
           if-no-files-found: error
           retention-days: 7
 
