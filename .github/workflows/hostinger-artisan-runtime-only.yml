@@ -158,6 +158,7 @@ jobs:
             \"\$PHP\" -r '$d=json_decode((string)file_get_contents($argv[1]),true);if(!is_array($d)||json_last_error()!==JSON_ERROR_NONE)exit(1);' \"\$REPORT\" || fail report_json_invalid
             SHA=\"\$(sha256sum \"\$REPORT\" | awk '{print \$1}')\"
             printf '%s %s %s\\n' \"\$BYTES\" \"\$SHA\" \"\$EXIT_CODE\" > \"\$DIR/report-metadata.txt\"; chmod 600 \"\$DIR/report-metadata.txt\"
+            printf '%s\\n' \"\$PARITY\" > \"\$DIR/parity-path.txt\"; chmod 600 \"\$DIR/parity-path.txt\"
             printf '%s\\n' \"\$DIR\" > \"\$PROJECT/.phase-5b27-runtime/current-run-path\"; chmod 600 \"\$PROJECT/.phase-5b27-runtime/current-run-path\"
             echo phase_5b27_report_ready=true; echo phase_5b27_report_bytes=\$BYTES; echo phase_5b27_report_sha256=\$SHA; echo phase_5b27_diagnostic_exit_code=\$EXIT_CODE
             echo phase_5b27_diagnostic_invocations=1
@@ -185,8 +186,11 @@ jobs:
           set -euo pipefail
           KEY_PATH="$RUNNER_TEMP/phase-5b27-hostinger-id"; KNOWN_HOSTS="$RUNNER_TEMP/phase-5b27-known-hosts"
           META="$RUNNER_TEMP/phase-5b27-report-metadata"
+          set +e
           timeout 60s scp -q -P "$HOSTINGER_PORT" -i "$KEY_PATH" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" "$HOSTINGER_USER@$HOSTINGER_HOST:$REMOTE_DIR/report-metadata.txt" "$META"
-          if [[ ! -s "$META" ]]; then
+          META_STATUS=$?
+          set -e
+          if [[ $META_STATUS -ne 0 || ! -s "$META" ]]; then
             echo "No diagnostic report metadata was produced; no retry will occur."
             exit 0
           fi
@@ -267,5 +271,5 @@ jobs:
           set -euo pipefail
           [[ "$REMOTE_DIR" =~ ^/home/u537436044/domains/estudent\.pk/public_html/institutes/\.phase-5b27-runtime/run\.[A-Za-z0-9]+$ ]]
           KEY_PATH="$RUNNER_TEMP/phase-5b27-hostinger-id"; KNOWN_HOSTS="$RUNNER_TEMP/phase-5b27-known-hosts"
-          REMOTE_COMMAND="set -eu; B='/home/u537436044/domains/estudent.pk/public_html/institutes/.phase-5b27-runtime'; MARKER=\"\$B/current-run-path\"; if [ -f \"\$MARKER\" ]; then D=\$(cat \"\$MARKER\"); case \"\$D\" in \"\$B\"/run.*) ;; *) exit 3 ;; esac; test \"\$(realpath -e \"\$D\")\" = \"\$D\"; rm -f -- \"\$D/phase-5b18-runtime-diagnostic.php\" \"\$D/runtime-diagnostic-lint.txt\"; rmdir -- \"\$D\" || true; rm -f -- \"\$MARKER\"; fi"
+          REMOTE_COMMAND="set -eu; B='/home/u537436044/domains/estudent.pk/public_html/institutes/.phase-5b27-runtime'; MARKER=\"\$B/current-run-path\"; if [ -f \"\$MARKER\" ]; then D=\$(cat \"\$MARKER\"); case \"\$D\" in \"\$B\"/run.*) ;; *) exit 3 ;; esac; test \"\$(realpath -e \"\$D\")\" = \"\$D\"; if [ -f \"\$D/parity-path.txt\" ]; then P=\$(cat \"\$D/parity-path.txt\"); case \"\$P\" in /tmp/estudent-runtime-parity.*) test \"\$(realpath -e \"\$P\")\" = \"\$P\"; rm -rf -- \"\$P\" ;; *) exit 4 ;; esac; fi; rm -f -- \"\$D/phase-5b18-runtime-diagnostic.php\" \"\$D/runtime-diagnostic-lint.txt\" \"\$D/parity-path.txt\"; rmdir -- \"\$D\" || true; rm -f -- \"\$MARKER\"; fi"
           timeout 60s ssh -i "$KEY_PATH" -p "$HOSTINGER_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" "$HOSTINGER_USER@$HOSTINGER_HOST" "$REMOTE_COMMAND" || echo '::warning::Temporary script cleanup failed; preserve report and stderr and inspect manually.'
