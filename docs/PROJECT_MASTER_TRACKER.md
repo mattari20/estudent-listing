@@ -847,3 +847,64 @@ Status key: NOT STARTED; BLOCKED; PARTIAL; IMPLEMENTED / PRODUCTION UNVERIFIED; 
 After user review and explicit approval of the Step 5 strategy PR, start with **Phase 1A — Production Observability Evidence Acquisition Plan and Read-only Diagnostic Delivery Verification**. First re-verify main and PR #953 exact-head checks; prepare a read-only evidence request for deployed revision/runtime/schema, Hostinger cron, queue worker and active GitHub runs. Do not execute production commands, change cron/workflows, run migrations, contact sources, stage candidates or alter historical GCU records without separate explicit authorization.
 
 **Safety:** no production or automation operation was performed as part of this strategy update. Step 5 is a documentation deliverable only; implementation remains NOT STARTED.
+
+
+---
+
+## Phase 1A — Read-only production evidence acquisition plan (2026-10-31)
+
+**Plan:** `docs/audits/PHASE_1A_READ_ONLY_PRODUCTION_EVIDENCE_ACQUISITION_PLAN.md`  
+**Strategy dependency:** Step 5 strategy PR #958 (open, unmerged at preparation); this Phase 1A PR is stacked on the strategy branch.  
+**Baseline:** `b878416826bdf62c26ad27d040f254461d3cf126`  
+**Status:** PLAN ONLY. No production command, SSH, database access, cron/queue inspection, workflow operation, source retrieval or write action was performed.
+
+### Five audit PR closeout snapshot
+
+| PR | Current head | Test | Laravel CI | Project Controller | Review submissions | Changed files |
+|---|---|---|---|---|---|---|
+| #954 | `c23c52807cf881a17206721315789a7db98096e5` | #41180827573 success | #41180827589 success | No exact-head run returned | None returned | Step 1 audit report only |
+| #955 | `ffc2dd06659f1bac9227d5ddb3a2213e55776896` | #41181645272 success | #41181645302 success | No exact-head run returned | None returned | Step 2 audit report only |
+| #956 | `1f0d9f814e427378c1fab136103ff990915b7097` | #41182142012 success | #41182141971 success | No exact-head run returned | None returned | Step 3 audit report only |
+| #957 | `1b8f7cfeefb88c66d7d8c45b90de29f3b3705b31` | #41182959103 success | #41182959162 success | No exact-head run returned | None returned | Step 4 audit report only |
+| #958 | `3bcae18604c9ff3dd2f3f9d93cb9a07d506716f3` | #41183395867 success | #41183395887 success | #41183395882 success | None returned | Strategy + existing tracker |
+
+All five were returned open, unmerged, non-draft and mergeable at the time of verification. Exact current heads matched the associated successful run SHAs. No post-check head change was observed. Repository setting `allow_auto_merge=true`; the connector does not expose the per-PR `auto_merge` field, so individual auto-merge state is UNVERIFIED. No auto-merge action was taken. The four audit PRs have no Project Controller run returned for their exact heads; do not represent this as a failed required check unless branch rules establish it.
+
+### Documentation closeout recommendation
+
+- #954: READY FOR HUMAN REVIEW; report-only file; no review submission returned; merge only after review.
+- #955: READY FOR HUMAN REVIEW; report-only file; no review submission returned; high-priority findings remain open and are not production fixes.
+- #956: READY FOR HUMAN REVIEW; report-only file; no review submission returned; production readiness, GCU evidence and AI capability remain partial/unverified.
+- #957: READY FOR HUMAN REVIEW; report-only file; no review submission returned; freeze/resume plan remains unexecuted.
+- #958: READY FOR HUMAN REVIEW; strategy and tracker only; Test, Laravel CI and Project Controller passed at exact head; no review submission returned. It is the base dependency for this stacked Phase 1A documentation PR.
+
+No PR was merged or closed. These recommendations are not automatic merge authorization. No audit finding is marked production-complete by this closeout.
+
+### Stable Phase 1A evidence tasks
+
+| Task ID | Priority | Task / acceptance evidence | Status | Authorization / dependency | Owner role | Effort | Next action |
+|---|---|---|---|---|---|---:|---|
+| P1A-01 | P0 | GitHub workflow enabled-state and complete active-run inventory | PLAN COMPLETE / EVIDENCE UNVERIFIED | AUTH-01; read-only GitHub UI/API | Automation owner | 0.5–1d | Inspect metadata only; no workflow action |
+| P1A-02 | P0 | Deployed revision and application-code parity | BLOCKED / UNVERIFIED | AUTH-02; isolated parity only | Hosting operator | 0.5–1d | Approve exact SSH command scope |
+| P1A-03 | P0 | PHP/Laravel runtime and Artisan command registration/help | BLOCKED / UNVERIFIED | AUTH-02 + AUTH-03 separately | Hosting operator / backend engineer | 0.5–1d | Review bootstrap side effects first |
+| P1A-04 | P0 | Schema/index/migration ledger metadata | BLOCKED / UNVERIFIED | AUTH-04; prove SELECT-only grants first | DB operator | 1d | Approve bounded metadata query |
+| P1A-05 | P0 | Hostinger cron and scheduler ownership | BLOCKED / UNVERIFIED | AUTH-05; hPanel view-only | Hosting operator | 0.5d | User supplies redacted evidence or authorizes view |
+| P1A-06 | P0 | Queue worker, failed-job aggregates and recovery model | BLOCKED / UNVERIFIED | AUTH-05 + AUTH-04 as needed | Hosting operator / DB operator | 0.5–1d | Identify worker; no queue operation |
+| P1A-07 | P0 | Cross-runner duplicate execution/lock assessment | PLAN COMPLETE / OPERATIONAL STATE UNVERIFIED | P1A-01, P1A-02, P1A-05 | Backend/automation engineer | 0.5–1d | Reconcile active runs, cron and shared lock |
+| P1A-08 | P1 | Monitoring, private report and backup evidence | BLOCKED / UNVERIFIED | AUTH-01, AUTH-05; AUTH-06 before new report write | Operations owner | 0.5–1d | Review run metadata and redacted backup evidence |
+| P1A-09 | P0 | Consolidated private Phase 1A evidence report with retention controls | NOT STARTED | P1A-01…08; AUTH-06 | Project owner / operations | 0.5–1d | Confirm private path and retention before write |
+
+### Authorization IDs — no blanket approval
+
+- AUTH-01: GitHub workflow/run metadata read-only review; no dispatch/rerun/cancel/enable/disable/approve/merge.
+- AUTH-02: one bounded Hostinger SSH read-only session for exact approved revision/status and PHP commands; no Artisan/DB/cron/queue/source/file write.
+- AUTH-03: separately approve named Artisan list/help/version bootstrap commands after side-effect review; no command handlers.
+- AUTH-04: production DB metadata SELECT using credential with independently proven SELECT-only grants; no row-content reads or writes.
+- AUTH-05: hPanel view-only Cron Jobs, worker/process and backup settings; no edit/save/toggle/run/pause/delete/restart/restore.
+- AUTH-06: create a new sanitized private Phase 1A report only after destination, access policy and retention are confirmed; no public artifact or overwrite.
+
+**Stop rule:** a general “continue” does not authorize all AUTH IDs. Request and record approval per category. Phase 1A evidence acquisition does not authorize a freeze, resume, migration, deployment, source qualification, discovery, candidate staging, approval, promotion or publication.
+
+### Next recommended prompt
+
+After review, ask for **Phase 1A — Execute the approved read-only evidence subset**. First record the exact AUTH IDs the user approves. Start with GitHub workflow metadata and user-provided redacted Hostinger cron/backup evidence. Do not run SSH, Artisan or DB checks until their separate authorization IDs are explicitly approved and the exact commands/credentials/retention are reviewed. Return a current/historical/unverified evidence matrix and stop on the first safety or parity blocker.
