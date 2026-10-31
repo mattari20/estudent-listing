@@ -59,6 +59,41 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('git -C "$PARITY_REPO" log --all --format=\'%H %cs %s\' -S\'import_batches\' -- database/migrations', $workflow);
     }
 
+
+    public function test_phase_5b18_diagnostic_preserves_partial_private_report_and_lints_before_execution(): void
+    {
+        $workflow = file_get_contents(base_path('.github/workflows/hostinger-readonly-diagnostics.yml'));
+        $diagnostic = file_get_contents(base_path('scripts/ops/phase-5b18-runtime-diagnostic.php'));
+
+        $this->assertIsString($workflow);
+        $this->assertIsString($diagnostic);
+        $this->assertSame(1, substr_count($workflow, "PHP_BIN='/opt/alt/php85/usr/bin/php'"));
+        $this->assertStringContainsString('"$PHP_BIN" -l "$DIAG_SCRIPT"', $workflow);
+        $this->assertStringContainsString('runtime-diagnostic.stderr', $workflow);
+        $this->assertStringContainsString('chmod 700 "$DIAG_ROOT"', $workflow);
+        $this->assertStringContainsString('phase-5b18-artisan-runtime.json', $workflow);
+        $this->assertStringContainsString('REPORT_LIMIT_BYTES = 262144', $diagnostic);
+        $this->assertStringContainsString("'overall_status' => 'FAIL'", $diagnostic);
+        $this->assertStringContainsString("'exception_class' => get_class(\$exception)", $diagnostic);
+        $this->assertStringContainsString("fopen(\$temporary, 'x')", $diagnostic);
+        $this->assertStringContainsString('rename($temporary, $reportPath)', $diagnostic);
+        $this->assertStringContainsString('chmod($reportPath, 0600)', $diagnostic);
+        $this->assertStringContainsString('refusing to overwrite report', $diagnostic);
+        $this->assertStringContainsString("list --raw --no-ansi", $diagnostic);
+        $this->assertStringContainsString("help institutes:qualify-official-sources --no-ansi", $diagnostic);
+        $this->assertStringContainsString('preg_match(\'/^institutes:qualify-official-sources(?:\s|$)/\'', $diagnostic);
+        $this->assertStringContainsString('implode("\n", $helpOutput)', $diagnostic);
+        $this->assertStringContainsString("'exit_code' => \$listCode", $diagnostic);
+        $this->assertStringContainsString("'exit_code' => \$helpCode", $diagnostic);
+        $this->assertStringContainsString("'source_option_present' => \$sourcePresent", $diagnostic);
+        $this->assertStringContainsString("'output_excerpt' => \$sanitize", $diagnostic);
+        $this->assertStringContainsString("'options_excerpt' => \$sanitize", $diagnostic);
+        $this->assertStringContainsString("PHASE_5B18_NATIVE_PHP", $diagnostic);
+        $this->assertStringContainsString("PHASE_5B18_ARTISAN_PATH", $diagnostic);
+        $this->assertStringNotContainsString('\\\\Illuminate\\\\', $diagnostic);
+        $this->assertStringNotContainsString('artisan institutes:qualify-official-sources --', $workflow);
+    }
+
     public function test_readonly_diagnostics_have_single_public_api_and_guest_access_checks(): void
     {
         $workflow = file_get_contents(base_path('.github/workflows/hostinger-readonly-diagnostics.yml'));
