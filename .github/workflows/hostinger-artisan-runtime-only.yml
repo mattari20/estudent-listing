@@ -133,7 +133,7 @@ jobs:
             chmod 700 \"\$REPORT_DIR\"
             test ! -e \"\$REPORT\" || fail report_appeared_no_overwrite
             test \"\$APPROVED\" = '3b0b1bc40206bb665f34064f265c2975f5ea19ef' || fail approved_revision_mismatch
-            PARITY=\"\$(mktemp -d \"\${TMPDIR:-/tmp}/estudent-runtime-parity.XXXXXXXX\")\"
+            PARITY=\"\$(mktemp -d \"\/tmp/estudent-runtime-parity.XXXXXXXX\")\"
             chmod 700 \"\$PARITY\"
             git -C \"\$PARITY\" init -q
             git -C \"\$PARITY\" remote add origin https://github.com/mattari20/estudent-listing.git
