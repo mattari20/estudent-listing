@@ -1,0 +1,248 @@
+name: Hostinger Phase 5B.18 Runtime Diagnostic Delivery
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: hostinger-phase-5b18-runtime-only
+  cancel-in-progress: false
+
+jobs:
+  runtime-diagnostic:
+    name: Deliver approved PHP diagnostic and inspect runtime once
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact approved main revision
+        uses: actions/checkout@v4
+        with:
+          ref: 3b0b1bc40206bb665f34064f265c2975f5ea19ef
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify approved revision and diagnostic source
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          APPROVED_REVISION='3b0b1bc40206bb665f34064f265c2975f5ea19ef'
+          SCRIPT='scripts/ops/phase-5b18-runtime-diagnostic.php'
+          [[ "$(git rev-parse HEAD)" == "$APPROVED_REVISION" ]]
+          [[ -f "$SCRIPT" && -s "$SCRIPT" ]]
+          SHA256="$(sha256sum "$SCRIPT" | awk '{print $1}')"
+          [[ "$SHA256" =~ ^[a-f0-9]{64}$ ]]
+          BYTES="$(wc -c < "$SCRIPT" | tr -d ' ')"
+          [[ "$BYTES" =~ ^[0-9]+$ ]] && (( BYTES > 0 && BYTES <= 262144 ))
+          php -l "$SCRIPT" >/dev/null
+          echo "script_sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "script_bytes=$BYTES" >> "$GITHUB_OUTPUT"
+          echo "approved_revision=$APPROVED_REVISION" >> "$GITHUB_OUTPUT"
+          echo "Approved PHP source verified at fixed revision; bytes=$BYTES; sha256=$SHA256"
+
+      - name: Prepare pinned Hostinger SSH identity
+        id: ssh
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          EXPECTED_HOST_FINGERPRINT: ${{ secrets.HOSTINGER_SSH_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          [[ -n "$SSH_PRIVATE_KEY" && -n "$HOSTINGER_HOST" && -n "$HOSTINGER_PORT" && -n "$EXPECTED_HOST_FINGERPRINT" ]]
+          [[ "$EXPECTED_HOST_FINGERPRINT" == SHA256:* ]]
+          KEY_PATH="$RUNNER_TEMP/phase-5b27-hostinger-id"
+          KNOWN_HOSTS="$RUNNER_TEMP/phase-5b27-known-hosts"
+          install -m 600 /dev/null "$KEY_PATH"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          timeout 20s ssh-keyscan -T 10 -p "$HOSTINGER_PORT" -t ed25519,ecdsa,rsa "$HOSTINGER_HOST" 2>/dev/null > "$KNOWN_HOSTS"
+          test -s "$KNOWN_HOSTS"
+          ACTUAL_FINGERPRINTS="$(ssh-keygen -lf "$KNOWN_HOSTS" -E sha256 | awk '{print $2}' | sort -u)"
+          grep -Fxq "$EXPECTED_HOST_FINGERPRINT" <<< "$ACTUAL_FINGERPRINTS"
+          chmod 600 "$KNOWN_HOSTS"
+          echo "Hostinger SSH host key fingerprint verified."
+
+      - name: Upload approved script to unique private temporary directory
+        id: transfer
+        shell: bash
+        env:
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          SCRIPT_SHA256: ${{ steps.source.outputs.script_sha256 }}
+        run: |
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/phase-5b27-hostinger-id"
+          KNOWN_HOSTS="$RUNNER_TEMP/phase-5b27-known-hosts"
+          LOCAL_SCRIPT='scripts/ops/phase-5b18-runtime-diagnostic.php'
+          REMOTE_BASE='/home/u537436044/domains/estudent.pk/public_html/institutes/.phase-5b27-runtime'
+          REMOTE_COMMAND="set -eu; BASE='$REMOTE_BASE'; mkdir -p \"\$BASE\"; chmod 700 \"\$BASE\"; DIR=\$(mktemp -d \"\$BASE/run.XXXXXXXX\"); chmod 700 \"\$DIR\"; printf '%s\\n' \"\$DIR\""
+          REMOTE_DIR="$(timeout 60s ssh -i "$KEY_PATH" -p "$HOSTINGER_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" -o ConnectTimeout=15 "$HOSTINGER_USER@$HOSTINGER_HOST" "$REMOTE_COMMAND")"
+          [[ "$REMOTE_DIR" =~ ^/home/u537436044/domains/estudent\.pk/public_html/institutes/\.phase-5b27-runtime/run\.[A-Za-z0-9]+$ ]]
+          echo "remote_dir=$REMOTE_DIR" >> "$GITHUB_OUTPUT"
+          timeout 120s scp -q -P "$HOSTINGER_PORT" -i "$KEY_PATH" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" -o ConnectTimeout=15 "$LOCAL_SCRIPT" "$HOSTINGER_USER@$HOSTINGER_HOST:$REMOTE_DIR/phase-5b18-runtime-diagnostic.php"
+          echo "Approved script transferred to a unique restricted directory."
+
+      - name: Verify delivery, preflight and execute diagnostic exactly once
+        id: execute
+        shell: bash
+        env:
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          SCRIPT_SHA256: ${{ steps.source.outputs.script_sha256 }}
+          TARGET_REVISION: ${{ steps.source.outputs.approved_revision }}
+          REMOTE_DIR: ${{ steps.transfer.outputs.remote_dir }}
+        run: |
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/phase-5b27-hostinger-id"
+          KNOWN_HOSTS="$RUNNER_TEMP/phase-5b27-known-hosts"
+          PROJECT_PATH='/home/u537436044/domains/estudent.pk/public_html/institutes'
+          PHP_BIN='/opt/alt/php85/usr/bin/php'
+          REMOTE_COMMAND="set -eu
+            PROJECT='$PROJECT_PATH'; DIR='$REMOTE_DIR'; APPROVED='$TARGET_REVISION'; EXPECTED='$SCRIPT_SHA256'; PHP='$PHP_BIN'
+            SCRIPT=\"\$DIR/phase-5b18-runtime-diagnostic.php\"
+            REPORT=\"\$PROJECT/storage/app/private/diagnostics/phase-5b18-artisan-runtime.json\"
+            fail() { echo \"phase_5b27_preflight=FAIL:\$1\"; exit 20; }
+            test \"\$(realpath -e \"\$PROJECT\")\" = '$PROJECT_PATH' || fail project_path_mismatch
+            test -f \"\$PROJECT/artisan\" || fail artisan_missing
+            test -x \"\$PHP\" || fail php85_missing
+            test -d \"\$DIR\" || fail temp_directory_missing
+            test \"\$(stat -c %a \"\$DIR\")\" = 700 || fail temp_directory_permissions
+            test -s \"\$SCRIPT\" || fail transferred_script_missing
+            chmod 600 \"\$SCRIPT\"
+            test \"\$(stat -c %a \"\$SCRIPT\")\" = 600 || fail script_permissions
+            ACTUAL=\"\$(sha256sum \"\$SCRIPT\" | awk '{print \$1}')\"
+            test \"\$ACTUAL\" = \"\$EXPECTED\" || fail script_checksum_mismatch
+            PRIVATE=\"\$(realpath -m \"\$PROJECT/storage/app/private\")\"
+            PUBLIC=\"\$(realpath -e \"\$PROJECT/public\")\"
+            case \"\$PRIVATE/\" in \"\$PUBLIC/\"*) fail private_root_inside_public ;; esac
+            REPORT_DIR=\"\$PROJECT/storage/app/private/diagnostics\"
+            test ! -e \"\$REPORT\" || fail report_exists_no_overwrite
+            mkdir -p \"\$REPORT_DIR\"
+            chmod 700 \"\$REPORT_DIR\"
+            test ! -e \"\$REPORT\" || fail report_appeared_no_overwrite
+            test \"\$APPROVED\" = '3b0b1bc40206bb665f34064f265c2975f5ea19ef' || fail approved_revision_mismatch
+            PARITY=\"\$(mktemp -d \"\${TMPDIR:-/tmp}/estudent-runtime-parity.XXXXXXXX\")\"
+            chmod 700 \"\$PARITY\"
+            git -C \"\$PARITY\" init -q
+            git -C \"\$PARITY\" remote add origin https://github.com/mattari20/estudent-listing.git
+            git -C \"\$PARITY\" fetch --quiet --no-tags --depth=200 origin +refs/heads/main:refs/remotes/origin/main || fail parity_fetch_failed
+            git -C \"\$PARITY\" cat-file -e \"\$APPROVED^{commit}\" 2>/dev/null || git -C \"\$PARITY\" fetch --quiet --no-tags --depth=200 origin \"\$APPROVED\" || fail approved_commit_unavailable
+            git -C \"\$PARITY\" merge-base --is-ancestor \"\$APPROVED\" refs/remotes/origin/main || fail approved_revision_not_on_main
+            git -C \"\$PARITY\" checkout --quiet --detach \"\$APPROVED\"
+            git -C \"\$PARITY\" show \"\$APPROVED:scripts/ops/phase-5b18-runtime-diagnostic.php\" | sha256sum | grep -Fq \"\$EXPECTED\" || fail source_revision_hash_mismatch
+            export PHASE_5B18_TARGET_REVISION=\"\$APPROVED\" PHASE_5B18_PARITY_REPO=\"\$PARITY\" PHASE_5B18_NATIVE_PHP=\"\$PHP\" PHASE_5B18_ARTISAN_PATH=\"\$PROJECT/artisan\"
+            LINT=\"\$DIR/runtime-diagnostic-lint.txt\"; STDERR=\"\$DIR/runtime-diagnostic.stderr\"
+            if ! \"\$PHP\" -l \"\$SCRIPT\" > \"\$LINT\" 2>&1; then chmod 600 \"\$LINT\"; echo phase_5b27_php_lint=FAIL; exit 21; fi
+            chmod 600 \"\$LINT\"
+            test ! -e \"\$REPORT\" || fail report_exists_before_execution
+            echo phase_5b27_php_lint=PASS
+            echo phase_5b27_diagnostic_invocations=1
+            set +e; \"\$PHP\" \"\$SCRIPT\" --report=\"\$REPORT\" 2> \"\$STDERR\"; EXIT_CODE=\$?; set -e
+            chmod 600 \"\$STDERR\" 2>/dev/null || true
+            test -f \"\$REPORT\" || fail report_missing_no_retry
+            chmod 600 \"\$REPORT\"
+            BYTES=\"\$(wc -c < \"\$REPORT\" | tr -d ' ')\"; case \"\$BYTES\" in ''|*[!0-9]*) fail report_size_invalid ;; esac
+            test \"\$BYTES\" -gt 0 && test \"\$BYTES\" -le 262144 || fail report_exceeds_256KiB
+            \"\$PHP\" -r '$d=json_decode((string)file_get_contents($argv[1]),true);if(!is_array($d)||json_last_error()!==JSON_ERROR_NONE)exit(1);' \"\$REPORT\" || fail report_json_invalid
+            SHA=\"\$(sha256sum \"\$REPORT\" | awk '{print \$1}')\"
+            printf '%s %s %s\\n' \"\$BYTES\" \"\$SHA\" \"\$EXIT_CODE\" > \"\$DIR/report-metadata.txt\"; chmod 600 \"\$DIR/report-metadata.txt\"
+            echo phase_5b27_report_ready=true; echo phase_5b27_report_bytes=\$BYTES; echo phase_5b27_report_sha256=\$SHA; echo phase_5b27_diagnostic_exit_code=\$EXIT_CODE
+            test \"\$EXIT_CODE\" -eq 0 || exit \"\$EXIT_CODE\"
+          "
+          set +e
+          timeout 300s ssh -i "$KEY_PATH" -p "$HOSTINGER_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" -o ConnectTimeout=15 "$HOSTINGER_USER@$HOSTINGER_HOST" "$REMOTE_COMMAND" > "$RUNNER_TEMP/phase-5b27-remote.log" 2>&1
+          STATUS=$?
+          set -e
+          sed -E 's/(password|secret|token|authorization)([=:][[:space:]]*)[^[:space:]]+/\1\2[REDACTED]/Ig' "$RUNNER_TEMP/phase-5b27-remote.log" | grep -E '^(phase_5b27_|ERROR:)' || true
+          [[ $STATUS -eq 0 ]] || { echo '::error::Remote diagnostic failed; no automatic retry.'; exit "$STATUS"; }
+
+      - name: Retrieve private report metadata
+        id: metadata
+        if: ${{ success() }}
+        shell: bash
+        env:
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          REMOTE_DIR: ${{ steps.transfer.outputs.remote_dir }}
+        run: |
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/phase-5b27-hostinger-id"; KNOWN_HOSTS="$RUNNER_TEMP/phase-5b27-known-hosts"
+          META="$RUNNER_TEMP/phase-5b27-report-metadata"
+          timeout 60s scp -q -P "$HOSTINGER_PORT" -i "$KEY_PATH" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" "$HOSTINGER_USER@$HOSTINGER_HOST:$REMOTE_DIR/report-metadata.txt" "$META"
+          read -r BYTES SHA EXIT_CODE < "$META"
+          [[ "$BYTES" =~ ^[0-9]+$ && "$BYTES" -gt 0 && "$BYTES" -le 262144 ]]
+          [[ "$SHA" =~ ^[a-f0-9]{64}$ && "$EXIT_CODE" =~ ^[0-9]+$ ]]
+          echo "report_bytes=$BYTES" >> "$GITHUB_OUTPUT"
+          echo "report_sha256=$SHA" >> "$GITHUB_OUTPUT"
+          echo "diagnostic_exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Download final private report
+        if: ${{ success() }}
+        shell: bash
+        env:
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          REMOTE_DIR: ${{ steps.transfer.outputs.remote_dir }}
+        run: |
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/phase-5b27-hostinger-id"; KNOWN_HOSTS="$RUNNER_TEMP/phase-5b27-known-hosts"
+          mkdir -p phase-5b27-report
+          PARTIAL="$RUNNER_TEMP/phase-5b27-report.json.partial"
+          DEST='phase-5b27-report/phase-5b18-artisan-runtime.json'
+          [[ ! -e "$DEST" ]]
+          trap 'rm -f "$PARTIAL"' EXIT
+          timeout 120s scp -q -P "$HOSTINGER_PORT" -i "$KEY_PATH" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" "$HOSTINGER_USER@$HOSTINGER_HOST:/home/u537436044/domains/estudent.pk/public_html/institutes/storage/app/private/diagnostics/phase-5b18-artisan-runtime.json" "$PARTIAL"
+          test -s "$PARTIAL"
+          mv "$PARTIAL" "$DEST"
+          trap - EXIT
+
+      - name: Validate transferred report before artifact upload
+        id: validate
+        if: ${{ success() }}
+        shell: bash
+        env:
+          EXPECTED_BYTES: ${{ steps.metadata.outputs.report_bytes }}
+          EXPECTED_SHA256: ${{ steps.metadata.outputs.report_sha256 }}
+        run: |
+          set -euo pipefail
+          FILE='phase-5b27-report/phase-5b18-artisan-runtime.json'
+          test -s "$FILE"
+          BYTES="$(wc -c < "$FILE" | tr -d ' ')"
+          [[ "$BYTES" == "$EXPECTED_BYTES" && "$BYTES" -gt 0 && "$BYTES" -le 262144 ]]
+          SHA="$(sha256sum "$FILE" | awk '{print $1}')"
+          [[ "$SHA" == "$EXPECTED_SHA256" ]]
+          php -r '$d=json_decode((string)file_get_contents($argv[1]),true);if(!is_array($d)||json_last_error()!==JSON_ERROR_NONE)exit(1);' "$FILE"
+          echo "Validated report bytes=$BYTES sha256=$SHA"
+
+      - name: Upload validated report artifact
+        if: ${{ success() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-5b18-artisan-runtime-report
+          path: phase-5b27-report/phase-5b18-artisan-runtime.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Cleanup only this run temporary remote files
+        if: ${{ always() && steps.transfer.outputs.remote_dir != '' }}
+        shell: bash
+        env:
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          REMOTE_DIR: ${{ steps.transfer.outputs.remote_dir }}
+        run: |
+          set -euo pipefail
+          [[ "$REMOTE_DIR" =~ ^/home/u537436044/domains/estudent\.pk/public_html/institutes/\.phase-5b27-runtime/run\.[A-Za-z0-9]+$ ]]
+          KEY_PATH="$RUNNER_TEMP/phase-5b27-hostinger-id"; KNOWN_HOSTS="$RUNNER_TEMP/phase-5b27-known-hosts"
+          REMOTE_COMMAND="set -eu; D='$REMOTE_DIR'; B='/home/u537436044/domains/estudent.pk/public_html/institutes/.phase-5b27-runtime'; test \"\$(realpath -e \"\$D\")\" = \"\$D\"; case \"\$D\" in \"\$B\"/run.*) ;; *) exit 3 ;; esac; rm -f -- \"\$D/phase-5b18-runtime-diagnostic.php\" \"\$D/runtime-diagnostic-lint.txt\" \"\$D/runtime-diagnostic.stderr\" \"\$D/report-metadata.txt\"; rmdir -- \"\$D\""
+          timeout 60s ssh -i "$KEY_PATH" -p "$HOSTINGER_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" "$HOSTINGER_USER@$HOSTINGER_HOST" "$REMOTE_COMMAND" || echo '::warning::Temporary directory cleanup failed; inspect manually.'
