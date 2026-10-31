@@ -226,6 +226,7 @@ jobs:
           trap - EXIT
 
       - name: Download preserved diagnostic stderr
+        id: stderr_download
         if: ${{ always() && steps.metadata.outputs.report_sha256 != '' }}
         shell: bash
         env:
@@ -242,7 +243,7 @@ jobs:
 
       - name: Validate transferred report before artifact upload
         id: validate
-        if: ${{ always() && steps.metadata.outputs.report_sha256 != '' }}
+        if: ${{ always() && steps.metadata.outputs.report_sha256 != '' && steps.stderr_download.outcome == 'success' }}
         shell: bash
         env:
           EXPECTED_BYTES: ${{ steps.metadata.outputs.report_bytes }}
