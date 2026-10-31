@@ -40,7 +40,7 @@ assert_contract(source.include?('sed -n \'1,80p\' "$DIAG_STDERR"'), "diagnostic 
 assert_contract(source.scan("PHP_BIN='/opt/alt/php85/usr/bin/php'").length == 1, "approved PHP binary must be initialized exactly once")
 assert_contract(!source.match?(/artisan\s+institutes:qualify-official-sources\s+--/), "workflow must not invoke qualification or a source request")
 assert_contract(php_source.include?("list --raw --no-ansi") && php_source.include?("help institutes:qualify-official-sources --no-ansi"), "native Artisan list/help inspection must remain available")
-assert_contract(php_source.include?("(?:\s|$)"), "native list must match the exact command name")
+assert_contract(php_source.include?('(?:\s|$)'), "native list must match the exact command name")
 assert_contract(php_source.include?('implode("\n", $helpOutput)'), "native help lines must be joined with real newlines")
 assert_contract(php_source.include?("'exit_code' => $listCode") && php_source.include?("'exit_code' => $helpCode"), "native command exit codes must be recorded")
 assert_contract(php_source.include?("'output_excerpt' => $sanitize") && php_source.include?("'options_excerpt' => $sanitize"), "native output must be bounded and sanitized")
