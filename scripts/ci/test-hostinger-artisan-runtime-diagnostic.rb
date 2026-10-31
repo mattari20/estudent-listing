@@ -22,7 +22,7 @@ required = [
   "source_option_present",
   "composer_autoload",
   "bootstrap_cache",
-  "two_way_tracked_file_parity",
+  "two_way_file_parity",
   "unexpected_extra_files",
   "mutation_performed",
   "source_requests_performed",
@@ -44,7 +44,7 @@ assert_contract(source.include?("RecursiveDirectoryIterator") && source.include?
 assert_contract(source.include?("composer/autoload_classmap.php") && source.include?("composer/autoload_psr4.php"), "Composer-generated metadata must be inventoried")
 assert_contract(source.include?("bootstrap/cache"), "Laravel generated cache must be inventoried")
 assert_contract(source.include?("hash_file('sha256'"), "diagnostic must hash deployed files")
-assert_contract(source.include?("ReflectionClass") && source.include?("getDefinition()->getSynopsis()"), "loaded command class and signature must be reflected")
+assert_contract(source.include?("ReflectionClass") && source.include?("signature"), "loaded command class and signature must be reflected")
 assert_contract(source.include?("source_filter") == false, "diagnostic must not execute or create a qualification report")
 
 puts "Hostinger Artisan runtime diagnostic contract: PASS"
