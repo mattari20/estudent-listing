@@ -226,7 +226,7 @@ Implementation:
 Defects:
 - **SEC-02:** raw JSON-LD is inserted into a script element without HTML-sensitive JSON escaping. See security section.
 - Admission and accreditation child-state filters use inconsistent blacklists rather than one explicit public-state policy.
-- The detail page loads offerings without constraining their campus to active status and active geography. An active offering attached to an inactive campus can be rendered.
+- The HTML detail page loads active offerings without constraining their campus to active status/geography. The API constrains the campus to active status but does not require active geography for an offering's campus, even though its top-level campus collection does. This can make the same profile show different offerings/campuses between HTML and JSON.
 - Institution HTML and API detail filters differ; the API excludes fewer admission statuses.
 - No dedicated detail-page behavior test was found in the specifically inspected test paths. The repository tree could not be enumerated, so this is not a claim that no other test exists.
 
@@ -264,7 +264,8 @@ Defects and risks:
 - No inspected search tests cover every filter combination, maliciously long inputs, empty results, status visibility or stable pagination.
 
 Acceptance:
-- Define a single allowlist of public admission states and reuse it in HTML, API and filter catalogs.
+- Define a single allowlist of public admission/academic states and reuse it in HTML, API and filter catalogs.
+- Apply the same active-geography predicate to API offerings as to the top-level campus collection; apply campus/geography eligibility to HTML offerings too.
 - Bound all query/filter lengths and test 422/normalization behavior.
 - Add performance tests or query plans against representative institution/campus/program counts.
 - Preserve query parameters through pagination and ensure deterministic ordering.
