@@ -72,7 +72,10 @@ $step('source_hashes', static function () use ($base, $repo, $target, $sha256, &
         $expected = shell_exec('git -C ' . escapeshellarg($repo) . ' show ' . escapeshellarg($target . ':' . $path) . ' 2>/dev/null');
         $actualPath = $base . '/' . $path;
         $actualHash = $sha256($actualPath);
-        $expectedHash = is_string($expected) ? hash('sha256', $expected) : null;
+        if (!is_string($expected) || $actualHash === null) {
+            throw new RuntimeException('source_hash_input_unavailable');
+        }
+        $expectedHash = hash('sha256', $expected);
         $report['files'][$path] = [
             'actual_sha256' => $actualHash,
             'expected_sha256' => $expectedHash,
