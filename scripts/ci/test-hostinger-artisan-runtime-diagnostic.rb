@@ -37,7 +37,7 @@ assert_contract(source.include?("TARGET_REVISION") && source.include?("git -C \"
 assert_contract(source.include?("install -m 600 \"$DIAG_REPORT\" \"$DIAG_FINAL\""), "report must be private and permission-restricted")
 assert_contract(source.include?("DIAG_BYTES\" -le 262144"), "diagnostic report must be bounded to 256 KiB")
 assert_contract(source.include?("[ -e \"$DIAG_FINAL\" ]") && source.include?("EXISTS_REFUSED_TO_OVERWRITE"), "report overwrite must be refused")
-assert_contract(source.include?("\\$PHP_BIN\\" artisan env") && source.include?("\\$PHP_BIN\\" artisan route:list"), "existing read-only diagnostics must use the same PHP binary")
+assert_contract(source.include?(%q{"$PHP_BIN" artisan env}) && source.include?(%q{"$PHP_BIN" artisan route:list}), "existing read-only diagnostics must use the same PHP binary")
 assert_contract(!source.include?("artisan institutes:qualify-official-sources"), "diagnostic workflow must not invoke qualification command")
 assert_contract(!source.match?(/artisan\s+institutes:qualify-official-sources\s+--/), "diagnostic must not invoke a source request")
 assert_contract(source.include?("RecursiveDirectoryIterator") && source.include?("unexpected_extra_files"), "diagnostic must inspect extra files in production roots")
