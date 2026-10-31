@@ -76,69 +76,56 @@ jobs:
             echo "phase_5b18_php_binary=$PHP_BIN"
             # Phase 5B.18: read-only Artisan runtime inspection.
             echo "=== Phase 5B.18 read-only Artisan runtime diagnosis ==="
-            PHP_BIN='/opt/alt/php85/usr/bin/php'
-            [ -x "$PHP_BIN" ] || { echo "ERROR: approved PHP executable unavailable"; exit 4; }
             PARITY_REPO="$(mktemp -d "${TMPDIR:-/tmp}/estudent-runtime-parity.XXXXXX")"
             DIAG_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/estudent-artisan-diag.XXXXXX")"
-            trap 'rm -rf "$DIAG_ROOT" "$PARITY_REPO"' EXIT
+            chmod 700 "$DIAG_ROOT"
+            trap 'rm -rf -- "$DIAG_ROOT" "$PARITY_REPO"' EXIT HUP INT TERM
             git -C "$PARITY_REPO" init -q
             git -C "$PARITY_REPO" remote add origin https://github.com/mattari20/estudent-listing.git
             git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin +refs/heads/main:refs/remotes/origin/main
             if ! git -C "$PARITY_REPO" cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION"; fi
             git -C "$PARITY_REPO" merge-base --is-ancestor "$EXPECTED_REVISION" refs/remotes/origin/main
             git -C "$PARITY_REPO" checkout --quiet --detach "$EXPECTED_REVISION"
-            DIAG_SCRIPT="$DIAG_ROOT/runtime-diagnostic.php"
+            DIAG_SCRIPT="$PROJECT_PATH/scripts/ops/phase-5b18-runtime-diagnostic.php"
             DIAG_REPORT="$DIAG_ROOT/runtime-diagnostic.json"
+            DIAG_STDERR="$DIAG_ROOT/runtime-diagnostic.stderr"
+            DIAG_LINT="$DIAG_ROOT/runtime-diagnostic-lint.txt"
             DIAG_FINAL='storage/app/private/diagnostics/phase-5b18-artisan-runtime.json'
+            [ -f "$DIAG_SCRIPT" ] || { echo "phase_5b18_script=NOT_FOUND"; exit 90; }
             [ ! -e "$DIAG_FINAL" ] || { echo "phase_5b18_report=EXISTS_REFUSED_TO_OVERWRITE"; exit 24; }
             export PHASE_5B18_TARGET_REVISION="$EXPECTED_REVISION"
             export PHASE_5B18_PARITY_REPO="$PARITY_REPO"
-            cat > "$DIAG_SCRIPT" <<'PHP'
-            <?php
-            declare(strict_types=1);
-            $base = getcwd() ?: '';
-            $target = getenv('PHASE_5B18_TARGET_REVISION') ?: '';
-            $repo = getenv('PHASE_5B18_PARITY_REPO') ?: '';
-            $report = ['schema_version'=>1,'phase'=>'5B.18','checked_at_utc'=>gmdate(DATE_ATOM),'expected_source_revision'=>$target,'production_git_revision'=>trim((string)shell_exec('git rev-parse HEAD 2>/dev/null')) ?: null,'mutation_performed'=>false,'source_requests_performed'=>false,'qualification_command_executed'=>false,'php'=>['binary'=>PHP_BINARY,'version'=>PHP_VERSION,'sapi'=>PHP_SAPI,'working_directory'=>$base,'artisan_entrypoint'=>realpath($base.'/artisan') ?: $base.'/artisan'],'laravel'=>[],'artisan'=>[],'command'=>[],'files'=>[],'autoload'=>[],'bootstrap_cache'=>[],'parity'=>[],'steps'=>[],'errors'=>[]];
-            $run=static function(string $name,callable $fn) use (&$report): mixed { try {$v=$fn();$report['steps'][$name]='PASS';return $v;} catch(Throwable $e) {$report['steps'][$name]='FAIL';$report['errors'][]=['step'=>$name,'error_class'=>get_class($e)];return null;} };
-            $sha=static fn(string $p): ?string => is_file($p) ? hash_file('sha256',$p) : null;
-            $run('source_hashes',static function() use($base,$repo,$target,$sha,&$report): void { foreach(['artisan','bootstrap/app.php','app/Console/Commands/QualifyOfficialInstituteSources.php'] as $p) {$blob=shell_exec('git -C '.escapeshellarg($repo).' show '.escapeshellarg($target.':'.$p).' 2>/dev/null');$actual=$base.'/'.$p;$report['files'][$p]=['actual_sha256'=>$sha($actual),'expected_sha256'=>is_string($blob)?hash('sha256',$blob):null,'matches'=>is_string($blob)&&is_file($actual)&&hash_equals(hash('sha256',$blob),(string)$sha($actual)),'realpath'=>realpath($actual) ?: null];}});
-            $run('composer_autoload',static function() use($base,$sha,&$report): void {$loader=require_once $base.'/vendor/autoload.php';$class='App\\Console\\Commands\\QualifyOfficialInstituteSources';$resolved=method_exists($loader,'findFile')?$loader->findFile($class):null;$files=[];foreach(['vendor/autoload.php','vendor/composer/autoload_real.php','vendor/composer/autoload_psr4.php','vendor/composer/autoload_classmap.php','vendor/composer/autoload_static.php'] as $p){$files[$p]=['exists'=>is_file($base.'/'.$p),'sha256'=>$sha($base.'/'.$p)];}$report['autoload']=['loader_class'=>get_class($loader),'class_resolved'=>is_string($resolved)&&$resolved!=='','resolved_file'=>is_string($resolved)?$resolved:null,'resolved_sha256'=>is_string($resolved)?$sha($resolved):null,'metadata_files'=>$files];}});
-            $run('bootstrap_and_command_registry',static function() use($base,&$report): void {require_once $base.'/vendor/autoload.php';$app=require $base.'/bootstrap/app.php';$app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();$report['laravel']=['version'=>$app->version(),'application_class'=>get_class($app),'base_path'=>$app->basePath(),'bootstrap_success'=>true];$commands=\\Illuminate\\Support\\Facades\\Artisan::all();$names=array_keys($commands);sort($names,SORT_STRING);$item=$commands['institutes:qualify-official-sources']??null;$report['artisan']=['registered_command_names'=>$names,'registered_count'=>count($names),'qualification_command_registered'=>$item!==null];if($item instanceof \\Illuminate\\Console\\Command){$reflection=new \\ReflectionClass($item);$definition=$item->getDefinition();$options=[];foreach($definition->getOptions() as $option){$options[]='--'.$option->getName();}sort($options,SORT_STRING);$file=$reflection->getFileName()?:null;$report['command']=['class'=>get_class($item),'reflection_source_file'=>$file,'reflection_source_realpath'=>$file?(realpath($file)?:$file):null,'signature'=>$definition->getSynopsis(),'options'=>$options,'source_option_present'=>in_array('--source',$options,true),'reflection_file_sha256'=>$file?hash_file('sha256',$file):null];}});
-            $run('bootstrap_cache_inventory',static function() use($base,$sha,&$report): void {$root=$base.'/bootstrap/cache';$files=[];foreach(glob($root.'/*')?:[] as $p){if(!is_file($p))continue;$files[]=['name'=>basename($p),'size_bytes'=>filesize($p),'modified_at_utc'=>gmdate(DATE_ATOM,filemtime($p)),'sha256'=>$sha($p)];}$report['bootstrap_cache']=['directory_exists'=>is_dir($root),'file_count'=>count($files),'files'=>array_slice($files,0,100)];}});
-            $run('two_way_file_parity',static function() use($base,$repo,$target,$sha,&$report): void {$paths=[];exec('git -C '.escapeshellarg($repo).' ls-tree -r --name-only '.escapeshellarg($target).' -- app bootstrap config database resources routes composer.json composer.lock public artisan 2>/dev/null',$paths,$exit);if($exit!==0)throw new \\RuntimeException('target_file_list_unavailable');$expected=array_values(array_filter($paths,static fn($p)=>$p!==''));$missing=[];$different=[];foreach($expected as $rel){$actual=$base.'/'.$rel;if(!is_file($actual)&&!is_link($actual)){$missing[]=$rel;continue;}$blob=shell_exec('git -C '.escapeshellarg($repo).' show '.escapeshellarg($target.':'.$rel).' 2>/dev/null');$expectedHash=is_string($blob)?hash('sha256',$blob):null;$actualHash=$sha($actual);if($expectedHash===null||$actualHash!==$expectedHash)$different[]=['path'=>$rel,'expected_sha256'=>$expectedHash,'actual_sha256'=>$actualHash];}$extras=[];$roots=['app','bootstrap','config','database','resources','routes','public'];$generated=['bootstrap/cache','public/build','public/hot'];foreach($roots as $root){$dir=$base.'/'.$root;if(!is_dir($dir))continue;$it=new \\RecursiveIteratorIterator(new \\RecursiveDirectoryIterator($dir,\\FilesystemIterator::SKIP_DOTS));foreach($it as $file){$rel=substr($file->getPathname(),strlen($base)+1);if(in_array($rel,$expected,true))continue;$skip=false;foreach($generated as $prefix){if($rel===$prefix||str_starts_with($rel,$prefix.'/')){$skip=true;break;}}if(!$skip&&($file->isFile()||$file->isLink())){$extras[]=['path'=>$rel,'sha256'=>$sha($file->getPathname())];if(count($extras)>=300)break 2;}}}$report['parity']=['expected_file_count'=>count($expected),'missing_expected_files'=>array_slice($missing,0,300),'different_expected_files'=>array_slice($different,0,300),'unexpected_extra_files'=>$extras,'tracked_parity_complete'=>$missing===[]&&$different===[]&&$extras===[]];}});
-            $run('runtime_inventory',static function() use($base,$sha,&$report): void {$out=[];foreach(['app/Console','bootstrap','config','vendor/composer'] as $root){$dir=$base.'/'.$root;if(!is_dir($dir))continue;$it=new \\RecursiveIteratorIterator(new \\RecursiveDirectoryIterator($dir,\\FilesystemIterator::SKIP_DOTS));foreach($it as $file){if(!$file->isFile())continue;$out[]=['path'=>substr($file->getPathname(),strlen($base)+1),'sha256'=>$sha($file->getPathname()),'size_bytes'=>$file->getSize()];if(count($out)>=500)break 2;}}$report['files']['runtime_inventory']=$out;}});
-            $json=json_encode($report,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_INVALID_UTF8_SUBSTITUTE);$dest=$argv[1]??'';if(!is_string($json)||$dest===''||file_exists($dest))exit(90);if(file_put_contents($dest,$json,LOCK_EX)===false)exit(91);
-            PHP
-            "$PHP_BIN" "$DIAG_SCRIPT" "$DIAG_REPORT" 2> "$DIAG_ROOT/runtime-diagnostic.stderr" || DIAG_EXIT=$?
-            DIAG_EXIT="${DIAG_EXIT:-0}"
-            if [ -f "$DIAG_REPORT" ]; then
-              DIAG_BYTES="$(wc -c < "$DIAG_REPORT" | tr -d ' ')"
-              if [ "$DIAG_BYTES" -le 262144 ]; then install -m 600 "$DIAG_REPORT" "$DIAG_FINAL"; echo "phase_5b18_report=WRITTEN"; echo "phase_5b18_report_bytes=$DIAG_BYTES"; echo "phase_5b18_report_sha256=$(sha256sum "$DIAG_FINAL" | awk '{print $1}')"; else echo "phase_5b18_report=TOO_LARGE"; DIAG_EXIT=93; fi
-            else echo "phase_5b18_report=MISSING"; DIAG_EXIT=94; fi
-            echo "phase_5b18_diagnostic_exit_code=$DIAG_EXIT"
-            [ "$DIAG_EXIT" -eq 0 ] || exit "$DIAG_EXIT"
-            NATIVE_LIST="$DIAG_ROOT/artisan-list-raw.txt"
-            NATIVE_HELP="$DIAG_ROOT/artisan-help.txt"
-            if "$PHP_BIN" artisan list --raw --no-ansi > "$NATIVE_LIST" 2> "$DIAG_ROOT/artisan-list.stderr"; then
-              awk '$1 == "institutes:qualify-official-sources" { print; found=1 } END { if (!found) exit 1 }' "$NATIVE_LIST" > "$DIAG_ROOT/qualification-list-match.txt" || true
-              if [ -s "$DIAG_ROOT/qualification-list-match.txt" ]; then
-                echo "phase_5b18_native_list_match=FOUND"
-              else
-                echo "phase_5b18_native_list_match=NOT_FOUND"
-              fi
-            else
-              echo "phase_5b18_native_list_match=LIST_COMMAND_FAILED"
+            if ! "$PHP_BIN" -l "$DIAG_SCRIPT" > "$DIAG_LINT" 2>&1; then
+              echo "phase_5b18_php_lint=FAIL"
+              sed -n '1,80p' "$DIAG_LINT"
+              exit 91
             fi
-            if "$PHP_BIN" artisan help institutes:qualify-official-sources --no-ansi > "$NATIVE_HELP" 2> "$DIAG_ROOT/artisan-help.stderr"; then
-              if grep -Eq -- '--source([=[:space:]]|$)' "$NATIVE_HELP"; then
-                echo "phase_5b18_native_help_source_option=PRESENT"
-              else
-                echo "phase_5b18_native_help_source_option=ABSENT"
-              fi
-              awk '/Options:/,/^$/' "$NATIVE_HELP" | sed -n '1,80p'
-            else
-              echo "phase_5b18_native_help=FAILED_OR_COMMAND_UNREGISTERED"
+            echo "phase_5b18_php_lint=PASS"
+            "$PHP_BIN" "$DIAG_SCRIPT" --report="$DIAG_REPORT" 2> "$DIAG_STDERR" || DIAG_EXIT=$?
+            DIAG_EXIT="${DIAG_EXIT:-0}"
+            if [ ! -f "$DIAG_REPORT" ]; then
+              echo "phase_5b18_report=PARTIAL_REPORT_MISSING"
+              if [ -s "$DIAG_STDERR" ]; then sed -n '1,80p' "$DIAG_STDERR" | sed -E 's/(password|secret|token|authorization)([=:][[:space:]]*)[^[:space:]]+/\\1\\2[REDACTED]/Ig'; fi
+              exit 94
+            fi
+            DIAG_BYTES="$(wc -c < "$DIAG_REPORT" | tr -d ' ')"
+            if [ "$DIAG_BYTES" -gt 262144 ]; then echo "phase_5b18_report=TOO_LARGE"; exit 93; fi
+            "$PHP_BIN" -r '$p=$argv[1];$j=json_decode((string)file_get_contents($p),true);if(!is_array($j)||json_last_error()!==JSON_ERROR_NONE)exit(2);' "$DIAG_REPORT"
+            mkdir -p "$(dirname "$DIAG_FINAL")"
+            [ ! -e "$DIAG_FINAL" ] || { echo "phase_5b18_report=EXISTS_REFUSED_TO_OVERWRITE"; exit 24; }
+            FINAL_TMP="${DIAG_FINAL}.tmp.$$"
+            (umask 077; install -m 600 "$DIAG_REPORT" "$FINAL_TMP")
+            if ! mv -n "$FINAL_TMP" "$DIAG_FINAL"; then rm -f -- "$FINAL_TMP"; echo "phase_5b18_report=ATOMIC_MOVE_FAILED"; exit 95; fi
+            chmod 600 "$DIAG_FINAL"
+            echo "phase_5b18_report=WRITTEN"
+            echo "phase_5b18_report_bytes=$DIAG_BYTES"
+            echo "phase_5b18_report_sha256=$(sha256sum "$DIAG_FINAL" | awk '{print $1}')"
+            REPORT_STATUS="$("$PHP_BIN" -r '$d=json_decode((string)file_get_contents($argv[1]),true);echo (($d["overall_status"]??"FAIL")==="PASS"?"PASS":"FAIL");' "$DIAG_FINAL")"
+            echo "phase_5b18_report_status=$REPORT_STATUS"
+            echo "phase_5b18_diagnostic_exit_code=$DIAG_EXIT"
+            if [ "$DIAG_EXIT" -ne 0 ] || [ "$REPORT_STATUS" != "PASS" ]; then
+              if [ -s "$DIAG_STDERR" ]; then sed -n '1,80p' "$DIAG_STDERR" | sed -E 's/(password|secret|token|authorization)([=:][[:space:]]*)[^[:space:]]+/\\1\\2[REDACTED]/Ig'; fi
+              exit "${DIAG_EXIT:-96}"
             fi
             echo "=== Existing read-only diagnostics continue unchanged ==="
             echo "=== Application environment ==="
