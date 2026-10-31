@@ -8,7 +8,7 @@ The 2026-10-31 Hostinger diagnostic run [#765](https://github.com/mattari20/estu
 
 The diagnostic is now a committed PHP script at `scripts/ops/phase-5b18-runtime-diagnostic.php`, linted before execution. It writes a bounded partial JSON report even when an inspection step fails, records step names and exception classes, and exits nonzero when required evidence is incomplete. Report creation uses an exclusive temporary file, mode 0600, and an atomic rename; an existing report is never overwritten. The SSH wrapper retains PHP stderr in a mode-700 temporary directory and emits a bounded sanitized excerpt on failure before cleanup. The temporary script is no longer generated inline. Temporary parity Git data remains isolated from the live production repository.
 
-The regression contract lints and executes the PHP script against a controlled temporary fixture, checks partial report creation, failure evidence, mode 0600, the 256 KiB limit, and refusal to overwrite.
+The regression contract lints and executes the PHP script against a controlled temporary fixture, checks partial report creation, failure evidence, mode 0600, the 256 KiB limit, and refusal to overwrite. It separately records native `artisan list --raw --no-ansi` and `artisan help institutes:qualify-official-sources --no-ansi` output, exit codes, exact command-name detection, and native `--source` detection. Native output excerpts are bounded and redact credential-like values; native evidence is distinct from the separately bootstrapped Laravel command registry/reflection evidence. Regression fixtures cover `--source` present/absent, list/help failures, Composer autoload failure, Laravel bootstrap failure, partial JSON, and sanitized stderr.
 
 ## Report
 
