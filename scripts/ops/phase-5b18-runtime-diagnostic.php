@@ -156,13 +156,27 @@ $step('bootstrap_and_command_registry', static function () use ($base, &$report)
 });
 
 $step('native_artisan_inspection', static function () use ($base, &$report): void {
-    $php = PHP_BINARY;
+    $php = getenv('PHASE_5B18_NATIVE_PHP') ?: PHP_BINARY;
+    $artisan = getenv('PHASE_5B18_ARTISAN_PATH') ?: ($base . '/artisan');
+    if (!is_file($artisan) || !is_executable($php)) {
+        throw new RuntimeException('native_artisan_runtime_unavailable');
+    }
+
+    $sanitize = static function (array $lines): array {
+        return array_map(static function ($line): string {
+            $line = (string) $line;
+            $line = preg_replace('/(?i)\b(password|secret|token|authorization|api[_-]?key)\b(\s*[:=]\s*)[^\s,;]+/', '$1$2[REDACTED]', $line) ?? '[REDACTED_LINE]';
+            $line = preg_replace('/(?i)\bBearer\s+[A-Za-z0-9._~+\/-]+=*/', 'Bearer [REDACTED]', $line) ?? '[REDACTED_LINE]';
+            return substr($line, 0, 1000);
+        }, $lines);
+    };
+
     $listOutput = [];
     $listCode = 0;
-    exec(escapeshellarg($php) . ' ' . escapeshellarg($base . '/artisan') . ' list --raw --no-ansi 2>&1', $listOutput, $listCode);
+    exec(escapeshellarg($php) . ' ' . escapeshellarg($artisan) . ' list --raw --no-ansi 2>&1', $listOutput, $listCode);
     $listMatch = false;
     foreach ($listOutput as $line) {
-        if (preg_match('/^institutes:qualify-official-sources(?:\\s|$)/', $line) === 1) {
+        if (preg_match('/^institutes:qualify-official-sources(?:\s|$)/', (string) $line) === 1) {
             $listMatch = true;
             break;
         }
@@ -170,20 +184,24 @@ $step('native_artisan_inspection', static function () use ($base, &$report): voi
 
     $helpOutput = [];
     $helpCode = 0;
-    exec(escapeshellarg($php) . ' ' . escapeshellarg($base . '/artisan') . ' help institutes:qualify-official-sources --no-ansi 2>&1', $helpOutput, $helpCode);
-    $helpText = implode("\\n", $helpOutput);
-    $sourcePresent = preg_match('/--source(?:[=\\s]|$)/', $helpText) === 1;
+    exec(escapeshellarg($php) . ' ' . escapeshellarg($artisan) . ' help institutes:qualify-official-sources --no-ansi 2>&1', $helpOutput, $helpCode);
+    $helpText = implode("\n", $helpOutput);
+    $sourcePresent = preg_match('/(?:^|\s)--source(?:[=\s]|$)/m', $helpText) === 1;
 
     $report['artisan']['native_list'] = [
+        'command' => 'list --raw --no-ansi',
         'exit_code' => $listCode,
         'qualification_command_listed' => $listMatch,
-        'output_excerpt' => array_slice($listOutput, 0, 30),
+        'output_excerpt' => $sanitize(array_slice($listOutput, 0, 30)),
+        'output_truncated' => count($listOutput) > 30,
     ];
     $report['artisan']['native_help'] = [
+        'command' => 'help institutes:qualify-official-sources --no-ansi',
         'exit_code' => $helpCode,
         'command_help_succeeded' => $helpCode === 0,
         'source_option_present' => $sourcePresent,
-        'options_excerpt' => array_slice($helpOutput, 0, 80),
+        'options_excerpt' => $sanitize(array_slice($helpOutput, 0, 80)),
+        'output_truncated' => count($helpOutput) > 80,
     ];
     if ($listCode !== 0 || $helpCode !== 0 || !$listMatch) {
         throw new RuntimeException('native_artisan_list_or_help_failed');
