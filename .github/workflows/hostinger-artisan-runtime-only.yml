@@ -154,7 +154,7 @@ jobs:
             SHA=\"\$(sha256sum \"\$REPORT\" | awk '{print \$1}')\"
             printf '%s %s %s\\n' \"\$BYTES\" \"\$SHA\" \"\$EXIT_CODE\" > \"\$DIR/report-metadata.txt\"; chmod 600 \"\$DIR/report-metadata.txt\"
             echo phase_5b27_report_ready=true; echo phase_5b27_report_bytes=\$BYTES; echo phase_5b27_report_sha256=\$SHA; echo phase_5b27_diagnostic_exit_code=\$EXIT_CODE
-            test \"\$EXIT_CODE\" -eq 0 || exit \"\$EXIT_CODE\"
+            echo phase_5b27_diagnostic_invocations=1
           "
           set +e
           timeout 300s ssh -i "$KEY_PATH" -p "$HOSTINGER_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" -o ConnectTimeout=15 "$HOSTINGER_USER@$HOSTINGER_HOST" "$REMOTE_COMMAND" > "$RUNNER_TEMP/phase-5b27-remote.log" 2>&1
@@ -165,7 +165,7 @@ jobs:
 
       - name: Retrieve private report metadata
         id: metadata
-        if: ${{ success() }}
+        if: ${{ always() && steps.transfer.outputs.remote_dir != '' }}
         shell: bash
         env:
           HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
@@ -177,23 +177,31 @@ jobs:
           KEY_PATH="$RUNNER_TEMP/phase-5b27-hostinger-id"; KNOWN_HOSTS="$RUNNER_TEMP/phase-5b27-known-hosts"
           META="$RUNNER_TEMP/phase-5b27-report-metadata"
           timeout 60s scp -q -P "$HOSTINGER_PORT" -i "$KEY_PATH" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" "$HOSTINGER_USER@$HOSTINGER_HOST:$REMOTE_DIR/report-metadata.txt" "$META"
+          if [[ ! -s "$META" ]]; then
+            echo "No diagnostic report metadata was produced; no retry will occur."
+            exit 0
+          fi
           read -r BYTES SHA EXIT_CODE < "$META"
           [[ "$BYTES" =~ ^[0-9]+$ && "$BYTES" -gt 0 && "$BYTES" -le 262144 ]]
           [[ "$SHA" =~ ^[a-f0-9]{64}$ && "$EXIT_CODE" =~ ^[0-9]+$ ]]
           echo "report_bytes=$BYTES" >> "$GITHUB_OUTPUT"
           echo "report_sha256=$SHA" >> "$GITHUB_OUTPUT"
           echo "diagnostic_exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          echo "Report metadata captured without exposing report contents."
 
       - name: Download final private report
-        if: ${{ success() }}
+        if: ${{ always() && steps.transfer.outputs.remote_dir != '' }}
         shell: bash
         env:
           HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
           HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
           HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
           REMOTE_DIR: ${{ steps.transfer.outputs.remote_dir }}
+          DIAGNOSTIC_EXIT: ${{ steps.metadata.outputs.diagnostic_exit_code }}
         run: |
           set -euo pipefail
+          [[ -n "$DIAGNOSTIC_EXIT" ]] || { echo "No private report available; no retry."; exit 0; }
+          [[ "$DIAGNOSTIC_EXIT" == "0" ]] || echo "Diagnostic failed; transferring its preserved partial report without rerun."
           KEY_PATH="$RUNNER_TEMP/phase-5b27-hostinger-id"; KNOWN_HOSTS="$RUNNER_TEMP/phase-5b27-known-hosts"
           mkdir -p phase-5b27-report
           PARTIAL="$RUNNER_TEMP/phase-5b27-report.json.partial"
@@ -207,7 +215,7 @@ jobs:
 
       - name: Validate transferred report before artifact upload
         id: validate
-        if: ${{ success() }}
+        if: ${{ always() && steps.metadata.outputs.report_sha256 != '' }}
         shell: bash
         env:
           EXPECTED_BYTES: ${{ steps.metadata.outputs.report_bytes }}
@@ -224,7 +232,7 @@ jobs:
           echo "Validated report bytes=$BYTES sha256=$SHA"
 
       - name: Upload validated report artifact
-        if: ${{ success() }}
+        if: ${{ always() && steps.validate.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: phase-5b18-artisan-runtime-report
