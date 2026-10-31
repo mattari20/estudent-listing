@@ -79,6 +79,17 @@ class HostingerDirectoryVisibilityDiagnosticsContractTest extends TestCase
         $this->assertStringContainsString('rename($temporary, $reportPath)', $diagnostic);
         $this->assertStringContainsString('chmod($reportPath, 0600)', $diagnostic);
         $this->assertStringContainsString('refusing to overwrite report', $diagnostic);
+        $this->assertStringContainsString("list --raw --no-ansi", $diagnostic);
+        $this->assertStringContainsString("help institutes:qualify-official-sources --no-ansi", $diagnostic);
+        $this->assertStringContainsString("preg_match('/^institutes:qualify-official-sources(?:\\\\s|$)/'", $diagnostic);
+        $this->assertStringContainsString('implode("\\\\n", $helpOutput)', $diagnostic);
+        $this->assertStringContainsString("'exit_code' => $listCode", $diagnostic);
+        $this->assertStringContainsString("'exit_code' => $helpCode", $diagnostic);
+        $this->assertStringContainsString("'source_option_present' => $sourcePresent", $diagnostic);
+        $this->assertStringContainsString("'output_excerpt' => $sanitize", $diagnostic);
+        $this->assertStringContainsString("'options_excerpt' => $sanitize", $diagnostic);
+        $this->assertStringContainsString("PHASE_5B18_NATIVE_PHP", $diagnostic);
+        $this->assertStringContainsString("PHASE_5B18_ARTISAN_PATH", $diagnostic);
         $this->assertStringNotContainsString('\\\\Illuminate\\\\', $diagnostic);
         $this->assertStringNotContainsString('artisan institutes:qualify-official-sources --', $workflow);
     }
