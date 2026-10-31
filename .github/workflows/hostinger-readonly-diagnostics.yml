@@ -146,7 +146,7 @@ jobs:
             echo "=== Deployed API route registration (read-only; bounded) ==="
             API_ROUTE_REPORT="$(mktemp)"
             "$PHP_BIN" artisan route:list --json --no-ansi > "$API_ROUTE_REPORT"
-            "$PHP_BIN" -r '
+            php -r '
             $routes = json_decode(file_get_contents($argv[1]), true);
             if (! is_array($routes)) {
                 fwrite(STDERR, "ERROR: route:list JSON was invalid or empty".PHP_EOL);
@@ -160,7 +160,7 @@ jobs:
             echo "=== Laravel scheduled task definitions (read-only) ==="
             "$PHP_BIN" artisan schedule:list --no-ansi
             echo "=== Import-batch duplicate_rows schema/migration verification (read-only) ==="
-            "$PHP_BIN" <<'PHP'
+            php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -356,7 +356,7 @@ jobs:
             PHP
 
             echo "=== Discovery outcome schema/migration verification (read-only) ==="
-            "$PHP_BIN" <<'PHP'
+            php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -389,7 +389,7 @@ jobs:
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP
             echo "=== Institution field approvals schema and migration-ledger readiness (read-only) ==="
-            "$PHP_BIN" <<'PHP'
+            php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -788,7 +788,7 @@ jobs:
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP
             echo "=== Discovery review package storage boundary (read-only) ==="
-            "$PHP_BIN" <<'PHP'
+            php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -1149,7 +1149,7 @@ jobs:
             find database/migrations -maxdepth 1 -type f -name '*.php' -print0 | xargs -0 grep -lE 'duplicate_rows|import_batches' | sort || true
 
             echo "=== Candidate import source/evidence lineage (read-only; payloads omitted) ==="
-            "$PHP_BIN" <<'PHP'
+            php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -1203,7 +1203,7 @@ jobs:
             PHP
 
             echo "=== Canonical institution identity export (read-only; names and slugs only) ==="
-            "$PHP_BIN" <<'PHP'
+            php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -1238,7 +1238,7 @@ jobs:
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP
             echo "=== Canonical directory visibility and relationship counts (read-only) ==="
-            "$PHP_BIN" <<'PHP'
+            php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -1295,7 +1295,7 @@ jobs:
             PHP
 
             echo "=== Latest Laravel exception fingerprint (read-only; message and request data omitted) ==="
-            "$PHP_BIN" <<'PHP'
+            php <<'PHP'
             <?php
             $path = __DIR__.'/storage/logs/laravel.log';
             if (!is_file($path) || !is_readable($path)) {
@@ -1331,7 +1331,7 @@ jobs:
             echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP
             echo "=== Profile-to-canonical-record trace (read-only) ==="
-            "$PHP_BIN" <<'PHP'
+            php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -1375,7 +1375,7 @@ jobs:
             echo "=== Data-gap report (read-only) ==="
             php artisan institutes:data-gap-report --json
             echo "=== Official-source refresh schema/index/migration-ledger readiness (read-only) ==="
-            "$PHP_BIN" <<'PHP'
+            php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -1461,7 +1461,7 @@ jobs:
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP
             echo "=== Discovery profile parent validation (read-only) ==="
-            "$PHP_BIN" <<'PHP'
+            php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -1533,7 +1533,7 @@ jobs:
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP
             echo "=== Active programs without active offerings (read-only review queue) ==="
-            "$PHP_BIN" <<'PHP'
+            php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -1623,7 +1623,7 @@ jobs:
               echo '{"check":"institutes_data_gap_record_audit","status":"skipped","reason":"summary_mode_unavailable_or_audit_failed","mutation_performed":false,"row_level_output_suppressed":true}'
             fi
             echo "=== Institution import row trace (read-only; no payloads or notes) ==="
-            "$PHP_BIN" <<'PHP'
+            php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
@@ -1808,7 +1808,7 @@ jobs:
             echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
             PHP
             echo "=== Campus import row trace (read-only; no payloads or notes) ==="
-            "$PHP_BIN" <<'PHP'
+            php <<'PHP'
             <?php
             require __DIR__.'/vendor/autoload.php';
             $app = require __DIR__.'/bootstrap/app.php';
