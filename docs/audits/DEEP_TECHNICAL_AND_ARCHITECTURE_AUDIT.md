@@ -1252,7 +1252,7 @@ During this Step 2 audit:
 - No imports, source retrieval, discovery runs, candidate decisions, approvals, promotions, reversals or publications were executed.
 - No HEC profile was enabled.
 - No GitHub Actions workflow was dispatched, rerun or disabled.
-- No PR was merged, closed or modified.
+- No pre-existing project PR was merged, closed or modified. This audit's own documentation PR #955 was created and its report commit updated once to clarify the API offering/geography finding.
 - No existing diagnostic report was opened, overwritten or deleted.
 - No application code or production configuration was changed.
 
