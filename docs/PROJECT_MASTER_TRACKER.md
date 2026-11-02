@@ -1085,3 +1085,103 @@ For both runs, repository checkout and expected-revision resolution steps succee
 This review used GitHub repository definitions, run metadata, job summaries and source files only. No workflow was dispatched, rerun, cancelled, enabled, disabled, approved or otherwise mutated. No Hostinger, production SSH, Artisan, database, hPanel, cron, queue or private report content was accessed. No source retrieval, candidate staging/import, approval, promotion or publication was initiated. Historical GCU rows #348–353 and batches #19–23 remain untouched; the 20 additional HEC profiles and AI extraction remain disabled.
 
 **AUTH-01 result:** PARTIAL, not fully complete. Run/definition inventory is documented; enabled-state proof and one workflow's latest run remain outstanding. Request GitHub Actions UI evidence before closing P1A-01. No authorization for AUTH-02 or AUTH-05 is implied.
+
+
+---
+
+## Phase 1A-02 / 1A-05 — Hostinger read-only evidence collected (2026-11-02)
+
+**Repository main SHA at evidence consolidation:** `9fb1d2bef215b14aba02b2fdd91bf1422828303d`  
+**Production deployed SHA observed during AUTH-02:** `9fb1d2bef215b14aba02b2fdd91bf1422828303d`  
+**Scope:** AUTH-02 bounded SSH identity/runtime metadata inspection and AUTH-05 view-only Hostinger hPanel inspection, exactly within the user-approved command/screen scopes. Evidence was supplied through terminal and hPanel screenshots on 2026-11-02. No additional production operation was performed.
+
+### AUTH-02 — SSH identity, revision and runtime
+
+| Check | Observed result | Status |
+|---|---|---|
+| SSH login | Successful authenticated session to the Hostinger account | VERIFIED |
+| Project directory | `/home/u537436044/domains/estudent.pk/public_html/institutes` | VERIFIED |
+| Laravel Artisan file | Present | VERIFIED |
+| Git work tree | Valid repository; root is the Institutes Directory project directory | VERIFIED |
+| Branch | `main` | VERIFIED |
+| Production HEAD | `9fb1d2bef215b14aba02b2fdd91bf1422828303d` | VERIFIED |
+| Main parity | Matches the independently checked repository `main` SHA at evidence consolidation | VERIFIED |
+| Unstaged tracked changes | Exit 0; none reported | VERIFIED |
+| Staged changes | Exit 0; none reported | VERIFIED |
+| Tracked/staged status entries | 0 | VERIFIED |
+| Untracked entries | 0 | VERIFIED |
+| PHP command path | `/usr/bin/php` | VERIFIED |
+| PHP resolved executable | `/opt/alt/php85/usr/bin/php` | VERIFIED |
+| PHP CLI version | `8.5.12` (NTS) | VERIFIED |
+| Installed Laravel framework | `v13.33.0`, read from `vendor/composer/installed.json` | VERIFIED |
+
+**Interpretation:** At the time of inspection, the production checkout was on `main`, matched the verified repository main SHA, and had no staged, unstaged tracked, or untracked changes according to the approved status checks. The PHP and Laravel runtime versions are now based on production evidence, not only repository declarations.
+
+**Limits:** This does not verify Artisan command registration/help, effective application environment, database schema, migration ledger, database grants, or application runtime health. Those require separate AUTH-03/AUTH-04 scopes and were not attempted.
+
+### AUTH-05 — Hostinger hPanel evidence
+
+#### Cron Jobs
+
+- The supplied Cron Jobs screenshot showed the “Create a New Cron Job” form and an example/default command field, but no existing-job list or configured entries were visible.
+- The example `public_html/wp-cron.php` field is not evidence of a saved or active cron entry.
+- Therefore actual Hostinger cron inventory, enabled state, command lines, schedule, timezone and last/next run remain **UNVERIFIED**. Do not record “no cron jobs exist” based on this screenshot.
+- No cron job was created, edited, saved, run, disabled or deleted.
+
+#### Hosting resources and worker evidence
+
+The Plan Details screenshots showed:
+- Hosting plan allocation: 25 GB disk, 2,048 MB RAM, 1 CPU core, 80 maximum processes, 40 PHP workers, 400,000 inodes.
+- Server label `server1278`; server location shown as Singapore; backup location shown as Mumbai, India.
+
+These are plan limits/location metadata, not live resource consumption or worker-process evidence. No dedicated queue-worker/Supervisor/process-management screen was identified in the supplied hPanel navigation/screenshots. Laravel queue-worker presence, command, process count, queue connection, restart policy and active status remain **UNVERIFIED**. PHP workers must not be equated with Laravel queue workers.
+
+#### Backups
+
+The Manage Backups screenshot explicitly showed:
+- Automated backups: **Weekly**.
+- Latest backup shown: `2026-11-01 18:05`.
+- Next backup shown: `2026-11-08`.
+- Manual backups: locked on the displayed plan.
+- Daily backups: offered as a paid plan upgrade.
+- The Restore and Download view exposed separate Website backup, Files backup and Database backup categories, with dated snapshots including 2026-11-01, 2026-10-28, 2026-10-21, 2026-10-14 and 2026-10-07.
+- A database selector showed `u537436044_Institutes` among the available database backup choices.
+- A warning stated that backup plugin archives, cache and database export files are excluded from backups.
+
+**Limits:** The screenshots establish weekly automated backups and visible dated snapshots. They do not establish retention duration, full backup completeness for every application/private file, timezone for displayed timestamps, or successful restore testing. No backup was generated, downloaded, restored, deleted or reconfigured.
+
+#### Private storage metadata
+
+The supplied File Manager screenshot showed the breadcrumb `storage/app/private` within `public_html/institutes`. The following child directories were visible: `diagnostics`, `institute-discovery-review-packages`, `phase2-offering-gap-audits`, and `source-qualification`. The visible child directory entries displayed permission string `drwxr-xr-x`. The diagnostics directory was not opened and no report contents or filenames inside it were inspected.
+
+**Limits:** The screenshot establishes that the private storage directory and named child directories exist in the displayed application path. It does not independently prove web-server denial for every possible URL/symlink/configuration path, nor show the permissions/ownership of the parent `private` directory itself. No files or permissions were changed.
+
+### Updated Phase 1A task register
+
+| Task ID | Updated status | Evidence / dependency | Next action |
+|---|---|---|---|
+| P1A-01 | PARTIAL — workflow definitions and recent run/job metadata inventoried; workflow enabled state and latest offering-gap source-verification run remain UNVERIFIED | AUTH-01; Phase 1A-01B evidence above | Obtain read-only GitHub Actions workflow state and missing latest-run evidence |
+| P1A-02 | COMPLETE for the approved bounded revision/status/PHP/Laravel metadata subset | AUTH-02 terminal evidence; deployed SHA matches repository main | No further SSH under AUTH-02; any additional inspection requires a new named authorization |
+| P1A-03 | BLOCKED / NOT AUTHORIZED | AUTH-03 required for Artisan list/help/version bootstrap inspection | Review exact named Artisan commands and side effects, then request separate approval |
+| P1A-04 | BLOCKED / NOT AUTHORIZED | AUTH-04 required for production schema/ledger metadata via proven SELECT-only access | Establish SELECT-only grant proof and obtain separate approval |
+| P1A-05 | PARTIAL — weekly backup settings and private storage layout observed; actual cron inventory, retention and restore-test evidence remain incomplete | AUTH-05 screenshots; Cron Jobs page did not show existing entries | Obtain an hPanel view that actually lists saved cron jobs; record retention/restore metadata if visible without initiating actions |
+| P1A-06 | BLOCKED / UNVERIFIED | No queue-worker management evidence; AUTH-04 would be needed only if approved aggregate DB metadata is required | Do not infer Laravel queue workers from PHP worker plan limits; identify a safe read-only source or record unavailable |
+| P1A-07 | PARTIAL — repository shows separate GitHub/Laravel hourly execution paths without demonstrated shared cross-runner lock; actual Hostinger cron state remains unknown | AUTH-01, AUTH-02 and partial AUTH-05 evidence | Reconcile saved Hostinger cron entries and static lock configuration; no production concurrency test |
+| P1A-08 | PARTIAL — backup frequency and snapshots observed; exclusions visible; retention, restore test and workflow enabled-state evidence remain incomplete | AUTH-01 and AUTH-05 screenshots | Record retention/restore evidence if viewable; do not perform restore or backup mutation |
+| P1A-09 | NOT STARTED | Requires completion/status of P1A-01…08 and separate AUTH-06 approval for any new private report | Do not create or overwrite a private production report |
+
+### Overall decision
+
+**AUTH-02: COMPLETE within its exact approved scope.**  
+**AUTH-05: PARTIAL; view-only evidence collected, but cron inventory, worker state, backup retention and restore-test evidence remain unresolved.**  
+**Phase 1A overall: NOT YET COMPLETE.**
+
+The strongest current production readiness facts are: deployed revision parity with repository main at the inspection point; clean production Git status; PHP 8.5.12; Laravel 13.33.0; weekly Hostinger backups with website/files/database snapshot categories; and the existence of the private storage directory.
+
+The critical unresolved operational questions remain: actual saved Hostinger cron entries and scheduler ownership; whether a Laravel queue worker exists; backup retention and restore validation; schema/migration readiness; Artisan registration; complete GitHub workflow enabled-state inventory; and private report retention.
+
+### Safety confirmation
+
+Only the exact AUTH-02 read-only command groups and AUTH-05 view-only hPanel screens were inspected. No Artisan command, database access, migration, cron action, queue action, workflow dispatch/rerun/cancel/state change, deployment, cache clear, backup generation/download/restore, private report opening, source retrieval, discovery, candidate staging/import, approval, canonical promotion or publication was performed. No production files, permissions, configuration or data were changed. Historical GCU rows #348–353 and batches #19–23 remain protected; the 20 additional HEC profiles and AI extraction remain disabled.
+
+**Next permitted work:** documentation review/PR only. Any production inspection beyond the completed AUTH-02 subset or partial AUTH-05 screenshots requires a new narrowly scoped authorization.
