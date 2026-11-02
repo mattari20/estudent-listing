@@ -594,3 +594,46 @@ All facts above are **owner-supplied screenshot evidence**, not independently ve
 P1A-05 remains **PARTIAL**. P1A-08 remains **PARTIAL**. P1A-09 remains **NOT STARTED**. Phase 1A is not complete.
 
 No AUTH-02, AUTH-03, AUTH-04 or expanded AUTH-05 operation is authorized by this addendum. No production terminal, Artisan, DB, cron, queue, backup, private-report or automation action was performed.
+
+
+---
+
+## Phase 1A Joint Evidence Completion Batch — six workstreams (2026-11-02)
+
+The consolidated evidence matrix, exact run references, scheduler assessment, AUTH-04 SQL, remaining authorization requests and Phase 1B design-only recommendation are recorded in the corresponding dated section of `docs/PROJECT_MASTER_TRACKER.md`. That tracker section is the single detailed report for this batch; this plan addendum records the gate result and evidence-source boundaries.
+
+### Verified baseline
+
+- PR #965 merged at `26a315bae463a1551338bed351cfc10eb7357abd`; live `main` independently verified at the same SHA.
+- PR #965 exact-head Test #41454822626, Laravel CI #41454822743 and Project Controller #41454822336 succeeded.
+- Current-main push Test #41462213594, Laravel CI #41462213601 and Project Controller #41462213858 succeeded.
+- Compare from the previously inspected AUTH-02 production SHA `9fb1d2bef215b14aba02b2fdd91bf1422828303d` to current main contains documentation-only changes. This does not refresh the production SHA/runtime observation.
+
+### Six-workstream gate result
+
+| Workstream | Status | Evidence boundary |
+|---|---|---|
+| P1A-05C Hostinger cron | PARTIAL | Owner screenshot does not show saved entries; no complete cron inventory |
+| P1A-06 Queue worker | UNVERIFIED | Queue defaults are repository facts; no deployed worker/process or failed-job aggregate evidence |
+| P1A-01D GitHub state | PARTIAL | 35 workflow files/eight scheduled definitions and run metadata inspected; enabled state unavailable through the connector |
+| P1A-02/03 runtime | PARTIAL | AUTH-02 terminal evidence remains valid for its historical observation; no new production command; AUTH-03 not authorized |
+| P1A-04 schema | NOT AUTHORIZED | Migration contracts reviewed; historical discrepancies remain; no production DB query; exact SELECT request in tracker |
+| P1A-08 backup/private storage/monitoring | PARTIAL | Owner screenshots and public/private monitor metadata recorded; retention/restore/private controls unresolved |
+
+### Scheduler and monitoring decision
+
+Two independent hourly execution paths remain visible in repository source: Laravel scheduler commands `institutes:bootstrap-agent` and `institutes:monitor-changes`, and GitHub `scheduled-institute-discovery.yml` invoking the same commands. GitHub concurrency does not establish a shared Laravel scheduler lock. Actual Hostinger cron invocation and simultaneous execution remain unverified. Do not change scheduler ownership in Phase 1A.
+
+### Outstanding gates
+
+- Obtain complete saved Hostinger cron list and view-only worker/process configuration; this is within the previously described AUTH-05 view-only scope, not an expansion.
+- Obtain GitHub Actions UI evidence for enabled/disabled state of all 35 workflows.
+- Obtain explicit separate AUTH-03 approval for the exact Artisan list/help/schedule-list commands.
+- Obtain explicit separate AUTH-04 approval for the bounded metadata-only SELECT statements recorded in the tracker, after SELECT-only grants are proven.
+- Any failed-job aggregate requires a separately named SELECT-only approval; no payload/exception fields.
+- Backup retention, successful restore-test evidence and private report access/retention must be supplied or remain unverified. No restore or private report access is authorized.
+- AUTH-06 is not requested or executed; no report file was written to the private repository.
+
+**Phase 1A evidence decision: NOT YET COMPLETE.** No completion percentage is calculated because there is no approved weighting model and several critical gates remain unverified or unauthorized. Phase 1B may begin with design-only planning, but no production or source operation is authorized.
+
+No production access, Artisan, database, cron, queue, backup, private report, workflow state or source operation was performed in this batch. Preserve GCU rows #348–353 and batches #19–23; keep the 20 additional HEC profiles and AI extraction disabled.
