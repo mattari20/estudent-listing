@@ -556,3 +556,41 @@ The eventual evidence report must contain:
 | Phase 1A execution | NOT STARTED |
 
 **Next action:** review the documentation PR and approve only the specific AUTH IDs needed for a later read-only evidence session. Do not start source automation or a production freeze as a side effect of Phase 1A.
+
+
+---
+
+## Phase 1A-05B evidence addendum — owner-supplied Hostinger screenshots (2026-11-02)
+
+This addendum records owner-supplied hPanel/File Manager screenshots received on 2026-11-02. It supplements, and does not replace, the evidence requirements or authorization boundaries above.
+
+### Observed screenshot facts
+
+- Backup interface: automated backups labelled Weekly; latest displayed website backup `2026-11-01 18:05`; next displayed backup `2026-11-08`; website backup described as including website and database; separate Files and Database backup views; database choices include `u537436044_Institutes` and `u537436044_cvbuilder`; previous displayed weekly dates include 2026-10-28, 2026-10-21, 2026-10-14 and 2026-10-07.
+- Backup exclusions warning: backup-plugin archives, cache and database export files are excluded. Manual backups are shown as locked.
+- Hosting plan display: server `server1278`, server location Singapore, backup location India (Mumbai), 25 GB disk, 2048 MB RAM, 1 CPU core, 40 PHP workers, 80 maximum processes, website IP `185.232.14.237`.
+- Cron Jobs page capture: Create a New Cron Job form shown; no saved-job rows visible in that captured view. This is not a complete saved-cron inventory and does not establish that no jobs exist.
+- File Manager capture: `public_html/institutes/storage/app/private` and visible child directories `diagnostics`, `institute-discovery-review-packages`, `phase2-offering-gap-audits`, `source-qualification`.
+
+### Evidence classification and limits
+
+All facts above are **owner-supplied screenshot evidence**, not independently verified Hostinger API data. Screenshot capture timestamps/timezone were not supplied. Hosting plan allocations are not live resource/process measurements. The backup screenshots do not establish complete file inclusion, retention duration, separately verified storage location, recoverability or a successful restore test. The Cron Jobs capture does not establish the complete saved-job inventory. The File Manager capture does not establish web access protection, private-report access controls or retention. No directory/report was opened.
+
+### AUTH-05 status after this addendum
+
+| Evidence item | Status |
+|---|---|
+| Backup frequency / displayed latest and next dates | OWNER-SUPPLIED SCREENSHOT EVIDENCE |
+| Backup scope description and separate Files/Database views | OWNER-SUPPLIED SCREENSHOT EVIDENCE |
+| Backup retention duration | UNVERIFIED |
+| Successful restore test | UNVERIFIED |
+| Saved Hostinger cron entries/schedules | UNVERIFIED |
+| Laravel scheduler invocation | UNVERIFIED |
+| Persistent queue worker/process configuration | UNVERIFIED |
+| Queue worker status / failed-job aggregates | UNVERIFIED |
+| Private storage directory names | OWNER-SUPPLIED SCREENSHOT EVIDENCE |
+| Private report access controls and retention | UNVERIFIED |
+
+P1A-05 remains **PARTIAL**. P1A-08 remains **PARTIAL**. P1A-09 remains **NOT STARTED**. Phase 1A is not complete.
+
+No AUTH-02, AUTH-03, AUTH-04 or expanded AUTH-05 operation is authorized by this addendum. No production terminal, Artisan, DB, cron, queue, backup, private-report or automation action was performed.

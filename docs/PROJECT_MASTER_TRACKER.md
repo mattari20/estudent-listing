@@ -1271,3 +1271,99 @@ The latest available source-verification run is **41446321810**, event `schedule
 This phase used GitHub repository workflow definitions, the repository run-list endpoint, and read-only run/job summaries only. No workflow was dispatched, rerun, cancelled, enabled, disabled, approved or otherwise mutated. No workflow YAML, schedule, secrets, variables, repository setting or ruleset was changed. No job logs or private artifacts/reports were opened or downloaded. No Hostinger, production SSH, Artisan, database, hPanel, cron, queue, deployment, migration, backup operation, source retrieval, candidate staging/import, approval, canonical promotion or publication was performed. GCU candidate rows #348–353 and batches #19–23 were not touched; the 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created.
 
 **Phase 1A-01C result:** GitHub run/job evidence is now materially complete for the eight scheduled workflows, including the previously missing source-verification run. P1A-01 remains PARTIAL solely because workflow enabled/disabled state is still unverified. This evidence does not close Phase 1A overall.
+
+
+---
+
+## Phase 1A-05B — Owner-supplied Hostinger backup, plan and storage screenshots (2026-11-02)
+
+**Repository baseline:** `main` at `0460a5ba26a786e79d4e3b3a4b32f1e04a4ef61b` (verified before branch creation; PR #964 is merged).  
+**Evidence source/type:** screenshots supplied by the project owner from Hostinger hPanel and File Manager. These are owner-supplied visual evidence, not independently retrieved Hostinger API evidence.  
+**Observation date:** 2026-11-02. Exact screenshot capture times/timezone were not supplied.  
+**Scope:** documentation only. No Hostinger session, production terminal, application command, database, backup operation or private report was accessed during this update.
+
+### Backup interface evidence
+
+The owner-supplied hPanel screenshots show:
+
+- Automated backups labelled **Weekly**.
+- Latest displayed website backup: **2026-11-01 18:05**.
+- Next displayed backup: **2026-11-08**.
+- The website backup view describes its scope as including website and database.
+- Separate **Files backup** and **Database backup** views are available.
+- Database choices visible include `u537436044_Institutes` and `u537436044_cvbuilder`.
+- Previous weekly dates displayed include **2026-10-28**, **2026-10-21**, **2026-10-14** and **2026-10-07**.
+- The interface warns that backup-plugin archives, cache and database export files are excluded from backups.
+- Manual backups are shown as locked in the supplied interface.
+
+**Evidence limits:** these screenshots establish what the interface displayed at the time represented. They do not establish the full set of included files, backup completeness, retention duration, independently verified storage location, successful recoverability, or a successful restore test. The displayed timestamps' timezone was not supplied. **Backup retention duration: UNVERIFIED. Restore-test evidence: UNVERIFIED.** No backup was generated, downloaded, restored, deleted or reconfigured.
+
+### Hosting plan metadata
+
+The owner-supplied plan screenshots display the following hosting-plan information:
+
+| Field | Displayed value |
+|---|---|
+| Server name | `server1278` |
+| Server location | Singapore |
+| Backup location | India (Mumbai) |
+| Disk allocation | 25 GB |
+| RAM allocation | 2048 MB |
+| CPU cores | 1 |
+| PHP workers | 40 |
+| Maximum processes | 80 |
+| Website IP | `185.232.14.237` |
+
+These are plan allocation/location values as displayed, not measurements of current resource consumption, application performance, live process count, Laravel queue-worker availability or worker health. PHP worker allocation must not be treated as evidence of a persistent Laravel queue worker.
+
+### Cron Jobs page evidence
+
+The owner reports inspecting `hPanel → Websites → estudent.pk → Advanced → Cron Jobs`. The supplied screenshot shows the **Create a New Cron Job** form, with no existing cron-job rows visible in that captured view.
+
+- Page inspection by the owner: **OWNER-SUPPLIED**.
+- Existing saved-job rows visible in the supplied capture: **none shown**.
+- Complete saved-job listing / saved cron configuration: **UNVERIFIED**.
+- Actual Hostinger cron commands, schedules, timezone, enabled state and last/next execution: **UNVERIFIED**.
+
+The screenshot does not establish that no cron jobs exist. No cron job was added, edited, saved, deleted, executed or toggled.
+
+### Private storage directory metadata
+
+The owner-supplied File Manager screenshot shows the path:
+
+`public_html/institutes/storage/app/private`
+
+The visible directory names are:
+
+- `diagnostics`
+- `institute-discovery-review-packages`
+- `phase2-offering-gap-audits`
+- `source-qualification`
+
+This records only the visible parent path and directory names. No directory or file was opened. The screenshot does **not** verify web-server denial, symlink behavior, private-report access controls, report retention, or the contents of any directory. No report was previewed, downloaded, copied, modified, renamed, moved or deleted.
+
+### Remaining AUTH-05 evidence gaps
+
+| Evidence item | Status | Limitation / permitted next evidence |
+|---|---|---|
+| Saved Hostinger cron entries and schedules | UNVERIFIED | Need a complete view of saved entries; no cron action |
+| Laravel scheduler invocation in production | UNVERIFIED | Repository scheduler declarations alone do not prove production invocation |
+| Persistent queue worker/process configuration | UNVERIFIED | Plan PHP-worker allocation is not queue-worker evidence |
+| Queue worker status and failed-job aggregates | UNVERIFIED | No process or database inspection in this phase |
+| Backup retention duration | UNVERIFIED | Not established by visible weekly dates |
+| Successful restore-test evidence | UNVERIFIED | No restore test performed or evidenced |
+| Private diagnostic report access controls and retention | UNVERIFIED | Directory names alone do not prove access policy or retention |
+
+### Updated Phase 1A status
+
+| Task | Status | Evidence interpretation |
+|---|---|---|
+| P1A-05 — Hostinger cron, worker and backup settings | **PARTIAL** | Owner-supplied screenshots document weekly backup display, plan metadata and visible private-storage directory names. Saved cron configuration, persistent worker state, backup retention and restore testing remain unverified. |
+| P1A-08 — monitoring, backup and private-report evidence | **PARTIAL** | Backup interface evidence is recorded; backup completeness/retention/restore, private report access controls/retention and workflow-state evidence remain incomplete. |
+| P1A-09 — final Phase 1A evidence consolidation | **NOT STARTED** | Phase 1A remains open; outstanding evidence groups and separate authorization gates remain. |
+
+No status in this update marks Phase 1A complete.
+
+### Safety confirmation
+
+This update transcribes only owner-supplied screenshots. No production SSH or terminal access, Artisan, Laravel bootstrap, database query, cron or queue operation, backup generation/download/restore, private report access, workflow dispatch/rerun/cancel/state change, deployment, migration, cache clear, source retrieval, discovery, staging/import, approval, canonical promotion or publication occurred. No production data or configuration was changed. GCU candidate rows #348–353 and batches #19–23 remain untouched; the 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created.
