@@ -908,3 +908,84 @@ No PR was merged or closed. These recommendations are not automatic merge author
 ### Next recommended prompt
 
 After review, ask for **Phase 1A — Execute the approved read-only evidence subset**. First record the exact AUTH IDs the user approves. Start with GitHub workflow metadata and user-provided redacted Hostinger cron/backup evidence. Do not run SSH, Artisan or DB checks until their separate authorization IDs are explicitly approved and the exact commands/credentials/retention are reviewed. Return a current/historical/unverified evidence matrix and stop on the first safety or parity blocker.
+
+
+---
+
+## Phase 1A-00 — AUTH-01 GitHub Actions metadata baseline (2026-11-02)
+
+**Repository main at inspection:** `73b87986308e91c45ffd682ee064fd91084dac2a`  
+**Scope:** GitHub repository metadata, workflow definitions and run metadata only. No workflow action was initiated.
+
+### Integration state
+
+- PR #958 merged into `main` at `07d1f14f2ebe1a1d9492256ba8e0747ae2c4275e`.
+- PR #959 merged into `strategy/step5-master-completion-2026-10-31` at `2ea8c0a1d7eea191c69a841de043f6303b13a929`.
+- PR #960 merged the Phase 1A plan and tracker additions into `main` at `73b87986308e91c45ffd682ee064fd91084dac2a`.
+- The Phase 1A plan and stable task register are present on `main`; the Step 5 strategy remains present.
+- PRs #954–#957 remain open and unmerged at this inspection.
+
+### AUTH-01 evidence snapshot
+
+- `.github/workflows/` contains 35 workflow definition files on `main`.
+- Eight definitions declare scheduled triggers:
+  - `scheduled-institute-discovery.yml` — hourly, `15 * * * *`.
+  - `automated-live-integrity-audit.yml` — daily, `17 3 * * *`.
+  - `hostinger-readonly-diagnostics.yml` — every six hours, `17 */6 * * *`.
+  - `institutes-private-diagnostics-report.yml` — daily, `0 4 * * *`.
+  - `institutes-public-monitor.yml` — daily, `30 3 * * *`.
+  - `offering-gap-preflight.yml` — daily, `0 2 * * *`.
+  - `offering-gap-source-verification.yml` — weekly, `23 4 * * 1`.
+  - `project-controller.yml` — daily, `31 4 * * *`.
+- Manual `workflow_dispatch` triggers are declared by multiple controlled deployment/migration, runtime, diagnostics, qualification, orchestration, recovery, audit and verification workflows. Trigger definitions are repository evidence, not proof that a workflow is enabled.
+- Workflow enabled/disabled state is **UNVERIFIED**: the available GitHub read interface exposed the workflow files and run metadata but did not expose the workflow-list/state endpoint. No enable/disable action was attempted.
+- GitHub Actions query for `status=in_progress` returned zero active runs at inspection time. This is a point-in-time result, not a guarantee that no run can start later.
+
+### Recent relevant run evidence
+
+All listed runs used current main SHA `73b87986308e91c45ffd682ee064fd91084dac2a`:
+
+| Workflow / run | Event and time (UTC) | Conclusion | Evidence |
+|---|---|---|---|
+| Scheduled Governed Institute Discovery #109 / 41377929632 | schedule, 2026-11-02 02:28:33 | success | [Run](https://github.com/mattari20/estudent-listing/actions/runs/41377929632) |
+| Scheduled Governed Institute Discovery #108 / 41358908205 | schedule, 2026-11-01 22:47:42 | success | [Run](https://github.com/mattari20/estudent-listing/actions/runs/41358908205) |
+| Hostinger Read-only Diagnostics #776 / 41397099857 | schedule, 2026-11-02 05:58:38 | failure | [Run](https://github.com/mattari20/estudent-listing/actions/runs/41397099857) |
+| Hostinger Read-only Diagnostics #775 / 41354806601 | schedule, 2026-11-01 21:59:41 | failure | [Run](https://github.com/mattari20/estudent-listing/actions/runs/41354806601) |
+| Automated Live Data Integrity Audit #113 / 41297623285 | schedule, 2026-11-01 10:28:16 | success | [Run](https://github.com/mattari20/estudent-listing/actions/runs/41297623285) |
+| Retrieve Institutes Production Diagnostics (Private) #26 / 41299831622 | schedule, 2026-11-01 10:59:03 | success | [Run](https://github.com/mattari20/estudent-listing/actions/runs/41299831622) |
+| Institutes Public Site Monitor #795 / 41298694240 | schedule, 2026-11-01 10:42:59 | success | [Run](https://github.com/mattari20/estudent-listing/actions/runs/41298694240) |
+| Read-only offering-gap preflight #9 / 41289386218 | schedule, 2026-11-01 09:33:48 | failure | [Run](https://github.com/mattari20/estudent-listing/actions/runs/41289386218) |
+| Institutes Directory Project Controller #237 / 41301729452 | schedule, 2026-11-01 11:24:16 | success | [Run](https://github.com/mattari20/estudent-listing/actions/runs/41301729452) |
+
+Job summaries show that the two successful governed-discovery runs completed the Hostinger SSH step named `Run guarded discovery on Hostinger`. The workflow definition invokes `php artisan institutes:bootstrap-agent` and `php artisan institutes:monitor-changes`; it also fetches/unshallows Git history in the deployed checkout. These are pre-existing scheduled executions observed in metadata, not actions initiated in this Phase 1A-00 review. No logs or private report contents were opened.
+
+The two latest Hostinger Read-only Diagnostics runs failed at the `Run diagnostics on Hostinger` step; downstream public API/guest checks were skipped. The cause is **UNVERIFIED** because production diagnostics/log contents were not accessed.
+
+### Duplicate execution and operational overlap assessment
+
+- `bootstrap/app.php` registers `institutes:bootstrap-agent` and `institutes:monitor-changes` hourly, each with `withoutOverlapping(55)`.
+- `scheduled-institute-discovery.yml` separately schedules an hourly GitHub Actions SSH job that directly invokes those same two Artisan commands.
+- Its GitHub concurrency group serializes runs of that workflow only; it is not evidence of a shared lock with Hostinger's Laravel scheduler or other workflows.
+- No cross-runner shared lock is demonstrated by the inspected repository definitions. Potential duplicate execution is therefore **CONFIRMED AS A DESIGN RISK**, but simultaneous execution is **NOT PROVEN**.
+- `automated-live-integrity-audit.yml` also schedules a Hostinger SSH/Artisan integrity report. `hostinger-readonly-diagnostics.yml` schedules Hostinger SSH/Artisan diagnostics and `schedule:list` inspection. `institutes-private-diagnostics-report.yml` retrieves a protected diagnostics report and stores it in a private repository.
+- Actual Hostinger cron entry, Laravel scheduler invocation, queue worker state, production DB grants and report retention remain outside AUTH-01 and **UNVERIFIED**.
+
+### Stable task register status update
+
+| Task ID | Updated status | Evidence / dependency | Next action |
+|---|---|---|---|
+| P1A-01 | PARTIAL — workflow definitions and run metadata inspected; enabled state UNVERIFIED | AUTH-01; this snapshot and linked runs | Obtain workflow enabled-state evidence through an authorized/readable GitHub UI or API view |
+| P1A-02 | BLOCKED / UNVERIFIED | AUTH-02 | No SSH until separately authorized |
+| P1A-03 | BLOCKED / UNVERIFIED | AUTH-02 + AUTH-03 | No Artisan until separately authorized |
+| P1A-04 | BLOCKED / UNVERIFIED | AUTH-04 | Prove SELECT-only grants before metadata query |
+| P1A-05 | BLOCKED / UNVERIFIED | AUTH-05 | Obtain redacted hPanel evidence or separate view-only authorization |
+| P1A-06 | BLOCKED / UNVERIFIED | AUTH-05; AUTH-04 only if DB metadata is needed | Identify worker and recovery without operating it |
+| P1A-07 | PARTIAL — duplicate execution design risk identified; runtime overlap unresolved | P1A-01, P1A-02, P1A-05 | Reconcile actual Hostinger cron and cross-runner lock evidence |
+| P1A-08 | PARTIAL — GitHub monitor/private-report run metadata visible; backup and retention unverified | AUTH-01, AUTH-05; AUTH-06 before new report creation | Obtain authorized backup/retention evidence; do not open private report contents |
+| P1A-09 | NOT STARTED | P1A-01…08 and AUTH-06 | Create sanitized private report only after path, access and retention approval |
+
+### Safety and scope
+
+This update records repository definitions and GitHub run metadata only. No workflow dispatch, rerun, cancellation, enable/disable, approval, merge, Hostinger access, production SSH, Artisan, database, cron, queue, deployment, source retrieval, candidate staging/import, approval, promotion or publication was initiated. No private report contents were accessed or modified. Historical GCU rows #348–353 and batches #19–23 remain outside scope; the 20 additional HEC profiles and AI extraction remain disabled.
+
+**AUTH-01 outcome:** PARTIAL. Workflow definitions and recent run metadata are recorded; workflow enabled state remains UNVERIFIED. P1A-02 through P1A-06 and P1A-09 remain blocked/not started pending their separate authorization gates.
