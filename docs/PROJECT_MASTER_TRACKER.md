@@ -1367,3 +1367,166 @@ No status in this update marks Phase 1A complete.
 ### Safety confirmation
 
 This update transcribes only owner-supplied screenshots. No production SSH or terminal access, Artisan, Laravel bootstrap, database query, cron or queue operation, backup generation/download/restore, private report access, workflow dispatch/rerun/cancel/state change, deployment, migration, cache clear, source retrieval, discovery, staging/import, approval, canonical promotion or publication occurred. No production data or configuration was changed. GCU candidate rows #348–353 and batches #19–23 remain untouched; the 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created.
+
+
+---
+
+## Phase 1A Joint Evidence Completion Batch — six coordinated workstreams (2026-11-02)
+
+**Repository baseline:** `main` = `26a315bae463a1551338bed351cfc10eb7357abd`.  
+**Baseline ancestry:** PR #965 merged at this SHA; parent `0460a5ba26a786e79d4e3b3a4b32f1e04a4ef61b`.  
+**Observation window:** GitHub metadata inspected 2026-11-02, approximately 14:28–14:35 UTC; owner-supplied Hostinger evidence dates to 2026-11-02 (capture times/timezone not supplied). AUTH-02 evidence below is historical to its 2026-11-02 inspection; its exact capture time was not recorded in the evidence transcription.  
+**Scope:** repository/documentation inspection and reuse of existing owner-supplied evidence only. No production session, workflow mutation, private report access or operational command was performed.  
+**Consolidated report:** this section is the authoritative six-workstream matrix for this batch; the Phase 1A plan addendum cross-references it. No new tracker or competing report file was created.
+
+### Baseline and evidence integrity
+
+- PR #965 is `closed`, `merged=true`; merged at `2026-11-02T14:28:02Z`; merge commit `26a315bae463a1551338bed351cfc10eb7357abd`; PR head `b6c135df59276672343257f8e0519d6f025e9014`; base `0460a5ba26a786e79d4e3b3a4b32f1e04a4ef61b`.
+- Live `main` was independently read at `26a315bae463a1551338bed351cfc10eb7357abd`.
+- Compare from the prior AUTH-02 deployed revision `9fb1d2bef215b14aba02b2fdd91bf1422828303d` to current `main` reports three commits ahead and only two changed paths: `docs/PROJECT_MASTER_TRACKER.md` (+282) and `docs/audits/PHASE_1A_READ_ONLY_PRODUCTION_EVIDENCE_ACQUISITION_PLAN.md` (+38); no application/runtime path changed in that range. This establishes repository application-code continuity only, not a fresh production observation.
+- PR #965 exact-head checks: Test run `41454822626` SUCCESS; Laravel CI `41454822743` SUCCESS; Project Controller `41454822336` SUCCESS. Main push checks after merge: Test `41462213594` SUCCESS; Laravel CI `41462213601` SUCCESS; Project Controller `41462213858` SUCCESS. Hostinger diagnostics push run `41462213660` FAILED at the Hostinger SSH diagnostics step; no logs were opened.
+- No check result is treated as production acceptance.
+
+### Consolidated six-workstream evidence matrix
+
+| Workstream / requirement | Evidence source and reference | Observation | Classification | Limitation / next action |
+|---|---|---|---|---|
+| **1 — P1A-05C Hostinger cron inventory** | Owner-supplied hPanel screenshots transcribed in Phase 1A-05B; tracker AUTH-05 section; repository `bootstrap/app.php` blob `1e13d5dfbbc3898fe535fe62f688667d39bfcaca`; GitHub workflow `scheduled-institute-discovery.yml` blob `87255baa565e9e4e942b58181bb87fb3a0efe8bc` | Cron Jobs screenshot showed Create a New Cron Job form and no saved-job rows in that capture. Repository declares two hourly Laravel commands; GitHub workflow declares hourly schedule at minute 15, plus manual and workflow_run triggers. | OWNER-SUPPLIED / VERIFIED (repository definitions) / UNVERIFIED (saved Hostinger jobs) | No complete saved-entry list, command, executable, timezone, enabled state or last/next run is established. Do not infer that no jobs exist. Obtain a redacted screenshot/export of the complete saved list through view-only hPanel inspection. |
+| **2 — P1A-06 Queue worker** | Owner-supplied Hostinger plan screenshots; `config/queue.php` blob `c3549d5cc74702c149b881f9360301398179b4c3`; `config/cache.php` blob `550bd8d7473bf1b6839c0bd13e3f097227b1292a`; AUTH-05 evidence in tracker | Repository defaults: queue connection `database`, queue `default`, retry_after 90 seconds, after_commit false, failed-job driver `database-uuids` / table `failed_jobs`. Hostinger plan lists 40 PHP workers and 80 maximum processes. | VERIFIED (repository config) / OWNER-SUPPLIED (plan allocations) / UNVERIFIED (deployed worker) | PHP worker allocation is not a Laravel queue worker. No Supervisor/service command, queue consumer, process count/status/restart policy or failed-job aggregate is verified. Do not inspect payloads or operate jobs. Obtain view-only worker/process configuration evidence; failed-job counts require separate AUTH-04 approval. |
+| **3 — P1A-01D GitHub workflow state** | Current main tree `26a315bae463a1551338bed351cfc10eb7357abd`; 35 workflow paths; existing Phase 1A-01C inventory; run-list API first page (100 of 8,078) and status-filtered active-run queries | 35 workflow definitions exist; eight scheduled definitions are recorded in the prior inventory. Latest 100 run records (window 2026-10-31 08:08:54Z to 2026-11-02 14:28:09Z) were all completed. Separate status queries returned 0 in_progress, 0 queued and 0 waiting runs. | VERIFIED (repository inventory and returned run metadata) / UNVERIFIED (enabled/disabled state) | The connector rejected the workflow-list/state endpoint; YAML schedules and successful historical runs do not prove enabled state. First-page run inventory is not a complete historical run inventory, though the active-status queries returned zero. Obtain read-only GitHub Actions UI evidence showing all 35 workflow states. No workflow state/action was changed. |
+| **4 — P1A-02/03 Runtime and deployment** | Existing AUTH-02 terminal evidence transcribed in tracker at historical production SHA `9fb1d2bef215b14aba02b2fdd91bf1422828303d`; current main compare result; Hostinger diagnostics run `41462213660` | AUTH-02 previously recorded project path, repository identity, main branch, clean tracked/staged/untracked counts, PHP CLI 8.5.12 and Laravel v13.33.0. Compare to current main shows only documentation changes since that inspected SHA. Latest diagnostics run failed at “Run diagnostics on Hostinger”. | OWNER-SUPPLIED (terminal evidence) / VERIFIED (repository compare) / PARTIAL (current deployed state) | Do not repeat AUTH-02 commands. The exact deployed SHA has not been re-observed after the earlier inspection; runtime version remains an earlier observation. Artisan registration/help and live scheduled-task output remain unverified. Request separate AUTH-03 before any Artisan bootstrap. |
+| **5 — P1A-04 Database schema** | Migration source blobs: official refresh migration `338e9f365400edc7f9be8c05c8094caa096ec850`; field approvals migration `4838d0bad6f1c7d21e328b88409cbd74f5f0069d`; evidence migration `2026_09_23_000020_create_evidences_table.php`; historical production discrepancies recorded in prior audits | Required metadata contracts include `official_source_refresh_events` and `institution_field_approvals`, their named indexes, dependent tables and migration ledger entries. Historical diagnostics reported the field-approvals table absent and official-refresh migration ledger/index discrepancies. | VERIFIED (repository migration definitions) / HISTORICAL (prior production discrepancies) / NOT AUTHORIZED (current DB verification) | No production DB connection/query was made. Current table/index/ledger state is unknown. Exact bounded SELECT-only request is below. First prove the DB principal has SELECT-only grants; do not query row content or queue payloads. |
+| **6 — P1A-08 Backups, private storage and monitoring** | Owner-supplied Hostinger screenshots (2026-11-02); `institutes-public-monitor.yml` blob `42e99caf977a789c0ea631a4efe3d6da349f5c52`; `institutes-private-diagnostics-report.yml` blob `2a5a858b5273e8e37ffa1f4cde0a2b453b479daf`; run IDs below | Weekly backup display: latest 2026-11-01 18:05, next 2026-11-08; website/files/database views; exclusions displayed. Private directory names were visible. Public monitor run `41462213809` SUCCESS on current main SHA; previous scheduled run `41437775661` SUCCESS; push run `41445967687` FAILED. Private diagnostics run `41440769884` FAILED. | OWNER-SUPPLIED / VERIFIED (workflow source and run metadata) / PARTIAL | Backup retention, completeness, restore test, private-report access controls/retention and current private report contents remain unverified. Public monitor checks HTTP/content and does not prove deployed SHA or DB state. No private report was opened. |
+
+### P1A-01D — latest scheduled and overall run references
+
+The latest overall / latest scheduled run metadata in the returned first 100 records is:
+
+| Workflow | Latest overall | Latest scheduled | Result / limitation |
+|---|---:|---:|---|
+| `scheduled-institute-discovery.yml` | #41432936915 | #41432936915 | schedule SUCCESS, 2026-11-02 10:57:48Z |
+| `hostinger-readonly-diagnostics.yml` | #41462213660 | #41397099857 | latest push FAILURE; latest schedule FAILURE; SSH diagnostic step failed |
+| `automated-live-integrity-audit.yml` | #41434449575 | #41434449575 | schedule SUCCESS, 2026-11-02 11:08:57Z |
+| `institutes-private-diagnostics-report.yml` | #41440769884 | #41440769884 | schedule FAILURE, 2026-11-02 11:56:59Z; report retrieval/storage step failed |
+| `institutes-public-monitor.yml` | #41462213809 | #41437775661 | latest push SUCCESS; latest schedule SUCCESS; intervening push #41445967687 failed |
+| `offering-gap-preflight.yml` | #41415165189 | #41415165189 | schedule FAILURE; preflight command failed; reconciliation skipped |
+| `offering-gap-source-verification.yml` | #41446321810 | #41446321810 | schedule SUCCESS, 2026-11-02 12:38:13Z |
+| `project-controller.yml` | #41462213858 | #41446898645 | latest push SUCCESS; latest schedule SUCCESS |
+
+The run-list endpoint reported 8,078 total records but only its first 100 were inspected. Active status filters returned zero for in-progress, queued and waiting. Job-step summaries were inspected for failures; job logs and private artifacts were not opened. Run conclusions establish workflow outcomes only, not the underlying root cause or production readiness.
+
+### Scheduler ownership and duplicate-execution risk
+
+**Repository facts at current main:**
+- `bootstrap/app.php` schedules `institutes:bootstrap-agent` and `institutes:monitor-changes` hourly, each with `withoutOverlapping(55)`.
+- `scheduled-institute-discovery.yml` schedules hourly at minute 15 and invokes those same two commands over SSH. It also supports `workflow_dispatch` and a `workflow_run` handoff.
+- GitHub concurrency group is `scheduled-governed-institute-discovery`, `cancel-in-progress: false`; it serializes that workflow's own runs.
+- Laravel cache config defaults to the file store; Laravel scheduler mutex and GitHub Actions concurrency are distinct mechanisms. No shared cross-runner lock acquisition is demonstrated by the inspected source.
+- The Hostinger saved cron inventory is unknown, so a third execution path (for example, `schedule:run`) cannot be confirmed or excluded.
+
+**Assessment:** CONFIRMED design-level duplicate-execution risk between GitHub and Laravel scheduler definitions; ACTUAL overlap and Hostinger invocation UNVERIFIED. Do not pause, disable or change either scheduler. Before choosing one owner, obtain the saved Hostinger cron list and verify active runs, lock backend/key and idempotency behavior. Any concurrency testing belongs in isolated CI/staging, never production.
+
+### Historical production schema discrepancies and exact AUTH-04 request
+
+Prior diagnostics recorded:
+- `official_source_refresh_events` existed while migration `2026_10_25_000002_create_official_source_refresh_events_table` was missing from the migration ledger; required indexes `official_refresh_source_idx` and `official_refresh_observation_idx` were reported missing/mismatched, while `official_refresh_canonical_field_idx` was present.
+- `institution_field_approvals` was reported absent in production despite migration `2026_10_29_000001_create_institution_field_approvals_table` existing in the repository.
+- These are historical findings, not a statement of current production state. No current DB inspection was performed.
+
+**AUTH-04 — proposed, not approved or executed.** Before connecting, provide evidence that the dedicated principal has SELECT-only privileges on the target database and no INSERT/UPDATE/DELETE/DDL/EXECUTE privileges. Use the production database name only in the secured execution environment; do not send credentials in chat. Run only the following bounded metadata queries, after confirming `DATABASE()` resolves to the intended Institutes database:
+
+```sql
+SELECT DATABASE() AS selected_database;
+
+SELECT TABLE_NAME, TABLE_TYPE
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME IN (
+    'institutions', 'sources', 'source_change_observations',
+    'source_snapshots', 'evidence', 'evidences', 'users',
+    'official_source_refresh_events', 'institution_field_approvals',
+    'migrations', 'jobs', 'failed_jobs'
+  )
+ORDER BY TABLE_NAME;
+
+SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_TYPE,
+       IS_NULLABLE, COLUMN_DEFAULT, COLUMN_KEY, EXTRA
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME IN (
+    'official_source_refresh_events', 'institution_field_approvals',
+    'migrations', 'jobs', 'failed_jobs'
+  )
+ORDER BY TABLE_NAME, ORDINAL_POSITION;
+
+SELECT TABLE_NAME, INDEX_NAME, NON_UNIQUE, SEQ_IN_INDEX, COLUMN_NAME
+FROM information_schema.STATISTICS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME IN (
+    'official_source_refresh_events', 'institution_field_approvals'
+  )
+ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX;
+
+SELECT migration
+FROM migrations
+WHERE migration IN (
+  '2026_10_25_000002_create_official_source_refresh_events_table',
+  '2026_10_29_000001_create_institution_field_approvals_table'
+)
+ORDER BY migration;
+```
+
+**Expected output:** selected database identifier; existence/type of named tables; column metadata; ordered index metadata; presence/absence of the two migration names. No institution/source/evidence/queue row values, serialized job payloads, credentials or exception contents.
+
+**Exposure and safety:** metadata can reveal schema names, column types, index structure and migration presence. Output must be limited to the listed names/metadata and sanitized before retention. The final ledger query is run only if the `migrations` table is confirmed present. Stop if selected database is unexpected, grants cannot be proven SELECT-only, a query requires broader access, metadata reveals an unexpected sensitive schema, or any write/lock/transaction is required. No query was run as part of this batch.
+
+### Exact outstanding authorization / evidence requests
+
+1. **AUTH-03 — not approved/executed:** separately authorize one bounded production Artisan bootstrap inspection at the verified project path, limited to:
+   - `php artisan list --raw --no-ansi`
+   - `php artisan help institutes:bootstrap-agent --no-ansi`
+   - `php artisan help institutes:monitor-changes --no-ansi`
+   - `php artisan help institutes:offering-gap-preflight --no-ansi`
+   - `php artisan help institutes:offering-gap-reconcile --no-ansi`
+   - `php artisan help institutes:verify-offering-gap-sources --no-ansi`
+   - `php artisan schedule:list --no-ansi`
+   
+   These commands bootstrap Laravel and inspect registration/help/schedule metadata; they must not execute command handlers or scheduled tasks. Run once, capture only command names/signatures/schedule metadata, redact paths/secrets, and stop on unexpected bootstrap side effects, DB writes, source requests or application mutations. Do not run `schedule:run`, `schedule:work`, discovery, monitoring, import or queue commands.
+
+2. **AUTH-04 — not approved/executed:** approve only the five metadata SELECT statements above, after a proven SELECT-only principal. No row-content queries, failed-job payloads or writes.
+
+3. **AUTH-05 — no scope expansion:** the earlier view-only scope already covered Cron Jobs and worker/process/backup settings, but the supplied screenshot does not show saved cron rows and no worker-management evidence was supplied. The current tool session has no Hostinger hPanel interface. Provide redacted screenshots/export of the complete saved Cron Jobs list and any existing worker/process/Supervisor screen, or have the owner/operator perform view-only capture. No save/edit/toggle/run/restart/delete action.
+
+4. **P1A-01D — GitHub read-only state evidence:** connector workflow-list/state endpoint was unavailable. Provide a read-only Actions UI screenshot/export showing all 35 workflow names and enabled/disabled states. No workflow state action is requested.
+
+5. **Failed-job aggregate — separate approval required:** if queue counts are still needed after AUTH-04 grants are proven, approve an additional bounded SELECT-only aggregate for counts and oldest timestamps from `jobs` and `failed_jobs`; never retrieve `payload`, `exception` or serialized job bodies. No aggregate was run.
+
+6. **AUTH-06 — not requested for execution in this batch:** no new private report was created. Any future report destination, access policy and retention period must be approved before writing.
+
+### P1A status after joint review
+
+| Task | Status | Basis |
+|---|---|---|
+| P1A-01 / 01D | PARTIAL | 35 definitions, eight scheduled workflows, latest run metadata and zero active-status results recorded; enabled/disabled state unavailable |
+| P1A-02 | PARTIAL (historical evidence) | AUTH-02 evidence was complete at SHA `9fb1d2b...`; current main has docs-only changes since, but production SHA/runtime not freshly observed |
+| P1A-03 | NOT AUTHORIZED | AUTH-03 not executed |
+| P1A-04 | NOT AUTHORIZED | AUTH-04 not executed; prior schema discrepancies remain historical |
+| P1A-05 / 05C | PARTIAL | backup and directory screenshots exist; saved cron inventory remains unverified |
+| P1A-06 | UNVERIFIED | repository queue defaults known; deployed worker/process/failed-job state unknown |
+| P1A-07 | PARTIAL | two configured hourly paths and separate lock mechanisms confirmed; actual overlap/Hostinger cron unknown |
+| P1A-08 | PARTIAL | owner backup screenshots and monitor run metadata recorded; retention, restore, private-report controls remain unverified |
+| P1A-09 | BLOCKED | required evidence groups remain unresolved; no final production readiness sign-off |
+
+**Overall evidence decision: NOT YET.** A defensible completion percentage is not calculated: the evidence plan has heterogeneous gates and no approved weighting model, and multiple critical requirements remain blocked/unverified. Phase 1A is not complete.
+
+### Recommended Phase 1B starting plan (design-only; execution blocked)
+
+1. Close the Phase 1A evidence gates first: saved Hostinger cron inventory, worker evidence, GitHub workflow enabled-state evidence, AUTH-03 command registration, AUTH-04 schema/ledger metadata and backup/private-report retention facts.
+2. Produce a scheduler ownership decision record from the actual cron list, GitHub triggers, Laravel scheduler, lock backend and idempotency tests. Do not disable or modify any scheduler until separately approved.
+3. Convert the existing security/reliability backlog in the Master Strategy into isolated code-only remediation PRs with regression tests; prioritize first-admin authorization, JSON-LD encoding, publication filters, evidence authorization and CSV formula injection. No production deploy.
+4. Prepare a protected GCU evidence reconciliation design that preserves rows #348–353 and batches #19–23. Do not retrieve or stage records in Phase 1B without separate authorization.
+5. Keep all additional HEC profiles disabled and AI extraction disabled. Do not begin nationwide source expansion, discovery, staging, approval, promotion or publication until production gates and a separate execution authorization are satisfied.
+
+### Safety confirmation
+
+Only current GitHub repository files, GitHub run/job metadata, migration definitions and already supplied owner screenshots/terminal evidence were reviewed. No Hostinger session, production SSH, Artisan, DB connection/query, hPanel action, cron/queue operation, backup generation/download/restore, private report opening, workflow dispatch/rerun/cancel/enable/disable, deployment, migration, cache clear, source retrieval/discovery/staging/import, approval, canonical promotion or publication occurred. No production data/configuration changed. Historical GCU rows #348–353 and batches #19–23 remain untouched; the 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created.
