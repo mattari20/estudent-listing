@@ -1,7 +1,7 @@
 # Phase 1B — Production Readiness Decision Package
 
 Date: 2026-11-03
-Repository baseline: \`d8a876ea0de43453b9a5c29e50b2fced78396e04\`
+Repository baseline: `d8a876ea0de43453b9a5c29e50b2fced78396e04`
 
 ## Executive decision
 
