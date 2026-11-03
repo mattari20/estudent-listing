@@ -1,10 +1,6 @@
 name: Controlled Institution Field Approvals Migration
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/controlled-institution-field-approvals-migration.yml'
   workflow_dispatch:
     inputs:
       confirm_migration:
@@ -52,7 +48,7 @@ jobs:
         env:
           PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
           TARGET_REVISION: ${{ needs.resolve-target.outputs.target_revision }}
-          CONFIRM_MIGRATION: ${{ github.event_name == 'push' || inputs.confirm_migration }}
+          CONFIRM_MIGRATION: ${{ inputs.confirm_migration == true }}
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
