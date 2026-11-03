@@ -2053,7 +2053,7 @@ The lease foundation does not by itself satisfy the full Phase 1C acceptance con
 - cooperative lease heartbeat/renewal with lost-owner failure;
 - execution run records and append-only lifecycle events;
 - source/policy/profile heartbeat integration;
-- second-database-connection contention coverage and lifecycle tests.
+- lease contention and lifecycle tests.
 
 Audit: docs/audits/PHASE_1C_LEASE_HEARTBEAT_AND_RUN_LEDGER_AUDIT.md.
 
