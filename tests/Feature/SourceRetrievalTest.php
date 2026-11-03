@@ -18,6 +18,33 @@ class SourceRetrievalTest extends TestCase {
   $run=app(\App\Services\SourceRetrievalService::class)->retrieve($source);
   $this->assertSame('completed',$run->status); $this->assertNotNull($run->snapshot_id);
  }
+
+ public function test_completed_retrieval_is_reused_for_the_same_idempotency_key(): void {
+  Http::fake(['https://example.test/*'=>Http::response('official content',200,['Content-Type'=>'text/html'])]);
+  $source=Source::create(['source_type'=>'web','name'=>'Idempotent Official','url'=>'https://example.test/idempotent','status'=>'active']);
+  $service=app(\App\Services\SourceRetrievalService::class);
+  $first=$service->retrieve($source,'stable-retrieval-key');
+  $second=$service->retrieve($source,'stable-retrieval-key');
+  $this->assertSame($first->id,$second->id);
+  $this->assertSame('completed',$second->status);
+  Http::assertSentCount(1);
+  $this->assertDatabaseCount('source_retrieval_runs',1);
+ }
+
+ public function test_failed_retrieval_can_retry_using_the_same_idempotency_key(): void {
+  Http::fakeSequence()
+   ->push('temporary failure',503)
+   ->push('official content',200,['Content-Type'=>'text/html']);
+  $source=Source::create(['source_type'=>'web','name'=>'Retryable Official','url'=>'https://example.test/retryable','status'=>'active']);
+  $service=app(\App\Services\SourceRetrievalService::class);
+  $first=$service->retrieve($source,'retryable-retrieval-key');
+  $second=$service->retrieve($source,'retryable-retrieval-key');
+  $this->assertSame($first->id,$second->id);
+  $this->assertSame('completed',$second->status);
+  Http::assertSentCount(2);
+  $this->assertDatabaseCount('source_retrieval_runs',1);
+ }
+
  public function test_private_ip_source_is_rejected(): void {
   $source=Source::create(['source_type'=>'web','name'=>'Private','url'=>'http://127.0.0.1/test','status'=>'active']);
   $run=app(\App\Services\SourceRetrievalService::class)->retrieve($source);
