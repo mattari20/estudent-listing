@@ -1805,3 +1805,43 @@ AUTH-01, AUTH-02 and AUTH-03 bounded tasks are complete. AUTH-06's sanitized rep
 **Phase 1A as a whole MUST REMAIN OPEN / BLOCKED.** The owner asked to move quickly, but did not authorize falsely marking the bypassed database gate or unresolved operational evidence as verified. A phase closure would require an explicit owner decision to accept AUTH-04 and the remaining AUTH-05/P1A-07 uncertainties as formally waived, or new evidence resolving them. This update does not silently waive those requirements.
 
 No production configuration or data was changed. No workflow was enabled/disabled/dispatched/rerun, no database query/write or migration was run, no cron/queue/backup setting was changed, and no restore/import/approval/promotion/publication occurred. GCU rows #348–353 and batches #19–23 remain preserved; 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created.
+
+
+---
+
+## Phase 1A — Final evidence disposition and phase boundary (2026-11-03)
+
+**Verified main before this documentation update:** `7b48809fa0a1dd25edf12fbeaa1bfe30c2e54906`.  
+**PR #978:** owner screenshot confirms merged into `main`; merge commit `7b48809fa0a1dd25edf12fbeaa1bfe30c2e54906`; three checks passed.
+
+### Final acceptance matrix
+
+This section supersedes older "not started" and "not authorized" status rows where later owner-supplied evidence in this tracker establishes that the bounded task was performed. It does not erase the limitations attached to each evidence source.
+
+| Evidence group | Final disposition | Evidence basis and remaining limitation |
+|---|---|---|
+| AUTH-01 / P1A-01 — GitHub Actions | **COMPLETE — bounded inventory** | Owner authenticated CLI output lists 35 workflow IDs/names/paths/states; five queried queued/in-progress/waiting/requested/pending categories each returned zero. This is a point-in-time snapshot, not a freeze or future-run guarantee. |
+| AUTH-02 / P1A-02 — deployed revision | **COMPLETE — parity observed** | Owner SSH output: deployed HEAD and remote main both `7b48809fa0a1dd25edf12fbeaa1bfe30c2e54906`; `git status --short` empty; PHP CLI 8.5.12. Observation is time-bound. |
+| AUTH-03 / P1A-03 — Artisan registration/help/schedule | **COMPLETE — bounded inspection executed** | Seven exact authorized commands executed; visible `schedule:list` output lists the two hourly Institutes commands. No command handlers were invoked. |
+| AUTH-04 / P1A-04 — DB metadata | **OWNER-BYPASSED / NOT VERIFIED** | No production SQL and no DB privilege changes. Schema, indexes and migration ledger are not certified. |
+| AUTH-05 / P1A-05 — cron | **BOUNDED OWNER INSPECTION COMPLETE; HOSTING SCOPE UNKNOWN** | Repeated hPanel view shows the create form with no saved rows visible; user crontab reports none; system crontab is unreadable to account. Hostinger/provider-managed scheduling not ruled out. |
+| AUTH-05 / P1A-06 — queue worker | **BOUNDED OWNER INSPECTION COMPLETE; HOSTING SCOPE UNKNOWN** | Account process snapshot contains no persistent worker; `supervisorctl` unavailable. This does not exclude provider-managed processes or a worker outside the sampled account/process view. |
+| P1A-07 — scheduler ownership/overlap | **UNRESOLVED — documented** | Source contains Laravel hourly tasks and a GitHub scheduled workflow path; actual Hostinger trigger and shared cross-runner lock not established. |
+| AUTH-05 / P1A-08 — backup | **VISIBLE INVENTORY COMPLETE; RETENTION/RECOVERY UNVERIFIED** | Weekly automated schedule and five restore points visible, including website/files/database backup views. No successful restore-test record, formal retention policy or independent recoverability proof supplied. No restore performed. |
+| AUTH-06 — report | **DELIVERABLE COMPLETE UNDER EXPLICIT PUBLIC EXCEPTION** | Sanitized report PR #976 and reconciliation PR #977 merged. Public visibility was explicitly approved; this does not meet the original private-destination control. |
+| P1A-09 — consolidated report/readiness | **EVIDENCE PACKAGE RECORDED; PRODUCTION READINESS BLOCKED** | All groups now have a disposition and evidence/limitation recorded. AUTH-04 remains bypassed; P1A-07 unresolved; hosting-level cron/worker and backup recoverability unknown. |
+
+### Phase 1A closure decision
+
+**Phase 1A evidence-acquisition and documentation work is CLOSED for this bounded read-only exercise.** Every requested evidence group has a recorded disposition, evidence source and explicit limitation; blocked/unverified items are not silently represented as passes.
+
+**Production operational readiness is NOT CERTIFIED.** This closure means no further repetitive evidence collection is planned under this same bounded exercise. It does not authorize Phase 2 execution, source retrieval, discovery, candidate staging, approvals, imports, canonical promotion, publication, workflow reactivation, scheduler changes, migrations, deployment, database access, queue operations or backup restore.
+
+The following are carried as explicit prerequisites for any future production-write authorization:
+1. Owner decision on whether to keep AUTH-04 waived or authorize a separately safe metadata-verification method.
+2. Provider confirmation or separately authorized evidence for Hostinger cron/system scheduling and persistent worker scope.
+3. Scheduler ownership and cross-runner lock/idempotency resolution.
+4. Backup retention and recoverability evidence; any restore test requires its own recovery plan and explicit authorization.
+5. Private-report controls if future reports must be confidential; the existing report is public under the approved exception.
+
+No production configuration or data was changed in this closeout. No SQL, migration, Artisan handler, cron/queue/backup operation, restore, deployment, source retrieval/discovery, candidate staging/approval/import, canonical promotion or publication occurred. The 15 previously identified production-write-capable workflows remain recorded as individually disabled by owner-supplied evidence; this is not a global execution freeze. GCU rows #348–353 and batches #19–23 remain preserved; 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created.
