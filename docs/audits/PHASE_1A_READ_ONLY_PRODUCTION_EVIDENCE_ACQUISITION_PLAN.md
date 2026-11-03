@@ -706,3 +706,96 @@ Repository-only evidence is exhausted for the missing Hostinger UI facts, GitHub
 **Gate status:** P1A-01 PARTIAL; P1A-02 PARTIAL; P1A-03 NOT AUTHORIZED; P1A-04 NOT AUTHORIZED; P1A-05 PARTIAL; P1A-06 UNVERIFIED; P1A-07 PARTIAL; P1A-08 PARTIAL; P1A-09 BLOCKED. Phase 1A remains incomplete.
 
 No Hostinger/production access, private report or raw log access, workflow action, deployment, migration, cron/queue/backup operation, restore, source operation, candidate staging/approval/import, canonical promotion or publication occurred. Preserve GCU rows #348–353 and batches #19–23; keep the 20 additional HEC profiles and AI extraction disabled.
+
+
+---
+
+## Phase 1A-06 — Historical workflow reconciliation (2026-11-03)
+
+**Verified main SHA:** `d302ecfabda8b8dc950d5aebb58d5a835e018a4b`  
+**Current workflow-file inventory:** 35 files under `.github/workflows/` at that exact tree.  
+**Scope:** read-only GitHub run/workflow-branch/commit/PR metadata and static YAML inspection. No workflow state or production operation was changed.
+
+### Method and interpretation
+
+- Enumerated the 35 workflow YAML paths from the recursive Git tree at the verified main SHA.
+- Reconciled the 29 targeted historical workflow records against the current path set and latest run metadata.
+- For each record, inspected the latest run's job summary. The latest run for each of the 29 records was a completed `push` run on its dedicated `ops/*` branch; each had one primary job and its named operational step concluded `success`.
+- Each run's `pull_requests` array was empty. A commit-to-associated-PR lookup for each of the 29 exact head SHAs also returned an empty array. Therefore **no merged-PR association was found for any of these 29 run commits**.
+- Commit comparisons against current main report `diverged` for all 29. The historical run commits are not ancestors of current main.
+- All 29 corresponding branch names remain present in the repository branch search. The current tip SHA and presence of the historical YAML file at each branch tip were not inspected; a future push may retrigger a branch-scoped workflow if its YAML remains there.
+- A successful job/step proves the workflow command returned success. It does not independently prove the exact production rows affected, their present state, or that a production change was subsequently reversed. No raw logs or production data were inspected.
+
+### Record-by-record classification
+
+All timestamps are UTC. `success` is the latest run conclusion and the primary job/operational step conclusion. The short SHA is the exact run head prefix; the full SHA is retained in the run metadata.
+
+| # | Historical workflow path / workflow ID | Latest run / time | Event / branch | Head SHA | Job ID / result | Classification |
+|---:|---|---|---|---|---|---|
+| 1 | `complete-uvas-campuses-offerings.yml` / 392356405 | 39706380140 / 2026-10-22 01:33:33 | push / `ops/complete-uvas-campuses-offerings` | `9a3379356098ec1a95ebc78c9f779d91dcf22360` | 119587269133 / success — add source-verified UVAS campuses and offerings | **POTENTIALLY REDUNDANT** |
+| 2 | `add-uvas-verified-campuses-and-offerings.yml` / 392355249 | 39706217486 / 2026-10-22 01:31:54 | push / `ops/add-uvas-verified-campuses-and-offerings` | `a3f4b3984a08a1902f340befd97f9e0c482c1758` | 119586753318 / success — add verified UVAS campus geography and offerings | **POTENTIALLY REDUNDANT** |
+| 3 | `enrich-uvas-official-program-campus-catalog.yml` / 392354880 | 39706165044 / 2026-10-22 01:31:21 | push / `ops/enrich-uvas-official-program-campus-catalog` | `24c62f369e545f7b9c27537e8841fd1aee6031fd` | 119586584774 / success — add source-backed UVAS programs | **POTENTIALLY REDUNDANT** |
+| 4 | `enrich-lums-official-undergraduate-programs.yml` / 392348473 | 39705183563 / 2026-10-22 01:21:16 | push / `ops/enrich-lums-official-undergraduate-programs` | `db0b2a3365fb7e8e1611a295f950b1facbb56a43` | 119583442010 / success — add source-verified LUMS programs and offerings | **POTENTIALLY REDUNDANT** |
+| 5 | `audit-lums-uvas-program-gap.yml` / 392348037 | 39705123334 / 2026-10-22 01:20:39 | push / `ops/audit-lums-uvas-program-gap` | `8a73c39b68b65468347e35099e53ca80bbd7f0dd` | 119583250821 / success — read-only LUMS/UVAS program and offering audit | **HISTORICAL AND COMPLETED** |
+| 6 | `fix-comsats-program-source.yml` / 392337430 | 39703402134 / 2026-10-22 01:03:08 | push / `ops/fix-comsats-program-source` | `6695ade6717b1a71118b65fdbce35ebe173f16e3` | 119577666649 / success — update official source URL on an existing program | **REQUIRES FURTHER INVESTIGATION** |
+| 7 | `audit-program-source-coverage.yml` / 392337010 | 39703333320 / 2026-10-22 01:02:29 | push / `ops/audit-program-source-coverage` | `6efcb55b3c9137f6889de0262e5ab5e8d7989aeb` | 119577450563 / success — read-only source coverage/duplicate audit | **HISTORICAL AND COMPLETED** |
+| 8 | `final-catalog-verification-v2.yml` / 392328550 | 39702542322 / 2026-10-22 00:54:46 | push / `ops/final-catalog-verification-v2` | `f77bb39e1e5de0c9aed4e749fceb0c16e9038516` | 119574928773 / success — verify public directory/catalog integrity | **HISTORICAL AND COMPLETED** |
+| 9 | `read-final-catalog-state.yml` / 392331513 | 39702456630 / 2026-10-22 00:53:55 | push / `ops/read-final-catalog-state` | `bc51f7bf977e1e17d3796b1e95a6e4d7d54cbe2d` | 119574650874 / success — read-only catalog counts and intake state | **HISTORICAL AND COMPLETED** |
+| 10 | `fix-lums-offering-and-2027-intake.yml` / 392330488 | 39702318782 / 2026-10-22 00:52:34 | push / `ops/fix-lums-offering-and-2027-intake` | `a98c9f61c8da92271207fea3b6ac7bd28149b960` | 119574209263 / success — guarded LUMS offering/intake creation or update | **REQUIRES FURTHER INVESTIGATION** |
+| 11 | `read-lums-intake-dates.yml` / 392329264 | 39702250067 / 2026-10-22 00:51:53 | push / `ops/read-lums-intake-dates` | `5bcdc8468b793da844cd52d44a9751d68e9a5dfc` | 119573989173 / success — read-only current LUMS intake row | **HISTORICAL AND COMPLETED** |
+| 12 | `add-verified-campus-offerings-and-lums-2027-intake.yml` / 392328047 | 39701971264 / 2026-10-22 00:49:09 | push / `ops/add-verified-campus-offerings-and-lums-2027-intake` | `b6830ffd3d7ded0673483235d56ad4bec852fe5e` | 119573090434 / success — add campus offerings and LUMS intake | **REQUIRES FURTHER INVESTIGATION** |
+| 13 | `final-program-catalog-verification.yml` / 392327606 | 39701837317 / 2026-10-22 00:47:48 | push / `ops/final-program-catalog-verification` | `90ed5a8b09236c90384acffe954c045372623b0c` | 119572649260 / success — verify directory/catalog relationships | **HISTORICAL AND COMPLETED** |
+| 14 | `fill-remaining-institution-program-catalog.yml` / 392327201 | 39701769637 / 2026-10-22 00:47:07 | push / `ops/fill-remaining-institution-program-catalog` | `4417d345736cda34a38672ce01c5475b8e493282` | 119572426182 / success — add source-backed programs and offerings | **POTENTIALLY REDUNDANT** |
+| 15 | `expand-official-program-catalog-round-two.yml` / 392326634 | 39701678245 / 2026-10-22 00:46:12 | push / `ops/expand-official-program-catalog-round-two` | `ebc5ced1cd1ebab6d076e242b9d1a024ebf63430` | 119572126529 / success — add official programs and campus offerings | **POTENTIALLY REDUNDANT** |
+| 16 | `expand-program-catalog-offerings-intakes.yml` / 392325916 | 39701562439 / 2026-10-22 00:45:05 | push / `ops/expand-program-catalog-offerings-intakes` | `24a0590ab9f38fd42aec877886537692b076cf69` | 119571746839 / success — source-backed program/offering enrichment | **POTENTIALLY REDUNDANT** |
+| 17 | `final-public-directory-verification.yml` / 392319192 | 39700859671 / 2026-10-22 00:38:05 | push / `ops/final-public-directory-verification` | `d373c4dc119888532313ef51679d0278ca25bacf` | 119569457558 / success — verify active profiles and canonical health | **HISTORICAL AND COMPLETED** |
+| 18 | `complete-remaining-institution-profiles.yml` / 392320151 | 39700735373 / 2026-10-22 00:36:50 | push / `ops/complete-remaining-institution-profiles` | `4d1cb85834d4099ecfd9922afde0c0a94afe6dec` | 119569046199 / success — fill official source descriptions and verification timestamps | **POTENTIALLY REDUNDANT** |
+| 19 | `inspect-two-institution-identities.yml` / 392320640 | 39700690052 / 2026-10-22 00:36:21 | push / `ops/inspect-two-institution-identities` | `b8c06ace5eb26094174368748e18a3eb35d9e88c` | 119568893780 / success — read institution identities only | **HISTORICAL AND COMPLETED** |
+| 20 | `add-officially-listed-programs.yml` / 392318751 | 39700366711 / 2026-10-22 00:33:06 | push / `ops/add-officially-listed-programs` | `8be2ad326cb67eb90157113a61b656b5c935ebaa` | 119567846192 / success — insert source-documented programs | **POTENTIALLY REDUNDANT** |
+| 21 | `complete-campus-geography-and-profiles.yml` / 392317909 | 39700267248 / 2026-10-22 00:32:07 | push / `ops/complete-campus-geography-and-profiles` | `df56a332c9aeb0aaee4cd9e23b0bb1d4979049e0` | 119567523265 / success — guarded geography repair and campus enrichment | **REQUIRES FURTHER INVESTIGATION** |
+| 22 | `audit-remaining-institutes-data.yml` / 392317172 | 39700077540 / 2026-10-22 00:30:18 | push / `ops/audit-remaining-institutes-data` | `d3e954b94359efd8a1c42890d983887aa0128791` | 119566911006 / success — read-only gap/public-route audit | **HISTORICAL AND COMPLETED** |
+| 23 | `add-seven-verified-main-campuses.yml` / 392313978 | 39699709895 / 2026-10-22 00:26:37 | push / `ops/add-seven-verified-main-campuses` | `30ea90119547306f608aa1c4fcfb0ecc29c2df07` | 119565725838 / success — guarded transaction for seven verified campuses/geography | **REQUIRES FURTHER INVESTIGATION** |
+| 24 | `read-only-campus-geography-audit.yml` / 392312947 | 39699408939 / 2026-10-22 00:23:35 | push / `ops/read-only-campus-geography-audit` | `8a3df3ab2ab83749c62975b24c42c3513d6dbdfd` | 119564698407 / success — read-only campus/geography inspection | **HISTORICAL AND COMPLETED** |
+| 25 | `classify-seven-active-institutions.yml` / 392305791 | 39698133958 / 2026-10-22 00:11:03 | push / `ops/classify-seven-active-institutions` | `21d7bcea06d8f9cda8dc061a890880fc35a33f91` | 119560457865 / success — update allowlisted institution types over SSH | **POSSIBLE OUTSTANDING OPERATIONAL RISK** |
+| 26 | `activate-seven-institutions-once.yml` / 392301788 | 39697594064 / 2026-10-22 00:05:57 | push / `ops/activate-seven-institutions-once` | `29840e65c28b2a8af35ac0173f9637cc01af86a7` | 119558655241 / success — activate exactly seven candidate institutions over SSH | **POSSIBLE OUTSTANDING OPERATIONAL RISK** |
+| 27 | `guarded-retry-campus-row-24.yml` / 390046887 | 39355547117 / 2026-10-20 01:49:24 | push / `ops/retry-campus-row-24-normalized` | `a87f78f47924410ec8ba4934454b8b3a7003897e` | 118409362231 / success — normalize optional coordinates and promote row 24 | **POSSIBLE OUTSTANDING OPERATIONAL RISK** |
+| 28 | `diagnose-campus-row-24.yml` / 390046115 | 39355483596 / 2026-10-20 01:48:40 | push / `ops/diagnose-campus-row-24-promotion` | `5ec3758d9a50fe4e89527b5b3b569f1e7b3b6027` | 118409158230 / success — read promotion failure details | **HISTORICAL AND COMPLETED** |
+| 29 | `one-time-promote-campus-row-24.yml` / 390045801 | 39355440868 / 2026-10-20 01:48:12 | push / `ops/one-time-promote-campus-row-24` | `672ffc325390d17aa13b800a4d30035f5cf054ce` | 118409021751 / success — guarded promotion of campus row 24 | **POSSIBLE OUTSTANDING OPERATIONAL RISK** |
+
+### High-risk workflow source review
+
+- The seven-institution activation workflow contains a direct SSH PHP/Laravel transaction that updates institution status from `candidate` to `active` for exactly seven allowlisted IDs, then verifies the result.
+- The paired classification workflow directly updates `institution_type` for those seven active institutions.
+- The row-24 promotion workflow checks the expected batch/entity/status, parent institution, open conflicts, approved decision, geography and duplicate slug before invoking the promotion path.
+- The row-24 retry workflow normalizes empty optional coordinates, writes an audit event, and proceeds through the guarded promotion path.
+- The catalog/program workflows include direct SSH PHP transactions that insert or update programs, campuses, offerings, intake rows, source URLs, profile descriptions or geography.
+- These are production-write-capable workflow definitions. Their job/step success does not provide the resulting row-level state. The current production state is **UNVERIFIED** because this task did not inspect production or private output.
+
+### Current-main overlap and trigger review
+
+- None of the 29 historical workflow paths exists among the 35 workflow files on current main.
+- The current `scheduled-institute-discovery.yml` is a separate hourly schedule plus manual and successful-source-refresh `workflow_run` handoff. It invokes `institutes:bootstrap-agent` and `institutes:monitor-changes`; it is not a replacement for the historical one-off activation or campus-promotion scripts. Its concurrency group serializes that workflow only.
+- Current `institution-import-preflight.yml` runs Python duplicate-preflight tests on relevant PR/push paths; it is not a production import executor.
+- Current controlled migration workflows for discovery outcomes, duplicate-row schema, institution field approvals and official-source refresh are separate from the 29 historical catalog operations. Most expose manual confirmation inputs defaulting false.
+- **Current-main migration trigger requiring attention:** `controlled-institution-field-approvals-migration.yml` declares a `push` trigger on main when that workflow file changes, and sets `CONFIRM_MIGRATION` to true for a push event. Source therefore permits the target migration to run automatically after a matching main push, rather than requiring the manual boolean input. This is a source-level trigger fact; this audit did not dispatch the workflow or establish a current/previous production migration outcome.
+- The 29 historical branch refs still exist. Their current tip SHAs and whether each branch tip still contains its matching workflow YAML are **UNVERIFIED**. If a matching workflow file remains at a branch tip, a subsequent push to that branch may retrigger its production SSH job. No branch was changed or deleted.
+
+### Classification totals and unresolved evidence
+
+| Classification | Count |
+|---|---:|
+| Historical and completed | 11 |
+| Potentially redundant | 9 |
+| Requires further investigation | 5 |
+| Possible outstanding operational risk | 4 |
+| **Total** | **29** |
+
+The potentially redundant group comprises repeated/overlapping one-off catalog enrichment workflows; this label does not mean their production writes were undone or harmless. The four explicit activation/promotion workflows are elevated to possible operational risk. Five targeted source/intake/geography/campus updates need row-level reconciliation before they can be called complete.
+
+**Outstanding:** (1) determine current tips and YAML presence for the 29 retained branches; (2) obtain an explicitly authorized, sanitized production-state reconciliation for the affected institutions/campuses/programs/offerings/intakes; (3) review the automatic push-to-main trigger on the current institution-field-approvals migration workflow. No production read/write is authorized by this addendum.
+
+Two additional older run-history paths, `application-validation.yml` and `dev-320-composer-lock-bootstrap.yml`, appeared outside the 29-record target set; they are legacy CI-only records, not included in the 29 operational workflow classifications.
+
+### Safety confirmation
+
+This addendum records GitHub metadata and static source facts only. No raw logs, production database, Hostinger, secrets or private diagnostic reports were accessed. No workflow was dispatched, rerun, cancelled, enabled, disabled or approved. No migration, import, approval, activation, campus promotion, source retrieval, deployment or production data operation was performed. No workflow file or branch was deleted/restored/modified. GCU rows #348–353 and batches #19–23 remain untouched; the 20 additional HEC profiles and AI extraction remain disabled.
