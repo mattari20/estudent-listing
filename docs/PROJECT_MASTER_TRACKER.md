@@ -1713,3 +1713,42 @@ Post-containment repository Actions query results supplied by the owner:
 **Safety boundary:** this is workflow-level containment of the 15 listed workflow identities, not proof of complete production safety. Other GitHub workflows, Hostinger cron, Laravel scheduler/queue workers, manual SSH/Artisan operations, external integrations, credentials and application write paths were not disabled or verified by this action. Disabling does not reverse completed production writes or stop independent execution paths. Phase 1A production readiness remains incomplete pending separately authorized evidence for the other execution planes.
 
 This documentation-only PR preserves all 29 historical `ops/*` branch refs, their YAML files, Git history and PRs. No workflow or execution state was changed in this phase. GCU rows #348–353 and batches #19–23 remain untouched; the 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created. Do not infer a global production freeze or resume authorization from this containment record.
+
+
+---
+
+## Phase 1A — AUTH-06 report publication and post-merge reconciliation (2026-11-03)
+
+**Current main before this documentation update:** `9acbcfabfd947b11a4bd192821be6d868dc52392`.  
+**Sanitized report PR #976:** merged by the repository owner, as shown in the owner-supplied GitHub screenshot; merge commit `9acbcfabfd947b11a4bd192821be6d868dc52392`. Two checks passed. The report file is `docs/audits/PHASE_1A_SANITIZED_OPERATIONAL_EVIDENCE_REPORT_2026-11-03.md`.
+
+### AUTH-06 disposition
+
+The original AUTH-06 requirement called for a private report destination, access policy and retention confirmation before writing. The owner explicitly approved a **temporary public-visibility exception** for this sanitized report in the conversation on 2026-11-03, with the stated intention to make the existing repository private after project completion.
+
+- The repository is public; therefore this report and its full Git history are publicly readable. A subfolder does not provide separate access control.
+- The report excludes credentials, tokens, raw logs, database contents/names, private diagnostic payloads and sensitive infrastructure identifiers.
+- No per-file retention or automatic expiry is configured by this report. The report remains in Git history unless the owner later removes/re-writes history or applies repository-level retention/access changes. Making the repository private later does not undo prior public exposure, forks or clones.
+- The owner must review repository visibility and access controls when the repository is made private.
+- This is an explicitly approved public sanitized-report alternative; it is **not** evidence that a private report destination or private access policy was established.
+
+**AUTH-06 result: SANITIZED REPORT CREATED, REVIEWED BY OWNER THROUGH MERGE, AND MERGED UNDER EXPLICIT PUBLIC-VISIBILITY EXCEPTION.** Private-report controls remain not satisfied and must not be described as complete.
+
+### Updated evidence/gate status
+
+| Gate | Current status after owner evidence and PR #976 | Remaining limitation |
+|---|---|---|
+| AUTH-03 / P1A-03 | Bounded Artisan inspection evidence supplied; scheduler output visibly lists two hourly Institutes commands | Full command/help output should be retained only to the extent already captured; no command handlers were run |
+| AUTH-04 / P1A-04 | **BYPASSED — production schema verification pending** | No metadata SQL executed; schema/index/migration ledger remains unverified |
+| AUTH-05 cron / P1A-05 | Owner hPanel screenshot plus account crontab output reviewed | No user crontab; hPanel screenshot showed no saved entries in the visible view; system/provider-managed scheduling remains unverified |
+| AUTH-05 worker / P1A-06 | Owner account-scoped process snapshot reviewed | No persistent worker observed in that snapshot; Supervisor unavailable to account; provider-managed/out-of-scope workers remain unverified |
+| P1A-07 scheduler ownership | Partial | Laravel hourly tasks and GitHub workflow path are known; Hostinger invocation and shared cross-runner lock remain unresolved |
+| AUTH-05 backups / P1A-08 | Weekly schedule and five visible restore points supplied | Formal retention duration, storage details and successful restore-test evidence remain unverified |
+| AUTH-06 report | **SANITIZED PUBLIC REPORT MERGED — EXPLICIT OWNER EXCEPTION** | Private destination/access controls not established; public exposure acknowledged |
+| P1A-09 consolidated readiness | **BLOCKED / INCOMPLETE** | AUTH-01, AUTH-02, AUTH-04 and operational evidence gaps remain; report merge does not close Phase 1A |
+
+### Stop decision
+
+**Phase 1A is not complete.** AUTH-06's sanitized report deliverable has been merged under the owner's explicit public-visibility exception. Do not infer production readiness, private-report controls, production schema correctness, global workflow containment, complete scheduler ownership, queue-worker health, or tested backup recoverability.
+
+No production configuration or data was changed. No cron/queue/backup operation, restore, migration, source discovery/retrieval, candidate staging/approval/import, canonical promotion or publication occurred in this update. GCU rows #348–353 and batches #19–23 remain preserved; the 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created.
