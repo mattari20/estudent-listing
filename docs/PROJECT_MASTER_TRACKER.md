@@ -1654,3 +1654,24 @@ No Hostinger SSH/hPanel session, production file/database/Artisan/Composer/SQL a
 - **Next evidence dependency:** reconcile retained `ops/*` branch tips/YAML presence and obtain a separately authorized, sanitized row-level production-state review before treating historical writes as settled. Separately review the automatic migration trigger before future edits to that workflow.
 - No production access, raw logs, secrets, workflow state changes, deployment, migration, import, activation, approval, promotion, source retrieval or publication occurred. Preserve GCU rows #348–353 and batches #19–23; keep the 20 additional HEC profiles disabled and AI extraction disabled.
 
+
+
+---
+
+## Phase 1A-08 — Retained historical branch and workflow re-trigger audit (2026-11-03)
+
+**Verified main SHA:** 66e43452e7dd16d2902a07bc2533dd43185ed020.  
+**PR #971:** merged; the institution-field-approvals migration workflow is manual-only with required boolean confirmation defaulting false.
+
+Read-only inspection completed for all 29 retained ops/* branches. Exact branch-tip SHAs, workflow IDs/paths, trigger configurations, classifications and ahead/behind comparisons are recorded in docs/audits/PHASE_1A_READ_ONLY_PRODUCTION_EVIDENCE_ACQUISITION_PLAN.md, section “Phase 1A-08”.
+
+- 15 branches retain a production-write-capable, exact-branch push workflow using Hostinger SSH. Writes include institution activation/type updates, canonical program/offering/intake writes, campus/geography creation and profile/source updates.
+- 11 branches retain exact-branch push workflows classified read-only.
+- 3 branches no longer contain their matching historical workflow YAML at the current tip.
+- All 29 branches remain present and diverged from main; 26 are 719 commits behind, and the three campus-row-24 branches are 754 commits behind.
+- No branch-specific workflow among the 26 present files contains an Artisan migration command or a formal import/approval/campus-promotion pipeline. The historical row-24 promotion workflow files are absent at their current tips. Institution activation remains a concrete push re-trigger risk on ops/activate-seven-institutions-once.
+- Other common push workflows are restricted to main; shared geography-seed and administrator-recovery workflows are manual-only.
+- Per-workflow enabled/disabled state was not exposed by the available read-only connector; potential push execution is conditional on workflow enabled state.
+- No branch/workflow state, production data, Hostinger, logs or secrets were changed/accessed. GCU rows #348–353 and batches #19–23 remain preserved; 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created.
+
+**Decision:** stop at the repository-only audit boundary. Any containment or production-state reconciliation requires a separate, explicit authorization. Do not push to the 15 write-capable retained branches.

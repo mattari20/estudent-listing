@@ -799,3 +799,136 @@ Two additional older run-history paths, `application-validation.yml` and `dev-32
 ### Safety confirmation
 
 This addendum records GitHub metadata and static source facts only. No raw logs, production database, Hostinger, secrets or private diagnostic reports were accessed. No workflow was dispatched, rerun, cancelled, enabled, disabled or approved. No migration, import, approval, activation, campus promotion, source retrieval, deployment or production data operation was performed. No workflow file or branch was deleted/restored/modified. GCU rows #348–353 and batches #19–23 remain untouched; the 20 additional HEC profiles and AI extraction remain disabled.
+
+
+---
+
+## Phase 1A-08 — Retained historical branch and workflow re-trigger audit (2026-11-03)
+
+**Verified main SHA:** 66e43452e7dd16d2902a07bc2533dd43185ed020  
+**PR #971:** MERGED at 2026-11-03 02:20:39 UTC; merge commit 66e43452e7dd16d2902a07bc2533dd43185ed020.  
+**Scope:** read-only GitHub refs, recursive Git trees, commit comparisons and static workflow source inspection. No branch or workflow state was changed.
+
+### 1. Starting security gate
+
+PR #971 is merged. The current main version of .github/workflows/controlled-institution-field-approvals-migration.yml contains only workflow_dispatch. Its confirm_migration input is required, boolean, and defaults to false. CONFIRM_MIGRATION is derived only from inputs.confirm_migration == true. The automatic push authorization path is absent.
+
+### 2. Method and limits
+
+- Re-read refs/heads/main before branch creation; the verified SHA was 66e43452e7dd16d2902a07bc2533dd43185ed020.
+- Read all 29 retained ops/* refs directly and recorded each exact current tip SHA.
+- Read the recursive Git tree at each tip. All 29 tree responses were complete (not truncated).
+- Compared every tip against the verified main SHA. All 29 compare results were diverged.
+- For each matching historical workflow file present at a branch tip, inspected the complete YAML and classified its trigger and source operations. The 26 retained matching workflow files each declare push on that exact ops/* branch. All 26 use appleboy/ssh-action to reach the Hostinger application.
+- The three campus-row-24 historical workflow files are absent from their respective current branch-tip trees.
+- The available read-only GitHub connector did not expose the per-workflow enabled/disabled state endpoint. Therefore, trigger and capability conclusions below are source-level configuration findings and actual execution on a future push is conditional on the workflow being enabled. Do not interpret file presence as proof of enabled state.
+- No workflow runs, raw logs, secrets, private diagnostic reports, Hostinger or production state were accessed.
+
+### 3. Complete 29-branch results
+
+“Diverged +N/-M” means the branch has N commits not in main and main has M commits not in the branch. The trigger column records the YAML trigger at the current branch tip, not the historical run event. For the 26 present files, the push trigger is scoped to the exact branch shown.
+
+| # | Retained branch | Exact current tip SHA | Historical workflow ID / file at tip | Current trigger | Source capability / classification | Comparison to main |
+|---:|---|---|---|---|---|---|
+| 1 | ops/complete-uvas-campuses-offerings | 9a3379356098ec1a95ebc78c9f779d91dcf22360 | 392356405 / complete-uvas-campuses-offerings.yml — present | push: exact branch | Hostinger SSH; writes geography, campuses and offerings — **3: production-write-capable** | diverged +1/-719 |
+| 2 | ops/add-uvas-verified-campuses-and-offerings | a3f4b3984a08a1902f340befd97f9e0c482c1758 | 392355249 / add-uvas-verified-campuses-and-offerings.yml — present | push: exact branch | Hostinger SSH; reads geography schema/existing geography and campus counts; no writes — **2: read-only** | diverged +1/-719 |
+| 3 | ops/enrich-uvas-official-program-campus-catalog | 24c62f369e545f7b9c27537e8841fd1aee6031fd | 392354880 / enrich-uvas-official-program-campus-catalog.yml — present | push: exact branch | Hostinger SSH; inserts programs and updates descriptions — **3: production-write-capable** | diverged +1/-719 |
+| 4 | ops/enrich-lums-official-undergraduate-programs | db0b2a3365fb7e8e1611a295f950b1facbb56a43 | 392348473 / enrich-lums-official-undergraduate-programs.yml — present | push: exact branch | Hostinger SSH; inserts/updates programs and offerings — **3: production-write-capable** | diverged +1/-719 |
+| 5 | ops/audit-lums-uvas-program-gap | 8a73c39b68b65468347e35099e53ca80bbd7f0dd | 392348037 / audit-lums-uvas-program-gap.yml — present | push: exact branch | Hostinger SSH; database/schema inspection and reports only — **2: read-only** | diverged +1/-719 |
+| 6 | ops/fix-comsats-program-source | 6695ade6717b1a71118b65fdbce35ebe173f16e3 | 392337430 / fix-comsats-program-source.yml — present | push: exact branch | Hostinger SSH; updates an existing program source description — **3: production-write-capable** | diverged +1/-719 |
+| 7 | ops/audit-program-source-coverage | 6efcb55b3c9137f6889de0262e5ab5e8d7989aeb | 392337010 / audit-program-source-coverage.yml — present | push: exact branch | Hostinger SSH; reads program/source coverage, duplicates, offerings and intakes — **2: read-only** | diverged +1/-719 |
+| 8 | ops/final-catalog-verification-v2 | f77bb39e1e5de0c9aed4e749fceb0c16e9038516 | 392328550 / final-catalog-verification-v2.yml — present | push: exact branch | Hostinger SSH; catalogue counts and integrity verification only — **2: read-only** | diverged +4/-719 |
+| 9 | ops/read-final-catalog-state | bc51f7bf977e1e17d3796b1e95a6e4d7d54cbe2d | 392331513 / read-final-catalog-state.yml — present | push: exact branch | Hostinger SSH; reads counts, programs, offerings and intakes — **2: read-only** | diverged +1/-719 |
+| 10 | ops/fix-lums-offering-and-2027-intake | a98c9f61c8da92271207fea3b6ac7bd28149b960 | 392330488 / fix-lums-offering-and-2027-intake.yml — present | push: exact branch | Hostinger SSH; inserts/updates offering and Fall 2027 intake — **3: production-write-capable** | diverged +1/-719 |
+| 11 | ops/read-lums-intake-dates | 5bcdc8468b793da844cd52d44a9751d68e9a5dfc | 392329264 / read-lums-intake-dates.yml — present | push: exact branch | Hostinger SSH; reads program, offering and intake records — **2: read-only** | diverged +3/-719 |
+| 12 | ops/add-verified-campus-offerings-and-lums-2027-intake | b6830ffd3d7ded0673483235d56ad4bec852fe5e | 392328047 / add-verified-campus-offerings-and-lums-2027-intake.yml — present | push: exact branch | Hostinger SSH; inserts/updates offerings and LUMS intake — **3: production-write-capable** | diverged +3/-719 |
+| 13 | ops/final-program-catalog-verification | 90ed5a8b09236c90384acffe954c045372623b0c | 392327606 / final-program-catalog-verification.yml — present | push: exact branch | Hostinger SSH; reads catalogue counts and integrity — **2: read-only** | diverged +1/-719 |
+| 14 | ops/fill-remaining-institution-program-catalog | 4417d345736cda34a38672ce01c5475b8e493282 | 392327201 / fill-remaining-institution-program-catalog.yml — present | push: exact branch | Hostinger SSH; inserts source-backed programs and offerings — **3: production-write-capable** | diverged +1/-719 |
+| 15 | ops/expand-official-program-catalog-round-two | ebc5ced1cd1ebab6d076e242b9d1a024ebf63430 | 392326634 / expand-official-program-catalog-round-two.yml — present | push: exact branch | Hostinger SSH; inserts official programs and offerings — **3: production-write-capable** | diverged +1/-719 |
+| 16 | ops/expand-program-catalog-offerings-intakes | 24a0590ab9f38fd42aec877886537692b076cf69 | 392325916 / expand-program-catalog-offerings-intakes.yml — present | push: exact branch | Hostinger SSH; inserts programs, offerings and intake records — **3: production-write-capable** | diverged +1/-719 |
+| 17 | ops/final-public-directory-verification | d373c4dc119888532313ef51679d0278ca25bacf | 392319192 / final-public-directory-verification.yml — present | push: exact branch | Hostinger SSH; public/catalogue verification and read-only report — **2: read-only** | diverged +4/-719 |
+| 18 | ops/complete-remaining-institution-profiles | 4d1cb85834d4099ecfd9922afde0c0a94afe6dec | 392320151 / complete-remaining-institution-profiles.yml — present | push: exact branch | Hostinger SSH; updates institution type, description, verification timestamps and campus type — **3: production-write-capable** | diverged +3/-719 |
+| 19 | ops/inspect-two-institution-identities | b8c06ace5eb26094174368748e18a3eb35d9e88c | 392320640 / inspect-two-institution-identities.yml — present | push: exact branch | Hostinger SSH; reads two institution identity records — **2: read-only** | diverged +1/-719 |
+| 20 | ops/add-officially-listed-programs | 8be2ad326cb67eb90157113a61b656b5c935ebaa | 392318751 / add-officially-listed-programs.yml — present | push: exact branch | Hostinger SSH; inserts source-documented program records — **3: production-write-capable** | diverged +1/-719 |
+| 21 | ops/complete-campus-geography-and-profiles | df56a332c9aeb0aaee4cd9e23b0bb1d4979049e0 | 392317909 / complete-campus-geography-and-profiles.yml — present | push: exact branch | Hostinger SSH; repairs geography links, creates campuses and updates institution profiles — **3: production-write-capable** | diverged +2/-719 |
+| 22 | ops/audit-remaining-institutes-data | d3e954b94359efd8a1c42890d983887aa0128791 | 392317172 / audit-remaining-institutes-data.yml — present | push: exact branch | Hostinger SSH; reads institution, campus and program data — **2: read-only** | diverged +1/-719 |
+| 23 | ops/add-seven-verified-main-campuses | 30ea90119547306f608aa1c4fcfb0ecc29c2df07 | 392313978 / add-seven-verified-main-campuses.yml — present | push: exact branch | Hostinger SSH; inserts geography and campus records — **3: production-write-capable** | diverged +4/-719 |
+| 24 | ops/read-only-campus-geography-audit | 8a3df3ab2ab83749c62975b24c42c3513d6dbdfd | 392312947 / read-only-campus-geography-audit.yml — present | push: exact branch | Hostinger SSH; reads campus/geography state and reports — **2: read-only** | diverged +1/-719 |
+| 25 | ops/classify-seven-active-institutions | 21d7bcea06d8f9cda8dc061a890880fc35a33f91 | 392305791 / classify-seven-active-institutions.yml — present | push: exact branch | Hostinger SSH; updates institution_type for seven allowlisted active institutions — **3: production-write-capable** | diverged +1/-719 |
+| 26 | ops/activate-seven-institutions-once | 29840e65c28b2a8af35ac0173f9637cc01af86a7 | 392301788 / activate-seven-institutions-once.yml — present | push: exact branch | Hostinger SSH; changes seven allowlisted institutions from candidate to active — **3: production-write-capable** | diverged +1/-719 |
+| 27 | ops/retry-campus-row-24-normalized | f91a9c0abca4f321dac8403db1900994854e1cca | 390046887 / guarded-retry-campus-row-24.yml — **absent at tip** | no matching workflow trigger | No matching YAML; no direct re-trigger through this historical workflow — **1: no matching workflow** | diverged +2/-754 |
+| 28 | ops/diagnose-campus-row-24-promotion | 9b238eef848f794ae7dc860484098e72f82e19cd | 390046115 / diagnose-campus-row-24.yml — **absent at tip** | no matching workflow trigger | No matching YAML; no direct re-trigger through this historical workflow — **1: no matching workflow** | diverged +2/-754 |
+| 29 | ops/one-time-promote-campus-row-24 | f9c012501994d02871055b3e2d5d20e3840cf8b8 | 390045801 / one-time-promote-campus-row-24.yml — **absent at tip** | no matching workflow trigger | No matching YAML; no direct re-trigger through this historical workflow — **1: no matching workflow** | diverged +2/-754 |
+
+### 4. Classification totals
+
+| Classification | Branch count |
+|---|---:|
+| 1 — No matching workflow; no direct workflow re-trigger risk | 3 |
+| 2 — Workflow exists but is read-only | 11 |
+| 3 — Workflow exists and is production-write-capable | **15** |
+| 4 — Uncertain source classification | 0 |
+| **Total** | **29** |
+
+The 15 production-write-capable branches are: ops/complete-uvas-campuses-offerings; ops/enrich-uvas-official-program-campus-catalog; ops/enrich-lums-official-undergraduate-programs; ops/fix-comsats-program-source; ops/fix-lums-offering-and-2027-intake; ops/add-verified-campus-offerings-and-lums-2027-intake; ops/fill-remaining-institution-program-catalog; ops/expand-official-program-catalog-round-two; ops/expand-program-catalog-offerings-intakes; ops/complete-remaining-institution-profiles; ops/add-officially-listed-programs; ops/complete-campus-geography-and-profiles; ops/add-seven-verified-main-campuses; ops/classify-seven-active-institutions; ops/activate-seven-institutions-once.
+
+### 5. High-risk workflow paths and operation classes
+
+All 15 paths below remain in their respective retained branch tips and have exact-branch push triggers:
+
+- ops/complete-uvas-campuses-offerings — .github/workflows/complete-uvas-campuses-offerings.yml — creates geography/campus records and program offerings.
+- ops/enrich-uvas-official-program-campus-catalog — .github/workflows/enrich-uvas-official-program-campus-catalog.yml — creates program records and updates program descriptions.
+- ops/enrich-lums-official-undergraduate-programs — .github/workflows/enrich-lums-official-undergraduate-programs.yml — creates/updates programs and offerings.
+- ops/fix-comsats-program-source — .github/workflows/fix-comsats-program-source.yml — updates an existing program source description.
+- ops/fix-lums-offering-and-2027-intake — .github/workflows/fix-lums-offering-and-2027-intake.yml — creates/updates an offering and Fall 2027 intake.
+- ops/add-verified-campus-offerings-and-lums-2027-intake — .github/workflows/add-verified-campus-offerings-and-lums-2027-intake.yml — creates/updates offerings and a LUMS intake.
+- ops/fill-remaining-institution-program-catalog — .github/workflows/fill-remaining-institution-program-catalog.yml — creates source-backed programs and offerings.
+- ops/expand-official-program-catalog-round-two — .github/workflows/expand-official-program-catalog-round-two.yml — creates official programs and offerings.
+- ops/expand-program-catalog-offerings-intakes — .github/workflows/expand-program-catalog-offerings-intakes.yml — creates programs, offerings and intake records.
+- ops/complete-remaining-institution-profiles — .github/workflows/complete-remaining-institution-profiles.yml — updates institution type, description and verification fields, plus a campus field.
+- ops/add-officially-listed-programs — .github/workflows/add-officially-listed-programs.yml — creates program records.
+- ops/complete-campus-geography-and-profiles — .github/workflows/complete-campus-geography-and-profiles.yml — updates campus geography, creates campuses and updates institution profile fields.
+- ops/add-seven-verified-main-campuses — .github/workflows/add-seven-verified-main-campuses.yml — creates geography and campus records.
+- ops/classify-seven-active-institutions — .github/workflows/classify-seven-active-institutions.yml — updates institution_type for seven allowlisted active institutions.
+- ops/activate-seven-institutions-once — .github/workflows/activate-seven-institutions-once.yml — changes seven allowlisted candidate institutions to active.
+
+The most direct activation risk is branch ops/activate-seven-institutions-once. Branch ops/classify-seven-active-institutions changes types but does not activate institutions. The other write-capable branches perform canonical catalogue, campus/geography or profile writes.
+
+### 6. Other workflow files present on retained branches
+
+The common workflow inventory was also inspected. No additional common workflow was found whose push trigger targets an ops/* branch:
+
+- .github/workflows/hostinger-readonly-diagnostics.yml — push is restricted to main; also workflow_dispatch. It uses Hostinger SSH and performs read-only diagnostics. An ops/* push does not match its push branch filter.
+- .github/workflows/institutes-public-monitor.yml — push is restricted to main; also manual and scheduled. It performs public HTTP smoke checks, not production database writes.
+- .github/workflows/institution-import-preflight.yml — push is restricted to main and selected paths; pull_request runs Python duplicate-preflight tests. It is not a production import executor.
+- .github/workflows/laravel-ci.yml and .github/workflows/test.yml — push and pull_request are restricted to main. Artisan migration commands in CI operate on the runner's local test database, not Hostinger production.
+- .github/workflows/build-frontend-assets.yml — push is restricted to main; also manual.
+- .github/workflows/controlled-pakistan-geography-seed.yml — workflow_dispatch only. It can run a production geography seed after an explicit confirm_seed=yes input; default is no. It is not push-triggered.
+- .github/workflows/secure-institutes-admin-recovery.yml — workflow_dispatch only. It can reset the existing administrator password after its explicit confirmation and identity guards; it is not push-triggered.
+- .github/workflows/diagnose-hostinger-artisan-path.yml and .github/workflows/institutes-diagnostics-verify.yml — manual-only.
+- .github/workflows/institutes-private-diagnostics-report.yml — manual/scheduled; no push trigger.
+
+The three row-24 workflows from historical records (guarded-retry-campus-row-24.yml, diagnose-campus-row-24.yml and one-time-promote-campus-row-24.yml) are absent from their current branch tips. No retained branch-tip workflow was found that currently executes campus-row-24 promotion. No branch-specific workflow among the 26 present historical files contains an Artisan migration command. No retained branch-tip workflow was found that performs a formal institution import/approval/promotion pipeline operation; the production-write workflows listed above write canonical tables directly.
+
+### 7. Containment recommendations (no action taken)
+
+- **15 production-write-capable branches:** treat as frozen/no-push until a separately authorized containment decision is made. Do not add commits, rebase, merge or otherwise push to these branches while their exact-branch push workflows remain in the branch tip. The least disruptive future containment is to prevent accidental pushes and, under separate authorization, disable or remove only the identified branch-scoped workflow triggers after preserving the evidence. No such change is authorized or performed here.
+- **11 read-only branches:** avoid unnecessary pushes as well. Their workflows use Hostinger SSH and can query production records or emit diagnostics even though source inspection found no write operation. Keep them unchanged pending an owner decision.
+- **3 branches with absent matching YAML:** no containment is needed for the historical workflow path itself. Do not restore those YAML files. Their other common workflows do not have ops/* push triggers.
+- **Manual-only shared workflows:** do not dispatch the geography seed or administrator recovery workflows as part of this audit. They are separate manual authorization paths, not push re-trigger paths.
+
+### 8. Remaining uncertainty and production-state boundary
+
+- Per-workflow enabled/disabled state was not verifiable through the available read-only GitHub connector. The 26 present workflow files have push triggers configured for their exact retained branch, so they are potential re-trigger paths if enabled.
+- A successful historical run does not establish present production row state, whether a prior write was reversed, or whether the operation is still needed. No production database or Hostinger evidence was acquired.
+- No migration or formal import/promotion operation was found in the 26 branch-specific workflow files. The local test CI migration is isolated from production. Manual-only geography seed and administrator recovery remain separate write-capable workflows.
+- The three absent campus-row-24 workflow files remove their direct branch-tip re-trigger path, but the historical production effects of their successful runs remain unverified.
+- All 29 branches are deeply behind and diverged from main. Do not merge or rebase them as a cleanup shortcut.
+
+### 9. Safety confirmation and stop decision
+
+This audit used GitHub metadata, branch refs, commit comparisons, recursive trees and static YAML source only. No branch was pushed, deleted, renamed or modified. No workflow was dispatched, rerun, cancelled, enabled, disabled or approved. No raw logs, secrets, private diagnostic reports, Hostinger, production database, Artisan command, migration, import, approval, activation, campus promotion, deployment or data write was accessed or performed.
+
+GCU rows #348–353 and batches #19–23 were not accessed or changed. The additional 20 HEC profiles remain disabled; AI extraction remains disabled; no dummy production data was created.
+
+**Decision: STOP after this repository-only audit.** The next safe action is a separately authorized containment decision for the 15 production-write-capable retained branches, beginning with ops/activate-seven-institutions-once. Do not begin production remediation or row-level reconciliation under this audit authorization.
