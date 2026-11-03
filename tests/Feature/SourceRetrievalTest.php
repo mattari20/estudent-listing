@@ -45,6 +45,22 @@ class SourceRetrievalTest extends TestCase {
   $this->assertDatabaseCount('source_retrieval_runs',1);
  }
 
+
+ public function test_fresh_in_progress_retrieval_is_not_started_twice(): void {
+  $source=Source::create(['source_type'=>'web','name'=>'In Progress Official','url'=>'https://example.test/in-progress','status'=>'active']);
+  $run=\App\Models\SourceRetrievalRun::create([
+   'source_id'=>$source->id,
+   'idempotency_key'=>'in-progress-retrieval-key',
+   'status'=>'started',
+   'started_at'=>now(),
+  ]);
+  $reused=app(\App\Services\SourceRetrievalService::class)->retrieve($source,'in-progress-retrieval-key');
+  $this->assertSame($run->id,$reused->id);
+  $this->assertSame('started',$reused->status);
+  Http::assertNothingSent();
+  $this->assertDatabaseCount('source_retrieval_runs',1);
+ }
+
  public function test_private_ip_source_is_rejected(): void {
   $source=Source::create(['source_type'=>'web','name'=>'Private','url'=>'http://127.0.0.1/test','status'=>'active']);
   $run=app(\App\Services\SourceRetrievalService::class)->retrieve($source);
