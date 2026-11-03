@@ -31,6 +31,17 @@ class SourceRetrievalTest extends TestCase {
   $this->assertDatabaseCount('source_retrieval_runs',1);
  }
 
+
+ public function test_idempotency_key_cannot_be_reused_for_a_different_source(): void {
+  Http::fake(['https://example.test/*'=>Http::response('official content',200,['Content-Type'=>'text/html'])]);
+  $firstSource=Source::create(['source_type'=>'web','name'=>'First Source','url'=>'https://example.test/first','status'=>'active']);
+  $secondSource=Source::create(['source_type'=>'web','name'=>'Second Source','url'=>'https://example.test/second','status'=>'active']);
+  $service=app(\App\Services\SourceRetrievalService::class);
+  $service->retrieve($firstSource,'shared-source-key');
+  $this->expectException(\InvalidArgumentException::class);
+  $service->retrieve($secondSource,'shared-source-key');
+ }
+
  public function test_failed_retrieval_can_retry_using_the_same_idempotency_key(): void {
   Http::fakeSequence()
    ->push('temporary failure',503)
