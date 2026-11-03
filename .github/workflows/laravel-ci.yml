@@ -107,3 +107,7 @@ jobs:
           app/Models/InstituteDiscoveryRunOutcome.php
           tests/Feature/SourceChangeDiscoveryIdempotencyTest.php
           database/migrations/2026_11_03_000005_add_discovery_outcome_idempotency_key.php
+          app/Models/ChangeEvent.php
+          app/Services/SourceChangeEventProjector.php
+          tests/Feature/SourceChangeIntelligenceTest.php
+          database/migrations/2026_11_03_000006_add_change_event_source_link_identity.php
