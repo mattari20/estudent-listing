@@ -23,7 +23,7 @@ Phase 1A's bounded evidence-acquisition/documentation exercise is closed. Produc
 | GCU rows #348–353 / batches #19–23 | Preserve; detailed mapping/status not inferred | Separately authorized sanitized read-only record/evidence export | No row/batch mutation |
 | Additional 20 HEC profiles | Disabled | Independent source qualification and explicit activation approval | Keep disabled |
 | AI extraction | Disabled | Cost/security/privacy review, test coverage and explicit approval | Keep disabled |
-| Security PR #981 | Open Draft; initial checks exposed two Unit-test failures; follow-up fixes pushed; new exact-head checks pending | All required exact-head checks pass and regression behavior is reviewed | No deployment |
+| Security PR #981 | MERGED at `63c3cd51c4bc73bfebd81406d1b2d4bb8ef2858f`; exact-head Laravel CI #41625651437 and Test #41625651320 each passed 798 tests / 3,531 assertions; Public Browser Runtime Diagnostics #41625651658 passed | Closed after exact-head validation and review; application code is merged but not deployed by Phase 1B | No deployment |
 
 ## Mandatory pre-production sequence
 
@@ -59,3 +59,15 @@ Phase 1B may be declared complete only when:
 - no blocked item is mislabeled as verified and no production readiness claim is inferred from merged documentation.
 
 A Phase 1B documentation/design completion is not a production launch approval. Operational readiness remains a separate gate.
+
+
+## Phase 1B closeout reconciliation (2026-11-03)
+
+This package's readiness-gate table is a historical gate register. Its security row is updated to reflect the final merged status of PR #981. The authoritative Phase 1B delivery and closeout record is `docs/audits/PHASE_1B_FINAL_CLOSEOUT_REPORT.md`.
+
+- PR #981: merged and exact-head security checks passed; no production deployment occurred.
+- PR #982: merged scheduler/idempotency, GCU reconciliation and readiness design package.
+- PR #983: merged final closeout report and tracker status.
+- PR #984: merged final documentation formatting/evidence correction.
+
+**Phase 1B deliverables: COMPLETE AND CLOSED. Production operational readiness: NOT CERTIFIED.** Do not reopen Phase 1B for new implementation work. Future operational work belongs to Phase 1C and must satisfy the separate authorization and readiness gates above.

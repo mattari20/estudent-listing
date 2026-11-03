@@ -76,15 +76,19 @@ The following remain gates before any production-write proposal:
 
 The current public sanitized report remains public under the previously approved exception; do not place secrets, raw logs or private diagnostic payloads in repository documentation.
 
-## 6. Sequencing and completion gates (accelerated/consolidated)
+## 6. Sequencing and completion gates — final record
 
-| Delivery | PR | Completion gate |
+| Delivery | PR | Final result |
 |---|---|---|
-| Security remediation and regression tests | #981 — MERGED | Exact-head Laravel CI, Test and public browser diagnostics passed |
-| Scheduler ownership, GCU reconciliation, production-readiness package and tracker | #982 — IN REVIEW | Documentation consistency, exact-head Laravel CI, Test and Project Controller checks pass; review confirms explicit non-actions and blockers |
-| Phase 1B closeout | Tracker update after #982 | Exact merge commits/check runs recorded; no unverified production gate is represented as passed |
+| Initial Phase 1B design-only plan | #980 | MERGED at `d8a876ea0de43453b9a5c29e50b2fced78396e04` |
+| Security remediation and regression tests | #981 | MERGED at `63c3cd51c4bc73bfebd81406d1b2d4bb8ef2858f`; exact-head Laravel CI, Test and browser diagnostics passed |
+| Scheduler ownership, GCU reconciliation, production-readiness package and tracker | #982 | MERGED at `a844f6f545df3a312a8d391e2e002822fb6a8b4a`; exact-head Laravel CI, Test and Project Controller passed |
+| Final closeout report and tracker status | #983 | MERGED at `2e0f6e21e8c66e746dcd57ad10deab2b9af551a8` |
+| Final documentation formatting/evidence correction | #984 | MERGED at `5fb31b3d5873ab114c3354bfc012a8a90b687b6c`; exact-head Laravel CI, Test and Project Controller passed |
 
-The earlier four-workstream breakdown remains useful for scope tracking, but it does not require four separate PRs. Do not create separate PRs #983/#984 solely to split the documentation work. Additional corrective PRs are justified only by an independently reviewable change or a safety boundary.
+PR #975 was closed unmerged as superseded by #981. PRs #983 and #984 were closeout/accuracy corrections, not separate workstream implementation PRs. GitHub assigns PR numbers; the next phase's expected PR numbers are planning labels only.
+
+**Phase 1B is CLOSED.** Its defined deliverables are complete. Do not reopen or expand this phase. Any future correction to a Phase 1B artifact must be narrowly scoped, documentation-only unless a material factual defect is proven, and must not silently reopen production implementation. New operational work belongs to Phase 1C.
 
 ## 7. Reporting rules
 
@@ -101,7 +105,7 @@ A merged PR is not proof of production deployment, live scheduler health, schema
 
 - PR #979: merged; Phase 1A evidence exercise closed with explicit blockers.
 - PR #980: merged; Phase 1B design-only plan established.
-- Phase 1B is using the accelerated two-PR delivery: security PR #981 merged; consolidated documentation PR #982 is under review.
+- Phase 1B's two substantive delivery PRs #981 and #982, plus closeout PRs #983 and #984, are all merged. Phase 1B is CLOSED.
 - Production operational readiness: NOT CERTIFIED.
 - PR #975: closed unmerged as superseded by PR #981.
 - PR #981: merged at `63c3cd51c4bc73bfebd81406d1b2d4bb8ef2858f`; exact-head Test and Laravel CI each passed 798 tests / 3,531 assertions; public browser diagnostics passed.
@@ -129,3 +133,8 @@ No production execution authorization is created by this status update.
 
 
 Final closeout PR #983 is merged. See `docs/audits/PHASE_1B_FINAL_CLOSEOUT_REPORT.md` and the final closeout section of the master tracker. Phase 1B defined deliverables are complete; production operational readiness remains NOT CERTIFIED.
+
+
+## Phase 1B freeze notice (2026-11-03)
+
+The Phase 1B scope is complete and frozen. Its security changes are merged but were not deployed by this phase. Its scheduler and GCU deliverables are designs/specifications, not live operational implementations. The carried production-readiness blockers are transferred to the Phase 1C plan. Do not reopen Phase 1B to implement those blockers; use new Phase 1C PRs with independent checks and authorization.
