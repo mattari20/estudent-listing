@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Source;
 use App\Models\SourceSnapshot;
-use Illuminate\Database\Eloquent\Model;
 
 class SourceSnapshotService
 {
