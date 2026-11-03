@@ -81,7 +81,7 @@ class ExecutionLeaseService
 
             $heartbeat = function () use ($taskKey, $ownerToken, $runId, $ttlMinutes): void {
                 $now = now();
-                $updated = DB::table('governed_execution_leases')
+                DB::table('governed_execution_leases')
                     ->where('task_key', $taskKey)
                     ->where('owner_token', $ownerToken)
                     ->where('expires_at', '>', $now)
@@ -90,7 +90,13 @@ class ExecutionLeaseService
                         'updated_at' => $now,
                     ]);
 
-                if ($updated !== 1) {
+                $stillOwned = DB::table('governed_execution_leases')
+                    ->where('task_key', $taskKey)
+                    ->where('owner_token', $ownerToken)
+                    ->where('expires_at', '>', $now)
+                    ->exists();
+
+                if (! $stillOwned) {
                     throw new RuntimeException('Governed execution lease ownership was lost.');
                 }
 
