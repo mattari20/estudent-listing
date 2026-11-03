@@ -9,6 +9,7 @@ class SourceSnapshot extends Model
 {
     protected $fillable = [
         'source_id',
+        'capture_key',
         'reference',
         'content_hash',
         'content_length',
