@@ -1,9 +1,11 @@
 <?php
 
-namespace App\\Console\\Commands;
+namespace App\Console\Commands;
 
-use App\\Services\\ExecutionLeaseService;
-use Illuminate\\Console\\Command;
+use App\Services\ExecutionLeaseService;
+use App\Services\MonitoringDryRunService;
+use App\Services\SourceMonitoringBatchService;
+use Illuminate\Console\Command;
 
 class MonitorSourceChanges extends Command
 {
@@ -11,22 +13,25 @@ class MonitorSourceChanges extends Command
 
     protected $description = 'Retrieve monitored institute sources and process detected content changes.';
 
-    public function handle(ExecutionLeaseService $lease): int
-    {
+    public function handle(
+        ExecutionLeaseService $lease,
+        MonitoringDryRunService $dryRun,
+        SourceMonitoringBatchService $monitoring,
+    ): int {
+        $policyId = $this->option('policy') ? (int) $this->option('policy') : null;
+
         if ($this->option('dry-run')) {
-            $summary = app(\\App\\Services\\MonitoringDryRunService::class)->run(
-                $this->option('policy') ? (int) $this->option('policy') : null
-            );
-            $this->table('Metric', 'Value');
-            $this->table(['Metric', 'Value'], [['policies', $summary['policies']], ['sources', $summary['sources']]]);
+            $summary = $dryRun->run($policyId);
+            $this->table(['Metric', 'Value'], [
+                ['policies', $summary['policies']],
+                ['sources', $summary['sources']],
+            ]);
 
             return self::SUCCESS;
         }
 
-        $result = $lease->run('governed-institute-discovery-pipeline', function (): int {
-            $summary = app(\\App\\Services\\SourceMonitoringBatchService::class)->run(
-                $this->option('policy') ? (int) $this->option('policy') : null
-            );
+        $result = $lease->run('governed-institute-discovery-pipeline', function () use ($monitoring, $policyId): int {
+            $summary = $monitoring->run($policyId);
             $this->table(['Metric', 'Value'], collect($summary)->map(fn ($value, $key) => [$key, $value])->values()->all());
 
             return self::SUCCESS;
