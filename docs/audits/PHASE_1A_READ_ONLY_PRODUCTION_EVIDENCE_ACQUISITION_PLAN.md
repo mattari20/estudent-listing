@@ -671,3 +671,38 @@ Preserve these repository facts: Laravel schedules `institutes:bootstrap-agent` 
 - Production runtime/schema, backup retention and restore evidence, private-report access/retention remain unresolved as recorded in the tracker.
 
 **Phase 1A remains incomplete.** This update is documentation-only. No production SSH, Artisan, Composer, SQL/database, hPanel operation, cron/queue operation, backup, private report, workflow action, deployment, configuration change, source retrieval/discovery, extraction, staging, approval, import, canonical promotion or publication was performed.
+
+
+---
+
+## Phase 1A-06 — Owner evidence batch and authorization map (2026-11-03)
+
+The detailed owner evidence matrix, PR overlap review and nine-gate reconciliation are recorded in the matching Phase 1A-06 section of `docs/PROJECT_MASTER_TRACKER.md`. This addendum is the execution checklist; it does not grant new authorization or duplicate the Phase 1A-05D failure analysis.
+
+### Owner-supplied evidence packet
+
+| Item | Exact owner evidence | Source / evidence type | Authorization and limitation |
+|---|---|---|---|
+| A. GitHub workflow state | Complete inventory of all 35 workflow IDs/names/paths and active/disabled states; all queued, in-progress and waiting runs with run ID, workflow, event, branch, SHA, actor and start time. Paginate all results. | Repository Actions tab or owner/admin read-only GitHub API/CLI export. | Existing AUTH-01 read-only metadata scope. No enable/disable, dispatch, rerun, cancel or approval. Current connector did not expose a complete workflow-state inventory. |
+| B. Hostinger cron | Complete saved Cron Jobs list: full command (secrets redacted), working directory, PHP binary, schedule/timezone, enabled state and last/next run/error fields where available. | Owner hPanel → Websites → estudent.pk → Advanced → Cron Jobs; full list screenshot/export. | Existing AUTH-05 view-only scope. Do not edit, save, toggle or test-run. Earlier create-form screenshot does not prove the list is empty. |
+| C. Queue worker | Worker/service/Supervisor definition, command (sensitive args redacted), manager, process count/status, persistence, restart policy and last restart/heartbeat; if no UI feature, provider confirmation of feature limits. | Owner hPanel process/worker view or Hostinger support response. | Existing AUTH-05 view-only scope. No SSH/process listing/queue command/start/stop/restart/retry. Absence of UI does not prove no worker exists. |
+| D. Scheduler ownership | Reconcile Hostinger cron list, GitHub workflow states/runs, deployed Laravel schedule definitions, lock backend/key and idempotency. Identify direct `schedule:run` or duplicate direct command entries. | Combined owner Hostinger evidence, GitHub metadata and static repository files. | Static/GitHub read-only review and AUTH-05 view-only evidence. Artisan `schedule:list` requires separate AUTH-03 approval; no production overlap test. |
+| E. Backup retention/restore | Schedule, retention duration/restore-point count, scope/exclusions, storage destination, last successful backup, available restore points, and any existing restore-test record/date/scope/outcome. If none exists, say so. | Owner hPanel → Backups screenshots/export. | Existing AUTH-05 view-only scope. No restore or test restore; that is a write-capable operation requiring a separate recovery plan and explicit authorization. |
+| F. Private report access/retention | Private repository identity/visibility, authorized users/teams and roles, relevant branch/ruleset protections, report retention/deletion policy and evidence of configured retention. Metadata only. | Owner/admin redacted GitHub Settings evidence and written policy. | No private report content, credential, token, endpoint or artifact access. AUTH-06 is only for a future new report after access/retention approval; no report is to be created now. |
+| G. Hostinger run failure | Sanitized final error excerpt from only run `41552845301`, job `125644442102`, step “Run diagnostics on Hostinger”: final error category/message, failing phase if named, timestamp and exit status if shown. | Supplied directly by repository owner, or separately authorized named reviewer. | No raw log retrieval, secret-bearing log inspection or private report access. No retry/dispatch/cancel/state change. Until supplied, root cause remains unresolved. |
+
+### Repository facts relevant to scheduler reconciliation
+
+- `bootstrap/app.php` schedules `institutes:bootstrap-agent` and `institutes:monitor-changes` hourly with `withoutOverlapping(55)`.
+- `.github/workflows/scheduled-institute-discovery.yml` schedules at minute 15 hourly and also has manual dispatch and a workflow-run handoff trigger; it invokes the same two commands.
+- The GitHub concurrency group and Laravel cache lock are separate. Repository `config/cache.php` defaults to file cache, but production environment overrides and a shared cross-runner lock are not established.
+- `config/queue.php` defaults to database queue and names `jobs` / `failed_jobs`; it does not prove the deployed connection or a running worker.
+- No actual Hostinger cron invocation or duplicate execution has been established.
+
+### Stop decision
+
+Repository-only evidence is exhausted for the missing Hostinger UI facts, GitHub workflow enabled state (via the current connector), private repository access/retention policy and the actual failed-step error. The next safe action is to obtain owner-supplied items A–G above. Do not substitute repository defaults, workflow definitions or successful CI for live production evidence.
+
+**Gate status:** P1A-01 PARTIAL; P1A-02 PARTIAL; P1A-03 NOT AUTHORIZED; P1A-04 NOT AUTHORIZED; P1A-05 PARTIAL; P1A-06 UNVERIFIED; P1A-07 PARTIAL; P1A-08 PARTIAL; P1A-09 BLOCKED. Phase 1A remains incomplete.
+
+No Hostinger/production access, private report or raw log access, workflow action, deployment, migration, cron/queue/backup operation, restore, source operation, candidate staging/approval/import, canonical promotion or publication occurred. Preserve GCU rows #348–353 and batches #19–23; keep the 20 additional HEC profiles and AI extraction disabled.
