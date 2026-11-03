@@ -47,7 +47,6 @@ jobs:
         run: >-
           vendor/bin/pint
           bootstrap/app.php
-          app/Http/Controllers/InstituteImportPromotionController.php
           app/Services/StructuredEnrichmentService.php
           tests/Feature/InstitutesDirectoryTest.php
           tests/Feature/InstituteAgentBootstrapTest.php
