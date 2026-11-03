@@ -124,7 +124,7 @@ class SourceSnapshotTest extends TestCase {
         $service = app(SourceSnapshotService::class);
         $service->capture($source, 'original payload', 'https://example.test/original', 'text/html', [], 'bound-capture-key');
 
-        $this->expectException(\\LogicException::class);
+        $this->expectException(\LogicException::class);
         $service->capture($other, 'different payload', 'https://example.test/other', 'text/html', [], 'bound-capture-key');
     }
 
@@ -156,9 +156,9 @@ class SourceSnapshotTest extends TestCase {
             'observed_at' => now(),
         ];
 
-        \\App\\Models\\SourceChangeObservation::create($attributes);
-        $this->expectException(\\Illuminate\\Database\\QueryException::class);
-        \\App\\Models\\SourceChangeObservation::create($attributes);
+        \App\Models\SourceChangeObservation::create($attributes);
+        $this->expectException(\Illuminate\Database\QueryException::class);
+        \App\Models\SourceChangeObservation::create($attributes);
     }
 
     public function test_changed_observation_retains_before_and_after_snapshot_evidence(): void
