@@ -1692,3 +1692,24 @@ The connected read-only GitHub interface could not retrieve current workflow met
 The audit document section “Phase 1A-09 — Safe containment plan” records the complete 15-branch risk-ranked table, workflow IDs and paths, exact branch-tip SHAs, last run IDs, alternatives, effects, limitations, staged approval gates, and unresolved questions.
 
 **Decision:** stop after planning. A separate explicit owner approval is required before disabling any workflow. No branch, workflow, repository setting, production system or data was changed.
+
+---
+
+## Phase 1A-14 — Owner-authorized workflow containment recorded (2026-11-03)
+
+**Documentation baseline before this PR:** `d75d40e7289cfbef2848538e2753c1b2b9c1df19`.
+
+The repository owner supplied authenticated GitHub CLI before/after metadata evidence: all 15 production-write-capable workflows were initially `active`, individually disabled after explicit owner authorization, and re-queried as `disabled_manually` on 2026-11-03. Exact workflow IDs, names, retained branch names and workflow paths are recorded in the Phase 1A audit report. Names were checked against each retained branch workflow YAML `name:` declaration; state and identity read-back are attributed to the owner-supplied API evidence. Exact time and per-workflow `updated_at` timestamps were not supplied.
+
+Post-containment repository Actions query results supplied by the owner:
+- `queued`: 0
+- `in_progress`: 0
+- `waiting`: 0
+- `requested`: 0
+- `pending`: 0
+
+**Result:** 15/15 workflow IDs reported `disabled_manually`; 0 unresolved in the owner-supplied metadata set; 0 reported ID/path mismatches; 0 executions across the five queried categories at the time checked.
+
+**Safety boundary:** this is workflow-level containment of the 15 listed workflow identities, not proof of complete production safety. Other GitHub workflows, Hostinger cron, Laravel scheduler/queue workers, manual SSH/Artisan operations, external integrations, credentials and application write paths were not disabled or verified by this action. Disabling does not reverse completed production writes or stop independent execution paths. Phase 1A production readiness remains incomplete pending separately authorized evidence for the other execution planes.
+
+This documentation-only PR preserves all 29 historical `ops/*` branch refs, their YAML files, Git history and PRs. No workflow or execution state was changed in this phase. GCU rows #348–353 and batches #19–23 remain untouched; the 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created. Do not infer a global production freeze or resume authorization from this containment record.
