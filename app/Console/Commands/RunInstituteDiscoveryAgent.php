@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\ExecutionLeaseService;
 use App\Services\InstituteDiscoveryAgentService;
 use Illuminate\Console\Command;
 
@@ -13,26 +14,36 @@ class RunInstituteDiscoveryAgent extends Command
 
     protected $description = 'Collect governed institute data from a configured source and create non-canonical candidate rows.';
 
-    public function handle(InstituteDiscoveryAgentService $agent): int
+    public function handle(InstituteDiscoveryAgentService $agent, ExecutionLeaseService $lease): int
     {
-        try {
-            $summary = $agent->run(
-                $this->argument('profile'),
-                (bool) $this->option('ai')
-            );
-        } catch (\Throwable $e) {
-            $this->error($e->getMessage());
+        $result = $lease->run('governed-institute-discovery-pipeline', function () use ($agent): int {
+            try {
+                $summary = $agent->run(
+                    $this->argument('profile'),
+                    (bool) $this->option('ai')
+                );
+            } catch (\Throwable $e) {
+                $this->error($e->getMessage());
 
-            return self::FAILURE;
+                return self::FAILURE;
+            }
+
+            $this->table(
+                ['Metric', 'Value'],
+                collect($summary)->map(fn ($value, $key) => [$key, $value])->values()->all()
+            );
+
+            $this->info('Discovery completed. No canonical institute/program record was changed.');
+
+            return self::SUCCESS;
+        });
+
+        if ($result === null) {
+            $this->warn('Governed institute discovery is already running; this invocation did no work.');
+
+            return self::SUCCESS;
         }
 
-        $this->table(
-            ['Metric', 'Value'],
-            collect($summary)->map(fn ($value, $key) => [$key, $value])->values()->all()
-        );
-
-        $this->info('Discovery completed. No canonical institute/program record was changed.');
-
-        return self::SUCCESS;
+        return $result;
     }
 }
