@@ -3,14 +3,14 @@
 namespace Tests\Feature;
 
 use App\Services\ExecutionLeaseService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ExecutionLeaseServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     public function test_only_one_live_owner_can_run_a_governed_task(): void
     {
@@ -32,6 +32,30 @@ class ExecutionLeaseServiceTest extends TestCase
         ]);
         $this->assertDatabaseHas('governed_execution_run_events', ['event_type' => 'started']);
         $this->assertDatabaseHas('governed_execution_run_events', ['event_type' => 'completed']);
+    }
+
+
+    public function test_separate_database_connection_cannot_claim_a_live_lease(): void
+    {
+        config(['database.connections.lease_contender' => config('database.connections.'.config('database.default'))]);
+        DB::purge('lease_contender');
+
+        $lease = app(ExecutionLeaseService::class);
+        $contenderUpdated = null;
+
+        $lease->run('two-connection-contention', function () use (&$contenderUpdated): void {
+            $contenderUpdated = DB::connection('lease_contender')
+                ->table('governed_execution_leases')
+                ->where('task_key', 'two-connection-contention')
+                ->where('expires_at', '<=', now())
+                ->update([
+                    'owner_token' => (string) Str::uuid(),
+                    'expires_at' => now()->addMinutes(10),
+                ]);
+        });
+
+        $this->assertSame(0, $contenderUpdated);
+        DB::purge('lease_contender');
     }
 
     public function test_heartbeat_renews_lease_and_records_an_event(): void
