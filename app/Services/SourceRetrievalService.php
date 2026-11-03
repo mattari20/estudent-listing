@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Source;
 use App\Models\SourceRetrievalRun;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class SourceRetrievalService
 {
@@ -18,10 +19,9 @@ class SourceRetrievalService
             throw new \InvalidArgumentException('Source has no URL.');
         }
 
-        $idempotencyKey ??= hash(
-            'sha256',
-            'source-retrieval:v1|'.$source->id.'|'.now()->utc()->startOfHour()->toIso8601String()
-        );
+        // A new retrieval call is a new operation by default. Callers that
+        // retry the same logical operation must supply the same explicit key.
+        $idempotencyKey ??= (string) Str::uuid();
 
         if ($idempotencyKey === '' || strlen($idempotencyKey) > 64) {
             throw new \InvalidArgumentException('Source retrieval idempotency keys must contain between 1 and 64 characters.');
