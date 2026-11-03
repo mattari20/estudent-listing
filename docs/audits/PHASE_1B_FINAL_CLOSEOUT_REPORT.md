@@ -20,11 +20,13 @@ This final report and tracker closeout were merged in PR #983 at `2e0f6e21e8c66e
 
 | PR | Scope | Result | Merge commit |
 |---|---|---|---|
+| #980 | Initial Phase 1B design-only plan | MERGED | `d8a876ea0de43453b9a5c29e50b2fced78396e04` |
 | #981 | First-admin guard, JSON-LD encoding, CSV formula protection, PHPUnit Feature + Unit discovery and regression tests | MERGED | `63c3cd51c4bc73bfebd81406d1b2d4bb8ef2858f` |
 | #982 | Scheduler ownership/idempotency design, GCU reconciliation design, readiness decision package and tracker | MERGED | `a844f6f545df3a312a8d391e2e002822fb6a8b4a` |
 | #983 | Final closeout report and authoritative tracker status | MERGED | `2e0f6e21e8c66e746dcd57ad10deab2b9af551a8` |
+| #984 | Final Markdown formatting and exact PR #983 evidence correction | MERGED | `5fb31b3d5873ab114c3354bfc012a8a90b687b6c` |
 
-PR #975 was closed unmerged as superseded by PR #981. PR #980 established the initial Phase 1B design-only plan and is already merged. The four-workstream proposal was consolidated into two substantive delivery PRs rather than splitting the documentation into separate PRs.
+PR #975 was closed unmerged as superseded by PR #981. PR #980 established the initial Phase 1B design-only plan and is already merged. The four-workstream proposal was consolidated into two substantive delivery PRs (#981 and #982), followed by two closeout/accuracy PRs (#983 and #984). PR #980 established the plan. PR #975 was closed unmerged as superseded.
 
 ## 3. Workstream acceptance
 
@@ -134,3 +136,8 @@ GCU rows #348–353 and batches #19–23 remain preserved. Additional 20 HEC pro
 The next phase must address provider/Hostinger scheduler and worker evidence, separately authorized metadata-only database verification, shared scheduler lease implementation/testing, backup recoverability evidence, and controlled discovery qualification. Deployment, source retrieval, candidate staging, approval, import and publication each require separate readiness evidence and authorization.
 
 A merged design document is not an operational pass. Do not bypass any gate because Phase 1B is closed.
+
+
+## Phase 1B freeze and handoff
+
+**Phase 1B is CLOSED and frozen as of main commit `5fb31b3d5873ab114c3354bfc012a8a90b687b6c`.** Its defined repository-side deliverables are complete. No Phase 1B implementation work should be reopened. Production operational readiness remains NOT CERTIFIED and is explicitly transferred to Phase 1C. Future code, provider, database, scheduler, backup, historical-data or discovery work must be tracked under Phase 1C or a later phase, with its own PRs, tests, evidence and operation-specific authorization.
