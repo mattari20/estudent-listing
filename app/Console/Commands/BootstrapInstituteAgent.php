@@ -27,7 +27,7 @@ class BootstrapInstituteAgent extends Command
         InstituteDiscoveryAgentService $agent,
         InstituteIdentityDiscoveryService $identityDiscovery,
     ): int {
-        $result = $lease->run('governed-institute-discovery-pipeline', fn () => $this->runBootstrapPipeline($monitoring, $agent, $identityDiscovery));
+        $result = $lease->run('governed-institute-discovery-pipeline', fn ($heartbeat) => $this->runBootstrapPipeline($monitoring, $agent, $identityDiscovery, $heartbeat));
         if ($result === null) {
             $this->warn('Governed institute discovery is already running; this invocation did no work.');
             return self::SUCCESS;
