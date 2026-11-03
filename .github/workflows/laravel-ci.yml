@@ -64,6 +64,7 @@ jobs:
           database/migrations/2026_11_03_000002_create_governed_execution_runs_table.php
           tests/Feature/ExecutionLeaseServiceTest.php
           app/Services/SourceRetrievalService.php
+          app/Services/SourceMonitoringPipeline.php
           app/Models/SourceRetrievalRun.php
           tests/Feature/SourceRetrievalTest.php
           database/migrations/2026_11_03_000003_add_source_retrieval_idempotency_key.php
