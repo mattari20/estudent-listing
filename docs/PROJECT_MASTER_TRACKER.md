@@ -2070,3 +2070,12 @@ Still outstanding after this engineering delivery:
 No production migration/deployment, SSH/hPanel/Artisan, DB query/write, cron/worker change, backup/restore, source retrieval, candidate staging/approval/import, canonical promotion or publication is authorized by these repository PRs. Do not activate additional HEC profiles or AI extraction. No dummy production data. Preserve GCU history unchanged.
 
 **Phase 1C closeout gate: NOT MET.** Merge status alone is not a closeout. Every remaining gate must be evidenced or explicitly accepted as a blocker by the project owner; the pilot must remain disabled.
+
+
+## Phase 1C — post-PR #989 status (2026-11-03)
+
+PR #989 merged at 0a56a17148625ffe22f99ce5628b3dbfef29aaa4 after exact-head Laravel CI, Test, isolated MySQL and Project Controller checks passed. It adds cooperative heartbeat/renewal, owner-loss failure, run records and append-only lifecycle events. It does not close Phase 1C.
+
+Next engineering delivery: source retrieval idempotency. Audit: docs/audits/PHASE_1C_SOURCE_RETRIEVAL_IDEMPOTENCY.md. This adds one stable UTC-hour idempotency key per source retrieval, reuses completed runs, prevents duplicate start while a run is fresh/in progress, and retries failed/stale runs using the same run row. It does not claim idempotency for snapshots, observations, batches, candidates or discovery outcomes.
+
+Still blocked for Phase 1C closeout: simultaneous multi-process MySQL stress tests; full side-effect idempotency; Hostinger/provider cron/worker evidence and scheduler convergence; production revision parity, AUTH-04 and backup/recovery evidence; authorized GCU read-only reconciliation for rows #348–353 and batches #19–23; final evidence matrix and pilot go/no-go. Production operations and GCU export remain separately authorized actions. No dummy production data; AI and additional HEC profiles remain disabled.
