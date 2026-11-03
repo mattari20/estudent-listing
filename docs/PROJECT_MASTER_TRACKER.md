@@ -1752,3 +1752,56 @@ The original AUTH-06 requirement called for a private report destination, access
 **Phase 1A is not complete.** AUTH-06's sanitized report deliverable has been merged under the owner's explicit public-visibility exception. Do not infer production readiness, private-report controls, production schema correctness, global workflow containment, complete scheduler ownership, queue-worker health, or tested backup recoverability.
 
 No production configuration or data was changed. No cron/queue/backup operation, restore, migration, source discovery/retrieval, candidate staging/approval/import, canonical promotion or publication occurred in this update. GCU rows #348–353 and batches #19–23 remain preserved; the 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created.
+
+
+---
+
+## Phase 1A — AUTH-01 / AUTH-02 owner evidence reconciliation (2026-11-03)
+
+**Verified main before this documentation update:** `ae03c925c5c67a2a080b3da2b57f30eeaccaa1fe`.
+
+### AUTH-01 — GitHub workflow inventory and active-run snapshot
+
+The owner supplied authenticated GitHub CLI output on 2026-11-03 showing the workflow inventory with workflow ID, name, YAML path and state. The output contained 35 workflow records. The five active/pending status queries returned no listed runs:
+
+- queued: 0
+- in_progress: 0
+- waiting: 0
+- requested: 0
+- pending: 0
+
+The inventory includes workflows whose state is `active` and workflows whose state is `disabled_manually`. This is not a global freeze: only the specifically contained 15 production-write-capable workflow IDs are confirmed disabled by the earlier owner-supplied evidence in Phase 1A-14. Other enabled workflows remain enabled according to the inventory. This AUTH-01 bounded inventory/snapshot is **COMPLETE for the requested scope**, based on owner-supplied authenticated CLI output. It does not assert that no future run can be triggered or that all possible external execution planes are stopped.
+
+### AUTH-02 — production revision parity
+
+The owner supplied a clear Hostinger SSH screenshot showing:
+
+- `git rev-parse HEAD`: `ae03c925c5c67a2a080b3da2b57f30eeaccaa1fe`
+- `git ls-remote origin refs/heads/main`: `ae03c925c5c67a2a080b3da2b57f30eeaccaa1fe` for `refs/heads/main`
+- `git status --short`: no output
+- PHP CLI: `8.5.12`
+
+The deployed checkout HEAD therefore matched the remote `main` SHA at the time of inspection, and the reported worktree was clean. AUTH-02 revision-parity check is **COMPLETE for this observation**. This does not prove database schema parity, Laravel scheduler execution, queue-worker health or broader application health.
+
+### Consolidated gate disposition
+
+| Gate | Disposition | Evidence / remaining boundary |
+|---|---|---|
+| AUTH-01 / P1A-01 | **COMPLETE — bounded inventory and five-category active-run snapshot** | Owner-supplied authenticated CLI output; 35 workflow records; zero runs in the five queried categories at observation time. Active workflows remain enabled. |
+| AUTH-02 / P1A-02 | **COMPLETE — revision parity observed** | Production HEAD equals remote main `ae03c925c5c67a2a080b3da2b57f30eeaccaa1fe`; clean `git status --short`; PHP CLI 8.5.12. |
+| AUTH-03 / P1A-03 | **COMPLETE — bounded Artisan inspection executed** | Seven authorized inspection commands were run; visible scheduler output lists two hourly Institutes commands. No command handlers were invoked. |
+| AUTH-04 / P1A-04 | **BYPASSED — NOT VERIFIED** | Owner elected not to perform production metadata SQL or change application DB privileges. Production schema/index/migration-ledger state remains unverified. |
+| AUTH-05 cron | **BOUNDED INSPECTION COMPLETE; PROVIDER SCOPE UNVERIFIED** | hPanel screenshots showed no saved entries in the repeatedly inspected view; inspected user crontab absent; system crontab unreadable to account. Provider-managed/system-level scheduling remains unknown. |
+| AUTH-05 worker | **BOUNDED INSPECTION COMPLETE; PROVIDER SCOPE UNVERIFIED** | No persistent worker observed in account-scoped process snapshot; Supervisor unavailable to account. Provider-managed/out-of-scope workers remain unknown. |
+| AUTH-05 backups | **VISIBLE BACKUP EVIDENCE CAPTURED; RECOVERABILITY NOT PROVEN** | Weekly schedule and five restore points visible; formal retention duration and successful restore-test evidence not supplied. No restore was performed. |
+| P1A-07 scheduler ownership | **OPEN / NOT RESOLVED** | Laravel hourly tasks and GitHub workflow state are known; Hostinger invocation and cross-runner shared locking remain unverified. |
+| AUTH-06 | **SANITIZED REPORT MERGED UNDER OWNER-APPROVED PUBLIC-VISIBILITY EXCEPTION** | PR #976 merged; PR #977 reconciled tracker. Private destination/access controls were not established; repository/report remains public until repository visibility changes. |
+| P1A-09 final readiness | **BLOCKED / NOT CLOSED** | AUTH-04 is bypassed; provider-level scheduler/worker and backup-recoverability evidence is incomplete; P1A-07 remains unresolved. |
+
+### Phase 1A close decision
+
+AUTH-01, AUTH-02 and AUTH-03 bounded tasks are complete. AUTH-06's sanitized report deliverable and its tracker reconciliation are merged. AUTH-05 bounded owner-side inspections are recorded without overstating provider-level coverage.
+
+**Phase 1A as a whole MUST REMAIN OPEN / BLOCKED.** The owner asked to move quickly, but did not authorize falsely marking the bypassed database gate or unresolved operational evidence as verified. A phase closure would require an explicit owner decision to accept AUTH-04 and the remaining AUTH-05/P1A-07 uncertainties as formally waived, or new evidence resolving them. This update does not silently waive those requirements.
+
+No production configuration or data was changed. No workflow was enabled/disabled/dispatched/rerun, no database query/write or migration was run, no cron/queue/backup setting was changed, and no restore/import/approval/promotion/publication occurred. GCU rows #348–353 and batches #19–23 remain preserved; 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created.
