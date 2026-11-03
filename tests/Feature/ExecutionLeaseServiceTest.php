@@ -108,6 +108,23 @@ class ExecutionLeaseServiceTest extends TestCase
         ]);
     }
 
+
+    public function test_nonzero_command_result_is_recorded_as_failed(): void
+    {
+        $result = app(ExecutionLeaseService::class)->run('exit-code-test', fn () => 1);
+
+        $this->assertSame(1, $result);
+        $this->assertDatabaseHas('governed_execution_runs', [
+            'task_key' => 'exit-code-test',
+            'status' => 'failed',
+            'failure_code' => 'command_exit_code_1',
+        ]);
+        $this->assertDatabaseHas('governed_execution_run_events', [
+            'event_type' => 'failed',
+            'failure_code' => 'command_exit_code_1',
+        ]);
+    }
+
     public function test_callback_exception_is_recorded_and_releases_its_lease(): void
     {
         $lease = app(ExecutionLeaseService::class);
