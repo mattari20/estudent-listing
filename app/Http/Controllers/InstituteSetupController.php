@@ -28,7 +28,7 @@ class InstituteSetupController
 
     public function store(Request $request): RedirectResponse
     {
-        if (User::whereIn('role', ['operator', 'admin'])->exists()) {
+        if ($this->administratorExists()) {
             return redirect()->route('institutes.login');
         }
 
