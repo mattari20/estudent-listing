@@ -1959,14 +1959,14 @@ This closeout supersedes the earlier Phase 1B "IN PROGRESS" snapshot above. Do n
 **Phase 1B deliverables: COMPLETE. Phase 1B: CLOSED AND FROZEN. Production operational readiness: NOT CERTIFIED.**
 
 Final repository baseline before this documentation-only reconciliation:
-\`5fb31b3d5873ab114c3354bfc012a8a90b687b6c\`.
+`5fb31b3d5873ab114c3354bfc012a8a90b687b6c`.
 
 Merged PR register:
-- #980 — initial Phase 1B design-only plan; merged at \`d8a876ea0de43453b9a5c29e50b2fced78396e04\`.
-- #981 — security remediation and regression tests; merged at \`63c3cd51c4bc73bfebd81406d1b2d4bb8ef2858f\`. Exact-head Laravel CI #41625651437 and Test #41625651320 each passed 798 tests / 3,531 assertions; browser diagnostics #41625651658 passed.
-- #982 — scheduler, GCU and readiness design package; merged at \`a844f6f545df3a312a8d391e2e002822fb6a8b4a\`. Exact-head Laravel CI #41626216555 and Test #41626216569 each passed 798 tests / 3,531 assertions; Project Controller #41626216581 passed.
-- #983 — final closeout report and tracker status; merged at \`2e0f6e21e8c66e746dcd57ad10deab2b9af551a8\`. Exact-head Laravel CI #41626552852 and Test #41626552895 each passed 798 tests / 3,531 assertions; Project Controller #41626552870 passed.
-- #984 — final documentation formatting/evidence correction; merged at \`5fb31b3d5873ab114c3354bfc012a8a90b687b6c\`. Exact-head Laravel CI #41626891506 and Test #41626891576 each passed 798 tests / 3,531 assertions; Project Controller #41626891559 passed.
+- #980 — initial Phase 1B design-only plan; merged at `d8a876ea0de43453b9a5c29e50b2fced78396e04`.
+- #981 — security remediation and regression tests; merged at `63c3cd51c4bc73bfebd81406d1b2d4bb8ef2858f`. Exact-head Laravel CI #41625651437 and Test #41625651320 each passed 798 tests / 3,531 assertions; browser diagnostics #41625651658 passed.
+- #982 — scheduler, GCU and readiness design package; merged at `a844f6f545df3a312a8d391e2e002822fb6a8b4a`. Exact-head Laravel CI #41626216555 and Test #41626216569 each passed 798 tests / 3,531 assertions; Project Controller #41626216581 passed.
+- #983 — final closeout report and tracker status; merged at `2e0f6e21e8c66e746dcd57ad10deab2b9af551a8`. Exact-head Laravel CI #41626552852 and Test #41626552895 each passed 798 tests / 3,531 assertions; Project Controller #41626552870 passed.
+- #984 — final documentation formatting/evidence correction; merged at `5fb31b3d5873ab114c3354bfc012a8a90b687b6c`. Exact-head Laravel CI #41626891506 and Test #41626891576 each passed 798 tests / 3,531 assertions; Project Controller #41626891559 passed.
 - #975 was closed unmerged as superseded by #981.
 
 ### Audit findings and final corrections
@@ -1978,9 +1978,9 @@ The independent closeout review found two stale status statements in the Phase 1
 These are documentation accuracy defects, not application-code or production-data defects. The corrections are included in the current documentation reconciliation PR. The final report's PR register also includes the initial plan PR #980 and final correction PR #984.
 
 Authoritative documents:
-- \`docs/audits/PHASE_1B_FINAL_CLOSEOUT_REPORT.md\` — final delivery/validation record.
-- \`docs/audits/PHASE_1B_PRODUCTION_READINESS_DECISION_PACKAGE.md\` — updated security PR disposition and carried readiness gates.
-- \`docs/audits/PHASE_1B_DESIGN_ONLY_REMEDIATION_PLAN.md\` — final merged PR sequence and freeze notice.
+- `docs/audits/PHASE_1B_FINAL_CLOSEOUT_REPORT.md` — final delivery/validation record.
+- `docs/audits/PHASE_1B_PRODUCTION_READINESS_DECISION_PACKAGE.md` — updated security PR disposition and carried readiness gates.
+- `docs/audits/PHASE_1B_DESIGN_ONLY_REMEDIATION_PLAN.md` — final merged PR sequence and freeze notice.
 
 No Phase 1B implementation work is to be reopened. Any future correction to its records must be narrowly scoped and must not reopen the phase.
 
@@ -1990,7 +1990,7 @@ No Phase 1B implementation work is to be reopened. Any future correction to its 
 
 **Status: PLANNED — NOT STARTED. No production operation is authorized by this plan.**
 
-Plan: \`docs/audits/PHASE_1C_OPERATIONAL_READINESS_AND_SAFE_EXECUTION_PLAN.md\`.
+Plan: `docs/audits/PHASE_1C_OPERATIONAL_READINESS_AND_SAFE_EXECUTION_PLAN.md`.
 
 Expected PR sequence (planning labels only; GitHub assigns actual numbers):
 1. **#986 — Readiness evidence and authorization register:** fresh revision/workflow evidence; Hostinger cron/worker provider scope; separately authorized metadata-only AUTH-04 verification; backup retention/recoverability evidence. Unknown remains blocked.
