@@ -40,14 +40,14 @@ If any field cannot be obtained, mark it UNKNOWN; never synthesize it. Keep expo
 ## 4. Evidence disposition states
 
 Use distinct outcomes:
-- \`VERIFIED\`: authoritative evidence directly supports the identity and required fields.
-- \`INSUFFICIENT_EVIDENCE\`: source/evidence is missing, inaccessible, stale or does not support the field.
-- \`CONFLICTING_EVIDENCE\`: authoritative evidence disagrees.
-- \`DUPLICATE_CONFIRMED\`: equivalent identity established with cited evidence and reviewer decision.
-- \`NOT_A_STANDALONE_INSTITUTION\`: evidence identifies a campus/constituent unit rather than a separate institution.
-- \`REJECTED\`: reviewer rejects the candidate with a recorded reason.
-- \`PENDING_REVIEW\`: evidence package is complete enough for a human decision but no decision exists.
-- \`UNKNOWN\`: the historical state cannot be established from authorized evidence.
+- `VERIFIED`: authoritative evidence directly supports the identity and required fields.
+- `INSUFFICIENT_EVIDENCE`: source/evidence is missing, inaccessible, stale or does not support the field.
+- `CONFLICTING_EVIDENCE`: authoritative evidence disagrees.
+- `DUPLICATE_CONFIRMED`: equivalent identity established with cited evidence and reviewer decision.
+- `NOT_A_STANDALONE_INSTITUTION`: evidence identifies a campus/constituent unit rather than a separate institution.
+- `REJECTED`: reviewer rejects the candidate with a recorded reason.
+- `PENDING_REVIEW`: evidence package is complete enough for a human decision but no decision exists.
+- `UNKNOWN`: the historical state cannot be established from authorized evidence.
 
 Missing evidence is never equivalent to rejection. A source retrieval failure is never proof that the institution does not exist.
 
@@ -61,7 +61,7 @@ The future dry-run report must be deterministic and read-only. For every row, in
 - confidence/rationale with field-level evidence references;
 - unresolved conflicts and missing evidence;
 - proposed action (no-op, request evidence, human review, duplicate review);
-- explicit \`canonical_mutation_performed=false\`, \`approval_performed=false\`, \`import_performed=false\`;
+- explicit `canonical_mutation_performed=false`, `approval_performed=false`, `import_performed=false`;
 - report revision, code revision, run ID and generation timestamp.
 
 The dry-run must not write back to source tables, change row status, create a new candidate batch, or update canonical tables. Any report persisted for audit must be written only to an approved private destination; the current sanitized report is public under an explicit exception.
@@ -83,7 +83,7 @@ Approval of a candidate is not itself permission to import or publish it. Canoni
 ## 7. Acceptance tests required before execution
 
 - Historical row and batch IDs remain unchanged through a dry-run.
-- Missing evidence maps to \`INSUFFICIENT_EVIDENCE\` or \`UNKNOWN\`, never implicit rejection.
+- Missing evidence maps to `INSUFFICIENT_EVIDENCE` or `UNKNOWN`, never implicit rejection.
 - Campus/parent ambiguity cannot auto-merge.
 - Acronym-only or same-city matches cannot auto-merge.
 - Conflicting official evidence remains unresolved.
