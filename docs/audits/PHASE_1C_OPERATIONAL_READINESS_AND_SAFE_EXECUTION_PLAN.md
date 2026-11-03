@@ -1,8 +1,8 @@
 # Institutes Directory — Phase 1C Operational Readiness and Safe Execution Plan
 
 Date: 2026-11-03
-Repository: \`mattari20/estudent-listing\`
-Planning baseline: \`5fb31b3d5873ab114c3354bfc012a8a90b687b6c\`
+Repository: `mattari20/estudent-listing`
+Planning baseline: `5fb31b3d5873ab114c3354bfc012a8a90b687b6c`
 Status: PLAN ONLY — no production action authorized
 
 ## 1. Objective
@@ -33,8 +33,8 @@ PR numbers below are planning labels only; GitHub assigns actual numbers. Keep t
 **Expected PR: #986 — Phase 1C readiness evidence and authorization register**
 
 Scope:
-1. Verify current \`main\`, required checks, workflow states and the exact deployed application revision using already authorized evidence routes.
-2. Resolve the Hostinger/provider scheduler question: whether \`schedule:run\` is invoked, by which cron/account, and whether a persistent worker/supervisor exists. If the provider cannot expose system scope, record the exact unknown boundary.
+1. Verify current `main`, required checks, workflow states and the exact deployed application revision using already authorized evidence routes.
+2. Resolve the Hostinger/provider scheduler question: whether `schedule:run` is invoked, by which cron/account, and whether a persistent worker/supervisor exists. If the provider cannot expose system scope, record the exact unknown boundary.
 3. Obtain current evidence for AUTH-04: required tables, columns, indexes and migration-ledger entries. Use only a separately authorized, narrowly scoped read-only method. If AUTH-04 remains bypassed, stop and retain NOT VERIFIED.
 4. Obtain backup retention and recoverability evidence. A visible backup or restore point is not a successful recovery test. Any restore/recovery test needs a separate plan and explicit authorization.
 5. Refresh the workflow and application revision evidence after any deployment-dependent change.
@@ -120,7 +120,7 @@ Acceptance:
 - Missing evidence is never treated as rejection.
 - Ambiguous identities are not auto-merged.
 - Repeated dry-runs with identical inputs are deterministic.
-- \`canonical_mutation_performed=false\`, \`approval_performed=false\` and \`import_performed=false\`.
+- `canonical_mutation_performed=false`, `approval_performed=false` and `import_performed=false`.
 - No source row, batch, canonical record, approval or public listing is changed.
 
 ### Step 5 — Final readiness gate and controlled-pilot authorization package
@@ -141,11 +141,11 @@ Acceptance:
 
 ## 4. Dependency order and parallel work
 
-\`#986 → #987 → #988\` is the critical operational-safety path.
+`#986 → #987 → #988` is the critical operational-safety path.
 
-The GCU dry-run work in \`#989\` may be prepared in parallel after its separate read-only export authorization and private destination are confirmed. It must not block or mutate scheduler implementation.
+The GCU dry-run work in `#989` may be prepared in parallel after its separate read-only export authorization and private destination are confirmed. It must not block or mutate scheduler implementation.
 
-\`#990\` closes Phase 1C only after the required evidence and tests are available. Do not merge a later PR merely because earlier PRs are merged.
+`#990` closes Phase 1C only after the required evidence and tests are available. Do not merge a later PR merely because earlier PRs are merged.
 
 ## 5. Phase 1C completion criteria
 
