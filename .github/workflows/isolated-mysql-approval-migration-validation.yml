@@ -9,6 +9,9 @@ on:
       - 'tests/Feature/ExecutionLeaseServiceTest.php'
       - 'tests/Feature/SourceSnapshotTest.php'
       - 'tests/Feature/SourceRetrievalTest.php'
+      - 'tests/Feature/SourceChangeDiscoveryIdempotencyTest.php'
+      - 'app/Services/SourceChangeDiscoveryService.php'
+      - 'app/Models/InstituteDiscoveryRunOutcome.php'
       - 'app/Services/SourceSnapshotService.php'
       - 'app/Services/SourceChangeObservationService.php'
       - 'app/Services/SourceRetrievalService.php'
@@ -92,3 +95,5 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/ExecutionLeaseServiceTest.php
       - name: Validate source snapshot, observation and retrieval idempotency on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceSnapshotTest.php tests/Feature/SourceRetrievalTest.php
+      - name: Validate discovery outcome idempotency on MySQL
+        run: vendor/bin/phpunit tests/Feature/SourceChangeDiscoveryIdempotencyTest.php
