@@ -1,26 +1,26 @@
 # Phase 1B — Scheduler Ownership, Locking and Idempotency Design
 
 Date: 2026-11-03
-Baseline: \`d8a876ea0de43453b9a5c29e50b2fced78396e04\`
+Baseline: `d8a876ea0de43453b9a5c29e50b2fced78396e04`
 Scope: repository inspection and design only; no live scheduler changes.
 
 ## 1. Observed execution paths
 
 | Path | Evidence | Status / limitation |
 |---|---|---|
-| GitHub Actions schedule | \`.github/workflows/scheduled-institute-discovery.yml\` has cron \`15 * * * *\` | Configured workflow path; workflow enablement and future run success must be checked at execution time |
-| GitHub workflow concurrency | Same workflow has group \`scheduled-governed-institute-discovery\`, \`cancel-in-progress: false\` | Serializes runs in this workflow group only; not a lock shared with Laravel/Hostinger |
-| GitHub SSH command | Workflow invokes \`php artisan institutes:bootstrap-agent\` then \`php artisan institutes:monitor-changes\` on Hostinger | Confirmed in workflow source |
-| Laravel scheduler | \`bootstrap/app.php\` schedules both commands hourly with \`withoutOverlapping(55)\` | Confirmed in application source |
+| GitHub Actions schedule | `.github/workflows/scheduled-institute-discovery.yml` has cron `15 * * * *` | Configured workflow path; workflow enablement and future run success must be checked at execution time |
+| GitHub workflow concurrency | Same workflow has group `scheduled-governed-institute-discovery`, `cancel-in-progress: false` | Serializes runs in this workflow group only; not a lock shared with Laravel/Hostinger |
+| GitHub SSH command | Workflow invokes `php artisan institutes:bootstrap-agent` then `php artisan institutes:monitor-changes` on Hostinger | Confirmed in workflow source |
+| Laravel scheduler | `bootstrap/app.php` schedules both commands hourly with `withoutOverlapping(55)` | Confirmed in application source |
 | Hostinger scheduler invocation | AUTH-05 owner inspection found no saved user cron entry in inspected hPanel view; system/provider scope not visible | Unknown; absence is not proven |
 | Persistent worker | Account process inspection found no persistent worker; provider scope unavailable | Unknown outside inspected account/process scope |
 | Manual Artisan | Commands can be invoked directly by an authorized shell/operator | Exists as an execution path; operational policy and authorization remain separate |
 
-Both GitHub Actions and Laravel schedule definitions target the same two commands. GitHub concurrency and Laravel \`withoutOverlapping(55)\` are independent mechanisms. A Laravel cache lock does not prove cross-runner exclusion unless the configured cache backend and shared storage are verified. No common execution lease is established by current evidence.
+Both GitHub Actions and Laravel schedule definitions target the same two commands. GitHub concurrency and Laravel `withoutOverlapping(55)` are independent mechanisms. A Laravel cache lock does not prove cross-runner exclusion unless the configured cache backend and shared storage are verified. No common execution lease is established by current evidence.
 
 ## 2. Risk statement
 
-If Hostinger invokes Laravel \`schedule:run\` while GitHub's hourly workflow invokes the same commands, the two runners may overlap. The workflow concurrency group prevents only duplicate GitHub workflow runs in that group. Laravel's scheduler lock protects only runners sharing the same supported cache lock store. Neither fact proves exclusion across GitHub-hosted and Hostinger-hosted execution.
+If Hostinger invokes Laravel `schedule:run` while GitHub's hourly workflow invokes the same commands, the two runners may overlap. The workflow concurrency group prevents only duplicate GitHub workflow runs in that group. Laravel's scheduler lock protects only runners sharing the same supported cache lock store. Neither fact proves exclusion across GitHub-hosted and Hostinger-hosted execution.
 
 ## 3. Recommended target architecture (decision proposal)
 
@@ -39,7 +39,7 @@ Add a second, application-level shared execution lease before implementation. Th
 ## 4. Execution lease contract
 
 The implementation proposal must define:
-1. Stable task keys, at minimum \`institutes:bootstrap-agent\` and \`institutes:monitor-changes\`, plus a run/correlation ID.
+1. Stable task keys, at minimum `institutes:bootstrap-agent` and `institutes:monitor-changes`, plus a run/correlation ID.
 2. Atomic lease acquisition with unique owner token, acquired-at timestamp, expiry, heartbeat/renewal policy and bounded TTL.
 3. A runner that cannot acquire a live lease exits with a distinct safe no-op/locked result and does not retrieve sources or write candidate batches.
 4. Lease release only by the owner token that acquired it; a stale runner cannot release a successor's lease.
