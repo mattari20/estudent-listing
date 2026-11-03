@@ -11,6 +11,7 @@ use App\Services\ExecutionLeaseService;
 use App\Services\InstituteDiscoveryAgentService;
 use App\Services\InstituteDiscoveryCandidateExtractor;
 use App\Services\InstituteIdentityDiscoveryService;
+use Closure;
 use Illuminate\Console\Command;
 
 class BootstrapInstituteAgent extends Command
@@ -39,6 +40,7 @@ class BootstrapInstituteAgent extends Command
         DiscoveryMonitoringPolicyService $monitoring,
         InstituteDiscoveryAgentService $agent,
         InstituteIdentityDiscoveryService $identityDiscovery,
+        Closure $heartbeat,
     ): int {
         $profiles = $this->option('profile');
 
@@ -52,6 +54,7 @@ class BootstrapInstituteAgent extends Command
         $sourceFailures = [];
 
         foreach ($profiles as $profile) {
+            $heartbeat();
             $definition = config("institute_agent.profiles.{$profile}");
 
             if (! is_array($definition)) {
