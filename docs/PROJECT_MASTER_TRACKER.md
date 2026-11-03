@@ -1919,8 +1919,8 @@ Do not create separate #983/#984 solely for the former workstream split. PR numb
 **Decision: PHASE 1B DELIVERABLES COMPLETE. PRODUCTION OPERATIONAL READINESS NOT CERTIFIED.**
 
 Substantive delivery PRs:
-- PR #981 merged at \`63c3cd51c4bc73bfebd81406d1b2d4bb8ef2858f\`. Exact-head Laravel CI #41625651437 passed 798 tests / 3,531 assertions; Test #41625651320 passed 798 tests / 3,531 assertions; Public Browser Runtime Diagnostics #41625651658 passed.
-- PR #982 merged at \`a844f6f545df3a312a8d391e2e002822fb6a8b4a\`. Exact-head Laravel CI #41626216555 passed 798 tests / 3,531 assertions; Test #41626216569 passed 798 tests / 3,531 assertions; Institutes Directory Project Controller #41626216581 passed.
+- PR #981 merged at `63c3cd51c4bc73bfebd81406d1b2d4bb8ef2858f`. Exact-head Laravel CI #41625651437 passed 798 tests / 3,531 assertions; Test #41625651320 passed 798 tests / 3,531 assertions; Public Browser Runtime Diagnostics #41625651658 passed.
+- PR #982 merged at `a844f6f545df3a312a8d391e2e002822fb6a8b4a`. Exact-head Laravel CI #41626216555 passed 798 tests / 3,531 assertions; Test #41626216569 passed 798 tests / 3,531 assertions; Institutes Directory Project Controller #41626216581 passed.
 - PR #975 closed unmerged as superseded by #981. PR #980 established the initial Phase 1B plan.
 
 ### Four workstream close decisions
@@ -1932,7 +1932,7 @@ Substantive delivery PRs:
 | GCU historical reconciliation | DESIGN COMPLETE | Preservation and dry-run contract specified; no production export/query or row mutation |
 | Production-readiness package | COMPLETE | Evidence requirements and blockers recorded; readiness itself remains NOT CERTIFIED |
 
-Final report: \`docs/audits/PHASE_1B_FINAL_CLOSEOUT_REPORT.md\`.
+Final report: `docs/audits/PHASE_1B_FINAL_CLOSEOUT_REPORT.md`.
 
 ### Carried operational blockers
 
@@ -1947,3 +1947,6 @@ Final report: \`docs/audits/PHASE_1B_FINAL_CLOSEOUT_REPORT.md\`.
 No production SSH/hPanel/Artisan, DB/SQL/migration, cron/queue/worker/backup/restore, workflow state change, deployment, source retrieval/discovery, staging/approval/rejection/import, canonical promotion or publication occurred in Phase 1B. No dummy production data was created.
 
 This closeout supersedes the earlier Phase 1B "IN PROGRESS" snapshot above. Do not interpret Phase 1B deliverable completion as production operational readiness.
+
+- PR #983 final closeout report merged at \`2e0f6e21e8c66e746dcd57ad10deab2b9af551a8\`; exact-head Laravel CI #41626552852 and Test #41626552895 each passed 798 tests / 3,531 assertions; Project Controller #41626552870 passed.
+- PR #984 corrects formatting and records the PR #983 merge/check evidence; no application code changes.
