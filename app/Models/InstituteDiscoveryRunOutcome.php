@@ -9,6 +9,7 @@ class InstituteDiscoveryRunOutcome extends Model
 {
     protected $fillable = [
         'source_id',
+        'idempotency_key',
         'source_change_observation_id',
         'snapshot_id',
         'profile_key',
