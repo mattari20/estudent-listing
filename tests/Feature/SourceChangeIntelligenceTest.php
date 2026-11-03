@@ -21,10 +21,10 @@ class SourceChangeIntelligenceTest extends TestCase {
   $result=app(\App\Services\SourceMonitoringPipeline::class)->run($source);
   $this->assertSame('changed',$result['observation']->change_state);
   $this->assertSame(1,$result['intelligence']['queued']);
-  $replayed=app(\\App\\Services\\SourceChangeIntelligenceService::class)->process($result['observation']);
+  $replayed=app(\App\Services\SourceChangeIntelligenceService::class)->process($result['observation']);
   $this->assertSame(1,$replayed['events']);
-  $this->assertSame(1,\\App\\Models\\ChangeEvent::query()->count());
-  $this->assertSame(1,\\App\\Models\\SourceChangeAssertionLink::query()->count());
-  $this->assertSame(1,\\App\\Models\\DataReverificationQueue::query()->count());
+  $this->assertSame(1,\App\Models\ChangeEvent::query()->count());
+  $this->assertSame(1,\App\Models\SourceChangeAssertionLink::query()->count());
+  $this->assertSame(1,\App\Models\DataReverificationQueue::query()->count());
  }
 }
