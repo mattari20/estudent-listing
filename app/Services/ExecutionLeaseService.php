@@ -104,6 +104,22 @@ class ExecutionLeaseService
 
             $result = $callback($heartbeat);
 
+            if (is_int($result) && $result !== 0) {
+                $failureCode = 'command_exit_code_'.$result;
+                DB::table('governed_execution_runs')
+                    ->where('id', $runId)
+                    ->where('owner_token', $ownerToken)
+                    ->update([
+                        'status' => 'failed',
+                        'finished_at' => now(),
+                        'failure_code' => $failureCode,
+                        'updated_at' => now(),
+                    ]);
+                $this->recordEvent($runId, 'failed', $failureCode);
+
+                return $result;
+            }
+
             DB::table('governed_execution_runs')
                 ->where('id', $runId)
                 ->where('owner_token', $ownerToken)
