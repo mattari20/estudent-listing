@@ -1948,5 +1948,5 @@ No production SSH/hPanel/Artisan, DB/SQL/migration, cron/queue/worker/backup/res
 
 This closeout supersedes the earlier Phase 1B "IN PROGRESS" snapshot above. Do not interpret Phase 1B deliverable completion as production operational readiness.
 
-- PR #983 final closeout report merged at \`2e0f6e21e8c66e746dcd57ad10deab2b9af551a8\`; exact-head Laravel CI #41626552852 and Test #41626552895 each passed 798 tests / 3,531 assertions; Project Controller #41626552870 passed.
+- PR #983 final closeout report merged at `2e0f6e21e8c66e746dcd57ad10deab2b9af551a8`; exact-head Laravel CI #41626552852 and Test #41626552895 each passed 798 tests / 3,531 assertions; Project Controller #41626552870 passed.
 - PR #984 corrects formatting and records the PR #983 merge/check evidence; no application code changes.
