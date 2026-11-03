@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Source;
+use Closure;
 
 class SourceMonitoringBatchService
 {
@@ -23,6 +24,7 @@ class SourceMonitoringBatchService
         ];
 
         foreach ($policies as $policy) {
+            $heartbeat?->__invoke();
             $summary['policies']++;
             app(MonitoringPolicyValidationService::class)->validate($policy);
 
@@ -33,6 +35,7 @@ class SourceMonitoringBatchService
             $failed = false;
 
             foreach ($sources as $source) {
+                $heartbeat?->__invoke();
                 $summary['sources']++;
                 $result = app(SourceMonitoringPipeline::class)->run($source);
 
