@@ -26,7 +26,7 @@ This final report and tracker closeout were merged in PR #983 at `2e0f6e21e8c66e
 | #983 | Final closeout report and authoritative tracker status | MERGED | `2e0f6e21e8c66e746dcd57ad10deab2b9af551a8` |
 | #984 | Final Markdown formatting and exact PR #983 evidence correction | MERGED | `5fb31b3d5873ab114c3354bfc012a8a90b687b6c` |
 
-PR #975 was closed unmerged as superseded by PR #981. PR #980 established the initial Phase 1B design-only plan and is already merged. The four-workstream proposal was consolidated into two substantive delivery PRs (#981 and #982), followed by two closeout/accuracy PRs (#983 and #984). PR #980 established the plan. PR #975 was closed unmerged as superseded.
+PR #975 was closed unmerged as superseded by PR #981. PR #980 established the initial Phase 1B design-only plan. The four-workstream proposal was consolidated into two substantive delivery PRs (#981 and #982), followed by two closeout/accuracy PRs (#983 and #984).
 
 ## 3. Workstream acceptance
 
@@ -109,7 +109,16 @@ Head: `26f24375b87331eb110257fab11d64a3e2c3281f`
 
 All three exact-head checks completed successfully before PR #983 was merged.
 
-## 6. Production impact and non-actions
+## 6. Exact-head validation for PR #984
+
+Head: `3f9d44543a1a7ce769c8f66f154e7e9bdd1274b3`
+- Laravel CI run #41626891506 — PASS; 798 tests / 3,531 assertions / zero failures.
+- Test run #41626891576 — PASS; 798 tests / 3,531 assertions / zero failures.
+- Institutes Directory Project Controller run #41626891559 — PASS.
+
+All three exact-head checks completed successfully before PR #984 was merged.
+
+## 7. Production impact and non-actions
 
 Phase 1B delivery PRs changed application code/tests and documentation only. No production deployment or operational action was performed.
 
@@ -127,7 +136,7 @@ Specifically:
 
 GCU rows #348–353 and batches #19–23 remain preserved. Additional 20 HEC profiles and AI extraction remain disabled.
 
-## 7. Final phase decision
+## 8. Final phase decision
 
 **Phase 1B deliverables: COMPLETE.**
 
