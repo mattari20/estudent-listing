@@ -128,4 +128,4 @@ This original design-only plan is superseded for status purposes by `docs/audits
 No production execution authorization is created by this status update.
 
 
-Final closeout PR #983 is merged. See \`docs/audits/PHASE_1B_FINAL_CLOSEOUT_REPORT.md\` and the final closeout section of the master tracker. Phase 1B defined deliverables are complete; production operational readiness remains NOT CERTIFIED.
+Final closeout PR #983 is merged. See `docs/audits/PHASE_1B_FINAL_CLOSEOUT_REPORT.md` and the final closeout section of the master tracker. Phase 1B defined deliverables are complete; production operational readiness remains NOT CERTIFIED.
