@@ -20,7 +20,7 @@ Base revision: \`8a592e9d8e31302181903b12f2a96f91051e6d36\` (merged PR #988)
 This change does **not** complete all Phase 1C requirements:
 
 1. Stable idempotency keys and uniqueness guarantees for retrieval runs, snapshots, observations, import batches, candidates and outcomes still require a separate audit/design and implementation.
-2. The second-connection test verifies database claim exclusion but is not a simultaneous multi-process stress test.
+2. Simultaneous multi-process MySQL stress testing remains outstanding; the current nested-call contention test is not sufficient to establish cross-process contention.
 3. The heartbeat is cooperative. A single blocking operation must return/control to the heartbeat caller before expiry; no asynchronous heartbeat thread is introduced.
 4. The current two scheduler definitions remain. No provider-side Hostinger scheduler invocation has been established.
 5. Production deployment, migration, runtime parity, AUTH-04, backup recoverability and provider cron/worker evidence remain separate gates.
