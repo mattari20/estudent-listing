@@ -10,6 +10,9 @@ on:
       - 'tests/Feature/SourceSnapshotTest.php'
       - 'tests/Feature/SourceRetrievalTest.php'
       - 'tests/Feature/SourceChangeDiscoveryIdempotencyTest.php'
+      - 'tests/Feature/SourceChangeIntelligenceTest.php'
+      - 'app/Models/ChangeEvent.php'
+      - 'app/Services/SourceChangeEventProjector.php'
       - 'app/Services/SourceChangeDiscoveryService.php'
       - 'app/Models/InstituteDiscoveryRunOutcome.php'
       - 'app/Services/SourceSnapshotService.php'
@@ -97,3 +100,5 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/SourceSnapshotTest.php tests/Feature/SourceRetrievalTest.php
       - name: Validate discovery outcome idempotency on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceChangeDiscoveryIdempotencyTest.php
+      - name: Validate source change event replay on MySQL
+        run: vendor/bin/phpunit tests/Feature/SourceChangeIntelligenceTest.php
