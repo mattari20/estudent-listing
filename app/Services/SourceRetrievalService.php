@@ -24,7 +24,7 @@ class SourceRetrievalService
         );
 
         if ($idempotencyKey === '' || strlen($idempotencyKey) > 64) {
-            throw new \\InvalidArgumentException('Source retrieval idempotency keys must contain between 1 and 64 characters.');
+            throw new \InvalidArgumentException('Source retrieval idempotency keys must contain between 1 and 64 characters.');
         }
 
         // The unique key protects retries of the same source/hour slot. The
@@ -37,7 +37,7 @@ class SourceRetrievalService
                 ->first();
 
             if ($run && (int) $run->source_id !== (int) $source->id) {
-                throw new \\InvalidArgumentException('The source retrieval idempotency key is already assigned to another source.');
+                throw new \InvalidArgumentException('The source retrieval idempotency key is already assigned to another source.');
             }
 
             if (! $run) {
