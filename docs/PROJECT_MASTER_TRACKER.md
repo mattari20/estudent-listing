@@ -1910,3 +1910,40 @@ Do not create separate #983/#984 solely for the former workstream split. PR numb
 7. Production operational readiness is still reported separately as NOT CERTIFIED until its independent gates are satisfied.
 
 **Phase 1B status at this update: IN PROGRESS.** Security delivery PR #981 is merged and validated. Consolidated documentation PR #982 is open; its exact-head Test, Laravel CI and Project Controller checks are passing or being reconciled before merge. No production configuration/data changes, database operations, migrations, cron/queue/backup changes, workflow state changes, deployment, source retrieval, candidate staging/approval/import, canonical promotion or publication occurred.
+
+
+---
+
+## Phase 1B — Final closeout (2026-11-03)
+
+**Decision: PHASE 1B DELIVERABLES COMPLETE. PRODUCTION OPERATIONAL READINESS NOT CERTIFIED.**
+
+Substantive delivery PRs:
+- PR #981 merged at \`63c3cd51c4bc73bfebd81406d1b2d4bb8ef2858f\`. Exact-head Laravel CI #41625651437 passed 798 tests / 3,531 assertions; Test #41625651320 passed 798 tests / 3,531 assertions; Public Browser Runtime Diagnostics #41625651658 passed.
+- PR #982 merged at \`a844f6f545df3a312a8d391e2e002822fb6a8b4a\`. Exact-head Laravel CI #41626216555 passed 798 tests / 3,531 assertions; Test #41626216569 passed 798 tests / 3,531 assertions; Institutes Directory Project Controller #41626216581 passed.
+- PR #975 closed unmerged as superseded by #981. PR #980 established the initial Phase 1B plan.
+
+### Four workstream close decisions
+
+| Workstream | Status | Boundary |
+|---|---|---|
+| Security remediation | COMPLETE | Code/tests merged and exact-head checks passed; not deployed |
+| Scheduler ownership/idempotency | DESIGN COMPLETE | Duplicate trigger paths mapped and target architecture/lease contract specified; no live schedule or lock changed |
+| GCU historical reconciliation | DESIGN COMPLETE | Preservation and dry-run contract specified; no production export/query or row mutation |
+| Production-readiness package | COMPLETE | Evidence requirements and blockers recorded; readiness itself remains NOT CERTIFIED |
+
+Final report: \`docs/audits/PHASE_1B_FINAL_CLOSEOUT_REPORT.md\`.
+
+### Carried operational blockers
+
+- AUTH-04 database schema/index/migration ledger: owner-bypassed / not verified.
+- Hostinger/provider cron and persistent worker scope: unknown beyond bounded owner-side inspection.
+- P1A-07 scheduler ownership: operationally unresolved until provider scope is confirmed and shared lease/idempotency is implemented and validated.
+- Backup retention and recoverability: unverified.
+- GCU rows #348–353 and batches #19–23: preserve unchanged; exact mapping/status requires separately authorized read-only evidence.
+- Additional 20 HEC profiles and AI extraction: remain disabled.
+- Production deployment, database operations, scheduler changes, source retrieval, candidate staging, approval, import and publication: require separate readiness evidence and explicit authorization.
+
+No production SSH/hPanel/Artisan, DB/SQL/migration, cron/queue/worker/backup/restore, workflow state change, deployment, source retrieval/discovery, staging/approval/rejection/import, canonical promotion or publication occurred in Phase 1B. No dummy production data was created.
+
+This closeout supersedes the earlier Phase 1B "IN PROGRESS" snapshot above. Do not interpret Phase 1B deliverable completion as production operational readiness.
