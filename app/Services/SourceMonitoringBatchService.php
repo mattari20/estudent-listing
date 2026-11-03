@@ -6,7 +6,7 @@ use App\Models\Source;
 
 class SourceMonitoringBatchService
 {
-    public function run(?int $policyId = null): array
+    public function run(?int $policyId = null, ?Closure $heartbeat = null): array
     {
         $policies = app(MonitoringDuePolicyService::class)->due($policyId);
         $summary = [
