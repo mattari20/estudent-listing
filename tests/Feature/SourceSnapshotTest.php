@@ -139,7 +139,26 @@ class SourceSnapshotTest extends TestCase {
 
         $this->assertSame($first->id, $second->id);
         $this->assertDatabaseCount('source_change_observations', 1);
-        $this->assertTrue(\\Illuminate\\Support\\Facades\\Schema::hasIndex('source_change_observations', 'source_observations_current_snapshot_unique'));
+    }
+
+
+    public function test_database_rejects_duplicate_observations_for_one_snapshot(): void
+    {
+        $source = Source::create(['source_type' => 'web', 'name' => 'Observation Constraint Source', 'status' => 'active']);
+        $snapshot = app(SourceSnapshotService::class)->capture($source, 'one payload', 'https://example.test/one');
+        $attributes = [
+            'source_id' => $source->id,
+            'current_snapshot_id' => $snapshot->id,
+            'change_state' => 'baseline',
+            'materiality' => 'unknown',
+            'status' => 'detected',
+            'summary' => 'Initial snapshot.',
+            'observed_at' => now(),
+        ];
+
+        \\App\\Models\\SourceChangeObservation::create($attributes);
+        $this->expectException(\\Illuminate\\Database\\QueryException::class);
+        \\App\\Models\\SourceChangeObservation::create($attributes);
     }
 
     public function test_changed_observation_retains_before_and_after_snapshot_evidence(): void
