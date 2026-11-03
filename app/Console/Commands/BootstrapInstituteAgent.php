@@ -7,6 +7,7 @@ use App\Models\Institution;
 use App\Models\Source;
 use App\Models\SourceSnapshot;
 use App\Services\DiscoveryMonitoringPolicyService;
+use App\Services\ExecutionLeaseService;
 use App\Services\InstituteDiscoveryAgentService;
 use App\Services\InstituteDiscoveryCandidateExtractor;
 use App\Services\InstituteIdentityDiscoveryService;
@@ -21,6 +22,20 @@ class BootstrapInstituteAgent extends Command
     protected $description = 'Register configured discovery sources and perform a one-time governed bootstrap discovery when needed.';
 
     public function handle(
+        ExecutionLeaseService $lease,
+        DiscoveryMonitoringPolicyService $monitoring,
+        InstituteDiscoveryAgentService $agent,
+        InstituteIdentityDiscoveryService $identityDiscovery,
+    ): int {
+        $result = $lease->run('governed-institute-discovery-pipeline', fn () => $this->execute($monitoring, $agent, $identityDiscovery));
+        if ($result === null) {
+            $this->warn('Governed institute discovery is already running; this invocation did no work.');
+            return self::SUCCESS;
+        }
+        return $result;
+    }
+
+    private function execute(
         DiscoveryMonitoringPolicyService $monitoring,
         InstituteDiscoveryAgentService $agent,
         InstituteIdentityDiscoveryService $identityDiscovery,
