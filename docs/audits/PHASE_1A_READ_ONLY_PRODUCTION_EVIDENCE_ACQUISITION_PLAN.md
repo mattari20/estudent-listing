@@ -1075,3 +1075,91 @@ This phase performed GitHub read-only inspection and documentation planning only
 GCU rows #348–353 and batches #19–23 remain untouched. The additional 20 HEC profiles remain disabled; AI extraction remains disabled; no dummy production data was created.
 
 **Decision: STOP after preparing this plan.** The next action is an owner approval for a separate containment phase. Do not implement the plan under Phase 1A-09 authorization.
+
+---
+
+## Phase 1A-14 — Owner-authorized containment recorded (2026-11-03)
+
+**Repository:** `mattari20/estudent-listing`  
+**Main baseline before this documentation change:** `d75d40e7289cfbef2848538e2753c1b2b9c1df19`  
+**Verification date supplied by repository owner:** 2026-11-03  
+**Change scope:** documentation only.
+
+### 1. Owner-authorized workflow containment evidence
+
+The repository owner supplied the following evidence summary for actions completed on 2026-11-03 using an authenticated GitHub CLI session:
+
+1. All 15 listed workflows were queried before containment and each returned state `active`.
+2. The owner explicitly authorized disabling these 15 workflow IDs individually.
+3. Each workflow was disabled through GitHub's workflow API.
+4. Each workflow was queried again and returned state `disabled_manually`.
+5. A repository Actions-run query was repeated after containment. The five requested execution status categories each returned zero:
+   - `queued`: 0
+   - `in_progress`: 0
+   - `waiting`: 0
+   - `requested`: 0
+   - `pending`: 0
+
+**Evidence provenance:** these before/after API results and the execution query counts are recorded here from the owner-supplied verification evidence for this phase. The connected GitHub repository interface used for this documentation PR does not independently expose workflow metadata state. The workflow names below were checked against the `name:` declarations in the corresponding retained branch YAML files; IDs, final states, timestamps and pre-disable states are attributed to the owner's API read-back. No state is inferred from YAML or historical run records.
+
+**Verification timestamp precision:** the owner supplied the verification date (2026-11-03), but not the exact UTC/PKT time or individual `updated_at` values. Those timestamps are not fabricated or inferred.
+
+### 2. Complete workflow containment register
+
+All 15 records below have owner-reported before-state `active`, owner-reported final state `disabled_manually`, and matching ID/path identity according to the owner's workflow metadata read-back. Display names were cross-checked against the corresponding YAML `name:` declaration on each retained branch.
+
+| Workflow ID | Exact workflow name | Retained branch | Workflow file | Owner-reported final state | Identity |
+|---:|---|---|---|---|---|
+| 392301788 | One-time Activate Seven Candidate Institutions | `ops/activate-seven-institutions-once` | `.github/workflows/activate-seven-institutions-once.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+| 392305791 | Classify Seven Active Institutions | `ops/classify-seven-active-institutions` | `.github/workflows/classify-seven-active-institutions.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+| 392317909 | Complete Campus Geography and Profile Data | `ops/complete-campus-geography-and-profiles` | `.github/workflows/complete-campus-geography-and-profiles.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+| 392313978 | Add Seven Verified Main Campuses | `ops/add-seven-verified-main-campuses` | `.github/workflows/add-seven-verified-main-campuses.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+| 392356405 | Complete UVAS Campuses and Offerings | `ops/complete-uvas-campuses-offerings` | `.github/workflows/complete-uvas-campuses-offerings.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+| 392320151 | Complete Remaining Institution Profiles | `ops/complete-remaining-institution-profiles` | `.github/workflows/complete-remaining-institution-profiles.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+| 392354880 | Enrich UVAS Official Program Campus Catalog | `ops/enrich-uvas-official-program-campus-catalog` | `.github/workflows/enrich-uvas-official-program-campus-catalog.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+| 392348473 | Enrich LUMS Official Undergraduate Programs | `ops/enrich-lums-official-undergraduate-programs` | `.github/workflows/enrich-lums-official-undergraduate-programs.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+| 392330488 | Fix LUMS Offering and 2027 Intake | `ops/fix-lums-offering-and-2027-intake` | `.github/workflows/fix-lums-offering-and-2027-intake.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+| 392328047 | Add Verified Campus Offerings and LUMS 2027 Intake | `ops/add-verified-campus-offerings-and-lums-2027-intake` | `.github/workflows/add-verified-campus-offerings-and-lums-2027-intake.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+| 392327201 | Fill Remaining Institution Program Catalog | `ops/fill-remaining-institution-program-catalog` | `.github/workflows/fill-remaining-institution-program-catalog.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+| 392326634 | Expand Official Program Catalog Round Two | `ops/expand-official-program-catalog-round-two` | `.github/workflows/expand-official-program-catalog-round-two.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+| 392325916 | Expand Program Catalog Offerings and Historical Intakes | `ops/expand-program-catalog-offerings-intakes` | `.github/workflows/expand-program-catalog-offerings-intakes.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+| 392318751 | Add Officially Listed Programs | `ops/add-officially-listed-programs` | `.github/workflows/add-officially-listed-programs.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+| 392337430 | Fix COMSATS Program Source URL | `ops/fix-comsats-program-source` | `.github/workflows/fix-comsats-program-source.yml` | `disabled_manually` | ID/path match (owner-supplied metadata read-back; YAML name checked) |
+
+**Totals:** 15 initially `active`; 15 finally `disabled_manually`; 15 identity matches; 0 reported ID/path mismatches.
+
+### 3. Post-containment execution snapshot
+
+| GitHub Actions execution status | Count returned |
+|---|---:|
+| `queued` | 0 |
+| `in_progress` | 0 |
+| `waiting` | 0 |
+| `requested` | 0 |
+| `pending` | 0 |
+| **Total across these five categories** | **0** |
+
+This is a point-in-time repository Actions-run query reported by the owner. It does not prove that no completed or historical run exists, and it does not guarantee that no execution can occur through another workflow, runner, integration or future configuration change.
+
+### 4. Containment boundary — not a complete production safety certification
+
+Disabling these 15 workflow IDs contains the specific workflow identities listed above. It does **not** establish that every production-write path is disabled or that production is globally safe for writes.
+
+In particular, this record does not establish the current state or safety of:
+- other GitHub Actions workflows, including workflows on `main` or any other retained branch;
+- Hostinger cron jobs, persistent queue workers, Laravel scheduler execution or manually run server commands;
+- other SSH-capable workflows, external integrations, credentials, deploy keys, personal access tokens or operator sessions;
+- application/admin/API write paths, migration paths, import/approval/promotion commands or future workflow changes;
+- any already completed production writes or their resulting production data state.
+
+Workflow-level disablement does not reverse prior actions, undo database changes, terminate unrelated workflows or stop independent schedulers and workers. A separate, scoped audit and authorization is required before making broader production-safety claims or resuming production operations.
+
+### 5. Preservation and restrictions
+
+The owner-reported containment was performed at the GitHub workflow level. This documentation PR does not edit, delete, rename or recreate any of the 29 historical `ops/*` branches, their workflow YAML files, Git history or PRs. The 15 workflow YAML files remain on their respective historical branches; their recorded content was read only to confirm the declared workflow names.
+
+No workflow was enabled, disabled, dispatched, rerun, cancelled or approved as part of this documentation phase. No branch-specific workflow file, application code, database, repository setting, ruleset, secret, variable or permission was changed. No Hostinger/production SSH, database, Artisan, migration, import, approval, activation, campus promotion, deployment, cron, queue or production data operation was performed.
+
+GCU rows #348–353 and batches #19–23 remain protected and untouched. The 20 additional HEC profiles remain disabled; AI extraction remains disabled; no dummy production data was created.
+
+**Decision:** record the owner-authorized containment as verified owner-supplied evidence, retain the distinction between workflow containment and complete production safety, and stop at this documentation-only PR. No further containment or production operation is authorized by this record.
