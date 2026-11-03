@@ -18,7 +18,7 @@ Preserve GCU candidate rows #348–353 and batches #19–23. Keep the 20 additio
 
 ## 2. Workstream A — repository-only security remediation
 
-Existing PR #975 is the first candidate, not an approved merge.
+The older Draft PR #975 was closed as superseded. Its replacement, PR #981, is the active security-remediation candidate, rebuilt on current main.
 
 It currently proposes:
 - Include `master_admin` in the initial administrator-exists guard.
@@ -102,8 +102,11 @@ A merged PR is not proof of production deployment, live scheduler health, schema
 ## 8. Initial status
 
 - PR #979: merged; Phase 1A evidence exercise closed with explicit blockers.
+- PR #980: merged; Phase 1B design-only plan established.
+- Phase 1B is being consolidated into one security/code PR and one documentation/design PR where practical.
 - Production operational readiness: NOT CERTIFIED.
-- PR #975: open Draft; not approved for merge; regression-test and exact-head CI requirements remain.
+- PR #975: closed unmerged as superseded by PR #981.
+- PR #981: open Draft; first exact-head checks exposed two existing Unit-test failures after PHPUnit Unit discovery was enabled. The unsupported-entity fixture was corrected to use a truly unsupported type; official-source identity tests were made deterministic through an injectable URL guard. New exact-head CI remains pending.
 - Scheduler ownership: unresolved.
 - Hostinger cron/worker provider scope: unknown.
 - AUTH-04 schema metadata: not verified.
