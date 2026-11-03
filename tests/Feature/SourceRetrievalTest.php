@@ -19,6 +19,22 @@ class SourceRetrievalTest extends TestCase {
   $this->assertSame('completed',$run->status); $this->assertNotNull($run->snapshot_id);
  }
 
+
+ public function test_new_default_retrieval_calls_create_distinct_operations(): void {
+  Http::fakeSequence()
+   ->push('first official content',200,['Content-Type'=>'text/html'])
+   ->push('second official content',200,['Content-Type'=>'text/html']);
+  $source=Source::create(['source_type'=>'web','name'=>'Fresh Retrieval Official','url'=>'https://example.test/fresh','status'=>'active']);
+  $service=app(\App\Services\SourceRetrievalService::class);
+  $first=$service->retrieve($source);
+  $second=$service->retrieve($source);
+  $this->assertNotSame($first->id,$second->id);
+  $this->assertNotSame($first->snapshot_id,$second->snapshot_id);
+  $this->assertNotSame($first->content_hash,$second->content_hash);
+  Http::assertSentCount(2);
+  $this->assertDatabaseCount('source_retrieval_runs',2);
+ }
+
  public function test_completed_retrieval_is_reused_for_the_same_idempotency_key(): void {
   Http::fake(['https://example.test/*'=>Http::response('official content',200,['Content-Type'=>'text/html'])]);
   $source=Source::create(['source_type'=>'web','name'=>'Idempotent Official','url'=>'https://example.test/idempotent','status'=>'active']);
