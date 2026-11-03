@@ -1,18 +1,25 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\\Http\\Controllers;
 
-use App\Models\User;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\View\View;
+use App\\Models\\User;
+use Illuminate\\Http\\RedirectResponse;
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Facades\\Hash;
+use Illuminate\\View\\View;
 
 class InstituteSetupController
 {
+    private function administratorExists(): bool
+    {
+        return User::query()
+            ->whereIn('role', ['operator', 'admin', 'master_admin'])
+            ->exists();
+    }
+
     public function create(): View|RedirectResponse
     {
-        if (User::whereIn('role', ['operator', 'admin'])->exists()) {
+        if ($this->administratorExists()) {
             return redirect()->route('institutes.login');
         }
 
@@ -21,7 +28,7 @@ class InstituteSetupController
 
     public function store(Request $request): RedirectResponse
     {
-        if (User::whereIn('role', ['operator', 'admin'])->exists()) {
+        if ($this->administratorExists()) {
             return redirect()->route('institutes.login');
         }
 
