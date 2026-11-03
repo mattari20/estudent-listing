@@ -18,6 +18,76 @@ class SourceRetrievalTest extends TestCase {
   $run=app(\App\Services\SourceRetrievalService::class)->retrieve($source);
   $this->assertSame('completed',$run->status); $this->assertNotNull($run->snapshot_id);
  }
+
+
+ public function test_new_default_retrieval_calls_create_distinct_operations(): void {
+  Http::fakeSequence()
+   ->push('first official content',200,['Content-Type'=>'text/html'])
+   ->push('second official content',200,['Content-Type'=>'text/html']);
+  $source=Source::create(['source_type'=>'web','name'=>'Fresh Retrieval Official','url'=>'https://example.test/fresh','status'=>'active']);
+  $service=app(\App\Services\SourceRetrievalService::class);
+  $first=$service->retrieve($source);
+  $second=$service->retrieve($source);
+  $this->assertNotSame($first->id,$second->id);
+  $this->assertNotSame($first->snapshot_id,$second->snapshot_id);
+  $this->assertNotSame($first->content_hash,$second->content_hash);
+  Http::assertSentCount(2);
+  $this->assertDatabaseCount('source_retrieval_runs',2);
+ }
+
+ public function test_completed_retrieval_is_reused_for_the_same_idempotency_key(): void {
+  Http::fake(['https://example.test/*'=>Http::response('official content',200,['Content-Type'=>'text/html'])]);
+  $source=Source::create(['source_type'=>'web','name'=>'Idempotent Official','url'=>'https://example.test/idempotent','status'=>'active']);
+  $service=app(\App\Services\SourceRetrievalService::class);
+  $first=$service->retrieve($source,'stable-retrieval-key');
+  $second=$service->retrieve($source,'stable-retrieval-key');
+  $this->assertSame($first->id,$second->id);
+  $this->assertSame('completed',$second->status);
+  Http::assertSentCount(1);
+  $this->assertDatabaseCount('source_retrieval_runs',1);
+ }
+
+
+ public function test_idempotency_key_cannot_be_reused_for_a_different_source(): void {
+  Http::fake(['https://example.test/*'=>Http::response('official content',200,['Content-Type'=>'text/html'])]);
+  $firstSource=Source::create(['source_type'=>'web','name'=>'First Source','url'=>'https://example.test/first','status'=>'active']);
+  $secondSource=Source::create(['source_type'=>'web','name'=>'Second Source','url'=>'https://example.test/second','status'=>'active']);
+  $service=app(\App\Services\SourceRetrievalService::class);
+  $service->retrieve($firstSource,'shared-source-key');
+  $this->expectException(\InvalidArgumentException::class);
+  $service->retrieve($secondSource,'shared-source-key');
+ }
+
+ public function test_failed_retrieval_can_retry_using_the_same_idempotency_key(): void {
+  Http::fakeSequence()
+   ->push('temporary failure',503)
+   ->push('official content',200,['Content-Type'=>'text/html']);
+  $source=Source::create(['source_type'=>'web','name'=>'Retryable Official','url'=>'https://example.test/retryable','status'=>'active']);
+  $service=app(\App\Services\SourceRetrievalService::class);
+  $first=$service->retrieve($source,'retryable-retrieval-key');
+  $second=$service->retrieve($source,'retryable-retrieval-key');
+  $this->assertSame($first->id,$second->id);
+  $this->assertSame('completed',$second->status);
+  Http::assertSentCount(2);
+  $this->assertDatabaseCount('source_retrieval_runs',1);
+ }
+
+
+ public function test_fresh_in_progress_retrieval_is_not_started_twice(): void {
+  $source=Source::create(['source_type'=>'web','name'=>'In Progress Official','url'=>'https://example.test/in-progress','status'=>'active']);
+  $run=\App\Models\SourceRetrievalRun::create([
+   'source_id'=>$source->id,
+   'idempotency_key'=>'in-progress-retrieval-key',
+   'status'=>'started',
+   'started_at'=>now(),
+  ]);
+  $reused=app(\App\Services\SourceRetrievalService::class)->retrieve($source,'in-progress-retrieval-key');
+  $this->assertSame($run->id,$reused->id);
+  $this->assertSame('started',$reused->status);
+  Http::assertNothingSent();
+  $this->assertDatabaseCount('source_retrieval_runs',1);
+ }
+
  public function test_private_ip_source_is_rejected(): void {
   $source=Source::create(['source_type'=>'web','name'=>'Private','url'=>'http://127.0.0.1/test','status'=>'active']);
   $run=app(\App\Services\SourceRetrievalService::class)->retrieve($source);

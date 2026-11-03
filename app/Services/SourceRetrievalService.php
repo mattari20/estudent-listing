@@ -4,29 +4,87 @@ namespace App\Services;
 
 use App\Models\Source;
 use App\Models\SourceRetrievalRun;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class SourceRetrievalService
 {
-    public function retrieve(Source $source): SourceRetrievalRun
+    public function retrieve(Source $source, ?string $idempotencyKey = null): SourceRetrievalRun
     {
         if ($source->status !== 'active') {
             throw new \InvalidArgumentException('Source retrieval is only allowed for active sources.');
         }
 
+        if (! $source->url) {
+            throw new \InvalidArgumentException('Source has no URL.');
+        }
+
+        // A new retrieval call is a new operation by default. Callers that
+        // retry the same logical operation must supply the same explicit key.
+        $idempotencyKey ??= (string) Str::uuid();
+
+        if ($idempotencyKey === '' || strlen($idempotencyKey) > 64) {
+            throw new \InvalidArgumentException('Source retrieval idempotency keys must contain between 1 and 64 characters.');
+        }
+
+        // The unique key protects retries of the same source/hour slot. The
+        // governed execution lease serializes pipeline runners; this row lock
+        // also prevents a second caller from taking over a live in-progress run.
+        [$run, $shouldRetrieve] = DB::transaction(function () use ($source, $idempotencyKey): array {
+            $run = SourceRetrievalRun::query()
+                ->where('idempotency_key', $idempotencyKey)
+                ->lockForUpdate()
+                ->first();
+
+            if ($run && (int) $run->source_id !== (int) $source->id) {
+                throw new \InvalidArgumentException('The source retrieval idempotency key is already assigned to another source.');
+            }
+
+            if (! $run) {
+                $run = SourceRetrievalRun::create([
+                    'source_id' => $source->id,
+                    'idempotency_key' => $idempotencyKey,
+                    'status' => 'started',
+                    'started_at' => now(),
+                ]);
+
+                return [$run, true];
+            }
+
+            if ($run->status === 'completed') {
+                return [$run, false];
+            }
+
+            $isFreshInProgress = $run->status === 'started'
+                && $run->started_at?->greaterThan(now()->subMinutes(15));
+
+            if ($isFreshInProgress) {
+                return [$run, false];
+            }
+
+            $run->update([
+                'status' => 'started',
+                'http_status' => null,
+                'content_type' => null,
+                'content_length' => null,
+                'content_hash' => null,
+                'snapshot_id' => null,
+                'error_message' => null,
+                'started_at' => now(),
+                'completed_at' => null,
+            ]);
+
+            return [$run->refresh(), true];
+        });
+
+        if (! $shouldRetrieve) {
+            return $run;
+        }
+
         $httpStatus = null;
         $contentType = null;
 
-        $run = SourceRetrievalRun::create([
-            'source_id' => $source->id,
-            'status' => 'started',
-            'started_at' => now(),
-        ]);
-
         try {
-            if (! $source->url) {
-                throw new \InvalidArgumentException('Source has no URL.');
-            }
-
             $response = app(SafeSourceHttpRetriever::class)->get(
                 $source->url,
                 20,
