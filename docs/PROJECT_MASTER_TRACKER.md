@@ -1857,36 +1857,36 @@ No production configuration or data was changed in this closeout. No SQL, migrat
 
 ### Workstream A — security remediation
 
-- Active PR: #981 — https://github.com/mattari20/estudent-listing/pull/981
+- PR #981: MERGED — https://github.com/mattari20/estudent-listing/pull/981; merge commit `63c3cd51c4bc73bfebd81406d1b2d4bb8ef2858f`.
 - Older PR #975 was closed unmerged as superseded.
-- PR #981 changes include first-admin guard coverage for \`master_admin\`, HTML-safe institution/breadcrumb JSON-LD, spreadsheet-safe CSV strings, PHPUnit Feature + Unit suite discovery and focused regression tests.
-- Initial exact-head CI on \`4c8666799a1c492ce74ba9b06a2153ec145c1cb6\` exposed two Unit-test failures after enabling Unit discovery:
-  1. \`InstituteDiscoveryCandidateQualityServiceTest::test_unsupported_entity_type_is_blocked\` used \`institution\`, which is a supported entity type; corrected fixture now uses \`department\`.
-  2. \`OfficialSourceIdentityVerifierTest::test_active_authoritative_source_bound_to_configured_profile_is_verified\` depended on live DNS for a documentation/test domain; verifier now accepts an optional SourceUrlGuard dependency and tests inject a deterministic public-IP resolver. Production default remains the normal SourceUrlGuard.
+- PR #981 changes include first-admin guard coverage for `master_admin`, HTML-safe institution/breadcrumb JSON-LD, spreadsheet-safe CSV strings, PHPUnit Feature + Unit suite discovery and focused regression tests.
+- Initial exact-head CI on `4c8666799a1c492ce74ba9b06a2153ec145c1cb6` exposed two Unit-test failures after enabling Unit discovery:
+  1. `InstituteDiscoveryCandidateQualityServiceTest::test_unsupported_entity_type_is_blocked` used `institution`, which is a supported entity type; corrected fixture now uses `department`.
+  2. `OfficialSourceIdentityVerifierTest::test_active_authoritative_source_bound_to_configured_profile_is_verified` depended on live DNS for a documentation/test domain; verifier now accepts an optional SourceUrlGuard dependency and tests inject a deterministic public-IP resolver. Production default remains the normal SourceUrlGuard.
 - These are test/maintainability corrections, not evidence of production data corruption. New exact-head CI after the fixes must pass before PR #981 can be approved/merged.
-- Public smoke check on the initial PR head passed. Do not substitute it for the failing test workflows.
+- PR #981 was marked ready and merged only after all three exact-head checks passed. No deployment or production execution occurred.
 - No deployment or production execution occurred.
 
 ### Workstream B — scheduler ownership and idempotency design
 
-- Repository source confirms GitHub workflow \`.github/workflows/scheduled-institute-discovery.yml\` runs hourly at minute 15 and invokes \`institutes:bootstrap-agent\` then \`institutes:monitor-changes\` through Hostinger SSH.
-- \`bootstrap/app.php\` independently schedules both commands hourly with Laravel \`withoutOverlapping(55)\`.
-- GitHub concurrency group \`scheduled-governed-institute-discovery\` serializes GitHub workflow runs only; it is not a shared cross-runner lock.
+- Repository source confirms GitHub workflow `.github/workflows/scheduled-institute-discovery.yml` runs hourly at minute 15 and invokes `institutes:bootstrap-agent` then `institutes:monitor-changes` through Hostinger SSH.
+- `bootstrap/app.php` independently schedules both commands hourly with Laravel `withoutOverlapping(55)`.
+- GitHub concurrency group `scheduled-governed-institute-discovery` serializes GitHub workflow runs only; it is not a shared cross-runner lock.
 - Hostinger/provider scheduler and worker scope remain unknown from the bounded owner inspection.
-- Design document: \`docs/audits/PHASE_1B_SCHEDULER_OWNERSHIP_AND_IDEMPOTENCY_DESIGN.md\`.
+- Design document: `docs/audits/PHASE_1B_SCHEDULER_OWNERSHIP_AND_IDEMPOTENCY_DESIGN.md`.
 - Recommended target is GitHub Actions as the sole authoritative hourly orchestrator, subject to provider/owner confirmation, plus a durable shared execution lease and command-level idempotency for manual/retry/residual runner paths. No schedule, workflow, lock backend or production config was changed.
 
 ### Workstream C — GCU historical preservation and reconciliation design
 
 - Protected historical scope: GCU rows #348–353 and batches #19–23.
 - Their exact row-to-batch mapping, evidence state and current review status are not inferred from IDs alone.
-- Design document: \`docs/audits/PHASE_1B_GCU_HISTORICAL_RECONCILIATION_DESIGN.md\`.
+- Design document: `docs/audits/PHASE_1B_GCU_HISTORICAL_RECONCILIATION_DESIGN.md`.
 - Defines evidence inputs, identity/duplicate rules, explicit evidence disposition states, dry-run output, append-only reviewer history and acceptance tests.
 - No production query/export, source retrieval, staging, approval, rejection, import, canonical promotion or publication occurred.
 
 ### Workstream D — production readiness decision package
 
-- Decision document: \`docs/audits/PHASE_1B_PRODUCTION_READINESS_DECISION_PACKAGE.md\`.
+- Decision document: `docs/audits/PHASE_1B_PRODUCTION_READINESS_DECISION_PACKAGE.md`.
 - Records AUTH-04, provider cron/worker scope, P1A-07, backup recovery, GCU evidence, additional HEC profiles and AI extraction as explicit gates.
 - Every gate must have evidence or remain a blocker. No deployment, DB operation, scheduler change, backup/restore, source retrieval or workflow state change is authorized by this documentation.
 
@@ -1894,14 +1894,14 @@ No production configuration or data was changed in this closeout. No SQL, migrat
 
 | Delivery | Expected PR | Gate |
 |---|---|---|
-| Security/code and regression remediation | #981 (active) | All exact-head Test, Laravel CI and Project Controller checks pass; regression diff reviewed |
+| Security/code and regression remediation | #981 (merged) | Laravel CI, Test and public browser diagnostics passed on exact head; 798 tests / 3,531 assertions in each test workflow |
 | Scheduler + GCU + production-readiness design pack + tracker | #982 (consolidated docs PR) | Documentation consistency, links, scope and safety review; applicable CI passes |
 
 Do not create separate #983/#984 solely for the former workstream split. PR numbers are assigned by GitHub; future numbers are not reserved.
 
 ### Phase 1B final close criteria
 
-1. PR #981 passes exact-head required checks and is reviewed/merged.
+1. PR #981 is merged at `63c3cd51c4bc73bfebd81406d1b2d4bb8ef2858f`; exact-head Laravel CI, Test and public browser diagnostics passed.
 2. PR #982 passes checks and is reviewed/merged.
 3. The tracker and both PR descriptions state exact commits/check runs and non-actions.
 4. No Phase 1A limitation is silently upgraded to a pass.
@@ -1909,4 +1909,4 @@ Do not create separate #983/#984 solely for the former workstream split. PR numb
 6. Additional 20 HEC profiles and AI extraction remain disabled.
 7. Production operational readiness is still reported separately as NOT CERTIFIED until its independent gates are satisfied.
 
-**Phase 1B status at this update: IN PROGRESS.** Security test corrections have been pushed to PR #981; exact-head reruns are pending. The consolidated documentation pack is being prepared on a branch from current main. No production configuration/data changes, database operations, migrations, cron/queue/backup changes, workflow state changes, deployment, source retrieval, candidate staging/approval/import, canonical promotion or publication occurred.
+**Phase 1B status at this update: IN PROGRESS.** Security delivery PR #981 is merged and validated. Consolidated documentation PR #982 is open; its exact-head Test, Laravel CI and Project Controller checks are passing or being reconciled before merge. No production configuration/data changes, database operations, migrations, cron/queue/backup changes, workflow state changes, deployment, source retrieval, candidate staging/approval/import, canonical promotion or publication occurred.
