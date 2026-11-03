@@ -671,3 +671,56 @@ Preserve these repository facts: Laravel schedules `institutes:bootstrap-agent` 
 - Production runtime/schema, backup retention and restore evidence, private-report access/retention remain unresolved as recorded in the tracker.
 
 **Phase 1A remains incomplete.** This update is documentation-only. No production SSH, Artisan, Composer, SQL/database, hPanel operation, cron/queue operation, backup, private report, workflow action, deployment, configuration change, source retrieval/discovery, extraction, staging, approval, import, canonical promotion or publication was performed.
+
+
+---
+
+## Phase 1A-05D — Post-merge Hostinger workflow failure and gate reconciliation (2026-11-03)
+
+**Verified baseline:** `main` and merged PR #967 both resolve to `101b7c20d0b6a283ad0d78d966bc673e98a0aef4`. Detailed findings and the full nine-gate matrix are recorded in the corresponding Phase 1A-05D section of `docs/PROJECT_MASTER_TRACKER.md`.
+
+### Failed workflow evidence boundary
+
+- Hostinger Read-only Diagnostics run **41552845301**, job **125644442102**, push event on `main`, head SHA `101b7c20d0b6a283ad0d78d966bc673e98a0aef4`, failed at 2026-11-03 00:26:34 UTC (05:26:34 PKT).
+- Checkout and application-code revision resolution passed; “Run diagnostics on Hostinger” failed; public directory/API and operator-access checks were skipped.
+- Workflow source requires an absolute project path without `..`, an Artisan file, executable approved PHP binary, disposable parity repository, expected revision ancestry, diagnostic script, unused protected report path, PHP lint, bounded valid JSON report and passing diagnostic result before later Artisan/schema checks.
+- The workflow can create/remove temporary directories, fetch Git metadata into a temporary repository and write a protected diagnostic report in production storage. It is not strictly filesystem-read-only. This is a source-level description only; the failed run metadata does not prove which remote operations occurred.
+- The available run/job/step metadata cannot distinguish SSH connectivity/authentication, path/PHP preflight, parity, PHP diagnostic, report-preservation, Artisan or schema-check failure. **Actual root cause remains unresolved.**
+- No raw job logs or private report contents were accessed. Do not retry or dispatch this workflow. Further diagnosis requires separately authorized sanitized non-secret failure evidence.
+
+### Regression coverage
+
+The existing `HostingerDirectoryVisibilityDiagnosticsContractTest.php` covers workflow structure, report safeguards, parity and public endpoint/schema contract features. Current-main Test run **41552845402** passed these tests. It does not reproduce this specific SSH-action failure or classify its runtime cause. The separate `test-hostinger-artisan-runtime-diagnostic.rb` covers a different runtime-only delivery workflow. No new test was added because production failure reproduction is outside this documentation-only authorization.
+
+### Current-main run reconciliation
+
+| Workflow | Run | Result | Evidence boundary |
+|---|---:|---|---|
+| Project Controller | 41552845288 | SUCCESS | Offline tests, workflow syntax, read-only repository inventory; not production health |
+| Command Orchestrator | 41552845188 | SUCCESS | Push gate, controller smoke and GitHub inventory; issue-comment restore/persist steps skipped; not production health |
+| Public Site Monitor | 41552845228 | SUCCESS | Public HTTP/listing smoke succeeded; empty listing is an accepted `EMPTY_DATA` state; not database/queue/scheduler health |
+| Laravel CI | 41552845218 | SUCCESS | Repository Laravel CI; not deployed runtime/schema |
+| Test | 41552845402 | SUCCESS | Repository tests and workflow contracts; not production database state |
+| Hostinger Read-only Diagnostics | 41552845301 | FAILURE | Hostinger step failed; downstream checks skipped; root cause unknown |
+
+### Updated nine-gate status
+
+| Gate | Status | Remaining evidence |
+|---|---|---|
+| P1A-01 — workflow inventory and enabled state | **PARTIAL** | Complete enabled/disabled-state evidence for all workflows |
+| P1A-02 — deployed revision and code parity | **PARTIAL** | Fresh authorized deployed SHA and application-path parity |
+| P1A-03 — Artisan registration/help/runtime | **NOT AUTHORIZED** | Separate AUTH-03 approval and bounded evidence |
+| P1A-04 — database schema/migration ledger | **NOT AUTHORIZED** | Separate AUTH-04 approval and proven SELECT-only grants |
+| P1A-05 — Hostinger cron inventory | **PARTIAL** | Complete redacted saved cron list and schedule metadata |
+| P1A-06 — persistent queue worker | **UNVERIFIED** | View-only worker/process/Supervisor status and persistence evidence |
+| P1A-07 — scheduler ownership/cross-runner coordination | **PARTIAL** | Actual Hostinger cron invocation and ownership/overlap evidence |
+| P1A-08 — monitoring/private reports/backups | **PARTIAL** | Backup retention/restore and private-report access/retention evidence |
+| P1A-09 — consolidated evidence/readiness decision | **BLOCKED** | All required evidence groups reconciled with current source references |
+
+No percentage is calculated; no approved weighting model exists. Phase 1A remains incomplete. Phase 1B may be design-only; no production or source operation is authorized.
+
+### Safety and next evidence
+
+No workflow action, retry, raw log access, private report access, Hostinger session, production command/query, cron/queue/backup action, deployment, migration, source retrieval/discovery, extraction, staging, approval, import, canonical promotion or publication occurred. No application/workflow/configuration/schema change occurred. Preserve GCU rows #348–353 and batches #19–23; keep the 20 additional HEC profiles and AI extraction disabled.
+
+The minimum additional evidence for the failed run is a separately authorized, sanitized, non-secret excerpt identifying the failed SSH diagnostic step's final error category/exit status. Do not share secrets, environment dumps, private report contents or database rows. No production retry is requested or authorized.
