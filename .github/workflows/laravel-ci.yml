@@ -64,7 +64,6 @@ jobs:
           database/migrations/2026_11_03_000002_create_governed_execution_runs_table.php
           tests/Feature/ExecutionLeaseServiceTest.php
           app/Services/SourceMonitoringBatchService.php
-          database/migrations/2026_11_03_000002_create_governed_execution_runs_table.php
 
       - name: Verify formatted discovery files
         run: >-
