@@ -932,3 +932,146 @@ This audit used GitHub metadata, branch refs, commit comparisons, recursive tree
 GCU rows #348–353 and batches #19–23 were not accessed or changed. The additional 20 HEC profiles remain disabled; AI extraction remains disabled; no dummy production data was created.
 
 **Decision: STOP after this repository-only audit.** The next safe action is a separately authorized containment decision for the 15 production-write-capable retained branches, beginning with ops/activate-seven-institutions-once. Do not begin production remediation or row-level reconciliation under this audit authorization.
+
+
+---
+
+## Phase 1A-09 — Safe containment plan for retained production-write workflows (2026-11-03)
+
+**Verified current main SHA:** a67f9f8e2e2d1080cf061df6d228160eb408e137  
+**PR #971:** merged; security correction retained.  
+**PR #972:** merged; Phase 1A-08 branch audit retained.  
+**Current migration workflow:** .github/workflows/controlled-institution-field-approvals-migration.yml remains workflow_dispatch-only; required boolean confirm_migration defaults false; CONFIRM_MIGRATION derives exclusively from inputs.confirm_migration == true.
+
+### 1. Baseline and branch-tip revalidation
+
+The Phase 1A-08 audit document was reread on current main and still contains all 29 branch rows. The 15 production-write-capable branch refs were re-read. All 15 branch-tip SHAs are unchanged from Phase 1A-08. Each corresponding workflow YAML was fetched from its current branch and still has a push trigger scoped to that exact branch. All 15 current workflow files have no workflow_dispatch, schedule or workflow_call trigger.
+
+### 2. Risk-ranked inventory of the 15 branches
+
+Risk ranking is based on the type and potential reach of the workflow's production writes, not on a claim that the operation is currently enabled or that a historical write remains in production.
+
+| Rank | Branch | Current tip SHA | Workflow ID | Exact workflow path | Production-write capability | Latest observed run |
+|---:|---|---|---:|---|---|---|
+| 1 — Critical | ops/activate-seven-institutions-once | 29840e65c28b2a8af35ac0173f9637cc01af86a7 | 392301788 | .github/workflows/activate-seven-institutions-once.yml | Directly changes seven allowlisted candidate institutions to active | 39697594064 — completed, success |
+| 2 — High | ops/classify-seven-active-institutions | 21d7bcea06d8f9cda8dc061a890880fc35a33f91 | 392305791 | .github/workflows/classify-seven-active-institutions.yml | Updates institution_type for seven allowlisted institutions; not itself the active-status transition | 39698133958 — completed, success |
+| 3 — High | ops/complete-campus-geography-and-profiles | df56a332c9aeb0aaee4cd9e23b0bb1d4979049e0 | 392317909 | .github/workflows/complete-campus-geography-and-profiles.yml | Creates campus records and updates campus geography and institution profile fields | 39700220568 — completed, success |
+| 4 — High | ops/add-seven-verified-main-campuses | 30ea90119547306f608aa1c4fcfb0ecc29c2df07 | 392313978 | .github/workflows/add-seven-verified-main-campuses.yml | Creates geography and campus records | 39699709895 — completed, success |
+| 5 — High | ops/complete-uvas-campuses-offerings | 9a3379356098ec1a95ebc78c9f779d91dcf22360 | 392356405 | .github/workflows/complete-uvas-campuses-offerings.yml | Creates geography/campus records and program offerings | 39706380140 — completed, success |
+| 6 — High | ops/complete-remaining-institution-profiles | 4d1cb85834d4099ecfd9922afde0c0a94afe6dec | 392320151 | .github/workflows/complete-remaining-institution-profiles.yml | Updates institution type, description, verification fields and campus type | 39700735373 — completed, success |
+| 7 — Elevated | ops/enrich-uvas-official-program-campus-catalog | 24c62f369e545f7b9c27537e8841fd1aee6031fd | 392354880 | .github/workflows/enrich-uvas-official-program-campus-catalog.yml | Inserts programs and updates descriptions | 39706165044 — completed, success |
+| 8 — Elevated | ops/enrich-lums-official-undergraduate-programs | db0b2a3365fb7e8e1611a295f950b1facbb56a43 | 392348473 | .github/workflows/enrich-lums-official-undergraduate-programs.yml | Inserts/updates programs and offerings | 39705183563 — completed, success |
+| 9 — Elevated | ops/fix-lums-offering-and-2027-intake | a98c9f61c8da92271207fea3b6ac7bd28149b960 | 392330488 | .github/workflows/fix-lums-offering-and-2027-intake.yml | Inserts/updates an offering and Fall 2027 intake | 39702318782 — completed, success |
+| 10 — Elevated | ops/add-verified-campus-offerings-and-lums-2027-intake | b6830ffd3d7ded0673483235d56ad4bec852fe5e | 392328047 | .github/workflows/add-verified-campus-offerings-and-lums-2027-intake.yml | Inserts/updates offerings and LUMS intake | 39701971264 — completed, success |
+| 11 — Elevated | ops/fill-remaining-institution-program-catalog | 4417d345736cda34a38672ce01c5475b8e493282 | 392327201 | .github/workflows/fill-remaining-institution-program-catalog.yml | Inserts source-backed programs and offerings | 39701769637 — completed, success |
+| 12 — Elevated | ops/expand-official-program-catalog-round-two | ebc5ced1cd1ebab6d076e242b9d1a024ebf63430 | 392326634 | .github/workflows/expand-official-program-catalog-round-two.yml | Inserts official programs and offerings | 39701678245 — completed, success |
+| 13 — Elevated | ops/expand-program-catalog-offerings-intakes | 24a0590ab9f38fd42aec877886537692b076cf69 | 392325916 | .github/workflows/expand-program-catalog-offerings-intakes.yml | Inserts programs, offerings and intake records | 39701562439 — completed, success |
+| 14 — Elevated | ops/add-officially-listed-programs | 8be2ad326cb67eb90157113a61b656b5c935ebaa | 392318751 | .github/workflows/add-officially-listed-programs.yml | Inserts source-documented program records | 39700366711 — completed, success |
+| 15 — Elevated | ops/fix-comsats-program-source | 6695ade6717b1a71118b65fdbce35ebe173f16e3 | 392337430 | .github/workflows/fix-comsats-program-source.yml | Updates an existing program source description | 39703402134 — completed, success |
+
+### 3. Current workflow triggers, dispatchability and run state
+
+- All 15 current YAML files have only a push trigger scoped to the exact branch name in the table.
+- None of the 15 YAML files declares workflow_dispatch. Consequently, these files are not manually dispatchable in their current form.
+- None declares schedule or workflow_call.
+- A branch-filtered Actions runs query was made for each of the 15 branches. No run was queued, in_progress, waiting, requested or pending at inspection time.
+- The latest observed run for each branch was a completed successful push run on 2026-10-22. The table records the latest run ID. Some branches have more than one historical run; this does not change the current no-active-run result.
+- This run-state check is a point-in-time observation, not a guarantee against a new run after a later push.
+
+### 4. Verified GitHub containment mechanism
+
+**Preferred mechanism: disable the exact workflow by its workflow ID, one at a time.**
+
+GitHub's official REST documentation states that the disable-workflow endpoint sets the selected workflow's state to disabled_manually. The workflow can be selected by workflow ID or filename. The endpoint requires Actions repository write permission. This is a workflow-level operation, not a branch deletion or repository-wide Actions shutdown.
+
+Documented effects:
+- A disabled workflow is stopped from being triggered; its workflow file remains in Git.
+- Disabling does not cancel an existing run. Any already-running job must be handled separately. No active runs were found in this audit.
+- While disabled, existing runs or jobs cannot be rerun; the workflow must first be re-enabled.
+- The 15 YAML files have no workflow_dispatch event. Even if a workflow were enabled, its current YAML does not offer manual dispatch.
+- The disable operation targets one workflow identity/ID. It should not disable unrelated workflow IDs. It applies to that workflow resource across refs where the same workflow identity is present, not only to one branch push event.
+
+Official references:
+- GitHub REST API — workflow listing, workflow metadata, disable, dispatch and enable endpoints: https://docs.github.com/en/rest/actions/workflows
+- GitHub Actions — disabling and enabling workflows: https://docs.github.com/en/actions/how-tos/manage-workflow-runs/disable-and-enable-workflows
+
+**Important verification gap:** the connected read-only GitHub interface returned the branch refs, YAML files and workflow run history, but rejected the GET workflow metadata endpoint used to read each workflow's current state. Therefore the current state (active vs disabled_manually) for all 15 IDs is unknown. The historical run IDs establish the workflow IDs, but are not a substitute for current workflow metadata. Before any future disable request, an authorized operator must inspect each exact workflow ID's current path and state in GitHub's Actions UI or the documented GET /repos/{owner}/{repo}/actions/workflows/{workflow_id} endpoint. Do not assume any workflow is currently enabled.
+
+### 5. Comparison of alternatives
+
+| Mechanism | Effect and scope | Preservation / side effects | Assessment |
+|---|---|---|---|
+| Disable exact workflow ID | Stops that workflow from being triggered while disabled | Keeps branch, commits and YAML evidence. Does not cancel existing runs. Does not affect unrelated workflow IDs. | **Preferred; least disruptive.** |
+| Add ruleset for exact 15 branch names | Can restrict branch updates, preventing ordinary pushes if configured correctly | Repository settings change; may block legitimate maintenance and require carefully controlled bypass policy. Current active ruleset only targets refs/heads/main. | Secondary guard only if workflow disable is unavailable or owner requires defense-in-depth. |
+| Classic branch protection | May restrict direct updates to selected branches | Existing per-branch protection state could not be verified with the connected read-only interface; administrators/bypass actors may affect effectiveness. | Not established as currently available; inspect separately before relying on it. |
+| Edit/remove push trigger in workflow YAML | Changes the workflow definition on that branch | Requires a commit/push to the risky branch. That push itself is the event being contained; the operation also changes historical branch evidence. | Do not use as first containment step. |
+| Rename branch | Changes the ref name and may affect branch filters, PR references, automation and integrations | Disruptive to references and could create confusing redirects or stale references. | Not recommended. |
+| Delete branch | Removes the named branch ref and stops ordinary pushes to that ref | Loses the stable named reference to the exact tip; may affect PRs, collaborators and evidence access. Recreating the name could restore trigger risk. | Not recommended; conflicts with evidence-preservation objective. |
+| Disable all GitHub Actions or change repository-wide permissions | Broadly suppresses Actions | Affects unrelated CI, monitors, and safety workflows across the repository. | Reject; disproportionate. |
+
+The active repository ruleset inventory returned one ruleset named main, targeting only refs/heads/main. No active repository ruleset targeting ops/* was found. This does not establish the absence of classic branch protection; that separate state remains unverified.
+
+### 6. Per-branch recommendation
+
+For each of the 15 branches in the risk-ranked table, the recommended containment is to disable only its corresponding workflow ID, after verifying the workflow metadata path and current state. Preserve the branch ref, tip SHA, workflow YAML and run history. If already disabled_manually, leave it disabled and record the state; do not toggle it.
+
+The first candidate is workflow ID 392301788, .github/workflows/activate-seven-institutions-once.yml on ops/activate-seven-institutions-once. This is the highest priority because the workflow directly transitions seven allowlisted institutions from candidate to active. Do not push to this branch, edit its YAML, rename it or delete it as part of containment. Disabling this workflow would prevent future triggers from this workflow identity but would not reverse any previous activation or establish current database status.
+
+### 7. Staged implementation plan and approval gates
+
+**Stage 0 — Owner authorization (required before changes)**
+- Obtain explicit approval to disable the 15 listed workflow IDs.
+- Confirm the approved list, priority order and acceptable interruption of any future legitimate use.
+- Confirm no production database or Hostinger remediation is included.
+
+**Stage 1 — Metadata verification (read-only)**
+- For each ID, GET workflow metadata and verify ID, path, state and repository identity.
+- Verify the path matches the workflow file listed in this plan.
+- If ID/path mismatch, missing workflow, or unexpected state occurs, stop for that item and do not guess.
+- Recheck active runs immediately before disabling.
+
+**Stage 2 — Controlled workflow-only containment (requires separate explicit approval)**
+- Disable workflow ID 392301788 first.
+- Read back its metadata and confirm state disabled_manually.
+- Confirm branch tip SHA and YAML blob remain unchanged.
+- Confirm unrelated workflows remain active.
+- After owner review of the first item, repeat one-by-one for the remaining 14 IDs.
+- Do not cancel active runs automatically. If a run appears before containment, stop and seek separate run-specific approval.
+
+**Stage 3 — Verification and evidence**
+- Re-read all 15 workflow metadata records and verify disabled_manually.
+- Re-read all 15 branch tips and workflow YAML blob SHAs to prove preservation.
+- Query branch-filtered runs and confirm no new run was started by containment.
+- Record the exact timestamp, operator, workflow ID, before/after state and verification evidence in the audit document.
+- Do not re-enable workflows without separate explicit approval and a reviewed execution plan.
+
+### 8. Facts, assumptions and unresolved questions
+
+**Verified facts**
+- Current main SHA is a67f9f8e2e2d1080cf061df6d228160eb408e137.
+- PR #971 and PR #972 are merged.
+- The current migration workflow remains manual-only and requires explicit confirmation defaulting false.
+- All 15 retained branch tips match Phase 1A-08 SHAs.
+- All 15 workflow files remain present at their current branch tips, with exact-branch push triggers and no workflow_dispatch.
+- No active run was found on any of the 15 branches at the time of inspection.
+- The only active repository ruleset inspected targets main.
+- GitHub officially documents workflow-level disable behavior and its effect on triggers and existing runs.
+
+**Assumptions used only for planning**
+- Disabling each exact workflow ID is the least disruptive way to suppress that workflow's triggers while retaining its branch and source evidence.
+- The listed workflow IDs continue to identify the corresponding unique workflow paths. This must be checked against live metadata before action.
+- The operation is expected not to affect unrelated workflow IDs; read-back verification is required after each future disable.
+
+**Unresolved**
+- Current active/disabled_manually state for each of the 15 workflow IDs; the connected read-only interface could not fetch workflow metadata.
+- Classic per-branch protection state for the 15 branches.
+- Whether the seven historical institution activations or any other prior writes remain in production. No production state was accessed.
+- Whether any branch tip has external references outside GitHub PRs and workflow records.
+
+### 9. Safety and stop decision
+
+This phase performed GitHub read-only inspection and documentation planning only. No workflow was disabled, enabled, dispatched, rerun, cancelled or approved. No branch was modified, renamed or deleted. No repository settings, rulesets, secrets, variables or permissions were changed. No Hostinger, production database, raw logs, private reports, Artisan, migration, import, approval, activation, campus promotion, deployment or production data write was accessed or performed.
+
+GCU rows #348–353 and batches #19–23 remain untouched. The additional 20 HEC profiles remain disabled; AI extraction remains disabled; no dummy production data was created.
+
+**Decision: STOP after preparing this plan.** The next action is an owner approval for a separate containment phase. Do not implement the plan under Phase 1A-09 authorization.

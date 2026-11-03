@@ -1675,3 +1675,20 @@ Read-only inspection completed for all 29 retained ops/* branches. Exact branch-
 - No branch/workflow state, production data, Hostinger, logs or secrets were changed/accessed. GCU rows #348–353 and batches #19–23 remain preserved; 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created.
 
 **Decision:** stop at the repository-only audit boundary. Any containment or production-state reconciliation requires a separate, explicit authorization. Do not push to the 15 write-capable retained branches.
+
+
+---
+
+## Phase 1A-09 — Safe containment plan for retained production-write workflows (2026-11-03)
+
+Verified main: a67f9f8e2e2d1080cf061df6d228160eb408e137. PR #971 and PR #972 are merged. The migration workflow on current main remains manual-only and requires explicit boolean confirmation defaulting false.
+
+Revalidated all 15 production-write-capable branch tips and workflow YAML files from Phase 1A-08. All tips are unchanged; all 15 workflows retain exact-branch push triggers and none has workflow_dispatch. Branch-filtered Actions queries found no active runs; the latest observed runs are completed successful push runs from 2026-10-22.
+
+The least-disruptive proposed containment is workflow-level disable by exact workflow ID, preserving branch refs, tips, workflow files and historical run evidence. GitHub documents that disabling stops a workflow from being triggered, does not cancel existing runs, and prevents reruns while disabled. The first priority is workflow ID 392301788 on ops/activate-seven-institutions-once, which directly activates seven allowlisted candidate institutions.
+
+The connected read-only GitHub interface could not retrieve current workflow metadata state (active vs disabled_manually) or classic per-branch protection. The only active repository ruleset inspected targets main. No containment action was performed.
+
+The audit document section “Phase 1A-09 — Safe containment plan” records the complete 15-branch risk-ranked table, workflow IDs and paths, exact branch-tip SHAs, last run IDs, alternatives, effects, limitations, staged approval gates, and unresolved questions.
+
+**Decision:** stop after planning. A separate explicit owner approval is required before disabling any workflow. No branch, workflow, repository setting, production system or data was changed.
