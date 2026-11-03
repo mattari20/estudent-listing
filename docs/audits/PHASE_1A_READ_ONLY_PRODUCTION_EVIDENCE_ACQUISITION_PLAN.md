@@ -637,3 +637,37 @@ Two independent hourly execution paths remain visible in repository source: Lara
 **Phase 1A evidence decision: NOT YET COMPLETE.** No completion percentage is calculated because there is no approved weighting model and several critical gates remain unverified or unauthorized. Phase 1B may begin with design-only planning, but no production or source operation is authorized.
 
 No production access, Artisan, database, cron, queue, backup, private report, workflow state or source operation was performed in this batch. Preserve GCU rows #348–353 and batches #19–23; keep the 20 additional HEC profiles and AI extraction disabled.
+
+
+---
+
+## Phase 1A-05C — Hostinger cron and worker evidence update (2026-11-03)
+
+**Baseline:** live `main` verified at `cb0ad9c88fbdbd92825f9ef4da18c2f0571acac4`; PR #966 confirmed merged. The matching detailed evidence record is appended to `docs/PROJECT_MASTER_TRACKER.md` under “Phase 1A-05C — Hostinger cron and worker screenshot evidence (2026-11-03)”.
+
+### Owner-supplied screenshot observations
+
+- **Cron Jobs page:** screenshot for `estudent.pk` at Websites → Advanced → Cron Jobs shows the “Create a New Cron Job” form and no saved cron-job rows in the visible capture. Classification: `NO_SAVED_CRON_ENTRIES_VISIBLE_IN_OWNER_SUPPLIED_SCREENSHOT`. This does not establish that no cron jobs exist. Saved commands, PHP executable paths, schedules, timezone, enabled state and last/next execution remain unknown.
+- **Website dashboard:** screenshot displays deployment Completed, repository `estudent-listing`, branch `main`, abbreviated commit `cb0ad9c`, root `public_html/institutes`, and resource usage. No persistent queue-worker or process-manager configuration is visible. Classification: `NO_WORKER_MANAGEMENT_INTERFACE_VISIBLE_IN_OWNER_SUPPLIED_DASHBOARD_SCREENSHOT`. This does not establish that no worker process exists or reveal its runtime state.
+
+These are owner-supplied UI observations, not direct production server/process evidence. No credentials or secrets are included.
+
+### Updated gate assessment
+
+| Gate | Status | Evidence and limitation |
+|---|---|---|
+| P1A-05C — Hostinger cron inventory | **PARTIAL** | Cron Jobs page screenshot supplied; no saved rows visible. Actual saved cron configuration and execution state remain unverified. |
+| P1A-06 — Persistent queue worker | **UNVERIFIED** | No worker/process management interface visible in the supplied dashboard screenshot. Existence and runtime status of a persistent Laravel queue worker remain unknown. |
+| P1A-07 — Scheduler ownership | **PARTIAL** | Laravel and GitHub schedules remain repository facts; Hostinger cron configuration is unknown, so cross-runner ownership/overlap remains unresolved. |
+
+Preserve these repository facts: Laravel schedules `institutes:bootstrap-agent` and `institutes:monitor-changes` hourly; GitHub separately invokes them through `scheduled-institute-discovery.yml`; GitHub concurrency and Laravel `withoutOverlapping(55)` are separate mechanisms; Hostinger PHP worker allocation does not prove a Laravel queue worker; queue defaults are database driver and `default` queue. GCU rows #348–353 and batches #19–23 remain preserved; the 20 additional HEC profiles and AI extraction remain disabled.
+
+### Outstanding evidence / authorization gates
+
+- Complete redacted saved Cron Jobs inventory with command, PHP executable, schedule, timezone, enabled state and last/next run where visible.
+- View-only worker/process/Supervisor evidence or evidence that the relevant management feature is unavailable; a missing UI interface does not prove absence of a process.
+- GitHub workflow enabled/disabled state for all 35 workflows remains outstanding.
+- AUTH-03 Artisan registration/help/schedule inspection remains not authorized; AUTH-04 metadata-only database inspection remains not authorized and requires proven SELECT-only grants. No expansion of AUTH-05 view-only scope.
+- Production runtime/schema, backup retention and restore evidence, private-report access/retention remain unresolved as recorded in the tracker.
+
+**Phase 1A remains incomplete.** This update is documentation-only. No production SSH, Artisan, Composer, SQL/database, hPanel operation, cron/queue operation, backup, private report, workflow action, deployment, configuration change, source retrieval/discovery, extraction, staging, approval, import, canonical promotion or publication was performed.
