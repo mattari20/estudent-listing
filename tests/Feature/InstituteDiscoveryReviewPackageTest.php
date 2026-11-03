@@ -86,11 +86,32 @@ class InstituteDiscoveryReviewPackageTest extends TestCase
             'validation_errors' => null,
         ]);
 
+        ImportRow::create([
+            'import_batch_id' => $batch->id,
+            'row_number' => 2,
+            'status' => 'candidate',
+            'match_state' => 'unresolved',
+            'parent_subject_type' => Institution::class,
+            'parent_subject_id' => $institution->id,
+            'payload' => [
+                'name' => '=HYPERLINK("https://evil.example","Click")',
+                'slug' => '+1+1',
+                '_provenance' => [
+                    'method' => 'deterministic',
+                    'confidence' => 0.9,
+                    'snapshot_id' => $snapshot->id,
+                    'evidence_id' => $evidence->id,
+                ],
+            ],
+            'normalized_payload' => ['name' => '=HYPERLINK("https://evil.example","Click")', 'slug' => '+1+1'],
+            'validation_errors' => null,
+        ]);
+
         $service = app(InstituteDiscoveryReviewPackageService::class);
         $result = $service->create($batch->fresh());
 
         $this->assertSame('created', $result['status']);
-        $this->assertSame(1, $result['candidate_count']);
+        $this->assertSame(2, $result['candidate_count']);
         Storage::disk('local')->assertExists($result['csv_path']);
         Storage::disk('local')->assertExists($result['manifest_path']);
 
@@ -98,7 +119,12 @@ class InstituteDiscoveryReviewPackageTest extends TestCase
         $this->assertSame($snapshot->id, $manifest['snapshot_id']);
         $this->assertFalse($manifest['canonical_mutations_performed']);
         $this->assertFalse($manifest['automatic_approval_performed']);
-        $this->assertStringContainsString('Computer Science', Storage::disk('local')->get($result['csv_path']));
+        $csv = Storage::disk('local')->get($result['csv_path']);
+        $this->assertStringContainsString('Computer Science', $csv);
+        $csvRows = array_map('str_getcsv', preg_split('/\\r\\n|\\n|\\r/', trim($csv)));
+        $this->assertSame("'=HYPERLINK(\"https://evil.example\",\"Click\")", $csvRows[2][5]);
+        $this->assertSame("'+1+1", $csvRows[2][6]);
+        $this->assertSame((string) $batch->id, $csvRows[2][0]);
 
         $again = $service->create($batch->fresh());
         $this->assertSame('reused', $again['status']);
