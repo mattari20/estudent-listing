@@ -18,24 +18,23 @@ Preserve GCU candidate rows #348–353 and batches #19–23. Keep the 20 additio
 
 ## 2. Workstream A — repository-only security remediation
 
-The older Draft PR #975 was closed as superseded. Its replacement, PR #981, is the active security-remediation candidate, rebuilt on current main.
+**COMPLETED in PR #981**, merged at `63c3cd51c4bc73bfebd81406d1b2d4bb8ef2858f`.
 
-It currently proposes:
-- Include `master_admin` in the initial administrator-exists guard.
-- Apply HTML-sensitive JSON encoding flags to both institution and breadcrumb JSON-LD.
-- Neutralize formula-leading string values in discovery review CSV exports.
-- Include both Feature and Unit tests in PHPUnit discovery.
+Delivered:
+- First-admin guard includes `master_admin` on both setup GET and POST paths.
+- Institution and breadcrumb JSON-LD use HTML-sensitive JSON encoding flags.
+- Discovery review CSV formula-leading string values are neutralized.
+- PHPUnit discovers both Feature and Unit suites.
+- Focused regression tests cover setup blocking, JSON-LD script termination and CSV formula injection.
+- Two pre-existing Unit-test issues exposed by enabling Unit discovery were corrected: the unsupported entity fixture now uses an actually unsupported entity type; official-source identity tests use an injected deterministic SourceUrlGuard resolver rather than relying on live DNS. Production retains the default SourceUrlGuard behavior.
 
-Before merge, the PR owner must:
-1. Rebase or recreate the work on the current `main` without force-updating unrelated branches.
-2. Add or identify focused regression tests for each security behavior.
-3. Verify spreadsheet-safe handling for leading whitespace/control characters and formula prefixes, while preserving non-string numeric values.
-4. Verify JSON-LD remains valid JSON and hostile string values cannot terminate the script element.
-5. Verify the first-admin guard blocks setup when the only existing privileged user has role `master_admin`, in both create and store paths.
-6. Run PR-head Test, Laravel CI and Project Controller checks; inspect exact-head results.
-7. Keep the PR Draft until review confirms all tests and behavior. Do not merge solely because it is mergeable or checks unrelated to the exact head pass.
+Exact-head validation:
+- Laravel CI: passed, 798 tests / 3,531 assertions / 0 failures.
+- Test workflow: passed, 798 tests / 3,531 assertions / 0 failures.
+- Public Browser Runtime Diagnostics: passed.
+- All three checks passed before merge.
 
-No production deployment is included.
+No production deployment or production execution was part of this PR.
 
 ## 3. Workstream B — scheduler ownership design
 
@@ -77,16 +76,15 @@ The following remain gates before any production-write proposal:
 
 The current public sanitized report remains public under the previously approved exception; do not place secrets, raw logs or private diagnostic payloads in repository documentation.
 
-## 6. Sequencing and completion gates
+## 6. Sequencing and completion gates (accelerated/consolidated)
 
-| Sequence | Deliverable | Completion gate |
+| Delivery | PR | Completion gate |
 |---|---|---|
-| 1 | PR #981 security remediation | MERGED after exact-head tests and public diagnostics passed |
-| 2 | PR #982 consolidated design package | Scheduler, GCU reconciliation, production-readiness and tracker documents reviewed and checks passed |
-| 3 | Phase 1B closeout | Record exact merge commits, check runs and remaining production-readiness blockers |
+| Security remediation and regression tests | #981 — MERGED | Exact-head Laravel CI, Test and public browser diagnostics passed |
+| Scheduler ownership, GCU reconciliation, production-readiness package and tracker | #982 — IN REVIEW | Documentation consistency, exact-head Laravel CI, Test and Project Controller checks pass; review confirms explicit non-actions and blockers |
+| Phase 1B closeout | Tracker update after #982 | Exact merge commits/check runs recorded; no unverified production gate is represented as passed |
 
-
-Work may proceed on repository-only artifacts in parallel only when files and assumptions do not conflict. Do not begin implementation of scheduler changes or GCU data operations until their design has been reviewed and separately authorized.
+The earlier four-workstream breakdown remains useful for scope tracking, but it does not require four separate PRs. Do not create separate PRs #983/#984 solely to split the documentation work. Additional corrective PRs are justified only by an independently reviewable change or a safety boundary.
 
 ## 7. Reporting rules
 
@@ -103,7 +101,7 @@ A merged PR is not proof of production deployment, live scheduler health, schema
 
 - PR #979: merged; Phase 1A evidence exercise closed with explicit blockers.
 - PR #980: merged; Phase 1B design-only plan established.
-- Phase 1B is being consolidated into one security/code PR and one documentation/design PR where practical.
+- Phase 1B is using the accelerated two-PR delivery: security PR #981 merged; consolidated documentation PR #982 is under review.
 - Production operational readiness: NOT CERTIFIED.
 - PR #975: closed unmerged as superseded by PR #981.
 - PR #981: merged at `63c3cd51c4bc73bfebd81406d1b2d4bb8ef2858f`; exact-head Test and Laravel CI each passed 798 tests / 3,531 assertions; public browser diagnostics passed.
