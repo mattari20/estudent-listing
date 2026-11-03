@@ -16,7 +16,8 @@ class RunInstituteDiscoveryAgent extends Command
 
     public function handle(InstituteDiscoveryAgentService $agent, ExecutionLeaseService $lease): int
     {
-        $result = $lease->run('governed-institute-discovery-pipeline', function () use ($agent): int {
+        $result = $lease->run('governed-institute-discovery-pipeline', function ($heartbeat) use ($agent): int {
+            $heartbeat();
             try {
                 $summary = $agent->run(
                     $this->argument('profile'),
@@ -28,6 +29,7 @@ class RunInstituteDiscoveryAgent extends Command
                 return self::FAILURE;
             }
 
+            $heartbeat();
             $this->table(
                 ['Metric', 'Value'],
                 collect($summary)->map(fn ($value, $key) => [$key, $value])->values()->all()
