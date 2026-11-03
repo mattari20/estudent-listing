@@ -57,6 +57,12 @@ jobs:
           tests/Unit/InstituteDiscoveryCandidateExtractorTest.php
           tests/Feature/DatabaseHealthCheckTest.php
           tests/Feature/GeographySeedPreflightTest.php
+          app/Services/ExecutionLeaseService.php
+          app/Console/Commands/BootstrapInstituteAgent.php
+          app/Console/Commands/MonitorSourceChanges.php
+          app/Console/Commands/RunInstituteDiscoveryAgent.php
+          database/migrations/2026_11_03_000001_create_governed_execution_leases_table.php
+          tests/Feature/ExecutionLeaseServiceTest.php
 
       - name: Verify formatted discovery files
         run: >-
