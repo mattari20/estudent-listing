@@ -21,10 +21,21 @@ return new class extends Migration
             $table->string('failure_code', 160)->nullable();
             $table->timestamps();
         });
+
+        Schema::create('governed_execution_run_events', function (Blueprint $table): void {
+            $table->id();
+            $table->uuid('run_id')->index();
+            $table->string('event_type', 30);
+            $table->timestamp('occurred_at');
+            $table->string('failure_code', 160)->nullable();
+            $table->timestamps();
+            $table->foreign('run_id')->references('id')->on('governed_execution_runs')->cascadeOnDelete();
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('governed_execution_run_events');
         Schema::dropIfExists('governed_execution_runs');
     }
 };
