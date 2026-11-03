@@ -81,10 +81,10 @@ The current public sanitized report remains public under the previously approved
 
 | Sequence | Deliverable | Completion gate |
 |---|---|---|
-| 1 | PR #975 security remediation | Focused regression tests, exact-head CI, review; remain Draft until validated |
-| 2 | Scheduler ownership design | Execution-path map, alternatives, chosen proposal, failure/recovery model and concurrency tests specified |
-| 3 | GCU reconciliation design | Row/batch preservation rules, evidence mapping, dry-run contract and acceptance tests specified |
-| 4 | Readiness decision package | Every prerequisite classified with evidence or explicit blocker; no inferred production pass |
+| 1 | PR #981 security remediation | MERGED after exact-head tests and public diagnostics passed |
+| 2 | PR #982 consolidated design package | Scheduler, GCU reconciliation, production-readiness and tracker documents reviewed and checks passed |
+| 3 | Phase 1B closeout | Record exact merge commits, check runs and remaining production-readiness blockers |
+
 
 Work may proceed on repository-only artifacts in parallel only when files and assumptions do not conflict. Do not begin implementation of scheduler changes or GCU data operations until their design has been reviewed and separately authorized.
 
@@ -106,7 +106,7 @@ A merged PR is not proof of production deployment, live scheduler health, schema
 - Phase 1B is being consolidated into one security/code PR and one documentation/design PR where practical.
 - Production operational readiness: NOT CERTIFIED.
 - PR #975: closed unmerged as superseded by PR #981.
-- PR #981: open Draft; first exact-head checks exposed two existing Unit-test failures after PHPUnit Unit discovery was enabled. The unsupported-entity fixture was corrected to use a truly unsupported type; official-source identity tests were made deterministic through an injectable URL guard. New exact-head CI remains pending.
+- PR #981: merged at `63c3cd51c4bc73bfebd81406d1b2d4bb8ef2858f`; exact-head Test and Laravel CI each passed 798 tests / 3,531 assertions; public browser diagnostics passed.
 - Scheduler ownership: unresolved.
 - Hostinger cron/worker provider scope: unknown.
 - AUTH-04 schema metadata: not verified.
