@@ -117,7 +117,7 @@ This document is a design-only plan. It does not grant or imply any production e
 
 ## Final status update (2026-11-03)
 
-This original design-only plan is superseded for status purposes by \`docs/audits/PHASE_1B_FINAL_CLOSEOUT_REPORT.md\`.
+This original design-only plan is superseded for status purposes by `docs/audits/PHASE_1B_FINAL_CLOSEOUT_REPORT.md`.
 
 - PR #981 security remediation: merged and exact-head checks passed.
 - PR #982 consolidated scheduler, GCU and production-readiness design package: merged and exact-head checks passed.
@@ -126,3 +126,6 @@ This original design-only plan is superseded for status purposes by \`docs/audit
 - AUTH-04, provider cron/worker visibility, scheduler ownership implementation, backup recoverability and separately authorized future operational actions remain carried gates.
 
 No production execution authorization is created by this status update.
+
+
+Final closeout PR #983 is merged. See \`docs/audits/PHASE_1B_FINAL_CLOSEOUT_REPORT.md\` and the final closeout section of the master tracker. Phase 1B defined deliverables are complete; production operational readiness remains NOT CERTIFIED.
