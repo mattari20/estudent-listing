@@ -2079,3 +2079,20 @@ PR #989 merged at 0a56a17148625ffe22f99ce5628b3dbfef29aaa4 after exact-head Lara
 Next engineering delivery: source retrieval idempotency. Audit: docs/audits/PHASE_1C_SOURCE_RETRIEVAL_IDEMPOTENCY.md. This adds one stable UTC-hour idempotency key per source retrieval, reuses completed runs, prevents duplicate start while a run is fresh/in progress, and retries failed/stale runs using the same run row. It does not claim idempotency for snapshots, observations, batches, candidates or discovery outcomes.
 
 Still blocked for Phase 1C closeout: simultaneous multi-process MySQL stress tests; full side-effect idempotency; Hostinger/provider cron/worker evidence and scheduler convergence; production revision parity, AUTH-04 and backup/recovery evidence; authorized GCU read-only reconciliation for rows #348–353 and batches #19–23; final evidence matrix and pilot go/no-go. Production operations and GCU export remain separately authorized actions. No dummy production data; AI and additional HEC profiles remain disabled.
+
+
+## Phase 1C — PR #990 merged and downstream idempotency audit (2026-11-03)
+
+PR #990 — feat: make governed source retrieval idempotent — merged at 82bb869d60834c7f87567bd814ca36b1348608e7. Its corrected exact-head checks passed (4 checks): Laravel CI, Test, isolated MySQL migration validation and Project Controller. The source-retrieval contract is now: each new retrieval call gets a fresh UUID by default; a retry must pass the same explicit idempotency key. This avoids suppressing legitimate fresh monitoring fetches within the same hour.
+
+Audit: docs/audits/PHASE_1C_DOWNSTREAM_SIDE_EFFECT_IDEMPOTENCY_AUDIT.md.
+
+The next balance work is downstream side-effect idempotency:
+- snapshot capture currently inserts a new row on every call and needs a unique operation key tied to retrieval-run ID;
+- observation compare has an application-level lookup but only a non-unique DB index on current snapshot, leaving a concurrent insert race;
+- discovery run outcomes are appended without a stable operation identity;
+- assertion links use firstOrCreate, but database uniqueness needs verification for concurrent safety;
+- event projection and reverification queue use timestamp/status-sensitive keys and need stable retry semantics;
+- monitoring batch partial-failure replay needs run-scoped side-effect review.
+
+Phase 1C remains IN PROGRESS. Scheduler-owner convergence, Hostinger/provider cron/worker evidence, production revision/schema/backup evidence, protected GCU read-only reconciliation and final pilot go/no-go remain open. No production operations or GCU export were performed. Phase 1B remains closed/frozen; no dummy production data; AI and extra HEC profiles remain disabled.
