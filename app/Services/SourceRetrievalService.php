@@ -23,6 +23,10 @@ class SourceRetrievalService
             'source-retrieval:v1|'.$source->id.'|'.now()->utc()->startOfHour()->toIso8601String()
         );
 
+        if ($idempotencyKey === '' || strlen($idempotencyKey) > 64) {
+            throw new InvalidArgumentException('Source retrieval idempotency keys must contain between 1 and 64 characters.');
+        }
+
         // The unique key protects retries of the same source/hour slot. The
         // governed execution lease serializes pipeline runners; this row lock
         // also prevents a second caller from taking over a live in-progress run.
@@ -31,6 +35,10 @@ class SourceRetrievalService
                 ->where('idempotency_key', $idempotencyKey)
                 ->lockForUpdate()
                 ->first();
+
+            if ($run && (int) $run->source_id !== (int) $source->id) {
+                throw new InvalidArgumentException('The source retrieval idempotency key is already assigned to another source.');
+            }
 
             if (! $run) {
                 $run = SourceRetrievalRun::create([
