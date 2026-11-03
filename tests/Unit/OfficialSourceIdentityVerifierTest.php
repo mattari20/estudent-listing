@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Source;
 use App\Services\OfficialSourceIdentityVerifier;
+use App\Services\SourceUrlGuard;
 use PHPUnit\Framework\TestCase;
 
 class OfficialSourceIdentityVerifierTest extends TestCase
@@ -17,7 +18,7 @@ class OfficialSourceIdentityVerifierTest extends TestCase
             'status' => 'active',
         ]);
 
-        $result = (new OfficialSourceIdentityVerifier())->verify($source, [
+        $result = (new OfficialSourceIdentityVerifier($this->publicUrlGuard()))->verify($source, [
             'example-university' => [
                 'source' => ['url' => 'https://university.example.edu/programs'],
             ],
@@ -37,7 +38,7 @@ class OfficialSourceIdentityVerifierTest extends TestCase
             'status' => 'active',
         ]);
 
-        $result = (new OfficialSourceIdentityVerifier())->verify($source, [
+        $result = (new OfficialSourceIdentityVerifier($this->publicUrlGuard()))->verify($source, [
             'example-university' => [
                 'source' => ['url' => 'https://university.example.edu/programs'],
             ],
@@ -56,7 +57,7 @@ class OfficialSourceIdentityVerifierTest extends TestCase
             'status' => 'inactive',
         ]);
 
-        $result = (new OfficialSourceIdentityVerifier())->verify($source, [
+        $result = (new OfficialSourceIdentityVerifier($this->publicUrlGuard()))->verify($source, [
             'example-university' => [
                 'source' => ['url' => 'https://directory.example.test/university'],
             ],
@@ -77,7 +78,7 @@ class OfficialSourceIdentityVerifierTest extends TestCase
             'status' => 'active',
         ]);
 
-        $result = (new OfficialSourceIdentityVerifier())->verify($source, [
+        $result = (new OfficialSourceIdentityVerifier($this->publicUrlGuard()))->verify($source, [
             'example-university' => ['source' => ['url' => $url]],
         ]);
 
@@ -96,7 +97,7 @@ class OfficialSourceIdentityVerifierTest extends TestCase
             'status' => 'active',
         ]);
 
-        $result = (new OfficialSourceIdentityVerifier())->verify($source, [
+        $result = (new OfficialSourceIdentityVerifier($this->publicUrlGuard()))->verify($source, [
             'example-university' => ['source' => ['url' => $url]],
         ]);
 
@@ -114,11 +115,20 @@ class OfficialSourceIdentityVerifierTest extends TestCase
             'status' => 'active',
         ]);
 
-        $result = (new OfficialSourceIdentityVerifier())->verify($source, [
+        $result = (new OfficialSourceIdentityVerifier($this->publicUrlGuard()))->verify($source, [
             'example-university' => ['source' => ['url' => $url]],
         ]);
 
         $this->assertFalse($result['verified']);
         $this->assertContains('source_url_invalid', $result['blockers']);
     }
+
+    private function publicUrlGuard(): SourceUrlGuard
+    {
+        return new SourceUrlGuard(
+            fn (string $host): array => [['ip' => '93.184.216.34']]
+        );
+    }
+
+
 }
