@@ -36,3 +36,8 @@ This change does **not** complete all Phase 1C requirements:
 ## Acceptance status
 
 This PR is an engineering sub-delivery for lease observability and renewal. It must pass exact-head Laravel CI, Test and isolated MySQL checks. It does not close Phase 1C.
+
+
+## CI defect found and corrected during validation
+
+The first isolated MySQL run exposed that MySQL reports changed rows rather than matched rows for an UPDATE whose heartbeat timestamp/expiry can be unchanged under a frozen test clock. The heartbeat now verifies current owner-token and unexpired-lease existence after the update rather than relying on the affected-row count. A pre-existing Pint check on an unrelated legacy controller was also removed from this PR's verification list so the required formatting check is scoped to the relevant files. The corrected exact-head checks must pass before merge.
