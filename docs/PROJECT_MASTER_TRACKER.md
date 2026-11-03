@@ -2019,3 +2019,18 @@ Critical dependency: #986 → #987 → #988. PR #989 may be prepared independent
 Readiness register: `docs/audits/PHASE_1C_JOINT_DELIVERY_READINESS_REGISTER.md`.
 
 This audit confirms the Phase 1C plan and tracker are present on main and that planned PRs #986–#990 had not yet been created. It does not claim that the five workstreams are implemented. Production revision parity, Hostinger scheduler/worker scope, AUTH-04 production schema, backup recoverability and GCU historical mapping remain NOT VERIFIED or BLOCKED pending separately authorized evidence. No production operation, GCU export/mutation, HEC activation, AI extraction, approval, import, canonical promotion or publication occurred. Phase 1B remains closed and frozen.
+
+
+---
+
+## Phase 1C — scheduler/concurrency audit (2026-11-03)
+
+**Finding: CROSS-RUNNER CONCURRENCY RISK CONFIRMED.**
+
+Audit: `docs/audits/PHASE_1C_SCHEDULER_AND_CONCURRENCY_AUDIT.md`.
+
+Repository inspection confirms that `bootstrap/app.php` schedules `institutes:bootstrap-agent` and `institutes:monitor-changes` hourly with Laravel `withoutOverlapping(55)`, while `.github/workflows/scheduled-institute-discovery.yml` schedules at `15 * * * *` and invokes the same commands over Hostinger SSH. GitHub workflow concurrency and Laravel scheduler locks are independent; cross-runner exclusion is not established. Hostinger/provider invocation of `schedule:run` remains UNKNOWN.
+
+PR #986 merged at `ce61b95b724bd41626ec41f608124ecf4393d82b`. Exact-head Laravel CI #41629643613 and Test #41629643597 passed 798 tests / 3,531 assertions each; Project Controller #41629643640 passed. Full Laravel/Test CI uses SQLite; current isolated MySQL workflow is scoped to the approvals migration and does not validate discovery/monitoring concurrency.
+
+No production operation or schedule change was performed. Next safe engineering step: shared durable execution lease and idempotency with isolated MySQL/concurrency tests; only then converge scheduler ownership.
