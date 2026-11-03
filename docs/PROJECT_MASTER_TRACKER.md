@@ -1573,3 +1573,76 @@ No credentials or secrets were exposed, reproduced or inferred.
 ### Safety confirmation
 
 This update records screenshot observations and existing repository facts only. No production SSH, Artisan, Composer, SQL/database, hPanel action, cron/queue operation, backup operation, private diagnostic report access, workflow dispatch/rerun/state change, deployment, configuration change, source discovery/retrieval, extraction, candidate staging/approval/import, canonical promotion or publication occurred. No production data or configuration changed. Phase 1A is not complete.
+
+
+---
+
+## Phase 1A-05D — Post-merge Hostinger workflow failure and evidence reconciliation (2026-11-03)
+
+**Verified baseline:** live `main` and PR #967 merge commit are both `101b7c20d0b6a283ad0d78d966bc673e98a0aef4`. PR #967 is `closed`, `merged=true`. This audit branch was created directly from that SHA. The current `main` push triggered the run set below; all listed run IDs use head SHA `101b7c20d0b6a283ad0d78d966bc673e98a0aef4`.
+
+### 1. Failed Hostinger workflow — metadata-only conclusion
+
+- Workflow: **Hostinger Read-only Diagnostics**, run **41552845301**, push event, branch `main`, created 2026-11-03 00:26:17 UTC (05:26:17 PKT), completed 00:26:34 UTC (05:26:34 PKT), conclusion `failure`.
+- Failed job: **Run read-only Institutes diagnostics over SSH**, job **125644442102**.
+- Step summaries: setup, checkout and application-code revision resolution succeeded; **Run diagnostics on Hostinger** failed; **Verify public directory and API response contracts** and **Verify guest denial for operator-only discovery endpoints** were skipped.
+- The workflow source resolves an application-code SHA from application paths, then invokes `appleboy/ssh-action@v1.2.0` with Hostinger SSH secrets and a default Institutes project path. The remote script requires an absolute path without `..`, an `artisan` file, executable `/opt/alt/php85/usr/bin/php`, a disposable parity repository, the expected revision to be an ancestor of remote `origin/main`, the Phase 5B.18 diagnostic PHP script, an unused protected report destination, successful PHP lint, a valid bounded JSON report (maximum 262144 bytes), and a passing report status/zero diagnostic exit before the later Artisan/API/schema checks can continue.
+- The later source-defined checks include `artisan env`, bounded `artisan route:list --json`, `artisan schedule:list`, and read-only schema/migration-ledger metadata queries. The public HTTP and operator-denial checks are downstream and did not run in this attempt.
+- **Filesystem side-effect clarification:** this workflow is not strictly filesystem-read-only. Its source creates and removes temporary directories, initializes/fetches into a disposable Git repository, and can create a protected private diagnostic report under `storage/app/private/diagnostics/phase-5b18-artisan-runtime.json`. The report path is guarded against overwrite. This is a source-level workflow fact, not evidence that the failed run reached or performed any of those operations.
+- Available metadata does **not** distinguish SSH network/timeout, authentication/host configuration, path/artisan/PHP preflight, parity fetch/ancestry, diagnostic script/lint/execution, report-preservation, Artisan, or database metadata failure. These remain possible categories only. No root cause is asserted.
+- Raw job logs and private report contents were not accessed. No workflow retry, dispatch, cancellation or state change occurred. Further diagnosis requires a separately authorized, sanitized excerpt from the failed step (no secret values, environment dumps, report contents, credentials, connection strings or database rows), or separately authorized evidence. Do not retry production diagnostics as part of this audit.
+
+### 2. Regression-test coverage
+
+- Existing `tests/Feature/HostingerDirectoryVisibilityDiagnosticsContractTest.php` verifies workflow contract/source features, report safeguards, parity approach, bounded route checks, schema-readiness structure and public API/guest checks.
+- The current-main **Test** run #41552845402 passed and includes the Hostinger diagnostics contract test suite.
+- That structural contract coverage does not reproduce the actual failed SSH action, distinguish its runtime failure categories, or establish the failed step's root cause. The separate `scripts/ci/test-hostinger-artisan-runtime-diagnostic.rb` validates a different runtime-only delivery workflow; it is not a regression reproduction for run #41552845301.
+- No new test was added because the permitted change is documentation-only and the failure cannot be safely reproduced without access/log evidence.
+
+### 3. Current-main automation and CI results
+
+All results below completed on the same current-main SHA:
+
+| Workflow | Run ID | Conclusion | What it establishes / does not establish |
+|---|---:|---|---|
+| Project Controller | [41552845288](https://github.com/mattari20/estudent-listing/actions/runs/41552845288) | SUCCESS | Offline controller tests, workflow syntax validation, read-only GitHub inventory and report upload succeeded; not production health. |
+| Command Orchestrator | [41552845188](https://github.com/mattari20/estudent-listing/actions/runs/41552845188) | SUCCESS | Push-triggered gate, supported controller smoke checks and GitHub inventory succeeded; issue/PR comment restore/persist paths were skipped because this was a push without an issue target. Not production health. |
+| Public Site Monitor | [41552845228](https://github.com/mattari20/estudent-listing/actions/runs/41552845228) | SUCCESS | Public HTTP/listing smoke job succeeded. Its source explicitly treats an empty published listing as `EMPTY_DATA` rather than a broken detail route; success does not prove records exist or database/queue/scheduler health. |
+| Laravel CI | [41552845218](https://github.com/mattari20/estudent-listing/actions/runs/41552845218) | SUCCESS | Repository Laravel CI test job succeeded; not a production runtime/schema result. |
+| Test | [41552845402](https://github.com/mattari20/estudent-listing/actions/runs/41552845402) | SUCCESS | Repository test job, including workflow contract checks and SQLite test migrations, succeeded; not a production database migration or live-health result. |
+| Hostinger Read-only Diagnostics | [41552845301](https://github.com/mattari20/estudent-listing/actions/runs/41552845301) | FAILURE | Hostinger diagnostic step failed; downstream public/operator checks skipped; root cause unresolved. |
+
+### 4. Open PR and branch conflict review
+
+At audit time, the open PR inventory included #957, #956, #955, #954, #953, #913, #911 and #899. PRs #954–#957 add separate audit documents; #953 concerns a different runtime-only workflow; #911 concerns the Hostinger diagnostics workflow and its contract test. No existing PR was changed.
+
+- **Tracker overlap:** PR #913 and PR #899 both modify `docs/PROJECT_MASTER_TRACKER.md`, so they are potential content-conflict/merge-order risks for this documentation update. PR #913 was reported non-mergeable against its older base; PR #899 was reported mergeable but also has an older base. This branch was nevertheless based on the verified current `main`; reconcile any overlapping tracker hunks if either PR is later updated/merged. Do not modify those PRs as part of this task.
+- **Workflow overlap:** PR #911 modifies `.github/workflows/hostinger-readonly-diagnostics.yml` and `tests/Feature/HostingerDirectoryVisibilityDiagnosticsContractTest.php`; neither file is changed by this audit. PR #953 changes the separate `hostinger-artisan-runtime-only.yml` workflow and its delivery contract test.
+- No pre-existing branch or PR was force-updated, merged, closed, or otherwise modified.
+
+### 5. Phase 1A gate reconciliation
+
+| Gate | Status | Evidence source | Remaining requirement |
+|---|---|---|---|
+| P1A-01 — GitHub workflow inventory and enabled-state evidence | **PARTIAL** | Current repository workflow definitions; current-main run metadata #41552845288, #41552845188, #41552845228, #41552845218, #41552845402 and #41552845301. Prior inventory records 35 workflow definitions/eight scheduled definitions. | Complete enabled/disabled-state evidence for all workflows is still required; a run list does not prove workflow enabled state. |
+| P1A-02 — Deployed revision and application-code parity | **PARTIAL** | Historical AUTH-02 evidence and current workflow source; current attempt #41552845301 failed before a parity result is exposed. | Fresh authorized deployed SHA and application-path parity evidence; current-main CI is not deployment evidence. |
+| P1A-03 — Artisan registration/help/runtime evidence | **NOT AUTHORIZED** | Workflow source shows intended bounded Artisan checks; failed job metadata does not prove they ran. AUTH-03 remains unapproved. | Separate explicit AUTH-03 approval and bounded, reviewed evidence collection. |
+| P1A-04 — Production database schema and migration-ledger metadata | **NOT AUTHORIZED** | Repository migration definitions and diagnostic source only; no current production query. AUTH-04 remains unapproved and requires proven SELECT-only grants. | Separate explicit AUTH-04 approval and proof of SELECT-only grants before any metadata connection. |
+| P1A-05 — Hostinger cron inventory | **PARTIAL** | Owner-supplied Cron Jobs screenshot recorded in Phase 1A-05C; no saved rows visible in that capture. | Complete redacted saved-job inventory with command, PHP executable, schedule/timezone, enabled state and last/next run where available. |
+| P1A-06 — Persistent queue worker evidence | **UNVERIFIED** | Owner-supplied dashboard screenshot did not show worker management; repository queue defaults are not live process evidence. | View-only process/worker/Supervisor configuration and status/count/persistence/restart evidence, or evidence that the relevant feature is unavailable. |
+| P1A-07 — Scheduler ownership and cross-runner coordination | **PARTIAL** | Repository Laravel hourly schedules and GitHub scheduled workflow; distinct lock mechanisms; Hostinger cron inventory still unknown. | Establish actual Hostinger cron invocation and scheduler owner; assess overlap/shared locking from current evidence. |
+| P1A-08 — Monitoring, private reports and backups | **PARTIAL** | Current public monitor run #41552845228; prior owner-supplied backup screenshots and repository monitor configuration. | Backup retention and restore evidence, private-report access/retention, and any separately authorized private evidence. Public monitor success is not database/worker health. |
+| P1A-09 — Consolidated evidence and readiness decision | **BLOCKED** | Outstanding gates above; latest Hostinger diagnostic failure remains unresolved. | Complete and cross-reference all required evidence groups, then issue a readiness decision without substituting CI success for production evidence. |
+
+No completion percentage is calculated because no approved weighting model exists. Phase 1A remains incomplete. Phase 1B may be considered for design-only planning only; this audit grants no production or source-operation authorization.
+
+### 6. Owner evidence / authorization needed next
+
+1. For the failed run, provide or separately authorize review of a **sanitized, non-secret excerpt** from only the “Run diagnostics on Hostinger” step, identifying the final error category/exit status. Do not provide SSH secrets, environment dumps, database rows or private report contents. Raw job logs were not accessed in this audit.
+2. For P1A-01, provide GitHub Actions UI evidence of enabled/disabled state for the workflow inventory.
+3. For P1A-02, P1A-03 and P1A-04, obtain the separately scoped authorizations and evidence described above; this audit does not imply approval.
+4. For P1A-05 through P1A-08, provide the remaining redacted Hostinger cron/worker and backup/private-report evidence within the already approved view-only boundaries. No hPanel action or private report access was performed here.
+
+### 7. Safety confirmation
+
+This audit used GitHub repository files, workflow/job metadata, open PR metadata and existing repository documentation only. No job logs or private diagnostic reports were accessed. No workflow was dispatched, rerun, cancelled, approved, enabled or disabled. No Hostinger SSH/hPanel/production files/database/Artisan/Composer/SQL/cron/queue/backup operation occurred. No source retrieval, official-source discovery, extraction, candidate staging, approval, import, canonical promotion or publication occurred. No pre-existing PR was modified. No application code, workflow behavior, environment configuration or database schema was changed. Historical GCU candidate rows #348–353 and batches #19–23 remain preserved; the 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created. Phase 1A remains incomplete.
