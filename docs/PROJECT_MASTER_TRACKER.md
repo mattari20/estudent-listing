@@ -1530,3 +1530,46 @@ ORDER BY migration;
 ### Safety confirmation
 
 Only current GitHub repository files, GitHub run/job metadata, migration definitions and already supplied owner screenshots/terminal evidence were reviewed. No Hostinger session, production SSH, Artisan, DB connection/query, hPanel action, cron/queue operation, backup generation/download/restore, private report opening, workflow dispatch/rerun/cancel/enable/disable, deployment, migration, cache clear, source retrieval/discovery/staging/import, approval, canonical promotion or publication occurred. No production data/configuration changed. Historical GCU rows #348–353 and batches #19–23 remain untouched; the 20 additional HEC profiles and AI extraction remain disabled; no dummy production data was created.
+
+
+---
+
+## Phase 1A-05C — Hostinger cron and worker screenshot evidence (2026-11-03)
+
+**Repository baseline:** `main` verified at `cb0ad9c88fbdbd92825f9ef4da18c2f0571acac4`. PR #966 remains `closed`, `merged=true` (merged 2026-11-02T14:47:07Z). The existing tracker and Phase 1A evidence plan were present at the baseline. This update is documentation-only on branch `docs/phase-1a-05c-hostinger-cron-worker-evidence-2026-11-03`.
+
+### Evidence sources and classification
+
+The following are **owner-supplied screenshot observations as described by the owner**. They are not direct server/process observations and do not independently authenticate Hostinger backend state.
+
+| Evidence | Observed in screenshot | Classification | What is not established |
+|---|---|---|---|
+| Screenshot A — Websites → Advanced → Cron Jobs for `estudent.pk` | The visible page contains the “Create a New Cron Job” form. No saved cron-job rows are visible in the supplied capture. | OWNER-SUPPLIED SCREENSHOT OBSERVATION — `NO_SAVED_CRON_ENTRIES_VISIBLE_IN_OWNER_SUPPLIED_SCREENSHOT` | Does not establish that no cron jobs exist. No saved command, PHP executable path, schedule/frequency, timezone, enabled/disabled state, last execution or next execution is established. A complete saved-job inventory remains outstanding. |
+| Screenshot B — Hostinger website dashboard | Deployment state displayed as Completed; repository `estudent-listing`; branch `main`; displayed commit `cb0ad9c`; root directory `public_html/institutes`; resource usage displayed. No persistent queue-worker or process-manager configuration is visible. | OWNER-SUPPLIED SCREENSHOT OBSERVATION — `NO_WORKER_MANAGEMENT_INTERFACE_VISIBLE_IN_OWNER_SUPPLIED_DASHBOARD_SCREENSHOT` | Does not establish whether a Laravel queue worker process exists, whether it is running, its command, supervisor/service, process count, restart policy or queue health. Resource allocation does not prove a queue consumer exists. |
+
+No credentials or secrets were exposed, reproduced or inferred.
+
+### Gate status
+
+- **P1A-05C — Hostinger cron inventory: PARTIAL.** The screenshot shows the Cron Jobs page but no saved entries. Actual Hostinger cron configuration remains unverified. Do not report “no cron jobs exist.”
+- **P1A-06 — Persistent queue worker: UNVERIFIED.** No worker/process management interface is visible in the supplied dashboard capture. Existence and runtime status of a persistent Laravel queue worker remain unverified; do not report that no worker process exists.
+- **P1A-07 — Scheduler ownership: PARTIAL.** Repository-level Laravel scheduler and GitHub scheduled workflow are known, but Hostinger cron configuration has not been established. Cross-runner execution ownership and actual overlap remain unresolved.
+
+### Preserve repository facts and prior evidence boundaries
+
+- Laravel schedules `institutes:bootstrap-agent` and `institutes:monitor-changes` hourly.
+- GitHub separately invokes these commands through `scheduled-institute-discovery.yml`.
+- GitHub concurrency and Laravel `withoutOverlapping(55)` are separate mechanisms; neither proves a shared cross-runner lock.
+- Hostinger PHP worker allocation does not prove a Laravel queue worker exists.
+- Repository queue defaults remain database driver and `default` queue; these are repository configuration facts, not live worker evidence.
+- GCU historical candidate rows #348–353 and batches #19–23 remain preserved. The 20 additional HEC profiles remain disabled and AI extraction remains disabled.
+
+### Remaining evidence needed
+
+1. A complete, redacted Hostinger saved Cron Jobs list showing each saved command, PHP executable path, schedule/frequency, timezone, enabled/disabled state and last/next run where available.
+2. A view-only worker/process/Supervisor/background-process screen showing configured worker command, status/count, persistence and restart policy; if Hostinger provides no such feature, evidence of the unavailable feature so P1A-06 can be classified accurately. Absence of a UI feature still does not prove no process exists outside that interface.
+3. Continue to treat GitHub workflow enabled/disabled state, current production runtime/schema, backup retention/restore, and private-report access/retention as separate outstanding evidence or authorization gates documented above. AUTH-03 and AUTH-04 remain not authorized; AUTH-05 remains view-only with no scope expansion.
+
+### Safety confirmation
+
+This update records screenshot observations and existing repository facts only. No production SSH, Artisan, Composer, SQL/database, hPanel action, cron/queue operation, backup operation, private diagnostic report access, workflow dispatch/rerun/state change, deployment, configuration change, source discovery/retrieval, extraction, candidate staging/approval/import, canonical promotion or publication occurred. No production data or configuration changed. Phase 1A is not complete.
