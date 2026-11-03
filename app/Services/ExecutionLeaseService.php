@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Services;
+namespace App\Services;
 
 use Closure;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ExecutionLeaseService
 {
