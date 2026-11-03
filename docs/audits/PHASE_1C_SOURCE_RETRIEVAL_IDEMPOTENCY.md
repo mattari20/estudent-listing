@@ -8,7 +8,7 @@ This delivery adds deterministic idempotency for source retrievals only. It does
 
 ## Contract
 
-- A default retrieval key is derived from the source ID and current UTC hour slot.
+- Each new retrieval call receives a fresh UUID key by default. A caller retrying the same logical operation must pass the same explicit idempotency key.
 - A unique nullable key is stored on source retrieval runs. Historical rows remain valid with a null key.
 - Repeated calls for a completed key return the existing completed retrieval and do not fetch the source again.
 - A fresh in-progress key is not started a second time.
