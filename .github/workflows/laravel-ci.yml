@@ -74,6 +74,10 @@ jobs:
           app/Models/SourceSnapshot.php
           tests/Feature/SourceSnapshotTest.php
           database/migrations/2026_11_03_000004_add_snapshot_and_observation_idempotency.php
+          app/Services/SourceChangeDiscoveryService.php
+          app/Models/InstituteDiscoveryRunOutcome.php
+          tests/Feature/SourceChangeDiscoveryIdempotencyTest.php
+          database/migrations/2026_11_03_000005_add_discovery_outcome_idempotency_key.php
 
       - name: Verify formatted discovery files
         run: >-
@@ -99,3 +103,7 @@ jobs:
           app/Models/SourceSnapshot.php
           tests/Feature/SourceSnapshotTest.php
           database/migrations/2026_11_03_000004_add_snapshot_and_observation_idempotency.php
+          app/Services/SourceChangeDiscoveryService.php
+          app/Models/InstituteDiscoveryRunOutcome.php
+          tests/Feature/SourceChangeDiscoveryIdempotencyTest.php
+          database/migrations/2026_11_03_000005_add_discovery_outcome_idempotency_key.php
