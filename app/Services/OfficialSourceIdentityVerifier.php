@@ -10,6 +10,10 @@ use App\Models\Source;
  */
 class OfficialSourceIdentityVerifier
 {
+    public function __construct(private readonly ?SourceUrlGuard $urlGuard = null)
+    {
+    }
+
     /**
      * @param array<string, mixed> $profiles
      * @return array{verified:bool,profile_key:?string,blockers:array<string>,reason:string}
@@ -66,7 +70,7 @@ class OfficialSourceIdentityVerifier
         try {
             // Use the same host and credential policy as the HTTP retriever.
             // Identity verification must not bless a URL that retrieval rejects.
-            (new SourceUrlGuard())->validate($url);
+            ($this->urlGuard ?? new SourceUrlGuard())->validate($url);
 
             return true;
         } catch (\Throwable) {
