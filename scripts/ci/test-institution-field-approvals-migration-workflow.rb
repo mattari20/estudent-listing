@@ -24,8 +24,8 @@ abort 'ERROR: confirmation must derive exclusively from explicit manual input' u
 abort 'ERROR: event type must never authorize migration' if env['CONFIRM_MIGRATION'].include?('github.event_name') || env['CONFIRM_MIGRATION'].include?('push')
 
 script = step.fetch('with').fetch('script')
-preflight = script.index("if [ "$PREFLIGHT_EXIT" -ne 0 ]")
-read_only_gate = script.index("elif [ "$CONFIRM_MIGRATION" != "true" ]; then")
+preflight = script.index('if [ "$PREFLIGHT_EXIT" -ne 0 ]')
+read_only_gate = script.index('elif [ "$CONFIRM_MIGRATION" != "true" ]; then')
 migration_command = script.index('php artisan migrate --force --path="$MIGRATION_FILE"')
 post_verify = script.index('migration_status=TARGET_SCHEMA_AND_LEDGER_VERIFIED')
 abort 'ERROR: preflight failure must stop before any migration' unless preflight && migration_command && preflight < migration_command
