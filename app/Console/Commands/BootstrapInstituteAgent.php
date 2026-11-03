@@ -11,6 +11,7 @@ use App\Services\ExecutionLeaseService;
 use App\Services\InstituteDiscoveryAgentService;
 use App\Services\InstituteDiscoveryCandidateExtractor;
 use App\Services\InstituteIdentityDiscoveryService;
+use Closure;
 use Illuminate\Console\Command;
 
 class BootstrapInstituteAgent extends Command
@@ -27,7 +28,7 @@ class BootstrapInstituteAgent extends Command
         InstituteDiscoveryAgentService $agent,
         InstituteIdentityDiscoveryService $identityDiscovery,
     ): int {
-        $result = $lease->run('governed-institute-discovery-pipeline', fn () => $this->runBootstrapPipeline($monitoring, $agent, $identityDiscovery));
+        $result = $lease->run('governed-institute-discovery-pipeline', fn ($heartbeat) => $this->runBootstrapPipeline($monitoring, $agent, $identityDiscovery, $heartbeat));
         if ($result === null) {
             $this->warn('Governed institute discovery is already running; this invocation did no work.');
             return self::SUCCESS;
@@ -39,6 +40,7 @@ class BootstrapInstituteAgent extends Command
         DiscoveryMonitoringPolicyService $monitoring,
         InstituteDiscoveryAgentService $agent,
         InstituteIdentityDiscoveryService $identityDiscovery,
+        Closure $heartbeat,
     ): int {
         $profiles = $this->option('profile');
 
@@ -52,6 +54,7 @@ class BootstrapInstituteAgent extends Command
         $sourceFailures = [];
 
         foreach ($profiles as $profile) {
+            $heartbeat();
             $definition = config("institute_agent.profiles.{$profile}");
 
             if (! is_array($definition)) {

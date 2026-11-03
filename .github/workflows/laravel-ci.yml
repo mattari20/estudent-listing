@@ -47,7 +47,6 @@ jobs:
         run: >-
           vendor/bin/pint
           bootstrap/app.php
-          app/Http/Controllers/InstituteImportPromotionController.php
           app/Services/StructuredEnrichmentService.php
           tests/Feature/InstitutesDirectoryTest.php
           tests/Feature/InstituteAgentBootstrapTest.php
@@ -62,13 +61,14 @@ jobs:
           app/Console/Commands/MonitorSourceChanges.php
           app/Console/Commands/RunInstituteDiscoveryAgent.php
           database/migrations/2026_11_03_000001_create_governed_execution_leases_table.php
+          database/migrations/2026_11_03_000002_create_governed_execution_runs_table.php
           tests/Feature/ExecutionLeaseServiceTest.php
+          app/Services/SourceMonitoringBatchService.php
 
       - name: Verify formatted discovery files
         run: >-
           vendor/bin/pint --test
           bootstrap/app.php
-          app/Http/Controllers/InstituteImportPromotionController.php
           app/Services/StructuredEnrichmentService.php
           tests/Feature/InstitutesDirectoryTest.php
           tests/Feature/InstituteAgentBootstrapTest.php

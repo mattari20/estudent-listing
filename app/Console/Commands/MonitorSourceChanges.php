@@ -30,8 +30,8 @@ class MonitorSourceChanges extends Command
             return self::SUCCESS;
         }
 
-        $result = $lease->run('governed-institute-discovery-pipeline', function () use ($monitoring, $policyId): int {
-            $summary = $monitoring->run($policyId);
+        $result = $lease->run('governed-institute-discovery-pipeline', function ($heartbeat) use ($monitoring, $policyId): int {
+            $summary = $monitoring->run($policyId, $heartbeat);
             $this->table(['Metric', 'Value'], collect($summary)->map(fn ($value, $key) => [$key, $value])->values()->all());
 
             return self::SUCCESS;

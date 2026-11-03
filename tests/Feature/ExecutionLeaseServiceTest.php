@@ -26,6 +26,27 @@ class ExecutionLeaseServiceTest extends TestCase
         $this->assertSame('owner-ran', $result);
         $this->assertNull($nestedResult);
         $this->assertDatabaseCount('governed_execution_leases', 0);
+        $this->assertDatabaseHas('governed_execution_runs', [
+            'task_key' => 'governed-institute-discovery-pipeline',
+            'status' => 'completed',
+        ]);
+        $this->assertDatabaseHas('governed_execution_run_events', ['event_type' => 'started']);
+        $this->assertDatabaseHas('governed_execution_run_events', ['event_type' => 'completed']);
+    }
+
+
+    public function test_heartbeat_renews_lease_and_records_an_event(): void
+    {
+        $lease = app(ExecutionLeaseService::class);
+        $called = false;
+
+        $lease->run('heartbeat-test', function ($heartbeat) use (&$called): void {
+            $heartbeat();
+            $called = true;
+        }, 10);
+
+        $this->assertTrue($called);
+        $this->assertDatabaseHas('governed_execution_run_events', ['event_type' => 'heartbeat']);
     }
 
     public function test_expired_lease_can_be_recovered_by_a_new_owner(): void
@@ -34,7 +55,9 @@ class ExecutionLeaseServiceTest extends TestCase
         $recovered = false;
 
         $lease->run('governed-institute-discovery-pipeline', function () use ($lease, &$recovered): void {
-            DB::table('governed_execution_leases')->update(['expires_at' => now()->subSecond()]);
+            DB::table('governed_execution_leases')
+                ->where('task_key', 'governed-institute-discovery-pipeline')
+                ->update(['expires_at' => now()->subSecond()]);
             $recovered = $lease->run('governed-institute-discovery-pipeline', fn () => true);
         });
 
@@ -48,10 +71,12 @@ class ExecutionLeaseServiceTest extends TestCase
         $successorToken = (string) Str::uuid();
 
         $lease->run('governed-institute-discovery-pipeline', function () use ($successorToken): void {
-            DB::table('governed_execution_leases')->update([
-                'owner_token' => $successorToken,
-                'run_id' => (string) Str::uuid(),
-            ]);
+            DB::table('governed_execution_leases')
+                ->where('task_key', 'governed-institute-discovery-pipeline')
+                ->update([
+                    'owner_token' => $successorToken,
+                    'run_id' => (string) Str::uuid(),
+                ]);
         });
 
         $this->assertDatabaseHas('governed_execution_leases', [
@@ -60,12 +85,29 @@ class ExecutionLeaseServiceTest extends TestCase
         ]);
     }
 
-    public function test_callback_exception_releases_only_its_own_lease(): void
+
+    public function test_nonzero_command_result_is_recorded_as_failed(): void
+    {
+        $result = app(ExecutionLeaseService::class)->run('exit-code-test', fn () => 1);
+
+        $this->assertSame(1, $result);
+        $this->assertDatabaseHas('governed_execution_runs', [
+            'task_key' => 'exit-code-test',
+            'status' => 'failed',
+            'failure_code' => 'command_exit_code_1',
+        ]);
+        $this->assertDatabaseHas('governed_execution_run_events', [
+            'event_type' => 'failed',
+            'failure_code' => 'command_exit_code_1',
+        ]);
+    }
+
+    public function test_callback_exception_is_recorded_and_releases_its_lease(): void
     {
         $lease = app(ExecutionLeaseService::class);
 
         try {
-            $lease->run('governed-institute-discovery-pipeline', function (): void {
+            $lease->run('failure-test', function (): void {
                 throw new \RuntimeException('expected test failure');
             });
             $this->fail('The callback exception should propagate.');
@@ -73,6 +115,12 @@ class ExecutionLeaseServiceTest extends TestCase
             $this->assertSame('expected test failure', $exception->getMessage());
         }
 
-        $this->assertDatabaseCount('governed_execution_leases', 0);
+        $this->assertDatabaseMissing('governed_execution_leases', ['task_key' => 'failure-test']);
+        $this->assertDatabaseHas('governed_execution_runs', [
+            'task_key' => 'failure-test',
+            'status' => 'failed',
+            'failure_code' => \RuntimeException::class,
+        ]);
+        $this->assertDatabaseHas('governed_execution_run_events', ['event_type' => 'failed']);
     }
 }

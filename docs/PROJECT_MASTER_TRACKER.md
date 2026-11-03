@@ -2034,3 +2034,39 @@ Repository inspection confirms that `bootstrap/app.php` schedules `institutes:bo
 PR #986 merged at `ce61b95b724bd41626ec41f608124ecf4393d82b`. Exact-head Laravel CI #41629643613 and Test #41629643597 passed 798 tests / 3,531 assertions each; Project Controller #41629643640 passed. Full Laravel/Test CI uses SQLite; current isolated MySQL workflow is scoped to the approvals migration and does not validate discovery/monitoring concurrency.
 
 No production operation or schedule change was performed. Next safe engineering step: shared durable execution lease and idempotency with isolated MySQL/concurrency tests; only then converge scheduler ownership.
+
+
+---
+
+## Phase 1C — current delivery reconciliation (2026-11-03)
+
+**Phase 1C remains IN PROGRESS. Phase 1B remains CLOSED AND FROZEN.**
+
+Verified merged deliveries:
+- PR #986 — Phase 1C joint delivery readiness baseline; merged at ce61b95b724bd41626ec41f608124ecf4393d82b.
+- PR #987 — scheduler/concurrency audit; merged at 6b71fb9c1dd49938c44018005ceb6b5e5ef9fd6c.
+- PR #988 — shared database execution lease foundation; merged at 8a592e9d8e31302181903b12f2a96f91051e6d36. Its corrected exact-head required checks passed. This delivery adds the lease table, owner-token-safe claim/release, command guards and initial tests.
+
+### Remaining engineering delivery
+
+The lease foundation does not by itself satisfy the full Phase 1C acceptance contract. Follow-up engineering adds:
+- cooperative lease heartbeat/renewal with lost-owner failure;
+- execution run records and append-only lifecycle events;
+- source/policy/profile heartbeat integration;
+- lease contention and lifecycle tests.
+
+Audit: docs/audits/PHASE_1C_LEASE_HEARTBEAT_AND_RUN_LEDGER_AUDIT.md.
+
+Still outstanding after this engineering delivery:
+1. Stable idempotency keys and uniqueness/replay rules across retrieval runs, snapshots, observations, import batches, candidate rows and outcomes.
+2. True simultaneous multi-process MySQL concurrency tests; a second-connection claim test alone is not sufficient.
+3. A confirmed Hostinger/provider scheduler and worker inventory; scheduler convergence and schedule-definition tests.
+4. Production application-code parity, AUTH-04 schema/migration evidence, backup retention/recoverability and safe deployment plan.
+5. Separately authorized, read-only GCU reconciliation for rows #348–353 and batches #19–23, with exact row-to-batch mapping.
+6. Final evidence matrix and controlled-pilot go/no-go package. Pilot execution remains separately authorized.
+
+### Current hard safety boundaries
+
+No production migration/deployment, SSH/hPanel/Artisan, DB query/write, cron/worker change, backup/restore, source retrieval, candidate staging/approval/import, canonical promotion or publication is authorized by these repository PRs. Do not activate additional HEC profiles or AI extraction. No dummy production data. Preserve GCU history unchanged.
+
+**Phase 1C closeout gate: NOT MET.** Merge status alone is not a closeout. Every remaining gate must be evidenced or explicitly accepted as a blocker by the project owner; the pilot must remain disabled.
