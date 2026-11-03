@@ -91,7 +91,7 @@ class InstituteDiscoveryReviewPackageService
         foreach ($batch->rows->sortBy('row_number') as $row) {
             $payload = is_array($row->payload) ? $row->payload : [];
             $meta = is_array($payload['_provenance'] ?? null) ? $payload['_provenance'] : [];
-            fputcsv($stream, [
+            $values = [
                 $batch->id,
                 $row->id,
                 $row->row_number,
@@ -108,7 +108,9 @@ class InstituteDiscoveryReviewPackageService
                 $row->match_state ?? '',
                 json_encode($row->validation_errors ?? [], JSON_UNESCAPED_SLASHES),
                 $row->status ?? '',
-            ]);
+            ];
+
+            fputcsv($stream, array_map($this->spreadsheetSafeCell(...), $values));
         }
         rewind($stream);
         $csv = stream_get_contents($stream);
@@ -159,5 +161,17 @@ class InstituteDiscoveryReviewPackageService
             'csv_path' => $csvPath,
             'manifest_path' => $manifestPath,
         ];
+    }
+    private function spreadsheetSafeCell(mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        if (preg_match('/^[\\s\\x00-\\x1F]*[=+@-]/u', $value) === 1) {
+            return "'".$value;
+        }
+
+        return $value;
     }
 }

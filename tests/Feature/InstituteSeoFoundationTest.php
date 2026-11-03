@@ -115,4 +115,23 @@ class InstituteSeoFoundationTest extends TestCase
             ->assertDontSee('/institutes/draft-seo-university', false);
     }
 
+
+    public function test_profile_json_ld_escapes_script_terminating_institution_text(): void
+    {
+        $hostileName = '</script><script>alert("x")</script>';
+
+        Institution::create([
+            'name' => $hostileName,
+            'slug' => 'hostile-json-ld-university',
+            'status' => 'active',
+        ]);
+
+        $response = $this->get('/institutes/hostile-json-ld-university');
+
+        $response->assertOk()
+            ->assertDontSee($hostileName, false)
+            ->assertSee('\u003C/script\u003E\u003Cscript\u003Ealert(\u0022x\u0022)\u003C/script\u003E', false);
+    }
+
+
 }

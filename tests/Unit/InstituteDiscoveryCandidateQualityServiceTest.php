@@ -49,7 +49,7 @@ class InstituteDiscoveryCandidateQualityServiceTest extends TestCase
     public function test_unsupported_entity_type_is_blocked(): void
     {
         $blockers = (new InstituteDiscoveryCandidateQualityService())->blockers(
-            'institution',
+            'department',
             ['name' => 'Test University'],
             'https://university.example.edu',
             false
