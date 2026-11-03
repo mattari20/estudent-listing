@@ -38,6 +38,17 @@ class SourceChangeDiscoveryService
                 continue;
             }
 
+            $isInstitution = ($definition['entity_type'] ?? 'program') === 'institution';
+            $useAi = (bool) ($definition['monitoring']['use_ai'] ?? false);
+            $extractorVersion = $isInstitution
+                ? InstituteIdentityDiscoveryService::VERSION
+                : InstituteDiscoveryCandidateExtractor::VERSION;
+
+            $existing = $this->existingOutcome($observation, (string) $profileKey, $useAi, $extractorVersion);
+            if ($existing && $existing->outcome !== 'failed') {
+                return $this->summaryForExistingOutcome($existing);
+            }
+
             $identity = app(OfficialSourceIdentityVerifier::class)->verify($observation->source, [
                 $profileKey => $definition,
             ]);
@@ -46,19 +57,18 @@ class SourceChangeDiscoveryService
                     'profile_key' => $profileKey,
                     'outcome' => 'source_identity_blocked',
                     'details' => ['blockers' => $identity['blockers']],
-                ]);
+                ], $useAi, $extractorVersion);
             }
 
             if (! ($definition['monitoring']['auto_discovery'] ?? true)) {
                 return $this->record($base + [
                     'profile_key' => $profileKey,
                     'outcome' => 'discovery_disabled',
-                ]);
+                ], $useAi, $extractorVersion);
             }
 
-            $useAi = (bool) ($definition['monitoring']['use_ai'] ?? false);
             try {
-                if (($definition['entity_type'] ?? 'program') === 'institution') {
+                if ($isInstitution) {
                     $summary = app(InstituteIdentityDiscoveryService::class)
                         ->runFromSnapshot($profileKey, $snapshot, $definition);
                 } else {
@@ -71,7 +81,7 @@ class SourceChangeDiscoveryService
                     'outcome' => 'failed',
                     'failure_class' => get_class($exception),
                     'details' => ['message_omitted' => true],
-                ]);
+                ], $useAi, $extractorVersion);
 
                 throw $exception;
             }
@@ -96,9 +106,8 @@ class SourceChangeDiscoveryService
                     'duplicate_rows' => $duplicateCount,
                     'used_ai' => $useAi,
                 ],
-            ]);
+            ], $useAi, $extractorVersion);
 
-            // Preserve the discovery-agent summary contract for existing callers.
             return $summary + ['run_outcome' => $runOutcome];
         }
 
@@ -108,9 +117,40 @@ class SourceChangeDiscoveryService
         ]);
     }
 
-    private function record(array $attributes): array
+    private function existingOutcome(
+        SourceChangeObservation $observation,
+        string $profileKey,
+        bool $useAi,
+        string $extractorVersion,
+    ): ?InstituteDiscoveryRunOutcome {
+        return InstituteDiscoveryRunOutcome::query()
+            ->where('idempotency_key', $this->keyFor(
+                (int) $observation->id,
+                $profileKey,
+                $useAi,
+                $extractorVersion
+            ))
+            ->first();
+    }
+
+    private function record(array $attributes, bool $useAi = false, string $extractorVersion = 'none'): array
     {
-        $outcome = InstituteDiscoveryRunOutcome::query()->create($attributes);
+        $key = $this->keyFor(
+            (int) ($attributes['source_change_observation_id'] ?? 0),
+            (string) ($attributes['profile_key'] ?? 'none'),
+            $useAi,
+            $extractorVersion
+        );
+        $attributes['idempotency_key'] = $key;
+
+        $outcome = InstituteDiscoveryRunOutcome::query()->firstOrCreate(
+            ['idempotency_key' => $key],
+            $attributes
+        );
+
+        if ($outcome->outcome === 'failed' && ($attributes['outcome'] ?? null) !== 'failed') {
+            $outcome->update($attributes);
+        }
 
         return [
             'outcome' => $outcome->outcome,
@@ -118,5 +158,35 @@ class SourceChangeDiscoveryService
             'candidate_count' => $outcome->candidate_count,
             'review_package_status' => $outcome->review_package_status,
         ];
+    }
+
+    private function summaryForExistingOutcome(InstituteDiscoveryRunOutcome $outcome): array
+    {
+        $details = $outcome->details ?? [];
+
+        return [
+            'profile' => $outcome->profile_key,
+            'batch_id' => $details['batch_id'] ?? null,
+            'total_rows' => (int) ($details['extracted_rows'] ?? 0),
+            'candidate_rows' => (int) $outcome->candidate_count,
+            'duplicate_rows' => (int) ($details['duplicate_rows'] ?? 0),
+            'run_outcome' => [
+                'outcome' => $outcome->outcome,
+                'outcome_id' => $outcome->id,
+                'candidate_count' => $outcome->candidate_count,
+                'review_package_status' => $outcome->review_package_status,
+            ],
+        ];
+    }
+
+    private function keyFor(int $observationId, string $profileKey, bool $useAi, string $extractorVersion): string
+    {
+        return hash('sha256', implode('|', [
+            'discovery-outcome:v1',
+            $observationId,
+            $profileKey,
+            $useAi ? 'ai' : 'deterministic',
+            $extractorVersion,
+        ]));
     }
 }
