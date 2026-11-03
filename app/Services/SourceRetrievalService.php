@@ -110,6 +110,7 @@ class SourceRetrievalService
                 $source->url,
                 $response->header('Content-Type'),
                 $response->headers(),
+                hash('sha256', 'retrieval-snapshot:v1|'.$run->id),
             );
 
             $run->update([

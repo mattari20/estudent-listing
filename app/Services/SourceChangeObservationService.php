@@ -9,15 +9,6 @@ class SourceChangeObservationService
 {
     public function compare(SourceSnapshot $current): SourceChangeObservation
     {
-        $existing = SourceChangeObservation::query()
-            ->where('current_snapshot_id', $current->id)
-            ->latest('id')
-            ->first();
-
-        if ($existing) {
-            return $existing;
-        }
-
         $previous = SourceSnapshot::query()
             ->where('source_id', $current->source_id)
             ->where('id', '!=', $current->id)
@@ -25,9 +16,9 @@ class SourceChangeObservationService
             ->first();
 
         if (! $previous) {
-            return SourceChangeObservation::create([
+            return $this->firstOrCreateForSnapshot($current, [
                 'source_id' => $current->source_id,
-                'current_snapshot_id' => $current->id,
+                'previous_snapshot_id' => null,
                 'change_state' => 'baseline',
                 'materiality' => 'unknown',
                 'status' => 'detected',
@@ -37,10 +28,9 @@ class SourceChangeObservationService
         }
 
         if (blank($previous->content_hash) || blank($current->content_hash)) {
-            return SourceChangeObservation::create([
+            $attributes = [
                 'source_id' => $current->source_id,
                 'previous_snapshot_id' => $previous->id,
-                'current_snapshot_id' => $current->id,
                 'change_state' => 'uncomparable',
                 'materiality' => 'unknown',
                 'status' => 'detected',
@@ -53,15 +43,16 @@ class SourceChangeObservationService
                     'current_hash_present' => filled($current->content_hash),
                 ],
                 'observed_at' => now(),
-            ]);
+            ];
+
+            return $this->firstOrCreateForSnapshot($current, $attributes);
         }
 
         $same = hash_equals((string) $previous->content_hash, (string) $current->content_hash);
 
-        return SourceChangeObservation::create([
+        return $this->firstOrCreateForSnapshot($current, [
             'source_id' => $current->source_id,
             'previous_snapshot_id' => $previous->id,
-            'current_snapshot_id' => $current->id,
             'change_state' => $same ? 'unchanged' : 'changed',
             'materiality' => $same ? 'none' : 'unknown',
             'status' => 'detected',
@@ -76,6 +67,15 @@ class SourceChangeObservationService
             'observed_at' => now(),
         ]);
     }
+
+    private function firstOrCreateForSnapshot(SourceSnapshot $current, array $attributes): SourceChangeObservation
+    {
+        return SourceChangeObservation::query()->firstOrCreate(
+            ['current_snapshot_id' => $current->id],
+            $attributes
+        );
+    }
+
     /**
      * @return array<string, int|string|null>
      */

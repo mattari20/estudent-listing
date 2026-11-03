@@ -91,6 +91,76 @@ class SourceSnapshotTest extends TestCase {
         $this->assertDatabaseCount('source_change_observations', 1);
     }
 
+
+    public function test_same_capture_key_reuses_snapshot_without_creating_duplicate_history(): void
+    {
+        $source = Source::create(['source_type' => 'web', 'name' => 'Idempotent Capture Source', 'status' => 'active']);
+        $service = app(SourceSnapshotService::class);
+
+        $first = $service->capture($source, 'stable payload', 'https://example.test/stable', 'text/html', [], 'retrieval-capture-key');
+        $retry = $service->capture($source, 'stable payload', 'https://example.test/stable', 'text/html', [], 'retrieval-capture-key');
+
+        $this->assertSame($first->id, $retry->id);
+        $this->assertDatabaseCount('source_snapshots', 1);
+    }
+
+    public function test_distinct_capture_keys_preserve_distinct_identical_content_snapshots(): void
+    {
+        $source = Source::create(['source_type' => 'web', 'name' => 'Distinct Capture Source', 'status' => 'active']);
+        $service = app(SourceSnapshotService::class);
+
+        $first = $service->capture($source, 'same payload', 'https://example.test/stable', 'text/html', [], 'retrieval-capture-one');
+        $second = $service->capture($source, 'same payload', 'https://example.test/stable', 'text/html', [], 'retrieval-capture-two');
+
+        $this->assertNotSame($first->id, $second->id);
+        $this->assertSame($first->content_hash, $second->content_hash);
+        $this->assertDatabaseCount('source_snapshots', 2);
+    }
+
+    public function test_capture_key_cannot_be_reused_for_different_content_or_source(): void
+    {
+        $source = Source::create(['source_type' => 'web', 'name' => 'Capture Key Source', 'status' => 'active']);
+        $other = Source::create(['source_type' => 'web', 'name' => 'Other Capture Key Source', 'status' => 'active']);
+        $service = app(SourceSnapshotService::class);
+        $service->capture($source, 'original payload', 'https://example.test/original', 'text/html', [], 'bound-capture-key');
+
+        $this->expectException(\LogicException::class);
+        $service->capture($other, 'different payload', 'https://example.test/other', 'text/html', [], 'bound-capture-key');
+    }
+
+    public function test_observation_database_identity_is_unique_per_current_snapshot(): void
+    {
+        $source = Source::create(['source_type' => 'web', 'name' => 'Unique Observation Source', 'status' => 'active']);
+        $snapshot = app(SourceSnapshotService::class)->capture($source, 'one payload', 'https://example.test/one');
+        $service = app(SourceChangeObservationService::class);
+
+        $first = $service->compare($snapshot);
+        $second = $service->compare($snapshot);
+
+        $this->assertSame($first->id, $second->id);
+        $this->assertDatabaseCount('source_change_observations', 1);
+    }
+
+
+    public function test_database_rejects_duplicate_observations_for_one_snapshot(): void
+    {
+        $source = Source::create(['source_type' => 'web', 'name' => 'Observation Constraint Source', 'status' => 'active']);
+        $snapshot = app(SourceSnapshotService::class)->capture($source, 'one payload', 'https://example.test/one');
+        $attributes = [
+            'source_id' => $source->id,
+            'current_snapshot_id' => $snapshot->id,
+            'change_state' => 'baseline',
+            'materiality' => 'unknown',
+            'status' => 'detected',
+            'summary' => 'Initial snapshot.',
+            'observed_at' => now(),
+        ];
+
+        \App\Models\SourceChangeObservation::create($attributes);
+        $this->expectException(\Illuminate\Database\QueryException::class);
+        \App\Models\SourceChangeObservation::create($attributes);
+    }
+
     public function test_changed_observation_retains_before_and_after_snapshot_evidence(): void
     {
         $source = Source::create(['source_type' => 'official', 'name' => 'Evidence History Source', 'status' => 'active']);

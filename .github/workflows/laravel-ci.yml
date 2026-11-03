@@ -69,6 +69,11 @@ jobs:
           tests/Feature/SourceRetrievalTest.php
           database/migrations/2026_11_03_000003_add_source_retrieval_idempotency_key.php
           app/Services/SourceMonitoringBatchService.php
+          app/Services/SourceSnapshotService.php
+          app/Services/SourceChangeObservationService.php
+          app/Models/SourceSnapshot.php
+          tests/Feature/SourceSnapshotTest.php
+          database/migrations/2026_11_03_000004_add_snapshot_and_observation_idempotency.php
 
       - name: Verify formatted discovery files
         run: >-
@@ -89,3 +94,8 @@ jobs:
           app/Console/Commands/RunInstituteDiscoveryAgent.php
           database/migrations/2026_11_03_000001_create_governed_execution_leases_table.php
           tests/Feature/ExecutionLeaseServiceTest.php
+          app/Services/SourceSnapshotService.php
+          app/Services/SourceChangeObservationService.php
+          app/Models/SourceSnapshot.php
+          tests/Feature/SourceSnapshotTest.php
+          database/migrations/2026_11_03_000004_add_snapshot_and_observation_idempotency.php
