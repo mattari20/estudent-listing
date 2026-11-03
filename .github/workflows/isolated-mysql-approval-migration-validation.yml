@@ -6,6 +6,8 @@ on:
       - '.github/workflows/isolated-mysql-approval-migration-validation.yml'
       - 'database/migrations/**'
       - 'tests/Feature/InstitutionFieldApprovalServiceTest.php'
+      - 'tests/Feature/ExecutionLeaseServiceTest.php'
+      - 'app/Services/ExecutionLeaseService.php'
       - 'tests/Support/verify-institution-field-approvals-schema.php'
       - 'composer.json'
       - 'composer.lock'
@@ -81,3 +83,5 @@ jobs:
           test "$after" = "1"
       - name: Run approval-specific tests against the migrated MySQL schema
         run: vendor/bin/phpunit --filter InstitutionFieldApprovalServiceTest
+      - name: Validate execution lease ownership and recovery on MySQL
+        run: vendor/bin/phpunit tests/Feature/ExecutionLeaseServiceTest.php
