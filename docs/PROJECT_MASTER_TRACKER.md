@@ -1636,3 +1636,21 @@ Run **41552845301**, job **125644442102**, head SHA `101b7c20d0b6a283ad0d78d966b
 ### Safety confirmation
 
 No Hostinger SSH/hPanel session, production file/database/Artisan/Composer/SQL access, cron/queue/backup operation, restore, private report access/download, raw log retrieval, workflow dispatch/rerun/cancel/enable/disable/approval, deployment, migration, cache clear, source retrieval/discovery/extraction/staging, candidate approval/import, canonical promotion or publication occurred. No pre-existing PR was changed. GCU rows #348–353 and batches #19–23 remain preserved; the additional 20 HEC profiles and AI extraction remain disabled; no dummy production data was created.
+
+
+---
+
+## Phase 1A-06 — Historical workflow reconciliation (2026-11-03)
+
+**Verified main baseline:** `d302ecfabda8b8dc950d5aebb58d5a835e018a4b`.  
+**Current workflow inventory:** 35 files. **Historical target:** 29 workflow records with paths absent from current main.
+
+- All 29 latest runs were completed `push` events on dedicated `ops/*` branches; every primary job and named operational step concluded `success`.
+- All 29 run records had empty `pull_requests` arrays; exact commit-to-PR lookups returned no associated PR for all 29. Commit comparisons to current main report divergence for all 29; none is a main ancestor.
+- All 29 `ops/*` branch names remain present. Current branch-tip SHAs and matching YAML presence at each tip remain UNVERIFIED.
+- Classification: **11 historical/completed; 9 potentially redundant; 5 require further investigation; 4 possible outstanding operational risk.** The complete record-by-record table, exact run/job IDs, head SHAs, classifications and source findings are in `docs/audits/PHASE_1A_READ_ONLY_PRODUCTION_EVIDENCE_ACQUISITION_PLAN.md`, section “Phase 1A-06 — Historical workflow reconciliation”.
+- High-risk historical operations include direct SSH updates to institution status/type, campus promotion (row 24), campus/geography creation, and program/offering/intake/source/profile enrichment. Successful job metadata does not prove present production state; all row-level effects remain UNVERIFIED.
+- Current-main overlap review: hourly governed discovery is not a replacement for the one-off activation/promotion workflows; import preflight is tests-only. A current source-level migration risk was identified: `controlled-institution-field-approvals-migration.yml` has a main push trigger on changes to itself and sets `CONFIRM_MIGRATION=true` on push. No workflow was dispatched and no production state was inspected.
+- **Next evidence dependency:** reconcile retained `ops/*` branch tips/YAML presence and obtain a separately authorized, sanitized row-level production-state review before treating historical writes as settled. Separately review the automatic migration trigger before future edits to that workflow.
+- No production access, raw logs, secrets, workflow state changes, deployment, migration, import, activation, approval, promotion, source retrieval or publication occurred. Preserve GCU rows #348–353 and batches #19–23; keep the 20 additional HEC profiles disabled and AI extraction disabled.
+
