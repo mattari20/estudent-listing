@@ -1,11 +1,11 @@
 <?php
 
-namespace App\\Services;
+namespace App\Services;
 
-use App\\Models\\Evidence;
-use App\\Models\\ImportBatch;
-use App\\Models\\SourceSnapshot;
-use Illuminate\\Support\\Facades\\Storage;
+use App\Models\Evidence;
+use App\Models\ImportBatch;
+use App\Models\SourceSnapshot;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 class InstituteDiscoveryReviewPackageService
@@ -22,7 +22,7 @@ class InstituteDiscoveryReviewPackageService
         $snapshotId = (int) ($snapshotOverride?->id ?? ($provenance['snapshot_id'] ?? 0));
         $evidenceId = $evidenceIdOverride ?? (isset($provenance['evidence_id']) ? (int) $provenance['evidence_id'] : null);
 
-        if ($snapshotId < 1 && preg_match('/source snapshot #(\\d+)/i', (string) $batch->notes, $matches) === 1) {
+        if ($snapshotId < 1 && preg_match('/source snapshot #(\d+)/i', (string) $batch->notes, $matches) === 1) {
             $snapshotId = (int) $matches[1];
         }
 
@@ -164,7 +164,7 @@ class InstituteDiscoveryReviewPackageService
             return $value;
         }
 
-        if (preg_match('/^[\\s\\x00-\\x1F]*[=+@-]/u', $value) === 1) {
+        if (preg_match('/^[\s\x00-\x1F]*[=+@-]/u', $value) === 1) {
             return "'".$value;
         }
 
