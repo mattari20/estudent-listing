@@ -26,9 +26,9 @@ class SourceChangeIntelligenceTest extends TestCase {
   $this->assertSame(1,\App\Models\ChangeEvent::query()->count());
   $this->assertSame(1,\App\Models\SourceChangeAssertionLink::query()->count());
   $this->assertSame(1,\App\Models\DataReverificationQueue::query()->count());
-  \\App\\Models\\DataReverificationQueue::query()->firstOrFail()->update(['status' => 'resolved', 'resolved_at' => now()]);
-  app(\\App\\Services\\SourceChangeIntelligenceService::class)->process($result['observation']);
-  $this->assertSame(2, \\App\\Models\\DataReverificationQueue::query()->count());
-  $this->assertSame(1, \\App\\Models\\DataReverificationQueue::query()->where('status', 'open')->count());
+  \App\\Models\\DataReverificationQueue::query()->firstOrFail()->update(['status' => 'resolved', 'resolved_at' => now()]);
+  app(\App\\Services\\SourceChangeIntelligenceService::class)->process($result['observation']);
+  $this->assertSame(2, \App\\Models\\DataReverificationQueue::query()->count());
+  $this->assertSame(1, \App\\Models\\DataReverificationQueue::query()->where('status', 'open')->count());
  }
 }
