@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Services;
+namespace App\\Services;
 
-use App\Models\Evidence;
-use App\Models\ImportBatch;
-use App\Models\SourceSnapshot;
-use Illuminate\Support\Facades\Storage;
+use App\\Models\\Evidence;
+use App\\Models\\ImportBatch;
+use App\\Models\\SourceSnapshot;
+use Illuminate\\Support\\Facades\\Storage;
 use RuntimeException;
 
 class InstituteDiscoveryReviewPackageService
@@ -22,9 +22,6 @@ class InstituteDiscoveryReviewPackageService
         $snapshotId = (int) ($snapshotOverride?->id ?? ($provenance['snapshot_id'] ?? 0));
         $evidenceId = $evidenceIdOverride ?? (isset($provenance['evidence_id']) ? (int) $provenance['evidence_id'] : null);
 
-        // Empty discovery batches have no rows from which to read provenance.
-        // Recover the snapshot ID from the batch's recorded no-change note so the
-        // protected CLI command can retrieve/rebuild the already-private package.
         if ($snapshotId < 1 && preg_match('/source snapshot #(\\d+)/i', (string) $batch->notes, $matches) === 1) {
             $snapshotId = (int) $matches[1];
         }
@@ -47,8 +44,6 @@ class InstituteDiscoveryReviewPackageService
             $evidenceId = $evidenceId === null ? null : (int) $evidenceId;
         }
 
-        // Packages are keyed by both batch and snapshot. A single source snapshot
-        // may legitimately produce multiple immutable batches across extractor versions.
         $directory = 'institute-discovery-review-packages/batch-'.$batch->id.'-snapshot-'.$snapshotId;
         $csvPath = $directory.'/candidates.csv';
         $manifestPath = $directory.'/manifest.json';
@@ -91,7 +86,7 @@ class InstituteDiscoveryReviewPackageService
         foreach ($batch->rows->sortBy('row_number') as $row) {
             $payload = is_array($row->payload) ? $row->payload : [];
             $meta = is_array($payload['_provenance'] ?? null) ? $payload['_provenance'] : [];
-            fputcsv($stream, [
+            $values = [
                 $batch->id,
                 $row->id,
                 $row->row_number,
@@ -108,7 +103,9 @@ class InstituteDiscoveryReviewPackageService
                 $row->match_state ?? '',
                 json_encode($row->validation_errors ?? [], JSON_UNESCAPED_SLASHES),
                 $row->status ?? '',
-            ]);
+            ];
+
+            fputcsv($stream, array_map($this->spreadsheetSafeCell(...), $values));
         }
         rewind($stream);
         $csv = stream_get_contents($stream);
@@ -159,5 +156,18 @@ class InstituteDiscoveryReviewPackageService
             'csv_path' => $csvPath,
             'manifest_path' => $manifestPath,
         ];
+    }
+
+    private function spreadsheetSafeCell(mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        if (preg_match('/^[\\s\\x00-\\x1F]*[=+@-]/u', $value) === 1) {
+            return "'".$value;
+        }
+
+        return $value;
     }
 }
