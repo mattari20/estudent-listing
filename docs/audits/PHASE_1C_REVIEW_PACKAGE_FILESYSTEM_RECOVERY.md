@@ -6,7 +6,7 @@ Repository: \`mattari20/estudent-listing\`
 
 Base \`main\`: \`25024ebfb4e31563590e46819a3a4dba50c01511\`
 
-Status: implementation validated on the documentation-inclusive PR head; merge verification is pending.
+Status: MERGED and verified. PR #1003 final head is efc0b941c05030f30898116ea42793ce90c9a659; merge commit and verified main SHA are 86ded5d52cbc6a329ae4559919e7da5111876b20.
 
 ## 1. Phase 1C-17 evidence reconciliation
 
@@ -169,7 +169,7 @@ Actual isolated MySQL logs show:
 
 Test and Laravel CI each report `OK (859 tests, 3791 assertions)`. Laravel CI's Pint formatting and verification steps passed for 46 files, including the new package service, command, tests and multiprocess script.
 
-The Project Controller workflow job passed, but its internal read-only project inventory remains **2/5**: authoritative protocol/tracker and governed discovery workflow passed; Hostinger read-only diagnostics, open-PR review/CI and tracker evidence reconciliation were marked BLOCKED. The open-PR review gate is expected to remain blocked while PR #1003 is open. This is not a production-readiness pass.
+The Project Controller workflow job passed, but its internal read-only project inventory was **2/5**: authoritative protocol/tracker and governed discovery workflow passed; Hostinger read-only diagnostics, open-PR review/CI and tracker evidence reconciliation were marked BLOCKED. PR #1003 was open at the time of that inventory and was subsequently merged. The Hostinger/runtime limitation remains separate. This is not a production-readiness pass.
 
 Earlier test attempts exposed compatibility expectations for the existing `--days` option and empty-root output, followed by an escaped Reflection namespace in the explicit path-traversal test. The option/message and test syntax were corrected; the final full-suite and MySQL runs above passed. Failed earlier attempts are not counted as validation.
 
@@ -196,7 +196,7 @@ historical candidate deletion or merging.
 - Project Controller's separate Hostinger read-only diagnostics task remains
   blocked; this phase does not certify production runtime or readiness.
 
-Next Phase 1C engineering task after this delivery: **institution identity
-conflict/resolution persistence under replay and concurrent attempts**,
-including durable conflict uniqueness, resolution history, and
-independent-process MySQL coverage. Phase 1C remains open.
+Next milestone: **Phase 1C-20 — Discovery-to-Review Persistence Boundary Audit**,
+recorded in docs/audits/PHASE_1C_DISCOVERY_TO_REVIEW_PERSISTENCE_BOUNDARY_AUDIT.md.
+Phase 1C remains open; the audit recommends Phase 1C-21 operator transition
+atomicity and state-guard hardening as the next implementation task.
