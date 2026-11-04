@@ -1,21 +1,14 @@
 name: Scheduled Governed Institute Discovery
 
 on:
-  schedule:
-    - cron: "15 * * * *"
   workflow_dispatch:
-  workflow_run:
-    workflows:
-      - "Controlled Official-Source Refresh Migration"
-    types: [completed]
-    branches: [main]
 
 permissions:
   actions: read
   contents: read
 
 concurrency:
-  group: scheduled-governed-institute-discovery
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
@@ -112,6 +105,7 @@ jobs:
     # the explicit checks preserve the approved-revision and migration-handoff gates.
     if: ${{ always() && needs.resolve-target.result == 'success' && (github.event_name != 'workflow_run' || needs.source-refresh-handoff.outputs.verified == 'true') }}
     runs-on: ubuntu-latest
+    environment: production-operations
     timeout-minutes: 15
     steps:
       - name: Run guarded discovery on Hostinger
