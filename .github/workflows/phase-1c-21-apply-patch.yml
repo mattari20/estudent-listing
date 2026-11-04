@@ -5,7 +5,7 @@ on:
     branches:
       - phase-1c-21-operator-transition-hardening
     paths:
-      - '.github/phase-1c-21.patch.gz.b64'
+      - '.github/phase-1c-21.patch.parts/part05'
 
 permissions:
   contents: write
@@ -27,13 +27,13 @@ jobs:
           expected="8aa2ee2416b2729d05afd249961085b888b61910"
           actual_base="$(git rev-parse HEAD~2)"
           test "$actual_base" = "$expected"
-          base64 --decode .github/phase-1c-21.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/phase-1c-21.patch"
+          cat .github/phase-1c-21.patch.parts/part* | base64 --decode | gzip -d > "$RUNNER_TEMP/phase-1c-21.patch"
           git apply --check "$RUNNER_TEMP/phase-1c-21.patch"
           git apply "$RUNNER_TEMP/phase-1c-21.patch"
-          rm .github/phase-1c-21.patch.gz.b64
+          rm -rf .github/phase-1c-21.patch.parts
           rm .github/workflows/phase-1c-21-apply-patch.yml
           git diff --check
-          for file in             app/Services/IdentityResolutionDecisionService.php             app/Services/OperatorTransitionService.php             app/Services/InstituteImportPromoter.php             app/Services/BulkImportPromotionService.php             app/Http/Controllers/InstituteImportPromotionController.php             app/Http/Controllers/InstituteBulkPromotionController.php             tests/Feature/OperatorTransitionAtomicityTest.php             tests/Support/verify-operator-transition-multiprocess.php; do
+          for file in app/Services/IdentityResolutionDecisionService.php app/Services/OperatorTransitionService.php app/Services/InstituteImportPromoter.php app/Services/BulkImportPromotionService.php app/Http/Controllers/InstituteImportPromotionController.php app/Http/Controllers/InstituteBulkPromotionController.php tests/Feature/OperatorTransitionAtomicityTest.php tests/Support/verify-operator-transition-multiprocess.php; do
             php -l "$file"
           done
 
