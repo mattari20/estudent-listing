@@ -3,8 +3,6 @@ name: Read-only offering-gap preflight
 on:
   workflow_dispatch:
     inputs:
-        description: Optional full 40-character commit SHA; defaults to the event commit SHA
-
       target_sha:
         description: "Exact 40-character SHA of the current main revision."
         required: true
@@ -63,8 +61,6 @@ jobs:
           DB_DATABASE: ${{ secrets.OFFERING_GAP_DB_DATABASE }}
           DB_USERNAME: ${{ secrets.OFFERING_GAP_DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.OFFERING_GAP_DB_PASSWORD }}
-        env:
-          REQUESTED_REVISION: ${{ inputs.target_sha }}
         shell: bash
         run: |
           set -euo pipefail
