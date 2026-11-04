@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Evidence;
 use App\Models\ImportBatch;
 use App\Models\SourceSnapshot;
 use Illuminate\Support\Facades\Storage;
@@ -12,7 +13,7 @@ class InstituteDiscoveryReviewPackageService
 {
     private const ROOT = 'institute-discovery-review-packages';
     private const PACKAGE_TYPE = 'institute_discovery_review';
-    private const SCHEMA_VERSION = 2;
+    private const SCHEMA_VERSION = 3;
 
     public function create(ImportBatch $batch, ?SourceSnapshot $snapshotOverride = null, ?int $evidenceIdOverride = null): array
     {
@@ -51,8 +52,33 @@ class InstituteDiscoveryReviewPackageService
         return $this->withPackageLock($batch->id, $snapshotId, function () use (
             $disk, $batch, $snapshot, $snapshotId, $evidenceId, $directory, $csvPath, $manifestPath
         ): array {
+            $batch->refresh();
+            $batch->load([
+                'source',
+                'rows' => fn ($query) => $query->orderBy('row_number')->orderBy('id'),
+            ]);
+            $snapshot->refresh();
+
+            if ($batch->status !== 'validated' || $batch->completed_at === null
+                || ! $batch->source
+                || (int) $batch->source_id !== (int) $snapshot->source_id
+                || (int) $snapshot->id !== $snapshotId) {
+                throw new RuntimeException('The review package database ownership or completion state changed before generation.');
+            }
+
+            $rowSetDigest = $this->rowSetDigest($batch);
+            $evidenceState = $this->evidenceState($batch, $snapshot, $evidenceId);
+
             $this->ensureDirectory($disk, $directory);
-            $existing = $this->readValidPackage($disk, $directory, $batch, $snapshot, $snapshotId);
+            $existing = $this->readValidPackage(
+                $disk,
+                $directory,
+                $batch,
+                $snapshot,
+                $snapshotId,
+                $rowSetDigest,
+                $evidenceState['digest']
+            );
             if ($existing !== null) {
                 return [
                     'status' => 'reused',
@@ -111,6 +137,9 @@ class InstituteDiscoveryReviewPackageService
                 'snapshot_id' => $snapshotId,
                 'evidence_id' => $evidenceId,
                 'snapshot_hash' => (string) $snapshot->content_hash,
+                'row_set_sha256' => $rowSetDigest,
+                'evidence_set_sha256' => $evidenceState['digest'],
+                'evidence_ids' => $evidenceState['ids'],
                 'observed_at' => $snapshot->captured_at?->toIso8601String(),
                 'candidate_count' => $candidateCount,
                 'extracted_count' => $candidateCount,
@@ -130,7 +159,15 @@ class InstituteDiscoveryReviewPackageService
             $this->atomicWrite($disk, $directory, 'candidates.csv', $csv);
             $this->atomicWrite($disk, $directory, 'manifest.json', $manifestJson);
 
-            $verified = $this->readValidPackage($disk, $directory, $batch, $snapshot, $snapshotId);
+            $verified = $this->readValidPackage(
+                $disk,
+                $directory,
+                $batch,
+                $snapshot,
+                $snapshotId,
+                $rowSetDigest,
+                $evidenceState['digest']
+            );
             if ($verified === null) {
                 throw new RuntimeException('The generated review package failed post-write verification.');
             }
@@ -273,7 +310,7 @@ class InstituteDiscoveryReviewPackageService
         return ['candidates' => $candidates, 'skipped' => $skipped, 'deleted' => $deleted];
     }
 
-    private function readValidPackage($disk, string $directory, ImportBatch $batch, SourceSnapshot $snapshot, int $snapshotId): ?array
+    private function readValidPackage($disk, string $directory, ImportBatch $batch, SourceSnapshot $snapshot, int $snapshotId, string $rowSetDigest, string $evidenceSetDigest): ?array
     {
         $csvPath = $directory.'/candidates.csv';
         $manifestPath = $directory.'/manifest.json';
@@ -291,6 +328,8 @@ class InstituteDiscoveryReviewPackageService
             || (string) ($manifest['source_type'] ?? '') !== (string) $batch->source_type
             || (string) ($manifest['entity_type'] ?? '') !== (string) $batch->entity_type
             || (string) ($manifest['snapshot_hash'] ?? '') !== (string) $snapshot->content_hash
+            || ! hash_equals($rowSetDigest, (string) ($manifest['row_set_sha256'] ?? ''))
+            || ! hash_equals($evidenceSetDigest, (string) ($manifest['evidence_set_sha256'] ?? ''))
             || ($manifest['canonical_mutations_performed'] ?? null) !== false
             || ($manifest['automatic_approval_performed'] ?? null) !== false
             || ($manifest['files']['csv'] ?? null) !== 'candidates.csv'
@@ -312,6 +351,132 @@ class InstituteDiscoveryReviewPackageService
             return null;
         }
         return $manifest;
+    }
+
+    /**
+     * Hash the complete ordered database row set represented by the CSV. The
+     * digest intentionally includes fields not currently displayed in the CSV,
+     * so any persisted review-relevant row mutation invalidates reuse.
+     */
+    private function rowSetDigest(ImportBatch $batch): string
+    {
+        $rows = $batch->rows
+            ->sortBy([['row_number', 'asc'], ['id', 'asc']])
+            ->values()
+            ->map(fn ($row): array => $this->canonicalize([
+                'id' => (int) $row->id,
+                'row_number' => (int) $row->row_number,
+                'status' => $row->status,
+                'match_state' => $row->match_state,
+                'canonical_subject_type' => $row->canonical_subject_type,
+                'canonical_subject_id' => $row->canonical_subject_id,
+                'parent_subject_type' => $row->parent_subject_type,
+                'parent_subject_id' => $row->parent_subject_id,
+                'payload' => $row->payload,
+                'normalized_payload' => $row->normalized_payload,
+                'validation_errors' => $row->validation_errors,
+                'notes' => $row->notes,
+                'discovery_identity_key' => $row->discovery_identity_key,
+            ]))
+            ->all();
+
+        return hash('sha256', json_encode($rows, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * Validate that every referenced evidence record belongs to this batch's
+     * source and exact snapshot before it is represented in a review package.
+     *
+     * @return array{ids:array<int>,digest:string}
+     */
+    private function evidenceState(ImportBatch $batch, SourceSnapshot $snapshot, ?int $evidenceId): array
+    {
+        $ids = collect([$evidenceId]);
+
+        foreach ($batch->rows as $row) {
+            $payload = is_array($row->payload) ? $row->payload : [];
+            $provenance = is_array($payload['_provenance'] ?? null) ? $payload['_provenance'] : [];
+            if (isset($provenance['evidence_id']) && (int) $provenance['evidence_id'] > 0) {
+                $ids->push((int) $provenance['evidence_id']);
+            }
+        }
+
+        if ($batch->discovery_identity_key !== null) {
+            $expectedEvidenceKey = app(DiscoveryPersistenceIdentityService::class)
+                ->evidenceKey((string) $batch->discovery_identity_key);
+            $derivedEvidenceId = Evidence::query()
+                ->where('source_id', $batch->source_id)
+                ->where('snapshot_id', $snapshot->id)
+                ->where('discovery_identity_key', $expectedEvidenceKey)
+                ->value('id');
+
+            if ($derivedEvidenceId !== null) {
+                $ids->push((int) $derivedEvidenceId);
+            }
+        }
+
+        $ids = $ids->filter(fn ($id) => (int) $id > 0)->map(fn ($id) => (int) $id)->unique()->sort()->values();
+        $records = Evidence::query()
+            ->whereIn('id', $ids)
+            ->orderBy('id')
+            ->get(['id', 'source_id', 'snapshot_id', 'discovery_identity_key', 'reference', 'content_hash', 'observed_at', 'published_at', 'expires_at', 'status']);
+
+        if ($records->count() !== $ids->count()) {
+            throw new RuntimeException('A review-package evidence reference does not resolve to a persisted evidence record.');
+        }
+
+        foreach ($records as $record) {
+            if ((int) $record->source_id !== (int) $batch->source_id
+                || (int) $record->snapshot_id !== (int) $snapshot->id) {
+                throw new RuntimeException('Review-package evidence does not belong to the batch source and snapshot.');
+            }
+
+            if ($batch->discovery_identity_key !== null) {
+                $expectedEvidenceKey = app(DiscoveryPersistenceIdentityService::class)
+                    ->evidenceKey((string) $batch->discovery_identity_key);
+
+                if (! hash_equals($expectedEvidenceKey, (string) $record->discovery_identity_key)) {
+                    throw new RuntimeException('Review-package evidence identity does not match the discovery batch.');
+                }
+            }
+        }
+
+        $evidenceRows = $records->map(fn ($record): array => [
+            'id' => (int) $record->id,
+            'source_id' => (int) $record->source_id,
+            'snapshot_id' => (int) $record->snapshot_id,
+            'discovery_identity_key' => $record->discovery_identity_key,
+            'reference' => $record->reference,
+            'content_hash' => $record->content_hash,
+            'observed_at' => $record->observed_at?->toIso8601String(),
+            'published_at' => $record->published_at?->toIso8601String(),
+            'expires_at' => $record->expires_at?->toIso8601String(),
+            'status' => $record->status,
+        ])->all();
+
+        return [
+            'ids' => $ids->all(),
+            'digest' => hash('sha256', json_encode($evidenceRows, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),
+        ];
+    }
+
+    private function canonicalize(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        if (array_is_list($value)) {
+            return array_map($this->canonicalize(...), $value);
+        }
+
+        ksort($value);
+
+        foreach ($value as $key => $item) {
+            $value[$key] = $this->canonicalize($item);
+        }
+
+        return $value;
     }
 
     private function withPackageLock(int $batchId, int $snapshotId, callable $callback): mixed
