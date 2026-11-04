@@ -91,7 +91,7 @@ It verifies:
 - exact capture replay reuses the same snapshot;
 - repeated comparison does not create duplicate observations or reconciliation requests.
 
-Final workflow IDs, exact PR head, actual MySQL output and test totals will be appended after exact-head validation. SQLite feature tests are not represented as the MySQL concurrency proof.
+SQLite feature tests are not represented as the MySQL concurrency proof.
 
 ## 8. Phase 1C-21 merge reconciliation
 
@@ -138,3 +138,22 @@ A merge of PR #1007 to `main` is not currently safe under the production restric
 - The PR #1006 merge previously demonstrated both workflows starting on the merge push: Hostinger Read-only Diagnostics run #41778840327 and Automated Live Data Integrity Audit run #41778840448. Both failed at their production-facing diagnostic steps; no successful production readiness result was recorded.
 - The current Phase 1C-22 request explicitly prohibits Hostinger SSH, production diagnostics and production database access. No workflow trigger, environment, secret or SSH behavior is changed by this PR.
 - Therefore PR #1007 must remain open/draft even if all four repository/isolated-CI checks pass. Do not merge until the repository owner separately authorizes a safe workflow-separation change or another demonstrably non-production merge path. No bypass, skip or weakening of required checks is permitted.
+
+
+## 12. Exact implementation-head validation
+
+The implementation and audit/tracker changes at PR head `ed090b22165cd24034cf09a6a455716433a17f78` passed all four required workflows:
+
+| Workflow | Run / job | Result |
+|---|---|---|
+| Test | #41780740791 / 126411454450 | PASS — 887 tests, 3,916 assertions |
+| Laravel CI | #41780740794 / 126411454540 | PASS — 887 tests, 3,916 assertions; Pint formatting passed (86 files, 40 style fixes in CI workspace) and Pint `--test` passed |
+| Institutes Directory Project Controller | #41780740798 / 126411455281 | Job PASS; internal inventory REVIEW_REQUIRED, 2/5. Hostinger diagnostics remains BLOCKED; PR review and tracker reconciliation remain controller-blocked while the PR is open. |
+| Isolated MySQL migration/recovery | #41780740865 / 126411455014 | PASS — MySQL 8.4.13; migration `2026_11_04_000013` applied and schema/ledger plus second-run idempotency passed. |
+
+Actual isolated MySQL log evidence:
+- `SourceSnapshotTest.php` + `SourceRetrievalTest.php`: 30 tests / 104 assertions, PASS.
+- Independent PHP-process proof: PASS. Two concurrent same-source retrieval retries produced deterministic B→A predecessor selection; C either selected B or retained its already-established A comparison with an explicit pending reconciliation. Forced late B arrival preserved C's historical predecessor and created one idempotent pending request.
+- Existing MySQL recovery steps also passed, including discovery outcome, candidate batch, review-package, identity conflict, Phase 1C-21 operator transition, change/reverification, monitoring alert/audit and policy checkpoint suites.
+
+The final documentation-inclusive PR head is validated separately after this evidence update; its exact four run IDs are recorded in the PR #1007 description. The PR remains draft/open because merging would trigger prohibited production-facing workflows (Section 11).
