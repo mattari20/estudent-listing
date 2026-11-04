@@ -121,6 +121,7 @@ class SourceRetrievalTest extends TestCase {
   $this->assertNull($run->snapshot_id);
   $this->assertDatabaseHas('sources', ['id' => $source->id, 'status' => 'active']);
  }
+
     public function test_snapshot_persistence_exception_is_not_misclassified_as_retrieval_failure(): void
     {
         Http::fake([
