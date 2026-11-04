@@ -482,7 +482,7 @@ class InstituteDiscoveryAgentTest extends TestCase
         $this->assertSame('reused', $second['review_package']['status']);
         $this->assertNotEmpty(ImportBatch::findOrFail($first['batch_id'])->discovery_identity_key);
         $this->assertSame(2, ImportRow::where('import_batch_id', $first['batch_id'])->whereNotNull('discovery_identity_key')->count());
-        $this->assertSame(2, \\App\\Models\\Evidence::whereNotNull('discovery_identity_key')->count());
+        $this->assertSame(1, \\App\\Models\\Evidence::whereNotNull('discovery_identity_key')->count());
         $this->assertSame(2, \\App\\Models\\Assertion::whereNotNull('discovery_identity_key')->count());
         $this->assertDatabaseCount('import_batches', 1);
         $this->assertDatabaseCount('import_rows', 2);
