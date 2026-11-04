@@ -16,7 +16,7 @@ The owner must remove or rotate `INSTITUTES_ADMIN_RECOVERY_PASSWORD` after confi
 
 ## Required controls for every remaining production workflow
 
-The structural regression suite parses the actual workflow YAML and scans every `.github/workflows/*.yml` file. Any production-access workflow must satisfy all of the following:
+The structural regression suite parses the actual workflow YAML and scans every `.github/workflows/*.yml` and `.github/workflows/*.yaml` file. Any production-access workflow must satisfy all of the following:
 
 - Top-level `workflow_dispatch` only; no push, pull-request, schedule, or workflow-run trigger.
 - Required string inputs for the exact target SHA, operation reason/ticket, and operation-specific confirmation.
@@ -63,7 +63,7 @@ Controlled production operations and migrations reviewed:
 - `hostinger-gcu-single-source-qualification.yml`
 - `scheduled-institute-discovery.yml`
 
-The scheduled discovery workflow has a top-level manual-dispatch trigger; its conditional workflow-run handoff branch is not an event trigger. No production-facing workflow should gain a top-level `workflow_run` trigger.
+The scheduled discovery workflow has a top-level manual-dispatch trigger; its conditional workflow-run handoff branch is not an event trigger. No production-facing workflow should gain a top-level `workflow_run` trigger. The discovery dispatch additionally requires `confirm_discovery=AUTHORIZE-GOVERNED-INSTITUTE-DISCOVERY`; the shared guard validates this separate value before the Hostinger SSH action. The generic production confirmation for discovery is also unique to that workflow.
 
 Repository-only and scheduled workflows were also reviewed, including `test.yml`, `laravel-ci.yml`, `isolated-mysql-approval-migration-validation.yml`, `institution-import-preflight.yml`, `offering-gap-source-verification.yml`, `institutes-public-monitor.yml`, `public-browser-runtime-diagnostics.yml`, `project-controller.yml`, `project-command-orchestrator.yml`, `build-frontend-assets.yml`, and evidence-register validation. The public monitor and source-verification schedules are repository-side/public HTTPS checks, not production SSH or production DB entry paths. Ordinary CI retains its normal PR/push triggers and isolated MySQL service.
 
@@ -98,3 +98,18 @@ No GitHub secrets, environment settings/reviewers, branch protection, required c
 - **PRODUCTION VERIFIED:** No; no production operation was performed, and GitHub environment protection/secret disposition remain owner actions.
 - **Phase 1C-26D:** Not complete until final exact-head CI passes and the owner actions above are evidenced.
 - **Phase 1C / production readiness:** Not complete or declared.
+
+
+## Phase 1C-28 remediation update
+
+The Phase 1C-28 changes extend the isolation contract rather than weakening it:
+
+- The scanner now enumerates both YAML extensions.
+- Workflow-level production secret references are rejected even when no job is otherwise classified as production-facing.
+- Guard detection requires an executable `run` command invoking `scripts/ci/validate-production-dispatch.sh`; a step name or arbitrary text mention is not accepted.
+- Production secret exposure in earlier steps is treated as an access boundary and rejected unless the guard has already executed.
+- Generic `AUTHORIZE-PRODUCTION-OPERATION` is not accepted as an operation-specific phrase. The controlled deployment, migration, seed, GCU qualification, and discovery workflows use distinct expected phrases.
+- Regression fixtures cover workflow-scope secrets, both YAML extensions, non-executable guard mentions, generic confirmation, and secrets supplied to a step before authorization.
+- The discovery workflow requires both the shared target-SHA/reason/manual-dispatch guard and its dedicated `confirm_discovery` value before SSH.
+
+Exact-head CI is being rerun after these changes. Do not reuse earlier run results as proof for a later commit. The owner-level configuration items below remain unverified and separate from repository code.
