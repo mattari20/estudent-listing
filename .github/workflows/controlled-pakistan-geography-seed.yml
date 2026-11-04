@@ -16,7 +16,6 @@ on:
           - "yes"
         default: "no"
 
-permissions:
       target_sha:
         description: "Exact 40-character SHA of the current main revision."
         required: true
@@ -28,8 +27,9 @@ permissions:
       confirm_production_operation:
         description: "Type AUTHORIZE-PRODUCTION-OPERATION to proceed after environment approval."
         required: true
-        type: string  contents: read
-
+        type: string
+permissions:
+  contents: read
 concurrency:
   group: estudent-production-access
   cancel-in-progress: false
