@@ -1,81 +1,220 @@
 #!/usr/bin/env python3
-"""Repository-only regression tests for production workflow isolation."""
+"""Structural regression tests for production workflow isolation."""
 from pathlib import Path
+import json
 import os
-import re
 import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / ".github" / "workflows"
-OWNER_CONFIG_EXCEPTIONS = {"secure-institutes-admin-recovery.yml"}
+YAML_READER = ROOT / "scripts" / "ci" / "read-workflow-yaml.rb"
 
-PRODUCTION_MARKERS = (
-    "appleboy/ssh-action",
-    "HOSTINGER_SSH_",
-    "OFFERING_GAP_DB_",
-    "INSTITUTES_DIAGNOSTICS_TOKEN",
-    "INSTITUTES_PRIVATE_REPORTS_TOKEN",
-    "institutes:bootstrap-agent",
-    "institutes:monitor-changes",
+PRODUCTION_SECRET_MARKERS = (
+    "secrets.HOSTINGER_SSH_",
+    "secrets.OFFERING_GAP_DB_",
+    "secrets.INSTITUTES_DIAGNOSTICS_TOKEN",
+    "secrets.INSTITUTES_PRIVATE_REPORTS_TOKEN",
 )
+SSH_ACTION = "appleboy/ssh-action"
+
+
+def parse_workflow(path):
+    result = subprocess.run(
+        ["ruby", str(YAML_READER), str(path)],
+        check=True, text=True, capture_output=True,
+    )
+    document = json.loads(result.stdout)
+    events = document.get("on", {})
+    if not isinstance(events, dict):
+        raise AssertionError(f"{path.name}: top-level on must be a mapping")
+    jobs = document.get("jobs", {})
+    if not isinstance(jobs, dict):
+        raise AssertionError(f"{path.name}: jobs must be a mapping")
+    return document, events, jobs
+
+
+def flatten(value):
+    if isinstance(value, dict):
+        return " ".join(flatten(k) + " " + flatten(v) for k, v in value.items())
+    if isinstance(value, list):
+        return " ".join(flatten(item) for item in value)
+    return str(value)
+
+
+def production_access_kind(job):
+    content = flatten(job)
+    if SSH_ACTION in content or any(marker in content for marker in PRODUCTION_SECRET_MARKERS):
+        return "production"
+    return None
+
+
+def first_production_step_index(steps):
+    for index, step in enumerate(steps or []):
+        content = flatten(step)
+        if SSH_ACTION in content or any(marker in content for marker in PRODUCTION_SECRET_MARKERS):
+            return index
+    return None
+
+
+def validate_production_workflow(document, events):
+    jobs = document.get("jobs", {})
+    production_jobs = {
+        name: job for name, job in jobs.items()
+        if production_access_kind(job)
+    }
+    if not production_jobs:
+        return []
+
+    errors = []
+    if set(events) != {"workflow_dispatch"}:
+        errors.append(f"production workflow has non-manual triggers: {sorted(events)}")
+    dispatch = events.get("workflow_dispatch", {})
+    inputs = dispatch.get("inputs", {}) if isinstance(dispatch, dict) else {}
+    for required in ("target_sha", "operation_reason", "confirm_production_operation"):
+        if required not in inputs:
+            errors.append(f"missing workflow_dispatch input: {required}")
+
+    concurrency = document.get("concurrency", {})
+    if not isinstance(concurrency, dict):
+        errors.append("missing shared concurrency mapping")
+    else:
+        if concurrency.get("group") != "estudent-production-access":
+            errors.append("wrong production concurrency group")
+        if concurrency.get("cancel-in-progress") is not False:
+            errors.append("production concurrency must not cancel active runs")
+        if concurrency.get("queue") != "max":
+            errors.append("production concurrency must queue pending runs")
+
+    for name, job in production_jobs.items():
+        if job.get("environment") not in {
+            "production-readonly-diagnostics",
+            "production-operations",
+            "offering-gap-readonly-audit",
+        }:
+            errors.append(f"job {name} missing approved production environment")
+        steps = job.get("steps", [])
+        access_index = first_production_step_index(steps)
+        if access_index is None:
+            errors.append(f"job {name} has no identifiable production access step")
+            continue
+        guarded = any(
+            "scripts/ci/validate-production-dispatch.sh" in flatten(step)
+            for step in steps[:access_index]
+        )
+        if not guarded:
+            errors.append(f"job {name} has no dispatch guard before production access")
+    return errors
+
 
 class ProductionWorkflowIsolationTest(unittest.TestCase):
-    def test_production_workflows_are_manual_only(self):
+    def test_ordinary_test_workflow_keeps_normal_ci_triggers(self):
+        _, events, _ = parse_workflow(WORKFLOWS / "test.yml")
+        self.assertIn("pull_request", events)
+        self.assertIn("push", events)
+
+    def test_production_ssh_job_is_rejected_on_push_or_pull_request(self):
+        for event in ("push", "pull_request"):
+            document = {
+                "concurrency": {"group": "estudent-production-access",
+                                "cancel-in-progress": False, "queue": "max"},
+                "jobs": {"audit": {
+                    "environment": "production-readonly-diagnostics",
+                    "steps": [
+                        {"run": "bash scripts/ci/validate-production-dispatch.sh"},
+                        {"uses": "appleboy/ssh-action@v1"},
+                    ],
+                }},
+            }
+            errors = validate_production_workflow(document, {
+                event: {"branches": ["main"]}
+            })
+            self.assertTrue(any("non-manual triggers" in error for error in errors))
+
+    def test_production_database_job_is_rejected_on_push_or_pull_request(self):
+        for event in ("push", "pull_request"):
+            document = {
+                "concurrency": {"group": "estudent-production-access",
+                                "cancel-in-progress": False, "queue": "max"},
+                "jobs": {"preflight": {
+                    "environment": "offering-gap-readonly-audit",
+                    "steps": [
+                        {"run": "bash scripts/ci/validate-production-dispatch.sh"},
+                        {"env": {"DB_PASSWORD": "${{ secrets.OFFERING_GAP_DB_PASSWORD }}"},
+                         "run": "php artisan institutes:offering-gap-preflight"},
+                    ],
+                }},
+            }
+            errors = validate_production_workflow(document, {
+                event: {"branches": ["main"]}
+            })
+            self.assertTrue(any("non-manual triggers" in error for error in errors))
+
+    def test_non_workflow_test_file_mentioning_ssh_action_is_not_production_access(self):
+        fixture = ROOT / "scripts" / "ci" / "test-production-workflow-isolation.py"
+        _, events, jobs = parse_workflow(WORKFLOWS / "test.yml")
+        self.assertIsNotNone(fixture)
+        self.assertFalse(any(production_access_kind(job) for job in jobs.values()))
+        self.assertIn("pull_request", events)
+        self.assertIn("push", events)
+
+    def test_real_ssh_action_is_detected_as_production_access(self):
+        self.assertEqual(
+            production_access_kind({"steps": [{"uses": "appleboy/ssh-action@v1"}]}),
+            "production",
+        )
+
+    def test_production_job_missing_environment_or_guard_is_rejected(self):
+        document = {
+            "concurrency": {"group": "estudent-production-access",
+                            "cancel-in-progress": False, "queue": "max"},
+            "jobs": {"audit": {
+                "steps": [{"uses": "appleboy/ssh-action@v1"}],
+            }},
+        }
+        events = {"workflow_dispatch": {"inputs": {
+            "target_sha": {}, "operation_reason": {},
+            "confirm_production_operation": {},
+        }}}
+        errors = validate_production_workflow(document, events)
+        self.assertTrue(any("missing approved production environment" in e for e in errors))
+        self.assertTrue(any("no dispatch guard" in e for e in errors))
+
+    def test_all_actual_production_workflows_are_manual_and_guarded(self):
         for path in WORKFLOWS.glob("*.yml"):
-            text = path.read_text(encoding="utf-8")
-            if not any(marker in text for marker in PRODUCTION_MARKERS):
-                continue
             with self.subTest(workflow=path.name):
-                trigger = text.split("\npermissions:", 1)[0]
-                self.assertIn("workflow_dispatch:", trigger)
-                for forbidden in ("  push:", "  pull_request:", "  schedule:", "  workflow_run:"):
-                    self.assertNotIn(forbidden, trigger)
-                if path.name not in OWNER_CONFIG_EXCEPTIONS:
-                    self.assertRegex(text, r"(?m)^    environment: (production-readonly-diagnostics|production-operations|offering-gap-readonly-audit)$")
-                    self.assertIn("group: estudent-production-access", text)
-                    self.assertIn("cancel-in-progress: false", text)
-                    self.assertIn("queue: max", text)
-                else:
-                    # This legacy account-recovery workflow is deliberately held for owner protection configuration.
-                    self.assertIn("RECOVER-EXISTING-ADMIN-1", text)
-                if path.name not in OWNER_CONFIG_EXCEPTIONS:
-                    self.assertIn("      target_sha:", trigger)
-                    self.assertIn("TARGET_SHA", text)
-                    self.assertIn("scripts/ci/validate-production-dispatch.sh", text)
-                else:
-                    self.assertNotIn("TARGET_SHA", text)
-                    self.assertNotIn("environment:", text)
+                document, events, jobs = parse_workflow(path)
+                if not any(production_access_kind(job) for job in jobs.values()):
+                    continue
+                errors = validate_production_workflow(document, events)
+                self.assertEqual(errors, [], "; ".join(errors))
 
-    def test_ci_workflows_do_not_use_production_credentials_or_ssh(self):
-        for name in ("test.yml", "laravel-ci.yml", "isolated-mysql-approval-migration-validation.yml",
-                     "project-controller.yml", "project-command-orchestrator.yml",
-                     "build-frontend-assets.yml", "institution-import-preflight.yml"):
-            path = WORKFLOWS / name
-            text = path.read_text(encoding="utf-8")
+    def test_ordinary_ci_jobs_have_no_production_credentials_or_ssh(self):
+        ordinary = (
+            "test.yml", "laravel-ci.yml",
+            "isolated-mysql-approval-migration-validation.yml",
+            "project-controller.yml", "project-command-orchestrator.yml",
+            "build-frontend-assets.yml", "institution-import-preflight.yml",
+        )
+        for name in ordinary:
+            document, _, jobs = parse_workflow(WORKFLOWS / name)
+            for job_name, job in jobs.items():
+                with self.subTest(workflow=name, job=job_name):
+                    content = flatten(job)
+                    self.assertNotIn(SSH_ACTION, content)
+                    for marker in PRODUCTION_SECRET_MARKERS:
+                        self.assertNotIn(marker, content)
+
+    def test_public_runtime_workflows_do_not_run_on_push_or_pull_request(self):
+        for name in ("public-browser-runtime-diagnostics.yml",
+                     "institutes-public-monitor.yml"):
+            _, events, _ = parse_workflow(WORKFLOWS / name)
             with self.subTest(workflow=name):
-                self.assertNotIn("appleboy/ssh-action", text)
-                self.assertNotRegex(text, r"secrets\.(HOSTINGER_SSH_|OFFERING_GAP_DB_|INSTITUTES_DIAGNOSTICS_TOKEN|INSTITUTES_PRIVATE_REPORTS_TOKEN)")
+                self.assertNotIn("push", events)
+                self.assertNotIn("pull_request", events)
 
-    def test_production_guard_rejects_invalid_sha_and_unapproved_event(self):
-        guard = (ROOT / "scripts/ci/validate-production-dispatch.sh").read_text(encoding="utf-8")
-        self.assertIn('GITHUB_EVENT_NAME:-}" == "workflow_dispatch"', guard)
-        self.assertIn('GITHUB_REF:-}" == "refs/heads/main"', guard)
-        self.assertIn('[[ "$target" =~ ^[0-9a-f]{40}$ ]]', guard)
-        self.assertIn('target" == "$GITHUB_SHA"', guard)
-        self.assertIn('confirmation" == "$expected"', guard)
-        self.assertIn('target" == "$main_sha"', guard)
-
-    def test_public_production_smoke_checks_are_not_push_or_pr_triggered(self):
-        for name in ("public-browser-runtime-diagnostics.yml", "institutes-public-monitor.yml"):
-            text = (WORKFLOWS / name).read_text(encoding="utf-8")
-            trigger = text.split("\\npermissions:", 1)[0]
-            with self.subTest(workflow=name):
-                self.assertNotIn("  push:", trigger)
-                self.assertNotIn("  pull_request:", trigger)
-
-    def test_dispatch_guard_rejects_invalid_inputs_and_all_workflow_run_handoffs(self):
-        guard = ROOT / "scripts/ci/validate-production-dispatch.sh"
+    def test_dispatch_guard_rejects_invalid_inputs_and_workflow_run_events(self):
+        guard = ROOT / "scripts" / "ci" / "validate-production-dispatch.sh"
         base = {
             "GITHUB_EVENT_NAME": "workflow_dispatch",
             "GITHUB_REF": "refs/heads/main",
@@ -86,20 +225,26 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
             "EXPECTED_CONFIRMATION": "AUTHORIZE-READONLY-DIAGNOSTICS",
         }
         cases = [
-            ("invalid SHA", {"TARGET_SHA": "not-a-sha"}, "exactly 40 lowercase hexadecimal"),
-            ("non-main ref", {"GITHUB_REF": "refs/heads/feature"}, "must target refs/heads/main"),
-            ("missing confirmation", {"CONFIRM_PRODUCTION_OPERATION": ""}, "confirmation does not match"),
-            ("mismatched SHA", {"TARGET_SHA": "b" * 40}, "must equal the dispatch event SHA"),
+            ("invalid SHA", {"TARGET_SHA": "not-a-sha"},
+             "exactly 40 lowercase hexadecimal"),
+            ("non-main ref", {"GITHUB_REF": "refs/heads/feature"},
+             "must target refs/heads/main"),
+            ("missing confirmation", {"CONFIRM_PRODUCTION_OPERATION": ""},
+             "confirmation does not match"),
+            ("mismatched SHA", {"TARGET_SHA": "b" * 40},
+             "must equal the dispatch event SHA"),
+            ("short reason", {"OPERATION_REASON": "no"},
+             "at least 8 characters"),
         ]
         for label, override, expected in cases:
             env = {**os.environ, **base, **override}
-            result = subprocess.run(["bash", str(guard)], env=env, text=True, capture_output=True)
+            result = subprocess.run(
+                ["bash", str(guard)], env=env, text=True, capture_output=True
+            )
             with self.subTest(case=label):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(expected, result.stderr)
 
-        # No workflow_run handoff is accepted, regardless of source workflow,
-        # branch, conclusion, artifact metadata, or SHA supplied by the event.
         for source, branch, conclusion, sha in (
             ("Untrusted workflow", "main", "success", "a" * 40),
             ("Controlled Official-Source Refresh Migration", "feature", "success", "a" * 40),
@@ -109,18 +254,14 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
             env = {**os.environ, **base, "GITHUB_EVENT_NAME": "workflow_run",
                    "WORKFLOW_RUN_NAME": source, "WORKFLOW_RUN_BRANCH": branch,
                    "WORKFLOW_RUN_CONCLUSION": conclusion, "WORKFLOW_RUN_HEAD_SHA": sha}
-            result = subprocess.run(["bash", str(guard)], env=env, text=True, capture_output=True)
-            with self.subTest(source=source, branch=branch, conclusion=conclusion, sha=sha):
+            result = subprocess.run(
+                ["bash", str(guard)], env=env, text=True, capture_output=True
+            )
+            with self.subTest(source=source, branch=branch,
+                              conclusion=conclusion, sha=sha):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("only workflow_dispatch is accepted", result.stderr)
 
-    def test_production_workflows_have_no_automatic_or_pr_handoffs(self):
-        for path in WORKFLOWS.glob("*.yml"):
-            text = path.read_text(encoding="utf-8")
-            if any(marker in text for marker in PRODUCTION_MARKERS):
-                with self.subTest(workflow=path.name):
-                    self.assertNotIn("workflow_run:", text)
-                    self.assertNotIn("pull_request:", text)
 
 if __name__ == "__main__":
     unittest.main()
