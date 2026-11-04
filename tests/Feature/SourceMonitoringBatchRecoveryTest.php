@@ -119,7 +119,7 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
         try {
             app(SourceMonitoringBatchService::class)->run($policy->id);
             $this->fail('Invalid policy validation must abort monitoring.');
-        } catch (\\InvalidArgumentException) {
+        } catch (\InvalidArgumentException) {
             $this->assertDatabaseHas('monitoring_policy_runs', [
                 'source_monitoring_policy_id' => $policy->id,
                 'status' => 'failed',
