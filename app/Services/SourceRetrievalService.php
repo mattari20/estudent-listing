@@ -6,6 +6,7 @@ use App\Models\Source;
 use App\Models\SourceRetrievalRun;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 class SourceRetrievalService
 {
@@ -19,17 +20,12 @@ class SourceRetrievalService
             throw new \InvalidArgumentException('Source has no URL.');
         }
 
-        // A new retrieval call is a new operation by default. Callers that
-        // retry the same logical operation must supply the same explicit key.
         $idempotencyKey ??= (string) Str::uuid();
 
         if ($idempotencyKey === '' || strlen($idempotencyKey) > 64) {
             throw new \InvalidArgumentException('Source retrieval idempotency keys must contain between 1 and 64 characters.');
         }
 
-        // The unique key protects retries of the same source/hour slot. The
-        // governed execution lease serializes pipeline runners; this row lock
-        // also prevents a second caller from taking over a live in-progress run.
         [$run, $shouldRetrieve] = DB::transaction(function () use ($source, $idempotencyKey): array {
             $run = SourceRetrievalRun::query()
                 ->where('idempotency_key', $idempotencyKey)
@@ -81,9 +77,6 @@ class SourceRetrievalService
             return $run;
         }
 
-        $httpStatus = null;
-        $contentType = null;
-
         try {
             $response = app(SafeSourceHttpRetriever::class)->get(
                 $source->url,
@@ -91,49 +84,64 @@ class SourceRetrievalService
                 10,
                 'eStudent-SourceMonitor/1.0'
             );
-
-            $httpStatus = $response->status();
-            $contentType = $response->header('Content-Type');
-            $body = $response->body();
-
-            if (! $response->successful()) {
-                throw new \RuntimeException('Source returned HTTP '.$response->status().'.');
-            }
-
-            if (strlen($body) > 5 * 1024 * 1024) {
-                throw new \RuntimeException('Source response exceeds the 5 MB retrieval limit.');
-            }
-
-            $snapshot = app(SourceSnapshotService::class)->capture(
-                $source,
-                $body,
-                $source->url,
-                $response->header('Content-Type'),
-                $response->headers(),
-                hash('sha256', 'retrieval-snapshot:v1|'.$run->id),
-            );
-
-            $run->update([
-                'status' => 'completed',
-                'http_status' => $response->status(),
-                'content_type' => $response->header('Content-Type'),
-                'content_length' => strlen($body),
-                'content_hash' => $snapshot->content_hash,
-                'snapshot_id' => $snapshot->id,
-                'completed_at' => now(),
-            ]);
-
-            return $run->refresh();
-        } catch (\Throwable $e) {
-            $run->update([
-                'status' => 'failed',
-                'http_status' => $httpStatus,
-                'content_type' => $contentType,
-                'error_message' => mb_substr($e->getMessage(), 0, 1000),
-                'completed_at' => now(),
-            ]);
-
-            return $run->refresh();
+        } catch (Throwable $exception) {
+            // Only the external retrieval boundary is classified as a retrieval
+            // failure. Persist a class-only diagnostic, never the exception message.
+            return $this->markFailed($run, null, null, 'retrieval_exception:'.mb_substr(get_class($exception), 0, 120));
         }
+
+        $httpStatus = $response->status();
+        $contentType = $response->header('Content-Type');
+        $body = $response->body();
+
+        if (! $response->successful()) {
+            return $this->markFailed($run, $httpStatus, $contentType, 'http_status_'.$httpStatus);
+        }
+
+        if (strlen($body) > 5 * 1024 * 1024) {
+            return $this->markFailed($run, $httpStatus, $contentType, 'response_too_large');
+        }
+
+        // Snapshot persistence and retrieval-run completion are deliberately
+        // outside the network exception boundary. Database/infrastructure errors
+        // propagate so the policy checkpoint remains incomplete and recoverable.
+        $snapshot = app(SourceSnapshotService::class)->capture(
+            $source,
+            $body,
+            $source->url,
+            $contentType,
+            $response->headers(),
+            hash('sha256', 'retrieval-snapshot:v1|'.$run->id),
+        );
+
+        $run->update([
+            'status' => 'completed',
+            'http_status' => $httpStatus,
+            'content_type' => $contentType,
+            'content_length' => strlen($body),
+            'content_hash' => $snapshot->content_hash,
+            'snapshot_id' => $snapshot->id,
+            'completed_at' => now(),
+            'error_message' => null,
+        ]);
+
+        return $run->refresh();
+    }
+
+    private function markFailed(
+        SourceRetrievalRun $run,
+        ?int $httpStatus,
+        ?string $contentType,
+        string $safeFailureCode
+    ): SourceRetrievalRun {
+        $run->update([
+            'status' => 'failed',
+            'http_status' => $httpStatus,
+            'content_type' => $contentType,
+            'error_message' => mb_substr($safeFailureCode, 0, 160),
+            'completed_at' => now(),
+        ]);
+
+        return $run->refresh();
     }
 }
