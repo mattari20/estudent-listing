@@ -42,22 +42,22 @@ class MonitoringAlertsTest extends TestCase {
  }
 
  public function test_concurrent_style_alert_replay_reuses_active_identity_and_allows_reopen(): void {
-  $service=app(\\App\\Services\\MonitoringAlertService::class);
+  $service=app(\App\Services\MonitoringAlertService::class);
   $first=$service->raise('identity-replay','warning','First');
   $replay=$service->raise('identity-replay','error','Replay');
   $this->assertSame($first->id,$replay->id);
   $this->assertSame('error',$replay->fresh()->severity);
-  app(\\App\\Services\\MonitoringAlertStateService::class)->resolve($first);
+  app(\App\Services\MonitoringAlertStateService::class)->resolve($first);
   $next=$service->raise('identity-replay','warning','New occurrence');
   $this->assertNotSame($first->id,$next->id);
   $this->assertSame(2,MonitoringAlert::where('alert_type','identity-replay')->count());
  }
 
  public function test_monitoring_audit_idempotency_key_preserves_single_event_on_replay(): void {
-  $service=app(\\App\\Services\\MonitoringAuditService::class);
+  $service=app(\App\Services\MonitoringAuditService::class);
   $first=$service->record('source_change','Changed',42,'info',['observation_id'=>77],'monitoring:test:77');
   $replay=$service->record('source_change','Changed again',42,'info',['observation_id'=>77],'monitoring:test:77');
   $this->assertSame($first->id,$replay->id);
-  $this->assertSame(1,\\App\\Models\\SecurityAuditEvent::where('monitoring_idempotency_key','monitoring:test:77')->count());
+  $this->assertSame(1,\App\Models\SecurityAuditEvent::where('monitoring_idempotency_key','monitoring:test:77')->count());
  }
 }
