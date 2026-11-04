@@ -12,7 +12,11 @@ on:
         required: true
         type: string
       confirm_production_operation:
-        description: "Type the exact authorization phrase shown in this workflow's validation step."
+        description: "Type AUTHORIZE-PRODUCTION-OPERATION as the generic protected-dispatch confirmation."
+        required: true
+        type: string
+      confirm_discovery:
+        description: "Type AUTHORIZE-GOVERNED-INSTITUTE-DISCOVERY to authorize this discovery operation."
         required: true
         type: string
 permissions:
@@ -132,6 +136,8 @@ jobs:
           OPERATION_REASON: ${{ inputs.operation_reason }}
           CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
           EXPECTED_CONFIRMATION: "AUTHORIZE-PRODUCTION-OPERATION"
+          OPERATION_CONFIRMATION: ${{ inputs.confirm_discovery }}
+          EXPECTED_OPERATION_CONFIRMATION: "AUTHORIZE-GOVERNED-INSTITUTE-DISCOVERY"
         run: bash scripts/ci/validate-production-dispatch.sh
       - name: Run guarded discovery on Hostinger
         uses: appleboy/ssh-action@v1.2.0
