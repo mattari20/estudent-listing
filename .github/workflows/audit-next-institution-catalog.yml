@@ -1,17 +1,13 @@
 name: Audit Next Institution Catalog
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/audit-next-institution-catalog.yml"
-      - ".github/workflows/verify-uvas-public-directory.yml"
-  push:
-    branches:
-      - ops/audit-next-institution-catalog
+  workflow_dispatch:
+
 permissions:
   contents: read
 jobs:
   audit:
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     steps:
       - name: Read-only audit of institution catalog completeness
         uses: appleboy/ssh-action@v1.2.0
