@@ -9,7 +9,7 @@ Previous audit: `docs/audits/PHASE_1C_DISCOVERY_TO_REVIEW_PERSISTENCE_BOUNDARY_A
 
 This delivery addresses the Phase 1C-20 P1 operator-transition findings. It is repository and isolated-CI work only. The implementation preserves the separate identity decision, canonical promotion and public publication gates. It does not close Phase 1C or certify production readiness.
 
-**Current implementation status:** implementation and required code-head validation passed on PR #1006 implementation head `a7b419df6cce05ad02c5cf2b3665abe2d072617f`. This audit and the master tracker are now being updated with that evidence; documentation-inclusive final PR-head validation is required after these documentation changes.
+**Final status:** PR #1006 merged successfully on 2026-11-04. The final documentation-inclusive PR head was `514c87b4539821dbd31b9d01a932a39080749f2a`; merge commit and verified main baseline are `fc54741ea246fe1c284ba397117b90ab3d87ca55`. The four exact-head validation workflows passed before merge. Post-merge repository workflow results and the two automatically triggered production-facing workflow failures are reconciled in Section 10.
 
 ## 2. Execution environment recovery
 
@@ -121,7 +121,7 @@ The isolated MySQL workflow is extended to execute the feature suite and the ind
 
 ### Exact implementation code-head validation — PR #1006
 
-Validated implementation head: `a7b419df6cce05ad02c5cf2b3665abe2d072617f` (base `8aa2ee2416b2729d05afd249961085b888b61910`). PR #1006 is open and remains draft pending documentation-inclusive revalidation.
+Final documentation-inclusive PR head: `514c87b4539821dbd31b9d01a932a39080749f2a` (base `8aa2ee2416b2729d05afd249961085b888b61910`). PR #1006 merged at `fc54741ea246fe1c284ba397117b90ab3d87ca55`.
 
 | Workflow | Run / job | Result |
 |---|---|---|
@@ -142,9 +142,16 @@ The first code-head run set found one compatibility regression in the establishe
 
 ### Documentation-inclusive final PR-head validation
 
-This audit and `docs/PROJECT_MASTER_TRACKER.md` are being updated with the implementation evidence above. Test, Laravel CI/Pint, Project Controller and isolated MySQL must run again on the resulting documentation-inclusive PR head. The PR must remain unmerged until those exact-head runs pass.
+The final documentation-inclusive PR head `514c87b4539821dbd31b9d01a932a39080749f2a` passed all four required workflows:
 
-Do not merge unless all required checks pass on the exact final PR head, repository protections permit merging, and no required workflow is queued or skipped.
+| Workflow | Run / job | Result |
+|---|---|---|
+| Test | #41776912871 / 126399289675 | PASS — 880 tests, 3,877 assertions |
+| Laravel CI | #41776912841 / 126399289035 | PASS — 880 tests, 3,877 assertions; Pint formatting and `--test` passed |
+| Institutes Directory Project Controller | #41776912867 / 126399305857 | Job PASS; internal inventory REVIEW_REQUIRED, 2/5 |
+| Isolated MySQL migration/recovery | #41776912864 / 126399289310 | PASS — operator transition suite 15 tests / 55 assertions and independent-process proof PASS |
+
+PR #1006 was merged through GitHub's normal merge process. The resulting merge commit is `fc54741ea246fe1c284ba397117b90ab3d87ca55`, which was independently verified as the Phase 1C-22 starting `main` SHA.
 
 ## 7. Remaining risks and Phase 1C-20 findings
 
@@ -170,4 +177,17 @@ GCU candidate rows #348–353 and batches #19–23 remain protected and unchange
 
 ## 9. Next smallest safe remediation
 
-After Phase 1C-21 is merged and its exact evidence is reconciled, the next smallest P1 package is chronological source-snapshot predecessor selection and ordering under concurrency. Do not start Phase 1C-22 automatically.
+Phase 1C-21 is merged and its evidence is reconciled. The next P1 package is Phase 1C-22 chronological source-snapshot predecessor selection and ordering under concurrency.
+
+
+## 10. Merge and post-merge reconciliation — 2026-11-04
+
+- PR #1006 is closed and merged; merge commit: `fc54741ea246fe1c284ba397117b90ab3d87ca55`.
+- The merge commit equals the independently verified `main` SHA at the start of Phase 1C-22.
+- Exact final-head checks remain the four runs in Section 6: Test #41776912871, Laravel CI #41776912841, Project Controller #41776912867, and isolated MySQL #41776912864.
+- Eight push workflows ran on the merge commit:
+  - Passed: Test #41778840338; Laravel CI #41778840292; Project Controller #41778840412; Command Orchestrator #41778840397; Public Site Monitor #41778840291; Build frontend assets #41778840304.
+  - Failed: Hostinger Read-only Diagnostics #41778840327; Automated Live Data Integrity Audit #41778840448.
+- Both failed jobs reached their production-facing diagnostic step and reported failure. The Hostinger diagnostics workflow skipped its subsequent public directory/API and guest-denial checks. No retry or production investigation was initiated as part of Phase 1C-22. The workflow failures are not treated as repository CI passes or production readiness evidence.
+- The earlier statement that the PR was open/draft is superseded by this merge record. The Phase 1C-20 chronological snapshot P1 remains open until Phase 1C-22 implementation and validation.
+- No production database, Hostinger/hPanel, deployment, cron/worker, production Artisan, retrieval, discovery, staging, approval, rejection, import, promotion or publication action was performed by the Phase 1C-22 work. The two automatic post-merge production-facing workflow failures are recorded transparently; their production-side effects are not inferred from the failure status alone.

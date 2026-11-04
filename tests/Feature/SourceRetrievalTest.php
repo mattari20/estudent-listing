@@ -159,4 +159,60 @@ class SourceRetrievalTest extends TestCase {
         $this->assertDatabaseCount('source_snapshots', 0);
     }
 
+
+    public function test_retrieval_capture_timestamp_is_the_response_observation_time(): void
+    {
+        \Illuminate\Support\Carbon::setTestNow(\Illuminate\Support\Carbon::parse('2026-11-04 09:00:00'));
+        Http::fake([
+            'https://example.test/*' => function () {
+                \Illuminate\Support\Carbon::setTestNow(\Illuminate\Support\Carbon::parse('2026-11-04 09:05:00'));
+
+                return Http::response('delayed official content', 200, ['Content-Type' => 'text/html']);
+            },
+        ]);
+        $source = Source::create(['source_type' => 'web', 'name' => 'Delayed Completion Source', 'url' => 'https://example.test/delayed', 'status' => 'active']);
+
+        try {
+            $run = app(\App\Services\SourceRetrievalService::class)->retrieve($source, 'delayed-completion-key');
+            $snapshot = \App\Models\SourceSnapshot::query()->findOrFail($run->snapshot_id);
+
+            $this->assertSame('2026-11-04 09:05:00', $snapshot->captured_at->format('Y-m-d H:i:s'));
+            $this->assertSame($snapshot->captured_at->toISOString(), $run->completed_at->toISOString());
+            $this->assertTrue($run->completed_at->greaterThan($run->started_at));
+        } finally {
+            \Illuminate\Support\Carbon::setTestNow();
+        }
+    }
+
+    public function test_pipeline_retry_after_snapshot_persistence_and_comparison_failure_reuses_capture(): void
+    {
+        Http::fake(['https://example.test/*' => Http::response('persisted before comparison', 200, ['Content-Type' => 'text/html'])]);
+        $source = Source::create(['source_type' => 'web', 'name' => 'Comparison Retry Source', 'url' => 'https://example.test/comparison-retry', 'status' => 'active']);
+        $comparison = \Mockery::mock(\App\Services\SourceChangeObservationService::class);
+        $comparison->shouldReceive('compare')->once()->andThrow(new \RuntimeException('injected comparison interruption'));
+        $this->app->instance(\App\Services\SourceChangeObservationService::class, $comparison);
+
+        try {
+            app(\App\Services\SourceMonitoringPipeline::class)->run($source, 'comparison-retry-key');
+            $this->fail('Injected comparison interruption should propagate.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('injected comparison interruption', $exception->getMessage());
+        }
+
+        $run = \App\Models\SourceRetrievalRun::query()->where('idempotency_key', 'comparison-retry-key')->firstOrFail();
+        $this->assertSame('completed', $run->status);
+        $this->assertNotNull($run->snapshot_id);
+        $this->assertDatabaseCount('source_snapshots', 1);
+
+        $this->app->instance(\App\Services\SourceChangeObservationService::class, new \App\Services\SourceChangeObservationService());
+        $retried = app(\App\Services\SourceMonitoringPipeline::class)->run($source, 'comparison-retry-key');
+
+        $this->assertSame($run->id, $retried['run']->id);
+        $this->assertSame($run->snapshot_id, $retried['observation']->current_snapshot_id);
+        $this->assertSame('baseline', $retried['observation']->change_state);
+        Http::assertSentCount(1);
+        $this->assertDatabaseCount('source_snapshots', 1);
+        $this->assertDatabaseCount('source_change_observations', 1);
+    }
+
 }

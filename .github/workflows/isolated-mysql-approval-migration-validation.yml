@@ -11,6 +11,11 @@ on:
       - 'tests/Support/verify-execution-lease-multiprocess.php'
       - 'tests/Feature/SourceSnapshotTest.php'
       - 'tests/Feature/SourceRetrievalTest.php'
+      - 'tests/Support/verify-source-snapshot-ordering-multiprocess.php'
+      - 'app/Models/SourceSnapshotReconciliationRequest.php'
+      - 'app/Services/SourceSnapshotService.php'
+      - 'app/Services/SourceChangeObservationService.php'
+      - 'database/migrations/2026_11_04_000013_create_source_snapshot_reconciliation_requests_table.php'
       - 'tests/Feature/SourceChangeDiscoveryIdempotencyTest.php'
       - 'tests/Feature/SourceChangeDiscoveryServiceTest.php'
       - 'tests/Feature/InstituteDiscoveryAgentTest.php'
@@ -154,8 +159,10 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/ExecutionLeaseServiceTest.php
       - name: Prove lease exclusion across independent PHP processes on MySQL
         run: php tests/Support/verify-execution-lease-multiprocess.php
-      - name: Validate source snapshot, observation and retrieval idempotency on MySQL
+      - name: Validate chronological source snapshot ordering and retrieval recovery on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceSnapshotTest.php tests/Feature/SourceRetrievalTest.php
+      - name: Prove source snapshot ordering across independent PHP processes on MySQL
+        run: php tests/Support/verify-source-snapshot-ordering-multiprocess.php
       - name: Validate discovery outcome idempotency on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceChangeDiscoveryIdempotencyTest.php
       - name: Validate discovery outcome batch consistency on MySQL

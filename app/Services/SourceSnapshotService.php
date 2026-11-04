@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Source;
 use App\Models\SourceSnapshot;
+use DateTimeInterface;
+use Illuminate\Support\Facades\DB;
 
 class SourceSnapshotService
 {
@@ -14,6 +16,7 @@ class SourceSnapshotService
         ?string $contentType = null,
         array $metadata = [],
         ?string $captureKey = null,
+        ?DateTimeInterface $capturedAt = null,
     ): SourceSnapshot {
         if ($captureKey !== null && ($captureKey === '' || strlen($captureKey) > 64)) {
             throw new \InvalidArgumentException('Snapshot capture keys must contain between 1 and 64 characters.');
@@ -26,30 +29,41 @@ class SourceSnapshotService
             'content_length' => strlen($content),
             'content_type' => $contentType,
             'content' => $content,
-            'captured_at' => now(),
+            'captured_at' => $capturedAt ?? now(),
             'status' => 'captured',
             'metadata' => $metadata,
         ];
 
-        if ($captureKey === null) {
-            return SourceSnapshot::create($attributes);
-        }
+        return DB::transaction(function () use ($source, $captureKey, $attributes): SourceSnapshot {
+            // Every supported capture path takes the same per-source lock used by
+            // comparison. This makes snapshot insertion and predecessor evaluation
+            // serializable for one source without globally serializing other sources.
+            Source::query()->lockForUpdate()->findOrFail($source->id);
 
-        $snapshot = SourceSnapshot::query()->firstOrCreate(
-            ['capture_key' => $captureKey],
-            $attributes
-        );
+            if ($captureKey === null) {
+                return SourceSnapshot::create($attributes);
+            }
 
-        if ((int) $snapshot->source_id !== (int) $source->id
-            || ! hash_equals((string) $snapshot->content_hash, (string) $attributes['content_hash'])) {
-            throw new \LogicException('The snapshot capture key is already assigned to a different source or content payload.');
-        }
+            $snapshot = SourceSnapshot::query()->firstOrCreate(
+                ['capture_key' => $captureKey],
+                $attributes
+            );
 
-        return $snapshot;
+            if ((int) $snapshot->source_id !== (int) $source->id
+                || ! hash_equals((string) $snapshot->content_hash, (string) $attributes['content_hash'])) {
+                throw new \LogicException('The snapshot capture key is already assigned to a different source or content payload.');
+            }
+
+            return $snapshot;
+        }, 3);
     }
 
     public function latest(Source $source): ?SourceSnapshot
     {
-        return SourceSnapshot::where('source_id', $source->id)->latest('captured_at')->first();
+        return SourceSnapshot::query()
+            ->where('source_id', $source->id)
+            ->orderByDesc('captured_at')
+            ->orderByDesc('id')
+            ->first();
     }
 }
