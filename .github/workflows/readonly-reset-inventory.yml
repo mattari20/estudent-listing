@@ -2,23 +2,19 @@ name: Read-only Reset Inventory
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/readonly-reset-inventory.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: readonly-reset-inventory
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
   inventory:
     name: Inventory deployed schema and row counts (read-only)
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     timeout-minutes: 8
     steps:
       - name: Checkout main and resolve expected application-code revision
