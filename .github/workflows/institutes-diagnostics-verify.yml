@@ -3,22 +3,49 @@ name: Institutes Protected Diagnostics Verification
 on:
   workflow_dispatch:
 
+    inputs:
+      target_sha:
+        description: "Exact 40-character SHA of the current main revision."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this read-only production audit."
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type the exact operation-specific confirmation phrase."
+        required: true
+        type: string
 permissions:
   contents: read
 
 concurrency:
-  group: institutes-protected-diagnostics-verification
+  group: estudent-production-access
   cancel-in-progress: false
-
+  queue: max
 jobs:
   verify-protected-diagnostics:
+    environment: production-readonly-diagnostics
     name: Verify protected diagnostics without exposing report data
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    env:
-      INSTITUTES_DIAGNOSTICS_TOKEN: ${{ secrets.INSTITUTES_DIAGNOSTICS_TOKEN }}
     steps:
+      - name: Checkout exact dispatch revision for authorization checks
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          path: .production-dispatch-guard
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS-TOKEN-VERIFICATION"
+        run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
       - name: Verify authentication and all read-only report contracts
+        env:
+          PRODUCTION_READONLY_INSTITUTES_DIAGNOSTICS_TOKEN: ${{ secrets.PRODUCTION_READONLY_INSTITUTES_DIAGNOSTICS_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
@@ -31,7 +58,7 @@ jobs:
           import urllib.request
 
           endpoint = "https://estudent.pk/institutes/automation/diagnostics"
-          token = os.environ.get("INSTITUTES_DIAGNOSTICS_TOKEN", "")
+          token = os.environ.get("PRODUCTION_READONLY_INSTITUTES_DIAGNOSTICS_TOKEN", "")
 
           # Never print the token, request headers, response body, or report fields.
           if len(token) < 32:
