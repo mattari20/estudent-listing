@@ -38,7 +38,7 @@ jobs:
           OPERATION_REASON: ${{ inputs.operation_reason }}
           CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
           EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS-AUDIT-NEXT-CATALOG"
-        run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
+        run: cd .production-dispatch-guard && bash scripts/ci/validate-production-dispatch.sh
       - name: Read-only audit of institution catalog completeness
         uses: appleboy/ssh-action@v1.2.0
         with:
