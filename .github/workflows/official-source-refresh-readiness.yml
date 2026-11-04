@@ -8,20 +8,13 @@ on:
         required: true
         type: string
         default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
-  workflow_run:
-    workflows:
-      - Controlled Hostinger Code Deployment
-      - Controlled Official-Source Refresh Migration
-    types:
-      - completed
-    branches:
-      - main
+
 
 permissions:
   contents: read
 
 concurrency:
-  group: official-source-refresh-readiness
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
@@ -47,10 +40,10 @@ jobs:
           echo "expected_application_revision=$revision"
 
   diagnose:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     name: Verify deployed code and refresh migration without writes
     needs: resolve-revision
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     timeout-minutes: 5
     steps:
       - name: Run read-only SSH diagnostics
