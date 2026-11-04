@@ -33,6 +33,7 @@ jobs:
           cat .github/phase-1c-21.patch.parts/part* | base64 --decode | gzip -d > "$RUNNER_TEMP/phase-1c-21.patch"
           git apply --check "$RUNNER_TEMP/phase-1c-21.patch"
           git apply "$RUNNER_TEMP/phase-1c-21.patch"
+          git checkout origin/main -- .github/workflows/laravel-ci.yml .github/workflows/isolated-mysql-approval-migration-validation.yml
           rm -rf .github/phase-1c-21.patch.parts
           rm .github/workflows/phase-1c-21-apply-patch.yml
           git diff --check
