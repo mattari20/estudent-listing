@@ -7,13 +7,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: diagnose-hostinger-laravel-path
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
   diagnose:
     name: Find Laravel artisan path (read-only)
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     timeout-minutes: 3
     steps:
       - name: Inspect likely project locations over SSH
