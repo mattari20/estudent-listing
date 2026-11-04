@@ -99,17 +99,8 @@ class OperatorTransitionService
     ): ImportPromotionDecision {
         return DB::transaction(function () use ($row, $actorId, $decision, $reason, $operatorAction, $enrichment): ImportPromotionDecision {
             $locked = ImportRow::query()->with('batch')->whereKey($row->id)->lockForUpdate()->firstOrFail();
-            if ($locked->status !== 'candidate') {
-                throw new RuntimeException('Promotion decisions can only be recorded while the import row is a candidate.');
-            }
             if ($locked->batch?->entity_type === 'institution') {
                 throw new RuntimeException('Institution identity rows require an explicit identity-resolution decision.');
-            }
-            if ($decision === 'approved' && ImportConflict::query()->where('import_row_id', $locked->id)->where('status', 'open')->exists()) {
-                throw new RuntimeException('Open import conflicts must be resolved before approval.');
-            }
-            if ($decision === 'approved' && $enrichment) {
-                $enrichment->validateParent($locked);
             }
 
             $record = ImportPromotionDecision::query()
@@ -121,7 +112,26 @@ class OperatorTransitionService
                 ->latest('id')
                 ->first();
 
-            $record ??= ImportPromotionDecision::create([
+            if ($record) {
+                $this->ensurePromotionAudit($locked, $record, $actorId, $reason, $operatorAction, [
+                    'decision' => $decision,
+                    'operator_action' => $operatorAction,
+                ]);
+
+                return $record;
+            }
+
+            if ($locked->status !== 'candidate') {
+                throw new RuntimeException('Promotion decisions can only be recorded while the import row is a candidate.');
+            }
+            if ($decision === 'approved' && ImportConflict::query()->where('import_row_id', $locked->id)->where('status', 'open')->exists()) {
+                throw new RuntimeException('Open import conflicts must be resolved before approval.');
+            }
+            if ($decision === 'approved' && $enrichment) {
+                $enrichment->validateParent($locked);
+            }
+
+            $record = ImportPromotionDecision::create([
                 'import_row_id' => $locked->id,
                 'decision' => $decision,
                 'actor_type' => 'user',
