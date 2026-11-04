@@ -20,13 +20,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: controlled-pakistan-geography-seed
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
   seed:
     name: Preflight, seed geography, and verify
     runs-on: ubuntu-latest
+    environment: production-operations
     timeout-minutes: 5
     steps:
       - name: Validate input and inspect preflight
