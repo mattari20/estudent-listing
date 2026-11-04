@@ -2411,7 +2411,7 @@ PR #1015 carries this tracker and the consolidated final audit/checkpoint. Its c
 | #1012 | `6496a17a20526910cbf905fa9e377bbdbb79f857` | `e9feccedbb20078c3af24656e6399d55383b6722` | Test #41789844641; Laravel #41789844612; Controller #41789844592; MySQL #41789844663 — PASS | OPEN; migration #000015; after #1011 |
 | #1013 | `ec0e9e55852441207a92e63ecb7cd52ad0d6cfda` | `e9feccedbb20078c3af24656e6399d55383b6722` | Test #41836116444; Laravel #41836116346; Controller #41836116345; MySQL #41836116369 — PASS | OPEN; testing-only inventory; after #1011/#1012 workflow consolidation |
 | #1014 | `7351c2eda62445a9e3836552e53975d5037751f4` | `e9feccedbb20078c3af24656e6399d55383b6722` | Test #41789945725; Laravel #41789945742; Controller #41789945746; Orchestrator #41789945755 — PASS | OPEN; parser change; preserve multiline fail-closed behavior |
-| #1015 | `c901e74c256adffe54e50f856f9a8ac8e52d36e4` | `92e748f7aeedb25d098775be6ff16abbbda23749` | Test #41794115745; Laravel #41794115312; Controller #41794115403; MySQL #41794115800 — PASS | OPEN; documentation must be reconciled last |
+| #1015 | Self-carrying documentation PR; use live PR head | `92e748f7aeedb25d098775be6ff16abbbda23749` | Earlier head checks are historical; the latest documentation head requires fresh exact-head checks | OPEN; documentation must be reconciled last |
 | #1016 | `743494f6a7d299b2789cb71428aeda6852018ec3` | `92e748f7aeedb25d098775be6ff16abbbda23749` | Test #41843105393; Laravel #41843105292 — PASS | OPEN; security workflow patch superseded by #1017; unique tests require selective adaptation |
 
 All seven implementation/documentation PRs #1009–#1015 are based on the previous main SHA and diverge from the new main by the #1017 merge. These passing runs are exact-head pre-merge evidence, not integrated-main evidence.
@@ -2454,3 +2454,6 @@ Integrate one PR at a time: refresh main, rebase/reconcile only the next existin
 - Phase 1C: NOT COMPLETE. Phase 2: NOT AUTHORIZED.
 - Production: NOT VERIFIED. No Hostinger/hPanel/SSH/database/Artisan/deployment/migration/discovery/candidate/approval/import/publishing action was performed by this reconciliation.
 - GCU rows #348–353 and batches #19–23 remain protected. AI extraction and the additional 20 HEC profiles remain disabled. No dummy production data. No `production-operations` environment introduced; the three existing environments and their settings/secrets remain unchanged.
+
+
+**Self-carried documentation rule:** PR #1015 contains this tracker/audit. Its head SHA and current CI are intentionally not pinned in this table because every documentation update changes that PR head. Read the live PR #1015 head and its associated exact-head checks before integration.
