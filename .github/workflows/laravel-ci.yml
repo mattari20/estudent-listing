@@ -118,6 +118,17 @@ jobs:
           tests/Feature/InstituteDiscoveryReviewPackageRecoveryTest.php
           tests/Feature/InstituteDiscoveryReviewPackageTest.php
           tests/Support/verify-review-package-multiprocess.php
+          database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php
+          app/Models/IdentityMatchCandidate.php
+          app/Models/ImportConflict.php
+          app/Models/ImportConflictEvent.php
+          app/Services/InstituteIdentityResolver.php
+          app/Services/ImportConflictDetectionService.php
+          app/Services/ImportConflictLifecycleService.php
+          app/Http/Controllers/InstituteImportPromotionController.php
+          app/Http/Controllers/InstituteOperationsController.php
+          tests/Feature/InstituteIdentityPersistenceRecoveryTest.php
+          tests/Support/verify-identity-conflict-multiprocess.php
           app/Services/MonitoringAlertService.php
           app/Services/MonitoringAuditService.php
           app/Services/SourceMonitoringBatchService.php
@@ -136,6 +147,17 @@ jobs:
           tests/Feature/InstituteDiscoveryReviewPackageRecoveryTest.php
           tests/Feature/InstituteDiscoveryReviewPackageTest.php
           tests/Support/verify-review-package-multiprocess.php
+          database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php
+          app/Models/IdentityMatchCandidate.php
+          app/Models/ImportConflict.php
+          app/Models/ImportConflictEvent.php
+          app/Services/InstituteIdentityResolver.php
+          app/Services/ImportConflictDetectionService.php
+          app/Services/ImportConflictLifecycleService.php
+          app/Http/Controllers/InstituteImportPromotionController.php
+          app/Http/Controllers/InstituteOperationsController.php
+          tests/Feature/InstituteIdentityPersistenceRecoveryTest.php
+          tests/Support/verify-identity-conflict-multiprocess.php
 
       - name: Verify formatted discovery files
         run: >-
