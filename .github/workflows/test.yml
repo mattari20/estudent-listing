@@ -55,6 +55,9 @@ jobs:
       - name: Prepare test database
         run: php artisan migrate:fresh --force
 
+      - name: Test production workflow isolation contract
+        run: python3 scripts/ci/test-production-workflow-isolation.py
+
       - name: Test public listing detail-link state classification
         run: python3 scripts/ci/test-resolve-institute-detail-link.py
 
