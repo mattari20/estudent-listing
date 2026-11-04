@@ -110,12 +110,15 @@ class SourceChangeObservationService
             ->orderBy('id')
             ->get(['id', 'source_id', 'captured_at']);
 
+        $observations = SourceChangeObservation::query()
+            ->whereIn('current_snapshot_id', $snapshots->modelKeys())
+            ->get()
+            ->keyBy('current_snapshot_id');
+
         $previousId = null;
 
         foreach ($snapshots as $snapshot) {
-            $existing = SourceChangeObservation::query()
-                ->where('current_snapshot_id', $snapshot->id)
-                ->first();
+            $existing = $observations->get($snapshot->id);
 
             if ($existing && (int) ($existing->previous_snapshot_id ?? 0) !== (int) ($previousId ?? 0)) {
                 $identity = hash('sha256', json_encode([
