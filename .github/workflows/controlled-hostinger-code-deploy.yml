@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: controlled-hostinger-code-deployment
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
@@ -43,6 +43,7 @@ jobs:
     name: Preflight and optionally deploy application code
     needs: resolve-target
     runs-on: ubuntu-latest
+    environment: production-operations
     timeout-minutes: 8
     steps:
       - name: Verify remote checkout and deploy only when explicitly confirmed
