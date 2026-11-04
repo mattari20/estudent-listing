@@ -500,6 +500,27 @@ class InstituteDiscoveryAgentTest extends TestCase
         ]);
     }
 
+    public function test_evidence_persistence_failure_rolls_back_candidate_batch_and_links(): void
+    {
+        $this->prepareCuiDiscoveryRun();
+
+        $failureTriggered = $this->injectDiscoverySqlFailure('evidence', 'insert');
+
+        try {
+            app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
+            $this->fail('An evidence persistence failure must abort candidate persistence.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertSame('injected discovery persistence failure', $exception->getMessage());
+        }
+
+        $this->assertTrue($failureTriggered());
+        $this->assertDatabaseCount('evidence', 0);
+        $this->assertDatabaseCount('import_batches', 0);
+        $this->assertDatabaseCount('import_rows', 0);
+        $this->assertDatabaseCount('assertions', 0);
+    }
+
+
     private function prepareCuiDiscoveryRun(): void
     {
         Storage::fake('local');
