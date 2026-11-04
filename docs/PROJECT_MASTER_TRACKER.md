@@ -2196,3 +2196,6 @@ This is a bounded recovery improvement only. Abrupt process death, heartbeat/val
 - Known limitation: private CSV/manifest filesystem writes cannot join the DB transaction. The review package validates both files and checksum before reuse; replay regenerates incomplete packages, but orphaned artifacts can remain and no cleanup/outbox worker is introduced.
 - No production operation or data access; no AI/HEC activation; GCU rows #348–353 and batches #19–23 protected; no dummy production data.
 - Phase 1C remains IN PROGRESS; production readiness remains NOT CERTIFIED.
+
+
+- Phase 1C-17 follow-up hardening: matching legacy batches with missing `completed_at` now fail closed rather than being reused; successful discovery outcomes verify their referenced candidate batch still exists and is validated/completed before reporting success. Regression tests cover both conditions.
