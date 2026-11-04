@@ -29,7 +29,7 @@ if (($argv[1] ?? '') === 'worker') {
         usleep(10000);
     }
     if (! is_file($go)) {
-        fwrite(STDERR, "worker barrier timed out\\n");
+        fwrite(STDERR, "worker barrier timed out\n");
         exit(2);
     }
 
@@ -53,12 +53,12 @@ if (($argv[1] ?? '') === 'worker') {
             'snapshot_id' => $snapshot->id,
             'previous_snapshot_id' => $observation->previous_snapshot_id,
             'change_state' => $observation->change_state,
-        ], JSON_THROW_ON_ERROR)."\\n");
+        ], JSON_THROW_ON_ERROR)."\n");
         Carbon::setTestNow();
         exit(0);
     } catch (Throwable $exception) {
         Carbon::setTestNow();
-        fwrite(STDERR, $exception::class.': '.$exception->getMessage()."\\n");
+        fwrite(STDERR, $exception::class.': '.$exception->getMessage()."\n");
         exit(1);
     }
 }
