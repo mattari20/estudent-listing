@@ -49,40 +49,47 @@ class InstituteImportPromotionController {
 
   return back()->with('status','Import row '.$importRow->row_number.' approved. It is now ready for promotion.');
  }
- public function reject(Request $request, ImportRow $importRow, ImportPromotionAuditService $audit): RedirectResponse {
-  abort_unless(in_array($importRow->status, ['candidate','validated','duplicate','invalid'], true), 409);
+ public function reject(Request $request, ImportRow $importRow, ImportPromotionAuditService $audit, IdentityResolutionDecisionService $identityDecisions): RedirectResponse {
+  abort_unless(in_array($importRow->status, ['candidate','validated','duplicate','invalid','rejected'], true), 409);
   $data=$request->validate(['reason'=>['required','string','max:2000']]);
   $previousStatus=$importRow->status;
   $previousMatchState=$importRow->match_state;
   if($importRow->batch?->entity_type==='institution'){
-   $decision=IdentityResolutionDecision::create(['import_row_id'=>$importRow->id,'institution_id'=>null,'decision'=>'rejected','actor_type'=>'user','actor_id'=>$request->user()->id,'reason'=>$data['reason'],'decided_at'=>now()]);
-   $decisionType='identity_resolution';
-  } else {
-   $decision=ImportPromotionDecision::create(['import_row_id'=>$importRow->id,'decision'=>'rejected','actor_type'=>'user','actor_id'=>$request->user()->id,'reason'=>$data['reason'],'decided_at'=>now()]);
-   $decisionType='import_promotion';
+   $result=\\Illuminate\\Support\\Facades\\DB::transaction(function() use($request,$importRow,$data,$previousStatus,$previousMatchState,$identityDecisions): array {
+    $recorded=$identityDecisions->record(
+     $importRow,'rejected',null,'user',(int)$request->user()->id,$data['reason'],'promotion_rejected',[
+      'previous_status'=>$previousStatus,'new_status'=>'rejected','previous_match_state'=>$previousMatchState,
+      'operator_action'=>'reject_import_row',
+     ]
+    );
+    if($recorded['created']){
+     $note=trim((string)$importRow->notes);
+     $rejectionNote='Rejected by operator: '.$data['reason'];
+     $importRow->update(['status'=>'rejected','notes'=>trim($note.($note!=='' ? "\n" : '').$rejectionNote)]);
+    }
+    return $recorded;
+   });
+   return redirect()->route('institutes.operations.queue',['batch_id'=>$importRow->import_batch_id])->with('status','Import row '.$importRow->row_number.' was rejected and removed from the active review queue.');
   }
+  $decision=ImportPromotionDecision::create(['import_row_id'=>$importRow->id,'decision'=>'rejected','actor_type'=>'user','actor_id'=>$request->user()->id,'reason'=>$data['reason'],'decided_at'=>now()]);
   $note=trim((string) $importRow->notes);
   $rejectionNote='Rejected by operator: '.$data['reason'];
-  $importRow->update([
-   'status'=>'rejected',
-   'notes'=>trim($note.($note!=='' ? "\n" : '').$rejectionNote),
-  ]);
+  $importRow->update(['status'=>'rejected','notes'=>trim($note.($note!=='' ? "\n" : '').$rejectionNote)]);
   $audit->record($importRow,'promotion_rejected',$request->user()->id,$data['reason'],[
-   'previous_status'=>$previousStatus,
-   'new_status'=>'rejected',
-   'previous_match_state'=>$previousMatchState,
-   'new_match_state'=>$importRow->match_state,
-   'operator_action'=>'reject_import_row',
-  ],$decisionType,$decision->id);
+   'previous_status'=>$previousStatus,'new_status'=>'rejected','previous_match_state'=>$previousMatchState,
+   'new_match_state'=>$importRow->match_state,'operator_action'=>'reject_import_row',
+  ],'import_promotion',$decision->id);
   return redirect()->route('institutes.operations.queue',['batch_id'=>$importRow->import_batch_id])->with('status','Import row '.$importRow->row_number.' was rejected and removed from the active review queue.');
  }
  public function resolve(ImportRow $importRow, InstituteIdentityResolver $resolver): RedirectResponse { abort_unless($importRow->status==='candidate',409); $resolver->resolve($importRow); return back()->with('status','Identity candidates refreshed.'); }
- public function decide(Request $request, ImportRow $importRow, ImportPromotionAuditService $audit): RedirectResponse {
+ public function decide(Request $request, ImportRow $importRow, ImportPromotionAuditService $audit, IdentityResolutionDecisionService $identityDecisions): RedirectResponse {
   $data=$request->validate(['decision'=>['required','in:approved_new,approved_match,rejected,conflict'],'institution_id'=>['nullable','integer','exists:institutions,id'],'reason'=>['required','string','max:2000']]);
   if($data['decision']==='approved_match' && empty($data['institution_id'])) return back()->withErrors(['institution_id'=>'An institution is required for an approved match.']);
   if($data['decision']==='approved_new' && !empty($data['institution_id'])) return back()->withErrors(['institution_id'=>'New approval cannot target an existing institution.']);
-  $decision=IdentityResolutionDecision::create(['import_row_id'=>$importRow->id,'institution_id'=>$data['institution_id']??null,'decision'=>$data['decision'],'actor_type'=>'user','actor_id'=>$request->user()->id,'reason'=>$data['reason'],'decided_at'=>now()]);
-  $audit->record($importRow,$data['decision']==='rejected'?'promotion_rejected':'promotion_approved',$request->user()->id,$data['reason'],['decision'=>$data['decision']],'identity_resolution',$decision->id);
+  $identityDecisions->record(
+   $importRow,$data['decision'],$data['institution_id']??null,'user',(int)$request->user()->id,$data['reason'],
+   $data['decision']==='rejected'?'promotion_rejected':'promotion_approved'
+  );
   return back()->with('status','Resolution decision recorded.');
  }
  public function enrichmentDecision(Request $request, ImportRow $importRow, EnrichmentPromotionService $service, ImportPromotionAuditService $audit): RedirectResponse {
@@ -92,12 +99,15 @@ class InstituteImportPromotionController {
   $audit->record($importRow,$data['decision']==='approved'?'promotion_approved':'promotion_rejected',$request->user()->id,$data['reason'],['decision'=>$data['decision']],'import_promotion',$decision->id);
   return back()->with('status','Enrichment promotion decision recorded.');
  }
- public function resolveConflict(Request $request, ImportRow $importRow): RedirectResponse {
+ public function resolveConflict(Request $request, ImportRow $importRow, ImportConflictLifecycleService $lifecycle): RedirectResponse {
   $data=$request->validate(['conflict_id'=>['required','integer','exists:import_conflicts,id'],'reason'=>['required','string','max:2000']]);
   $conflict=ImportConflict::query()->whereKey($data['conflict_id'])->where('import_row_id',$importRow->id)->firstOrFail();
-  $conflict->update(['status'=>'resolved','resolved_by_type'=>'user','resolved_by_id'=>$request->user()->id,'resolution_reason'=>$data['reason'],'resolved_at'=>now()]);
-  if(!ImportConflict::where('import_row_id',$importRow->id)->where('status','open')->exists() && $importRow->match_state==='conflict') $importRow->update(['match_state'=>IdentityResolutionDecision::where('import_row_id',$importRow->id)->exists()?'matched':'new_candidate']);
-  return back()->with('status','Import conflict resolved with an explicit operator reason.');
+  try {
+   $lifecycle->resolve($conflict,(int)$request->user()->id,$data['reason']);
+  } catch (\\RuntimeException $exception) {
+   abort(409,$exception->getMessage());
+  }
+  return back()->with('status','Import conflict resolved with a durable history event.');
  }
  public function promote(Request $request, ImportRow $importRow, InstituteImportPromoter $promoter, ImportCrossSourceComparisonService $comparison, ImportChangeDetectionService $changes): RedirectResponse {
   try {
