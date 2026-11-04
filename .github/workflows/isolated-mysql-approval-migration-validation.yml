@@ -6,6 +6,7 @@ on:
       - '.github/workflows/isolated-mysql-approval-migration-validation.yml'
       - '.github/workflows/laravel-ci.yml'
       - 'database/migrations/**'
+      - 'tests/Feature/LegacyIdentityKeyInventoryTest.php'
       - 'tests/Feature/InstitutionFieldApprovalServiceTest.php'
       - 'tests/Feature/ExecutionLeaseServiceTest.php'
       - 'tests/Support/verify-execution-lease-multiprocess.php'
@@ -175,6 +176,8 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/InstituteDiscoveryReviewPackageTest.php tests/Feature/InstituteDiscoveryReviewPackageRecoveryTest.php
       - name: Prove review-package writer concurrency on independent PHP processes
         run: php tests/Support/verify-review-package-multiprocess.php
+      - name: Validate legacy NULL identity-key inventory on MySQL
+        run: vendor/bin/phpunit tests/Feature/LegacyIdentityKeyInventoryTest.php
       - name: Validate institution identity conflict and decision replay on MySQL
         run: vendor/bin/phpunit tests/Feature/InstituteIdentityPersistenceRecoveryTest.php
       - name: Prove institution identity conflict and decision concurrency on MySQL
