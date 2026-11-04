@@ -311,7 +311,7 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
 
         $pipeline = Mockery::mock(SourceMonitoringPipeline::class);
         $pipeline->shouldReceive('run')->once()->andReturn([
-            'run' => (object) ['status' => 'completed', 'id' => 789],
+            'run' => (object) ['status' => 'completed', 'id' => null],
             'observation' => null,
             'intelligence' => null,
         ]);
@@ -361,7 +361,7 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
 
         $pipeline = Mockery::mock(SourceMonitoringPipeline::class);
         $pipeline->shouldReceive('run')->once()->andReturn([
-            'run' => (object) ['status' => 'completed', 'id' => 901],
+            'run' => (object) ['status' => 'completed', 'id' => null],
             'observation' => null,
             'intelligence' => null,
         ]);
@@ -408,7 +408,7 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
 
         $pipeline = Mockery::mock(SourceMonitoringPipeline::class);
         $pipeline->shouldReceive('run')->once()->andReturn([
-            'run' => (object) ['status' => 'completed', 'id' => 902],
+            'run' => (object) ['status' => 'completed', 'id' => null],
             'observation' => null,
             'intelligence' => null,
         ]);
@@ -458,7 +458,7 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
             'source_monitoring_policy_id' => $policy->id,
             'execution_run_id' => null,
             'status' => 'running',
-            'started_at' => now()->subMinutes(5),
+            'started_at' => now()->subMinutes(20),
             'created_at' => now()->subMinutes(5),
             'updated_at' => now()->subMinutes(5),
         ]);
@@ -550,7 +550,7 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
 
         $pipeline = Mockery::mock(SourceMonitoringPipeline::class);
         $pipeline->shouldReceive('run')->once()->andReturn([
-            'run' => (object) ['status' => 'failed', 'id' => 904],
+            'run' => (object) ['status' => 'failed', 'id' => null],
             'observation' => null,
             'intelligence' => null,
         ]);
