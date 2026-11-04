@@ -42,17 +42,44 @@ def flatten(value):
     return str(value)
 
 
+def access_configuration(value):
+    """Return action/secret configuration only; ignore run scripts and labels."""
+    if isinstance(value, dict):
+        return {
+            key: access_configuration(item)
+            for key, item in value.items()
+            if key not in {"run", "name", "description"}
+        }
+    if isinstance(value, list):
+        return [access_configuration(item) for item in value]
+    return value
+
+
+def has_production_access_configuration(value):
+    if isinstance(value, dict):
+        if str(value.get("uses", "")).startswith(SSH_ACTION):
+            return True
+        return any(
+            has_production_access_configuration(item)
+            for key, item in value.items()
+            if key not in {"run", "name", "description"}
+        )
+    if isinstance(value, list):
+        return any(has_production_access_configuration(item) for item in value)
+    if isinstance(value, str):
+        return any(marker in value for marker in PRODUCTION_SECRET_MARKERS)
+    return False
+
+
 def production_access_kind(job):
-    content = flatten(job)
-    if SSH_ACTION in content or any(marker in content for marker in PRODUCTION_SECRET_MARKERS):
+    if has_production_access_configuration(access_configuration(job)):
         return "production"
     return None
 
 
 def first_production_step_index(steps):
     for index, step in enumerate(steps or []):
-        content = flatten(step)
-        if SSH_ACTION in content or any(marker in content for marker in PRODUCTION_SECRET_MARKERS):
+        if has_production_access_configuration(access_configuration(step)):
             return index
     return None
 
