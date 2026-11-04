@@ -23,6 +23,8 @@ SSH_ACTION = "appleboy/ssh-action"
 RECOVERY_WORKFLOW = WORKFLOWS / "secure-institutes-admin-recovery.yml"
 ADMIN_RECOVERY_NAME = re.compile(r"(?:admin.*recover|recover.*admin)", re.IGNORECASE)
 PRODUCTION_REMOTE_COMMAND = re.compile(r"\b(?:ssh|scp|sftp)\s+(?:-[A-Za-z][^\s]*\s+)*[^\s]+")
+PRODUCTION_DATABASE_COMMAND = re.compile(r"\b(?:mysql|mariadb|psql)\b(?=[^\n]*(?:--host(?:=|\s+)(?!127\.0\.0\.1\b|localhost\b)|-h\s+(?!127\.0\.0\.1\b|localhost\b)))", re.IGNORECASE)
+PRODUCTION_ARTISAN_COMMAND = re.compile(r"\b(?:php(?:[0-9]+(?:\.[0-9]+)*)?\s+|["']?\$[A-Z_][A-Z0-9_]*["']?\s+)artisan\b")
 PRODUCTION_SECRET_NAME_PARTS = (
     "HOSTINGER_SSH_", "OFFERING_GAP_DB_", "INSTITUTES_DIAGNOSTICS_TOKEN",
     "INSTITUTES_PRIVATE_REPORTS_TOKEN", "INSTITUTES_ADMIN_RECOVERY_PASSWORD",
@@ -74,7 +76,10 @@ def has_production_access_configuration(value):
         if str(value.get("uses", "")).startswith(SSH_ACTION):
             return True
         run_script = value.get("run")
-        if isinstance(run_script, str) and PRODUCTION_REMOTE_COMMAND.search(run_script):
+        if isinstance(run_script, str) and (
+            PRODUCTION_REMOTE_COMMAND.search(run_script)
+            or PRODUCTION_DATABASE_COMMAND.search(run_script)
+        ):
             return True
         return any(
             has_production_access_configuration(item)
@@ -93,8 +98,30 @@ def has_production_access_configuration(value):
     return False
 
 
+def has_production_artisan_command(value):
+    if isinstance(value, dict):
+        run_script = value.get("run")
+        if isinstance(run_script, str) and PRODUCTION_ARTISAN_COMMAND.search(run_script):
+            return True
+        return any(
+            has_production_artisan_command(item)
+            for key, item in value.items()
+            if key not in {"run", "name", "description"}
+        )
+    if isinstance(value, list):
+        return any(has_production_artisan_command(item) for item in value)
+    return False
+
+
 def production_access_kind(job):
-    if has_production_access_configuration(access_configuration(job)):
+    configuration = access_configuration(job)
+    if has_production_access_configuration(configuration):
+        return "production"
+    if job.get("environment") in {
+        "production-readonly-diagnostics",
+        "production-operations",
+        "offering-gap-readonly-audit",
+    } and has_production_artisan_command(configuration):
         return "production"
     return None
 
@@ -298,8 +325,20 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
                          "run": "php artisan institutes:offering-gap-preflight"}]}
         self.assertEqual(production_access_kind(job), "production")
 
-    def test_real_ssh_action_is_detected_as_production_access(self):
-        self.assertEqual(
+    def test_remote_database_client_command_is_detected_as_production_access(self):
+        job = {"steps": [{"run": "mysql --host=db.production.example --user=operator --password=redacted -e SELECT"}]}
+        self.assertEqual(production_access_kind(job), "production")
+
+    def test_local_isolated_mysql_command_is_not_production_access(self):
+        job = {"steps": [{"run": "mysql --host=127.0.0.1 --user=ci --password=local -e SELECT"}]}
+        self.assertIsNone(production_access_kind(job))
+
+    def test_artisan_command_in_protected_production_environment_is_gated(self):
+        job = {"environment": "production-operations",
+               "steps": [{"run": "php artisan migrate --force"}]}
+        self.assertEqual(production_access_kind(job), "production")
+
+    def test_real_ssh_action_is_detected_as_production_access(self):        self.assertEqual(
             production_access_kind({"steps": [{"uses": "appleboy/ssh-action@v1"}]}),
             "production",
         )
