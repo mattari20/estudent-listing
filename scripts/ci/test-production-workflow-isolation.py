@@ -298,7 +298,8 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
                          "run": "php artisan institutes:offering-gap-preflight"}]}
         self.assertEqual(production_access_kind(job), "production")
 
-    def test_real_ssh_action_is_detected_as_production_access(self):        self.assertEqual(
+    def test_real_ssh_action_is_detected_as_production_access(self):
+        self.assertEqual(
             production_access_kind({"steps": [{"uses": "appleboy/ssh-action@v1"}]}),
             "production",
         )
