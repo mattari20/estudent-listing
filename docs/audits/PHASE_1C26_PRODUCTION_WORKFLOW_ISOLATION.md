@@ -70,7 +70,7 @@ Repository YAML cannot configure GitHub environment protection. Before merging o
    - Direct read-only DB workflow: `OFFERING_GAP_DB_HOST`, `OFFERING_GAP_DB_PORT`, `OFFERING_GAP_DB_DATABASE`, `OFFERING_GAP_DB_USERNAME`, `OFFERING_GAP_DB_PASSWORD`.
    - Private diagnostics retrieval: `INSTITUTES_DIAGNOSTICS_TOKEN` and `INSTITUTES_PRIVATE_REPORTS_TOKEN`.
 5. After confirming every reference is covered by the environment secrets, remove obsolete repository-level copies of production credentials. Do not remove `INSTITUTES_ADMIN_RECOVERY_PASSWORD` until the separate legacy recovery workflow has been secured.
-6. Secure `secure-institutes-admin-recovery.yml` separately. It is restored unchanged from `main` and remains a manual-only owner exception without the new environment gate or SHA guard. Do not dispatch it until it is protected or retired by the owner.
+6. **Administrator recovery is an unresolved executable exception.** `secure-institutes-admin-recovery.yml` still accepts `workflow_dispatch`, invokes `appleboy/ssh-action`, and consumes `HOSTINGER_SSH_*` plus `INSTITUTES_ADMIN_RECOVERY_PASSWORD`. The repository-edit attempt to add its environment/guard was rejected by the available GitHub write action, so the file was left unchanged rather than attempting a workaround. It does not have the exact-SHA guard, operation-reason input, `production-operations` environment, or shared concurrency group. **Owner action before any further merge/use:** in GitHub Actions open “Recover Existing Institutes Administrator” and choose **Disable workflow**; verify GitHub shows it disabled. Then remove or rotate `INSTITUTES_ADMIN_RECOVERY_PASSWORD` after confirming the recovery is no longer needed. Re-enable only after a separately reviewed change adds the full guard and environment protection. Do not dispatch it.
 
 The existence of an `environment:` declaration in YAML does **not** prove reviewer protection is configured. Environment reviewers, wait timers, branch restrictions and secret placement were not read or changed in this task.
 
@@ -85,6 +85,6 @@ The existence of an `environment:` declaration in YAML does **not** prove review
 
 ## Completion status
 
-**Repository implementation:** pending exact-head CI and final review.  
-**GitHub environment protection:** owner action required; not verified.  
+**Repository implementation:** partially implemented; structural regression and PHP contract repairs are on the branch. Administrator-recovery remains an executable security exception.  
+**GitHub environment protection:** owner action required; not verified. Administrator-recovery must be disabled by the owner pending remediation.  
 **Phase 1C:** not complete.  
