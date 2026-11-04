@@ -66,7 +66,7 @@ jobs:
           TARGET_SHA: ${{ inputs.target_sha }}
           OPERATION_REASON: ${{ inputs.operation_reason }}
           CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
-          EXPECTED_CONFIRMATION: "AUTHORIZE-PRODUCTION-OPERATION"
+          EXPECTED_CONFIRMATION: "AUTHORIZE-INSTITUTION-FIELD-APPROVALS-MIGRATION"
         run: bash scripts/ci/validate-production-dispatch.sh
       - name: Verify deployed code, preflight, and run only the authorized migration
         uses: appleboy/ssh-action@v1.2.0
