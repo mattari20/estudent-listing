@@ -249,7 +249,33 @@ class IdentityConflictResolutionReplayTest extends TestCase
         $lifecycle->resolve($conflict->fresh(), 707, 'Different resolution.');
     }
 
-    public function test_open_conflict_blocks_promotion_until_explicit_resolution_remains_intact(): void
+
+    public function test_operator_conflict_resolution_route_replays_without_duplicate_history(): void
+    {
+        [$source, $batch, $row] = $this->fixture(false);
+        app(ImportConflictDetectionService::class)->detect($row);
+        $conflict = ImportConflict::query()->where('import_row_id', $row->id)->firstOrFail();
+        $user = User::create([
+            'name' => 'Conflict Reviewer',
+            'email' => 'conflict-reviewer-'.bin2hex(random_bytes(5)).'@example.test',
+            'password' => 'password',
+            'role' => 'operator',
+        ]);
+
+        $payload = ['conflict_id' => $conflict->id, 'reason' => 'Operator reviewed the official identity evidence.'];
+        $this->actingAs($user)->post(route('institutes.operations.conflict-resolve', $row), $payload)->assertRedirect();
+        $this->actingAs($user)->post(route('institutes.operations.conflict-resolve', $row), $payload)->assertRedirect();
+
+        $this->assertDatabaseHas('import_conflicts', [
+            'id' => $conflict->id,
+            'status' => 'resolved',
+            'resolved_by_id' => $user->id,
+            'resolution_reason' => $payload['reason'],
+        ]);
+        $this->assertSame(2, ImportConflictEvent::where('import_conflict_id', $conflict->id)->count());
+    }
+
+    public function test_open_conflict_has_durable_open_event_and_keeps_row_blocked(): void
     {
         [$source, $batch, $row] = $this->fixture();
         app(ImportConflictDetectionService::class)->detect($row);
