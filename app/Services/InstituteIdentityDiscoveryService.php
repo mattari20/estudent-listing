@@ -107,6 +107,7 @@ class InstituteIdentityDiscoveryService
         SourceSnapshot $snapshot,
         ImportBatch $batch,
     ): array {
+        $this->assertCompletedBatch($batch);
         $evidenceId = Evidence::query()
             ->where('source_id', $source->id)
             ->where('snapshot_id', $snapshot->id)
@@ -133,6 +134,15 @@ class InstituteIdentityDiscoveryService
             'review_package' => $package,
             'canonical_mutations_performed' => false,
         ];
+    }
+
+    private function assertCompletedBatch(ImportBatch $batch): void
+    {
+        if ($batch->status !== 'validated' || $batch->completed_at === null) {
+            throw new RuntimeException(
+                'A matching institution identity batch is incomplete; automatic replay is blocked to preserve historical candidate records.'
+            );
+        }
     }
 
     private function stageSnapshotLocked(string $profile, Source $source, SourceSnapshot $snapshot, array $definition): array
@@ -170,6 +180,7 @@ class InstituteIdentityDiscoveryService
 
             $previousSnapshot = SourceSnapshot::query()->find((int) $matches[1]);
             if ($previousSnapshot && hash_equals((string) $previousSnapshot->content_hash, (string) $snapshot->content_hash)) {
+                $this->assertCompletedBatch($existingBatch);
                 $evidenceId = Evidence::query()
                     ->where('source_id', $source->id)
                     ->where('snapshot_id', $previousSnapshot->id)
