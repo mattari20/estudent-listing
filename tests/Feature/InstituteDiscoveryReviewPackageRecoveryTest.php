@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Evidence;
 use App\Models\ImportBatch;
+use App\Models\ImportRow;
 use App\Models\Source;
 use App\Models\SourceSnapshot;
 use App\Services\InstituteDiscoveryReviewPackageService;
@@ -327,4 +329,108 @@ class InstituteDiscoveryReviewPackageRecoveryTest extends TestCase
         $this->assertSame(0, ImportBatch::query()->whereKey($batch->id)->firstOrFail()->rows()->count());
         $this->assertFileExists(Storage::disk('local')->path('institute-discovery-review-packages/.locks/'.hash('sha256', $batch->id.'|'.$snapshot->id).'.lock'));
     }
+
+    public function test_changed_database_rows_invalidate_a_previously_valid_package(): void
+    {
+        Storage::fake('local');
+        [$source, $snapshot, $batch] = $this->batch();
+        $row = ImportRow::create([
+            'import_batch_id' => $batch->id,
+            'row_number' => 1,
+            'status' => 'candidate',
+            'match_state' => 'unresolved',
+            'payload' => ['name' => 'Original candidate', 'slug' => 'original-candidate'],
+        ]);
+
+        $service = app(InstituteDiscoveryReviewPackageService::class);
+        $first = $service->create($batch->fresh());
+        $firstManifest = json_decode(Storage::disk('local')->get($first['manifest_path']), true);
+
+        $row->update([
+            'payload' => ['name' => 'Changed candidate', 'slug' => 'changed-candidate'],
+            'notes' => 'reviewer-visible change',
+        ]);
+
+        $second = $service->create($batch->fresh());
+        $secondManifest = json_decode(Storage::disk('local')->get($second['manifest_path']), true);
+
+        $this->assertSame('created', $second['status']);
+        $this->assertNotSame($firstManifest['row_set_sha256'], $secondManifest['row_set_sha256']);
+        $this->assertStringContainsString('Changed candidate', Storage::disk('local')->get($second['csv_path']));
+        $this->assertSame($row->id, (int) str_getcsv(explode("\n", trim(Storage::disk('local')->get($second['csv_path'])))[1])[1]);
+    }
+
+    public function test_changed_evidence_invalidates_a_previously_valid_package(): void
+    {
+        Storage::fake('local');
+        [$source, $snapshot, $batch] = $this->batch();
+        $evidence = Evidence::create([
+            'source_id' => $source->id,
+            'snapshot_id' => $snapshot->id,
+            'reference' => $source->url,
+            'excerpt' => 'Original excerpt',
+            'content_hash' => hash('sha256', 'original evidence'),
+            'observed_at' => now(),
+            'status' => 'active',
+        ]);
+
+        $service = app(InstituteDiscoveryReviewPackageService::class);
+        $first = $service->create($batch->fresh(), $snapshot, $evidence->id);
+        $firstManifest = json_decode(Storage::disk('local')->get($first['manifest_path']), true);
+
+        $evidence->update(['content_hash' => hash('sha256', 'changed evidence')]);
+
+        $second = $service->create($batch->fresh(), $snapshot, $evidence->id);
+        $secondManifest = json_decode(Storage::disk('local')->get($second['manifest_path']), true);
+
+        $this->assertSame('created', $second['status']);
+        $this->assertNotSame($firstManifest['evidence_set_sha256'], $secondManifest['evidence_set_sha256']);
+        $this->assertSame([$evidence->id], $secondManifest['evidence_ids']);
+    }
+
+    public function test_evidence_from_another_snapshot_cannot_be_attached_to_a_review_package(): void
+    {
+        Storage::fake('local');
+        [$source, $snapshot, $batch] = $this->batch();
+        $otherSnapshot = SourceSnapshot::create([
+            'source_id' => $source->id,
+            'reference' => $source->url,
+            'content_hash' => hash('sha256', 'other snapshot'),
+            'content_length' => 14,
+            'content_type' => 'text/html',
+            'content' => 'other snapshot',
+            'captured_at' => now()->addMinute(),
+            'status' => 'captured',
+            'metadata' => [],
+        ]);
+        $evidence = Evidence::create([
+            'source_id' => $source->id,
+            'snapshot_id' => $otherSnapshot->id,
+            'reference' => $source->url,
+            'content_hash' => hash('sha256', 'other evidence'),
+            'observed_at' => now(),
+            'status' => 'active',
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Review-package evidence does not belong to the batch source and snapshot.');
+        app(InstituteDiscoveryReviewPackageService::class)->create($batch->fresh(), $snapshot, $evidence->id);
+    }
+
+    public function test_legacy_manifest_schema_is_not_reused_as_a_current_package(): void
+    {
+        Storage::fake('local');
+        [$source, $snapshot, $batch] = $this->batch();
+        $service = app(InstituteDiscoveryReviewPackageService::class);
+        $first = $service->create($batch->fresh());
+        $manifest = json_decode(Storage::disk('local')->get($first['manifest_path']), true);
+        $manifest['schema_version'] = 2;
+        Storage::disk('local')->put($first['manifest_path'], json_encode($manifest));
+
+        $rebuilt = $service->create($batch->fresh());
+
+        $this->assertSame('created', $rebuilt['status']);
+        $this->assertSame(3, json_decode(Storage::disk('local')->get($rebuilt['manifest_path']), true)['schema_version']);
+    }
+
 }
