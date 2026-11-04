@@ -519,7 +519,7 @@ class InstituteDiscoveryAgentService
     private function assertCompletedBatch(ImportBatch $batch): void
     {
         if ($batch->status !== 'validated' || $batch->completed_at === null) {
-            throw new \\RuntimeException(
+            throw new \RuntimeException(
                 'A matching discovery batch is incomplete; automatic replay is blocked to preserve historical candidate records.'
             );
         }
