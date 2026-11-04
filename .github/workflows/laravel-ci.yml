@@ -131,6 +131,13 @@ jobs:
           app/Http/Controllers/InstituteOperationsController.php
           tests/Feature/InstituteIdentityPersistenceRecoveryTest.php
           tests/Support/verify-identity-conflict-multiprocess.php
+          app/Services/BulkImportPromotionService.php
+          app/Services/OperatorTransitionService.php
+          app/Services/InstituteImportPromoter.php
+          app/Services/GeographyPromotionService.php
+          app/Http/Controllers/InstituteBulkPromotionController.php
+          tests/Feature/OperatorTransitionAtomicityTest.php
+          tests/Support/verify-operator-transition-multiprocess.php
           app/Services/MonitoringAlertService.php
           app/Services/MonitoringAuditService.php
           app/Services/SourceMonitoringBatchService.php
@@ -162,6 +169,13 @@ jobs:
           app/Http/Controllers/InstituteOperationsController.php
           tests/Feature/InstituteIdentityPersistenceRecoveryTest.php
           tests/Support/verify-identity-conflict-multiprocess.php
+          app/Services/BulkImportPromotionService.php
+          app/Services/OperatorTransitionService.php
+          app/Services/InstituteImportPromoter.php
+          app/Services/GeographyPromotionService.php
+          app/Http/Controllers/InstituteBulkPromotionController.php
+          tests/Feature/OperatorTransitionAtomicityTest.php
+          tests/Support/verify-operator-transition-multiprocess.php
 
       - name: Verify formatted discovery files
         run: >-
@@ -225,3 +239,10 @@ jobs:
           app/Http/Controllers/InstituteOperationsController.php
           tests/Feature/InstituteIdentityPersistenceRecoveryTest.php
           tests/Support/verify-identity-conflict-multiprocess.php
+          app/Services/BulkImportPromotionService.php
+          app/Services/OperatorTransitionService.php
+          app/Services/InstituteImportPromoter.php
+          app/Services/GeographyPromotionService.php
+          app/Http/Controllers/InstituteBulkPromotionController.php
+          tests/Feature/OperatorTransitionAtomicityTest.php
+          tests/Support/verify-operator-transition-multiprocess.php
