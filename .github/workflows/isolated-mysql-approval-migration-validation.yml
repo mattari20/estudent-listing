@@ -66,6 +66,7 @@ on:
       - 'app/Models/SecurityAuditEvent.php'
       - 'tests/Feature/MonitoringAlertsTest.php'
       - 'tests/Feature/SourceMonitoringBatchRecoveryTest.php'
+      - 'tests/Support/verify-monitoring-policy-checkpoint-multiprocess.php'
       - 'docs/audits/PHASE_1C_POLICY_CHECKPOINT_FAILURE_BOUNDARY_RECOVERY.md'
       - 'docs/audits/PHASE_1C_DISCOVERY_CANDIDATE_BATCH_FAILURE_RECOVERY.md'
       - 'docs/PROJECT_MASTER_TRACKER.md'
@@ -189,3 +190,5 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/MonitoringAlertsTest.php
       - name: Validate monitoring policy recovery and durable checkpoints on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceMonitoringBatchRecoveryTest.php
+      - name: Prove direct monitoring policy checkpoint concurrency across independent PHP processes
+        run: php tests/Support/verify-monitoring-policy-checkpoint-multiprocess.php
