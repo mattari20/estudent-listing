@@ -9,19 +9,45 @@ on:
         type: string
         default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
 
+      target_sha:
+        description: "Exact 40-character SHA of the current main revision."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this read-only production audit."
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type the exact operation-specific confirmation phrase."
+        required: true
+        type: string
 permissions:
   contents: read
 
 concurrency:
-  group: hostinger-readonly-offering-gap-audit
+  group: estudent-production-access
   cancel-in-progress: false
-
+  queue: max
 jobs:
   audit:
+    environment: offering-gap-readonly-audit
     name: Run host-local read-only offering-gap audit
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Checkout exact dispatch revision for authorization checks
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          path: .production-dispatch-guard
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-OFFERING-GAP-READONLY-AUDIT-HOSTINGER"
+        run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
       - name: Prepare deterministic audit report stamp
         id: audit_stamp
         shell: bash
@@ -34,11 +60,11 @@ jobs:
           PROJECT_PATH: ${{ inputs.project_path }}
           AUDIT_STAMP: ${{ steps.audit_stamp.outputs.stamp }}
         with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
-          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
-          fingerprint: ${{ secrets.HOSTINGER_SSH_FINGERPRINT }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          host: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_USER }}
+          key: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          fingerprint: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_FINGERPRINT }}
+          port: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_PORT }}
           envs: PROJECT_PATH,AUDIT_STAMP
           command_timeout: 8m
           script: |
@@ -146,11 +172,11 @@ jobs:
         if: success()
         shell: bash
         env:
-          SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
-          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
-          SSH_FINGERPRINT: ${{ secrets.HOSTINGER_SSH_FINGERPRINT }}
+          SSH_HOST: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_HOST }}
+          SSH_USER: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_USER }}
+          SSH_PORT: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_PORT }}
+          SSH_PRIVATE_KEY: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          SSH_FINGERPRINT: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_FINGERPRINT }}
           PREFLIGHT_PATH: ${{ steps.report_paths.outputs.preflight_path }}
           RECON_PATH: ${{ steps.report_paths.outputs.reconciliation_path }}
         run: |
