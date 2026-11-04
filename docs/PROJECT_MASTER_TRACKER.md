@@ -2325,3 +2325,15 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 - Consolidated reconciliation: `docs/audits/PHASE_1C_22_POST_MERGE_RECONCILIATION.md`.
 
 No production access or operation was initiated. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled; no dummy production data.
+
+
+---
+
+## Phase 1C — retrieval snapshot/run finalization recovery (2026-11-04)
+
+- Branch: phase-1c-retrieval-finalization-recovery, based on main e9feccedbb20078c3af24656e6399d55383b6722.
+- Extracted retrieval completion persistence into SourceRetrievalRunFinalizer, creating an explicit injectable failure boundary after snapshot persistence.
+- Added failure-injection coverage where snapshot persistence succeeds and run completion throws; retry after the stale-in-progress window reuses the same capture-key snapshot and completes the same retrieval-run row with the original authoritative captured_at timestamp.
+- Existing capture/replay and independent-process snapshot chronology proof remains in the isolated MySQL workflow.
+- Status: IMPLEMENTED on branch; exact-head Test/Laravel CI/Project Controller/isolated MySQL evidence pending. No merge or production verification claimed.
+- No production operation. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and additional 20 HEC profiles remain disabled; no dummy production data.
