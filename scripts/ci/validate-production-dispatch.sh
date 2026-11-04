@@ -3,6 +3,10 @@
 set -euo pipefail
 set +x
 
+# The workflow checks this script out into a dedicated path; anchor Git commands
+# to that checkout rather than the caller workspace.
+cd "$(dirname "${BASH_SOURCE[0]}")/../.."
+
 fail() {
   printf 'PRODUCTION DISPATCH REJECTED: %s\n' "$1" >&2
   exit 1
