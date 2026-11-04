@@ -2339,3 +2339,20 @@ No production access or operation was initiated. GCU rows #348–353 and batches
 - Audit: docs/audits/PHASE_1C_APPEND_ONLY_AUDIT_RETENTION.md.
 - Status: IMPLEMENTED on branch; exact-head Test/Laravel CI/Project Controller/isolated MySQL validation pending. No merge or production verification claimed.
 - No production operation. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and extra 20 HEC profiles remain disabled; no dummy production data.
+
+
+### Phase 1C — append-only audit retention correction and MySQL enforcement (2026-11-04)
+
+This section supersedes the preceding historical note that MySQL trigger creation was removed after error 1419. That note accurately records the first implementation attempt but is no longer the current branch state.
+
+- The isolated MySQL service now receives `--log-bin-trust-function-creators=1` through the MySQL server command. This is confined to disposable CI and does not change production privileges or configuration.
+- MySQL now installs BEFORE UPDATE/DELETE triggers for eleven event tables (22 triggers) plus the two identity-decision guards (24 total).
+- `import_reconciliation_events` is now included in the immutable event scope. Its event content is immutable; the only permitted UPDATE is the narrow non-NULL-to-NULL `import_row_id` detachment needed to preserve its existing ON DELETE SET NULL relationship. Batch ownership remains protected by RESTRICT.
+- `ImportReconciliationEvent` now uses the Eloquent `PreventsAuditMutation` guard.
+- The direct SQL regression suite now also tests reconciliation-event UPDATE/DELETE rejection, import-row detachment preservation and import-batch deletion rejection. The trigger lifecycle proof now expects 24 triggers.
+- The previous exact-head MySQL run #41790446802 proved the prior 22-trigger/8-test implementation. It does not prove the new reconciliation-event extension. The updated PR head must pass its new exact-head tests and isolated MySQL workflow before the expanded scope is called TESTED.
+- Audit correction: `docs/audits/PHASE_1C_APPEND_ONLY_AUDIT_RETENTION.md`.
+
+Status: IMPLEMENTED on this PR branch; the reconciliation-event extension awaits exact-head validation. NOT MERGED. PRODUCTION VERIFIED = NOT VERIFIED.
+
+No production database or Hostinger access, migration, privilege change, deployment or history rewrite. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and additional 20 HEC profiles remain disabled; no dummy production data.
