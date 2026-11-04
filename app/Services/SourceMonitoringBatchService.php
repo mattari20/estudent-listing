@@ -4,11 +4,13 @@ namespace App\Services;
 
 use App\Models\Source;
 use Closure;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Throwable;
 
 class SourceMonitoringBatchService
 {
-    public function run(?int $policyId = null, ?Closure $heartbeat = null): array
+    public function run(?int $policyId = null, ?Closure $heartbeat = null, ?string $executionRunId = null): array
     {
         $policies = app(MonitoringDuePolicyService::class)->due($policyId);
         $summary = [
@@ -27,6 +29,27 @@ class SourceMonitoringBatchService
         foreach ($policies as $policy) {
             $heartbeat?->__invoke();
             $summary['policies']++;
+
+            // A previous run left in 'running' state has no successful final checkpoint.
+            // Mark it interrupted before opening a new attempt; never rewrite its history.
+            DB::table('monitoring_policy_runs')
+                ->where('source_monitoring_policy_id', $policy->id)
+                ->where('status', 'running')
+                ->update([
+                    'status' => 'interrupted',
+                    'failure_code' => 'superseded_by_new_attempt',
+                    'finished_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            $policyRunId = DB::table('monitoring_policy_runs')->insertGetId([
+                'source_monitoring_policy_id' => $policy->id,
+                'execution_run_id' => $executionRunId,
+                'status' => 'running',
+                'started_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
             app(MonitoringPolicyValidationService::class)->validate($policy);
 
             $sources = $policy->source_id
@@ -38,6 +61,10 @@ class SourceMonitoringBatchService
             foreach ($sources as $source) {
                 $heartbeat?->__invoke();
                 $summary['sources']++;
+                DB::table('monitoring_policy_run_sources')->updateOrInsert(
+                    ['monitoring_policy_run_id' => $policyRunId, 'source_id' => $source->id],
+                    ['status' => 'running', 'started_at' => now(), 'finished_at' => null, 'failure_code' => null, 'updated_at' => now(), 'created_at' => now()]
+                );
 
                 try {
                     $result = app(SourceMonitoringPipeline::class)->run($source);
@@ -50,6 +77,10 @@ class SourceMonitoringBatchService
                     $failed = true;
                     $exceptionClass = mb_substr(get_class($exception), 0, 160);
 
+                    DB::table('monitoring_policy_run_sources')
+                        ->where('monitoring_policy_run_id', $policyRunId)
+                        ->where('source_id', $source->id)
+                        ->update(['status' => 'failed', 'failure_code' => $exceptionClass, 'finished_at' => now(), 'updated_at' => now()]);
                     app(MonitoringAlertService::class)->raise(
                         'retrieval_failure',
                         app(MonitoringAlertPolicyService::class)->severityForFailures($policy->consecutive_failures + 1),
@@ -72,6 +103,10 @@ class SourceMonitoringBatchService
                 if (($result['run']->status ?? '') !== 'completed') {
                     $summary['failed']++;
                     $failed = true;
+                    DB::table('monitoring_policy_run_sources')
+                        ->where('monitoring_policy_run_id', $policyRunId)
+                        ->where('source_id', $source->id)
+                        ->update(['status' => 'failed', 'failure_code' => 'retrieval_not_completed', 'retrieval_run_id' => $result['run']->id ?? null, 'finished_at' => now(), 'updated_at' => now()]);
                     app(MonitoringAlertService::class)->raise(
                         'retrieval_failure',
                         app(MonitoringAlertPolicyService::class)->severityForFailures($policy->consecutive_failures + 1),
@@ -134,6 +169,20 @@ class SourceMonitoringBatchService
                         $summary['discovery_duplicates'] += (int) ($discovery['duplicate_rows'] ?? 0);
                     }
                 }
+
+                // This is the durable source completion checkpoint. If the process
+                // dies before this write, the next attempt replays the source through
+                // existing retrieval/observation/outcome idempotency boundaries.
+                DB::table('monitoring_policy_run_sources')
+                    ->where('monitoring_policy_run_id', $policyRunId)
+                    ->where('source_id', $source->id)
+                    ->update([
+                        'status' => 'completed',
+                        'retrieval_run_id' => $result['run']->id ?? null,
+                        'observation_id' => $observation?->id,
+                        'finished_at' => now(),
+                        'updated_at' => now(),
+                    ]);
             }
 
             $failed
@@ -141,6 +190,15 @@ class SourceMonitoringBatchService
                 : app(MonitoringPolicyStateService::class)->success($policy);
 
             $policy->update(['last_run_at' => now()]);
+
+            DB::table('monitoring_policy_runs')
+                ->where('id', $policyRunId)
+                ->update([
+                    'status' => $failed ? 'failed' : 'completed',
+                    'summary' => json_encode($summary, JSON_THROW_ON_ERROR),
+                    'finished_at' => now(),
+                    'updated_at' => now(),
+                ]);
         }
 
         return $summary;
