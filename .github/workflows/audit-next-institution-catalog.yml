@@ -14,6 +14,10 @@ on:
         description: "Type the exact operation-specific confirmation phrase."
         required: true
         type: string
+concurrency:
+  group: audit-next-institution-catalog
+  cancel-in-progress: false
+
 permissions:
   contents: read
 jobs:
