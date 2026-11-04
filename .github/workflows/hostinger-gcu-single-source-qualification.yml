@@ -39,6 +39,7 @@ jobs:
           echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
 
   qualify:
+    if: false # blocked until production-operations is owner-authorized and configured
     name: Preflight and one GCU Lahore request
     needs: resolve-target
     runs-on: ubuntu-latest

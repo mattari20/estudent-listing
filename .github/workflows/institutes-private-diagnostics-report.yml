@@ -2,26 +2,67 @@ name: Retrieve Institutes Production Diagnostics (Private)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 4 * * *' # Daily at 04:00 UTC (09:00 Pakistan time)
-
+    inputs:
+      target_sha:
+        description: "Exact 40-character SHA of the current main revision."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this read-only production audit."
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type the exact operation-specific confirmation phrase."
+        required: true
+        type: string
 permissions:
   contents: read
 
 concurrency:
   group: institutes-private-diagnostics-report
   cancel-in-progress: false
-
 jobs:
   retrieve-and-store:
+    environment: production-readonly-diagnostics
     name: Retrieve report to private repository
     runs-on: ubuntu-latest
     timeout-minutes: 4
-    env:
-      INSTITUTES_DIAGNOSTICS_TOKEN: ${{ secrets.INSTITUTES_DIAGNOSTICS_TOKEN }}
-      INSTITUTES_PRIVATE_REPORTS_TOKEN: ${{ secrets.INSTITUTES_PRIVATE_REPORTS_TOKEN }}
     steps:
+      - name: Checkout exact dispatch revision for authorization checks
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          path: .production-dispatch-guard
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS-PRIVATE-REPORT-RETRIEVAL"
+        run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
+      - name: Validate environment-scoped production credentials
+        env:
+          PRODUCTION_READONLY_INSTITUTES_DIAGNOSTICS_TOKEN: ${{ secrets.PRODUCTION_READONLY_INSTITUTES_DIAGNOSTICS_TOKEN }}
+          PRODUCTION_READONLY_INSTITUTES_PRIVATE_REPORTS_TOKEN: ${{ secrets.PRODUCTION_READONLY_INSTITUTES_PRIVATE_REPORTS_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in
+            "PRODUCTION_READONLY_INSTITUTES_DIAGNOSTICS_TOKEN"
+            "PRODUCTION_READONLY_INSTITUTES_PRIVATE_REPORTS_TOKEN"
+          ; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required environment-scoped credential: $name"
+              exit 1
+            fi
+          done
+          echo "environment_scoped_credentials=present"
+
       - name: Retrieve report and store only in private repository
+        env:
+          PRODUCTION_READONLY_INSTITUTES_DIAGNOSTICS_TOKEN: ${{ secrets.PRODUCTION_READONLY_INSTITUTES_DIAGNOSTICS_TOKEN }}
+          PRODUCTION_READONLY_INSTITUTES_PRIVATE_REPORTS_TOKEN: ${{ secrets.PRODUCTION_READONLY_INSTITUTES_PRIVATE_REPORTS_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
@@ -37,8 +78,8 @@ jobs:
 
           endpoint = "https://estudent.pk/institutes/automation/diagnostics"
           report_repo = "mattari20/institutes-private-reports"
-          diagnostics_token = os.environ.get("INSTITUTES_DIAGNOSTICS_TOKEN", "")
-          reports_token = os.environ.get("INSTITUTES_PRIVATE_REPORTS_TOKEN", "")
+          diagnostics_token = os.environ.get("PRODUCTION_READONLY_INSTITUTES_DIAGNOSTICS_TOKEN", "")
+          reports_token = os.environ.get("PRODUCTION_READONLY_INSTITUTES_PRIVATE_REPORTS_TOKEN", "")
 
           # Never print credentials, response bodies, report fields, counts, or API errors.
           if len(diagnostics_token) < 32:

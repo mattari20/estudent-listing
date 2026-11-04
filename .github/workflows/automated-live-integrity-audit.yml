@@ -2,23 +2,19 @@ name: Automated Live Data Integrity Audit
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "17 3 * * *"
-  push:
-    branches:
-      - main
-    paths:
-      - "app/**"
-      - "bootstrap/**"
-      - "config/**"
-      - "database/**"
-      - "routes/**"
-      - "composer.json"
-      - "composer.lock"
-      - "public/**"
-      - "artisan"
-      - ".github/workflows/automated-live-integrity-audit.yml"
-
+    inputs:
+      target_sha:
+        description: "Exact 40-character SHA of the current main revision."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this read-only production audit."
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type the exact operation-specific confirmation phrase."
+        required: true
+        type: string
 permissions:
   contents: read
 
@@ -28,14 +24,50 @@ concurrency:
 
 jobs:
   audit:
+    environment: production-readonly-diagnostics
     name: Run read-only integrity report on Hostinger
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Checkout exact dispatch revision for authorization checks
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          path: .production-dispatch-guard
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS-LIVE-INTEGRITY"
+        run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
+      - name: Validate environment-scoped production credentials
+        env:
+          PRODUCTION_READONLY_HOSTINGER_SSH_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in
+          "PRODUCTION_READONLY_HOSTINGER_SSH_HOST"
+          "PRODUCTION_READONLY_HOSTINGER_SSH_USER"
+          "PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY"
+          "PRODUCTION_READONLY_HOSTINGER_SSH_PORT"
+          ; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required environment-scoped credential: $name"
+              exit 1
+            fi
+          done
+          echo "environment_scoped_credentials=present"
+
       - name: Checkout main and resolve expected application-code revision
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ inputs.target_sha }}
           fetch-depth: 0
 
       - name: Resolve expected application-code revision
@@ -54,10 +86,10 @@ jobs:
           PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
           TARGET_REVISION: ${{ steps.revision.outputs.target_revision }}
         with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
-          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          host: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
           envs: PROJECT_PATH,TARGET_REVISION
           command_timeout: 7m
           script: |

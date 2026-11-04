@@ -15,7 +15,6 @@ permissions:
 concurrency:
   group: controlled-hostinger-code-deployment
   cancel-in-progress: false
-
 jobs:
   resolve-target:
     name: Resolve approved application-code revision
@@ -40,6 +39,7 @@ jobs:
           echo "Resolved latest application-code revision: $revision"
 
   deploy:
+    if: false # blocked until production-operations is owner-authorized and configured
     name: Preflight and optionally deploy application code
     needs: resolve-target
     runs-on: ubuntu-latest

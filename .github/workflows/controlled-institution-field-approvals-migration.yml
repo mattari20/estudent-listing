@@ -15,7 +15,6 @@ permissions:
 concurrency:
   group: controlled-institution-field-approvals-migration
   cancel-in-progress: false
-
 jobs:
   resolve-target:
     name: Resolve reviewed application-code revision
@@ -38,6 +37,7 @@ jobs:
           echo "target_application_revision=$revision"
 
   migrate:
+    if: false # blocked until production-operations is owner-authorized and configured
     name: Preflight, run only the target migration, and verify
     needs: resolve-target
     runs-on: ubuntu-latest

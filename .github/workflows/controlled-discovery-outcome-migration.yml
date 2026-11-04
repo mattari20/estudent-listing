@@ -20,9 +20,9 @@ permissions:
 concurrency:
   group: controlled-discovery-outcome-migration
   cancel-in-progress: false
-
 jobs:
   migrate:
+    if: false # blocked until production-operations is owner-authorized and configured
     name: Preflight and optionally apply one migration
     runs-on: ubuntu-latest
     timeout-minutes: 5

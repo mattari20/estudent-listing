@@ -3,6 +3,19 @@ name: Hostinger Phase 5B.18 Runtime Diagnostic Delivery
 on:
   workflow_dispatch:
 
+    inputs:
+      target_sha:
+        description: "Exact 40-character SHA of the current main revision."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this read-only production audit."
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type the exact operation-specific confirmation phrase."
+        required: true
+        type: string
 permissions:
   contents: read
   actions: read
@@ -13,10 +26,48 @@ concurrency:
 
 jobs:
   runtime-diagnostic:
+    environment: production-readonly-diagnostics
     name: Deliver approved PHP diagnostic and inspect runtime once
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
+      - name: Checkout exact dispatch revision for authorization checks
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          path: .production-dispatch-guard
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS-ARTISAN-RUNTIME"
+        run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
+      - name: Validate environment-scoped production credentials
+        env:
+          PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_FINGERPRINT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_FINGERPRINT }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in
+          "PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY"
+          "PRODUCTION_READONLY_HOSTINGER_SSH_HOST"
+          "PRODUCTION_READONLY_HOSTINGER_SSH_PORT"
+          "PRODUCTION_READONLY_HOSTINGER_SSH_FINGERPRINT"
+          "PRODUCTION_READONLY_HOSTINGER_SSH_USER"
+          ; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required environment-scoped credential: $name"
+              exit 1
+            fi
+          done
+          echo "environment_scoped_credentials=present"
+
       - name: Checkout exact approved main revision
         uses: actions/checkout@v4
         with:
@@ -47,10 +98,10 @@ jobs:
         id: ssh
         shell: bash
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
-          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
-          EXPECTED_HOST_FINGERPRINT: ${{ secrets.HOSTINGER_SSH_FINGERPRINT }}
+          SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          HOSTINGER_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          HOSTINGER_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          EXPECTED_HOST_FINGERPRINT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_FINGERPRINT }}
         run: |
           set -euo pipefail
           [[ -n "$SSH_PRIVATE_KEY" && -n "$HOSTINGER_HOST" && -n "$HOSTINGER_PORT" && -n "$EXPECTED_HOST_FINGERPRINT" ]]
@@ -71,9 +122,9 @@ jobs:
         id: transfer
         shell: bash
         env:
-          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          HOSTINGER_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          HOSTINGER_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          HOSTINGER_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
           SCRIPT_SHA256: ${{ steps.source.outputs.script_sha256 }}
         run: |
           set -euo pipefail
@@ -92,9 +143,9 @@ jobs:
         id: execute
         shell: bash
         env:
-          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          HOSTINGER_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          HOSTINGER_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          HOSTINGER_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
           SCRIPT_SHA256: ${{ steps.source.outputs.script_sha256 }}
           TARGET_REVISION: ${{ steps.source.outputs.approved_revision }}
           REMOTE_DIR: ${{ steps.transfer.outputs.remote_dir }}
@@ -177,9 +228,9 @@ jobs:
         if: ${{ always() && steps.transfer.outputs.remote_dir != '' }}
         shell: bash
         env:
-          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          HOSTINGER_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          HOSTINGER_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          HOSTINGER_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
           REMOTE_DIR: ${{ steps.transfer.outputs.remote_dir }}
         run: |
           set -euo pipefail
@@ -205,9 +256,9 @@ jobs:
         if: ${{ always() && steps.transfer.outputs.remote_dir != '' }}
         shell: bash
         env:
-          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          HOSTINGER_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          HOSTINGER_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          HOSTINGER_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
           REMOTE_DIR: ${{ steps.transfer.outputs.remote_dir }}
           DIAGNOSTIC_EXIT: ${{ steps.metadata.outputs.diagnostic_exit_code }}
         run: |
@@ -230,9 +281,9 @@ jobs:
         if: ${{ always() && steps.metadata.outputs.report_sha256 != '' }}
         shell: bash
         env:
-          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          HOSTINGER_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          HOSTINGER_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          HOSTINGER_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
           REMOTE_DIR: ${{ steps.transfer.outputs.remote_dir }}
         run: |
           set -euo pipefail
@@ -280,9 +331,9 @@ jobs:
         if: ${{ always() && steps.transfer.outputs.remote_dir != '' }}
         shell: bash
         env:
-          HOSTINGER_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          HOSTINGER_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          HOSTINGER_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          HOSTINGER_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          HOSTINGER_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
           REMOTE_DIR: ${{ steps.transfer.outputs.remote_dir }}
           ARTIFACT_PRESERVED: ${{ steps.evidence.outcome == 'success' }}
         run: |

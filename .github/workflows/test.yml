@@ -22,6 +22,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate production environment binding and dispatch isolation
+        run: ruby scripts/ci/test-production-environment-binding.rb
+
+      - name: Validate consolidated production workflow isolation
+        run: python3 scripts/ci/test-production-workflow-isolation.py
+
+      - name: Validate Project Controller and Command Orchestrator offline contracts
+        run: |
+          python -m unittest discover -s tests/project_controller -v
+          python -m unittest discover -s tests/project_controller -p 'test_project_command_orchestrator.py' -v
+          python scripts/project_controller.py --offline --output-dir controller-report/offline-smoke
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:

@@ -45,6 +45,7 @@ jobs:
           echo "expected_application_revision=$revision"
 
   migrate:
+    if: false # blocked until production-operations is owner-authorized and configured
     name: Verify deployed code and optionally apply one additive migration
     needs: resolve-target
     runs-on: ubuntu-latest

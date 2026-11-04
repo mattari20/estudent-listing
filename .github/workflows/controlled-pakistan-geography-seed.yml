@@ -22,9 +22,9 @@ permissions:
 concurrency:
   group: controlled-pakistan-geography-seed
   cancel-in-progress: false
-
 jobs:
   seed:
+    if: false # blocked until production-operations is owner-authorized and configured
     name: Preflight, seed geography, and verify
     runs-on: ubuntu-latest
     timeout-minutes: 5
