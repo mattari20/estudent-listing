@@ -2314,10 +2314,10 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 ## Phase 1C — database-enforced append-only audit retention (2026-11-04)
 
 - Branch: phase-1c-append-only-audit-retention, based on main e9feccedbb20078c3af24656e6399d55383b6722.
-- Added MySQL/SQLite database triggers rejecting UPDATE/DELETE on the scoped audit/event tables: security audit, change, identity decision, verification decision, provenance review, import reconciliation, import promotion decision/event, reverification, structured enrichment promotion, official source refresh and import conflict events.
-- Added parent-delete guards where existing cascade relationships could erase retained history: import rows/batches, assertions, reverification queue items, enrichment import rows and import conflicts. Parent deletion remains allowed when no protected audit history exists.
-- Data-quality events, mutable monitoring checkpoints, alerts and current conflict state are not classified as immutable event rows by this migration.
-- Added regression coverage for direct event mutation/deletion, parent cascade prevention and transaction rollback; extended isolated MySQL validation.
+- Replaced cascade foreign keys with RESTRICT constraints for identity decisions, verification decisions, import reconciliation batches, import promotion decisions/events, reverification events, structured enrichment events, import conflict events and governed execution-run events; an orphan preflight fails closed.
+- Added Eloquent mutation guards for scoped immutable event/decision models. Identity decisions permit only one-time NULL-to-key enrichment for the existing replay path; decision content remains immutable.
+- MySQL CI rejected CREATE TRIGGER with error 1419 because the account lacks SUPER under binary logging. Triggers were removed rather than requiring unverified Hostinger privileges. Direct SQL mutation still bypasses model guards and remains an explicit unresolved database-enforcement limitation.
+- Added regression coverage for model mutation, FK parent-deletion protection, legacy key enrichment and transaction rollback; extended isolated MySQL validation.
 - Audit: docs/audits/PHASE_1C_APPEND_ONLY_AUDIT_RETENTION.md.
 - Status: IMPLEMENTED on branch; exact-head Test/Laravel CI/Project Controller/isolated MySQL validation pending. No merge or production verification claimed.
 - No production operation. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and extra 20 HEC profiles remain disabled; no dummy production data.
