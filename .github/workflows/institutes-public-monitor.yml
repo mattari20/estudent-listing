@@ -2,29 +2,42 @@ name: Institutes Public Site Monitor
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-  schedule:
-    # Daily at 08:30 Pakistan Standard Time (03:30 UTC).
-    - cron: "30 3 * * *"
-
+    inputs:
+      target_sha:
+        description: "Exact 40-character SHA of the current main revision."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this read-only production HTTP diagnostic."
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type the exact operation-specific confirmation phrase."
+        required: true
+        type: string
 permissions:
   contents: read
 
 concurrency:
-  group: institutes-public-site-monitor
-  # A stale monitor should not block verification of the latest deployment.
-  cancel-in-progress: true
-
+  group: estudent-production-access
+  cancel-in-progress: false
+  queue: max
 jobs:
   public-smoke-check:
+    environment: production-readonly-diagnostics
     name: Public directory smoke check
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
       - name: Checkout repository for smoke-test helper
         uses: actions/checkout@v4
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS-PUBLIC-SITE-MONITOR"
+        run: bash scripts/ci/validate-production-dispatch.sh
 
       - name: Check public directory pages
         shell: bash
