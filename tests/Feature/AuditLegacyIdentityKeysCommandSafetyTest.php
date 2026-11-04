@@ -22,6 +22,46 @@ class AuditLegacyIdentityKeysCommandSafetyTest extends TestCase
         ]);
     }
 
+    public function test_command_refuses_an_unknown_remote_host_even_with_a_test_database_name(): void
+    {
+        $this->assertCommandRefusesDatabaseConfiguration([
+            'driver' => 'mysql',
+            'host' => 'mysql.internal.example',
+            'port' => 3306,
+            'database' => 'approval_migration_test',
+            'username' => 'approval_ci',
+            'password' => 'not-used',
+            'url' => null,
+        ]);
+    }
+
+    public function test_command_refuses_a_missing_mysql_host(): void
+    {
+        $this->assertCommandRefusesDatabaseConfiguration([
+            'driver' => 'mysql',
+            'port' => 3306,
+            'database' => 'approval_migration_test',
+            'username' => 'approval_ci',
+            'password' => 'not-used',
+            'url' => null,
+        ]);
+    }
+
+    public function test_command_refuses_ambiguous_read_write_split_configuration(): void
+    {
+        $this->assertCommandRefusesDatabaseConfiguration([
+            'driver' => 'mysql',
+            'host' => '127.0.0.1',
+            'port' => 3306,
+            'database' => 'approval_migration_test',
+            'username' => 'approval_ci',
+            'password' => 'not-used',
+            'url' => null,
+            'read' => ['host' => '127.0.0.1'],
+            'write' => ['host' => '127.0.0.1'],
+        ]);
+    }
+
     public function test_command_refuses_a_non_test_database_even_on_localhost(): void
     {
         $this->assertCommandRefusesDatabaseConfiguration([
