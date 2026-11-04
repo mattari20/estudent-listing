@@ -2,23 +2,19 @@ name: Step 3 Discovery Candidate Audit
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/step3-candidate-audit.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: step3-discovery-candidate-audit
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
   audit:
     name: Audit latest GCU discovery candidates (read-only)
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     timeout-minutes: 10
     steps:
       - name: Checkout main and resolve application revision
