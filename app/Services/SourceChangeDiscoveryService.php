@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ImportBatch;
 use App\Models\InstituteDiscoveryRunOutcome;
 use App\Models\SourceChangeObservation;
 use Throwable;
