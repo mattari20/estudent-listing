@@ -38,7 +38,30 @@ Ordinary network/URL-policy/HTTP retrieval failures are recorded as failed retri
 
 ## Validation evidence
 
-Pending exact PR-head workflows. Required: Laravel CI, Test, isolated MySQL migration/recovery job and Institutes Directory Project Controller. The isolated MySQL job must explicitly show `SourceMonitoringBatchRecoveryTest.php` and `SourceRetrievalTest.php` passing. Record run/job IDs and test totals here before merge.
+<badge>Verified exact PR head</badge> `0f99212a500625b2792b8a1a0cdd1c186abeff1a` (PR #1001; base `0ea84e9f2ffbdf948713a65d8afc1dc2e306e6d8`).
+
+| Workflow | Run / job | Result |
+|---|---|---|
+| Test | Run `41755801042`, job `126331495558` | PASS — 832 tests, 3,670 assertions |
+| Laravel CI | Run `41755801150`, job `126331495504` | PASS — 832 tests, 3,670 assertions; Pint formatted and verified 29 files |
+| Institutes Directory Project Controller | Run `41755801052`, job `126331563276` | PASS — controller syntax, offline fixtures, read-only inventory and report artifact |
+| Isolated MySQL Approval Migration Validation | Run `41755801173`, job `126331495974` | PASS — migration/schema/ledger/idempotency and all isolated MySQL recovery steps |
+
+### MySQL test log evidence
+
+The isolated MySQL workflow log explicitly records:
+
+- `SourceMonitoringBatchRecoveryTest.php`: **12 tests, 70 assertions — PASS**.
+- `SourceSnapshotTest.php` + `SourceRetrievalTest.php`: **23 tests, 65 assertions — PASS**.
+- Approval-specific migration tests: **17 tests, 87 assertions — PASS**.
+- Execution lease recovery tests: **6 tests, 18 assertions — PASS**.
+- Discovery outcome idempotency: **3 tests, 8 assertions — PASS**.
+- Source change intelligence: **1 test, 8 assertions — PASS**.
+- Monitoring alerts/audit: **6 tests, 16 assertions — PASS**.
+- Independent PHP-process lease exclusion: PASS; one process acquired the MySQL lease, the competing process was rejected, and exactly one run was recorded.
+- Dedicated step `Validate monitoring policy recovery and durable checkpoints on MySQL`: **completed successfully**.
+
+All four workflows above were associated with the exact PR head SHA. The earlier failed run was due to a test-file namespace escape and was corrected; a separate full-suite compatibility issue around a policy-state test double and the safe HTTP status diagnostic was also corrected. The results above are from the final verified head, not those earlier attempts.
 
 ## Limitations and blockers
 
