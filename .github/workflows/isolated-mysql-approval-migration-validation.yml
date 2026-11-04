@@ -16,6 +16,17 @@ on:
       - 'tests/Feature/InstituteDiscoveryAgentTest.php'
       - 'tests/Support/verify-discovery-batch-multiprocess.php'
       - 'tests/Support/verify-review-package-multiprocess.php'
+      - 'tests/Feature/InstituteIdentityPersistenceRecoveryTest.php'
+      - 'tests/Support/verify-identity-conflict-multiprocess.php'
+      - 'app/Services/ImportConflictDetectionService.php'
+      - 'app/Services/ImportConflictLifecycleService.php'
+      - 'app/Services/InstituteIdentityResolver.php'
+      - 'app/Models/IdentityMatchCandidate.php'
+      - 'app/Models/ImportConflict.php'
+      - 'app/Models/ImportConflictEvent.php'
+      - 'app/Http/Controllers/InstituteImportPromotionController.php'
+      - 'app/Http/Controllers/InstituteOperationsController.php'
+      - 'resources/views/institutes/operations/row.blade.php'
       - 'tests/Feature/InstituteDiscoveryReviewPackageTest.php'
       - 'tests/Feature/InstituteDiscoveryReviewPackageRecoveryTest.php'
       - 'app/Services/InstituteDiscoveryReviewPackageService.php'
@@ -146,6 +157,10 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/InstituteDiscoveryReviewPackageTest.php tests/Feature/InstituteDiscoveryReviewPackageRecoveryTest.php
       - name: Prove review-package writer concurrency on independent PHP processes
         run: php tests/Support/verify-review-package-multiprocess.php
+      - name: Validate institution identity conflict persistence and resolution replay on MySQL
+        run: vendor/bin/phpunit tests/Feature/InstituteIdentityPersistenceRecoveryTest.php
+      - name: Prove institution identity conflict replay across independent PHP processes on MySQL
+        run: php tests/Support/verify-identity-conflict-multiprocess.php
       - name: Validate source change event and reverification queue replay on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceChangeIntelligenceTest.php
       - name: Validate monitoring alert and audit replay idempotency on MySQL
