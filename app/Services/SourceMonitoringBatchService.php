@@ -31,7 +31,6 @@ class SourceMonitoringBatchService
             $heartbeat?->__invoke();
             $summary['policies']++;
 
-            $checkpoints->interruptOpenAttempts((int) $policy->id);
             $policyRunId = $checkpoints->startPolicyRun((int) $policy->id, $executionRunId);
 
             try {
