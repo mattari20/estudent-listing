@@ -521,6 +521,31 @@ class InstituteDiscoveryAgentTest extends TestCase
     }
 
 
+    public function test_incomplete_legacy_batch_is_never_reused_as_a_completed_discovery_result(): void
+    {
+        $this->prepareCuiDiscoveryRun();
+
+        $first = app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
+        ImportBatch::query()->whereKey($first['batch_id'])->update([
+            'discovery_identity_key' => null,
+            'completed_at' => null,
+        ]);
+
+        try {
+            app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
+            $this->fail('An incomplete legacy batch must not be reported as completed or silently duplicated.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame(
+                'A matching discovery batch is incomplete; automatic replay is blocked to preserve historical candidate records.',
+                $exception->getMessage()
+            );
+        }
+
+        $this->assertDatabaseCount('import_batches', 1);
+        $this->assertDatabaseCount('import_rows', 2);
+    }
+
+
     private function prepareCuiDiscoveryRun(): void
     {
         Storage::fake('local');
