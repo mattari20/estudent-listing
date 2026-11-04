@@ -21,7 +21,7 @@ The previous package manifest validated batch/snapshot identity and CSV checksum
 
 ## Regression coverage
 
-Added tests for changed persisted rows, changed evidence metadata, cross-snapshot evidence rejection and legacy schema-v2 manifest rebuilding. Existing recovery tests and the independent-process MySQL package writer proof remain wired into the isolated MySQL workflow and must pass on the final PR head.
+Added tests for changed persisted rows, changed evidence metadata, cross-snapshot evidence rejection and legacy schema-v2 manifest rebuilding. The independent-process MySQL package writer proof remains wired into the isolated MySQL workflow. Exact-head validation passed on `dfba25b67fa83f9ced5fec6b32298befc2f91d3e`: Test #41873542956, Laravel CI #41873542830 (including formatting checks), Project Controller #41873542898 and isolated MySQL #41873542828; all four runs completed successfully.
 
 ## Scope and limitations
 
@@ -33,6 +33,6 @@ No production database, filesystem, Hostinger, Artisan, deployment, scheduler, d
 
 ## Status
 
-IMPLEMENTED on the PR branch. TESTED awaits exact-head Test, Laravel CI, Project Controller and isolated MySQL results. MERGED and PRODUCTION VERIFIED are not claimed.
+IMPLEMENTED and TESTED on the PR branch. The four exact-head checks above passed on `dfba25b67fa83f9ced5fec6b32298befc2f91d3e`. MERGED and PRODUCTION VERIFIED are not claimed.
 
 GCU historical candidate rows #348–353 and batches #19–23 remain protected. AI extraction and the additional 20 HEC profiles remain disabled. No dummy production data was created.
