@@ -209,6 +209,21 @@ class AppendOnlyAuditRetentionTest extends TestCase
         ]);
         $key = hash('sha256', 'direct-sql-legacy-decision-key');
 
+        try {
+            DB::table('identity_resolution_decisions')
+                ->where('id', $decision->id)
+                ->update([
+                    'id' => $decision->id + 100000,
+                    'decision_identity_key' => $key,
+                ]);
+            $this->fail('The one-time key exception must not permit primary-key mutation.');
+        } catch (QueryException) {
+            $this->assertDatabaseHas('identity_resolution_decisions', [
+                'id' => $decision->id,
+                'decision_identity_key' => null,
+            ]);
+        }
+
         $updated = DB::table('identity_resolution_decisions')
             ->where('id', $decision->id)
             ->whereNull('decision_identity_key')
