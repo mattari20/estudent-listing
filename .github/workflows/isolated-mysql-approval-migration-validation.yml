@@ -33,6 +33,7 @@ on:
       - 'tests/Feature/MonitoringAlertsTest.php'
       - 'tests/Feature/SourceMonitoringBatchRecoveryTest.php'
       - 'docs/audits/PHASE_1C_POLICY_CHECKPOINT_FAILURE_BOUNDARY_RECOVERY.md'
+      - 'docs/audits/PHASE_1C_DISCOVERY_CANDIDATE_BATCH_FAILURE_RECOVERY.md'
       - 'docs/PROJECT_MASTER_TRACKER.md'
       - 'database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php'
       - 'app/Console/Commands/MonitorSourceChanges.php'
