@@ -76,15 +76,15 @@ class SourceMonitoringBatchService
                         'Monitored source content changed.',
                         $source,
                         $policy,
-                        ['observation_id' => $observation->id],
-                        'monitoring:source_change:observation:'.$observation->id
+                        ['observation_id' => $observation->id]
                     );
                     app(MonitoringAuditService::class)->record(
                         'source_change',
                         'Monitored source content changed',
                         $source->id,
                         'info',
-                        ['observation_id' => $observation->id]
+                        ['observation_id' => $observation->id],
+                        'monitoring:source_change:observation:'.$observation->id
                     );
                 }
 
