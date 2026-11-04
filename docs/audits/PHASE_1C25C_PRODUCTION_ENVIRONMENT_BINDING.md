@@ -51,7 +51,7 @@ These workflows are manual-only and their production jobs have a literal fail-cl
 
 | Workflow | Capability | Triggers | Environment | Current credential references | Disposition |
 |---|---|---|---|---|---|
-| `controlled-discovery-outcome-migration.yml` | Production migration | `workflow_dispatch` only | None | `HOSTINGER_SSH_HOST`, `_USER`, `_PRIVATE_KEY`, `_PORT` | Blocked; requires owner-authorized operations environment before any reactivation |
+| `controlled-discovery-outcome-migration.yml` | Production migration | `workflow_dispatch` only | None | Legacy Hostinger secret references remain inside the explicitly skipped job | Blocked; no production environment assigned |
 | `controlled-hostinger-code-deploy.yml` | Production deployment | `workflow_dispatch` only | None | Same four `HOSTINGER_SSH_*` values | Blocked |
 | `controlled-import-batch-duplicate-rows-migration.yml` | Production migration | `workflow_dispatch` only | None | Same four `HOSTINGER_SSH_*` values | Blocked |
 | `controlled-institution-field-approvals-migration.yml` | Production migration | `workflow_dispatch` only | None | Same four `HOSTINGER_SSH_*` values | Blocked |
