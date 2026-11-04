@@ -1,7 +1,19 @@
 name: Audit Next Institution Catalog
 on:
   workflow_dispatch:
-
+    inputs:
+      target_sha:
+        description: "Exact 40-character SHA of the current main revision."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this production operation."
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type the exact authorization phrase shown in this workflow's validation step."
+        required: true
+        type: string
 permissions:
   contents: read
 jobs:
@@ -9,6 +21,18 @@ jobs:
     runs-on: ubuntu-latest
     environment: production-readonly-diagnostics
     steps:
+      - name: Checkout exact dispatch revision for authorization checks
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS"
+        run: bash scripts/ci/validate-production-dispatch.sh
       - name: Read-only audit of institution catalog completeness
         uses: appleboy/ssh-action@v1.2.0
         with:
