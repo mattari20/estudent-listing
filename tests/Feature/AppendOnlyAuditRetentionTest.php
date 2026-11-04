@@ -168,4 +168,89 @@ class AppendOnlyAuditRetentionTest extends TestCase
     }
 
 
+
+    public function test_direct_sql_cannot_update_or_delete_append_only_audit_rows(): void
+    {
+        $event = SecurityAuditEvent::create([
+            'event_type' => 'direct_sql_immutability_test',
+            'severity' => 'info',
+            'description' => 'immutable direct SQL record',
+        ]);
+
+        try {
+            DB::table('security_audit_events')->where('id', $event->id)
+                ->update(['description' => 'rewritten through SQL']);
+            $this->fail('Direct SQL UPDATE must be rejected by the database trigger.');
+        } catch (QueryException) {
+            $this->assertDatabaseHas('security_audit_events', [
+                'id' => $event->id,
+                'description' => 'immutable direct SQL record',
+            ]);
+        }
+
+        try {
+            DB::table('security_audit_events')->where('id', $event->id)->delete();
+            $this->fail('Direct SQL DELETE must be rejected by the database trigger.');
+        } catch (QueryException) {
+            $this->assertDatabaseHas('security_audit_events', ['id' => $event->id]);
+        }
+    }
+
+    public function test_direct_sql_identity_key_enrichment_is_one_time_and_narrow(): void
+    {
+        [, $row] = $this->batchAndRow();
+        $decision = IdentityResolutionDecision::create([
+            'import_row_id' => $row->id,
+            'institution_id' => null,
+            'decision' => 'deferred',
+            'actor_type' => 'system',
+            'reason' => 'historical decision',
+            'decided_at' => now(),
+        ]);
+        $key = hash('sha256', 'direct-sql-legacy-decision-key');
+
+        $updated = DB::table('identity_resolution_decisions')
+            ->where('id', $decision->id)
+            ->whereNull('decision_identity_key')
+            ->update(['decision_identity_key' => $key]);
+
+        $this->assertSame(1, $updated);
+        $this->assertDatabaseHas('identity_resolution_decisions', [
+            'id' => $decision->id,
+            'decision_identity_key' => $key,
+            'reason' => 'historical decision',
+        ]);
+
+        try {
+            DB::table('identity_resolution_decisions')
+                ->where('id', $decision->id)
+                ->update(['decision_identity_key' => hash('sha256', 'second-enrichment')]);
+            $this->fail('A second identity-key enrichment must be rejected.');
+        } catch (QueryException) {
+            $this->assertDatabaseHas('identity_resolution_decisions', [
+                'id' => $decision->id,
+                'decision_identity_key' => $key,
+            ]);
+        }
+
+        try {
+            DB::table('identity_resolution_decisions')
+                ->where('id', $decision->id)
+                ->update(['reason' => 'rewritten by direct SQL']);
+            $this->fail('Unrelated identity decision fields must remain immutable.');
+        } catch (QueryException) {
+            $this->assertDatabaseHas('identity_resolution_decisions', [
+                'id' => $decision->id,
+                'reason' => 'historical decision',
+            ]);
+        }
+
+        try {
+            DB::table('identity_resolution_decisions')->where('id', $decision->id)->delete();
+            $this->fail('Direct SQL DELETE of identity decisions must be rejected.');
+        } catch (QueryException) {
+            $this->assertDatabaseHas('identity_resolution_decisions', ['id' => $decision->id]);
+        }
+    }
+
 }
