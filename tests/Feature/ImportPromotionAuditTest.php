@@ -18,6 +18,9 @@ class ImportPromotionAuditTest extends TestCase {
   $evidence=Evidence::create(['source_id'=>$source->id,'reference'=>'https://example.test/institute','excerpt'=>'Official institute listing','content_hash'=>'audit-evidence-'.$row->id,'observed_at'=>now(),'status'=>'active']);
   Assertion::create(['evidence_id'=>$evidence->id,'subject_type'=>ImportRow::class,'subject_id'=>$row->id,'attribute'=>'source_record','value'=>'official','verification_state'=>'observed','confidence'=>1]);
   $this->actingAs($user)->post(route('institutes.operations.decide',$row),['decision'=>'approved_new','reason'=>'Explicit operator approval'])->assertRedirect();
+  $this->actingAs($user)->post(route('institutes.operations.decide',$row),['decision'=>'approved_new','reason'=>'Explicit operator approval'])->assertRedirect();
+  $this->assertDatabaseCount('identity_resolution_decisions',1);
+  $this->assertDatabaseCount('import_promotion_events',1);
   $this->actingAs($user)->post(route('institutes.operations.promote',$row))->assertRedirect();
   $this->assertDatabaseHas('import_promotion_events',['import_row_id'=>$row->id,'event_type'=>'promotion_succeeded','decision_type'=>'identity_resolution']);
   $row->refresh();
