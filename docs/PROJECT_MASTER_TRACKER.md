@@ -2220,7 +2220,7 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 - Baseline verified: \`main\` exactly \`25024ebfb4e31563590e46819a3a4dba50c01511\`; PR #1002 merge and its final exact-head workflows/logs reconciled above.
 - Implementation branch: \`fix/phase-1c-18-review-package-filesystem-recovery\`.
 - Reworking private package generation to use per-batch/snapshot filesystem locks, atomic temporary-file replacement, manifest-last completion semantics and strict package/schema/batch/snapshot/source/checksum validation.
-- Reworking orphan reconciliation to default to dry-run, require explicit \`--apply\`, enforce a configurable grace period (minimum 24 hours), preserve every existing DB batch, reject unknown files/symlinks/path escapes and serialize cleanup with generation.
+- Reworking orphan reconciliation to default to dry-run, require explicit \`--apply\`, enforce a configurable grace period (default 90 days; minimum 24 hours), preserve every existing DB batch, reject unknown files/symlinks/path escapes and serialize cleanup with generation.
 - Added feature coverage for interrupted/incomplete pairs, checksum and identity corruption, incomplete batches, orphan dry-run/apply, stale temporary artifacts, valid/recent package preservation, unknown files, symlink protection, source mismatch and replay.
 - Added an isolated-MySQL independent-process package writer test and extended Test/Laravel CI/Project Controller/isolated MySQL validation paths.
 - Audit: \`docs/audits/PHASE_1C_REVIEW_PACKAGE_FILESYSTEM_RECOVERY.md\`.
