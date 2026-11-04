@@ -13,9 +13,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: controlled-import-batch-duplicate-rows-migration
+  group: estudent-production-access
   cancel-in-progress: false
-
+  queue: max
 jobs:
   resolve-target:
     name: Resolve approved application-code revision
@@ -40,6 +40,7 @@ jobs:
           echo "target_application_revision=$revision"
 
   migrate:
+    if: false # blocked until production-operations is owner-authorized and configured
     name: Preflight and optionally apply only duplicate_rows migration
     needs: resolve-target
     runs-on: ubuntu-latest
