@@ -2307,3 +2307,17 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 
 
 - Phase 1C-22 merge gate: PR #1007 changes application and migration paths. A push to main would trigger both Hostinger Read-only Diagnostics (every main push; SSH + public HTTP) and Automated Live Data Integrity Audit (application/database path push; SSH + read-only production Artisan DB report). These workflows were confirmed on the PR #1006 merge push (runs #41778840327 and #41778840448), both failed at their production-facing steps. Phase 1C-22 explicitly prohibits those operations; PR #1007 must remain open until a separately authorized safe workflow-separation path exists. No workflow protections are weakened or bypassed.
+
+
+---
+
+## Phase 1C — database-enforced append-only audit retention (2026-11-04)
+
+- Branch: phase-1c-append-only-audit-retention, based on main e9feccedbb20078c3af24656e6399d55383b6722.
+- Added MySQL/SQLite database triggers rejecting UPDATE/DELETE on the scoped audit/event tables: security audit, change, identity decision, verification decision, provenance review, import reconciliation, import promotion decision/event, reverification, structured enrichment promotion, official source refresh and import conflict events.
+- Added parent-delete guards where existing cascade relationships could erase retained history: import rows/batches, assertions, reverification queue items, enrichment import rows and import conflicts. Parent deletion remains allowed when no protected audit history exists.
+- Data-quality events, mutable monitoring checkpoints, alerts and current conflict state are not classified as immutable event rows by this migration.
+- Added regression coverage for direct event mutation/deletion, parent cascade prevention and transaction rollback; extended isolated MySQL validation.
+- Audit: docs/audits/PHASE_1C_APPEND_ONLY_AUDIT_RETENTION.md.
+- Status: IMPLEMENTED on branch; exact-head Test/Laravel CI/Project Controller/isolated MySQL validation pending. No merge or production verification claimed.
+- No production operation. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and extra 20 HEC profiles remain disabled; no dummy production data.
