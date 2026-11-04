@@ -77,31 +77,40 @@ def events_for(workflow)
   workflow['on'] || workflow[true] || {}
 end
 
-def production_job?(job)
+# Classify executable behavior, not workflow filenames.
+def access_kind(job)
   serialized = YAML.dump(job)
-    serialized.match?(/appleboy\/ssh-action|secrets\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/) ||
-    serialized.include?('https://estudent.pk/institutes')
+  return :credential_backed if serialized.match?(/appleboy\\/ssh-action|secrets\\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/)
+  return :public_http if serialized.include?('https://estudent.pk/institutes')
+  :none
 end
+
+def production_job?(job)
+  access_kind(job) != :none
+end
+
 def guard_index(steps)
-  steps.index do |step|
-    step.is_a?(Hash) && step.fetch('run', '').include?('scripts/ci/validate-production-dispatch.sh')
-  end
+  steps.index { |step| step.is_a?(Hash) && step.fetch('run', '').include?('scripts/ci/validate-production-dispatch.sh') }
 end
 
 def first_access_index(steps)
   steps.index do |step|
     serialized = YAML.dump(step)
     name = step.is_a?(Hash) ? step.fetch('name', '').to_s : ''
-    # A credential-validation step necessarily references environment secrets.
-    # Do not classify that validation as production access; require it to run
-    # after the dispatch guard and before the first actual SSH/API access.
     credential_validation = name.match?(/Validate environment-scoped production credentials|Validate requested revision and read-only credentials/)
-    !credential_validation && (
-      serialized.match?(/appleboy\/ssh-action|secrets\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/) ||
-      serialized.include?('https://estudent.pk/institutes')
-    )
+    !credential_validation && (serialized.match?(/appleboy\\/ssh-action|secrets\\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/) || serialized.include?('https://estudent.pk/institutes'))
   end
 end
+
+# Positive and negative fixtures for both access classes.
+credential_fixture = { 'steps' => [{ 'uses' => 'appleboy/ssh-action@v1' }] }
+public_http_fixture = { 'steps' => [{ 'run' => 'curl --fail https://estudent.pk/institutes/' }] }
+no_access_fixture = { 'steps' => [{ 'run' => 'echo no remote access' }] }
+fail!('credential-backed positive fixture misclassified') unless access_kind(credential_fixture) == :credential_backed
+fail!('public HTTP positive fixture misclassified') unless access_kind(public_http_fixture) == :public_http
+fail!('no-access negative fixture misclassified') unless access_kind(no_access_fixture) == :none
+fail!('public HTTP fixture incorrectly classified as credential-backed') unless access_kind(public_http_fixture) != :credential_backed
+pass('positive/negative fixtures distinguish credential-backed and public HTTP-only diagnostics')
 def blocked?(job)
   value = job['if']
   value == false || value.to_s.strip == '${{ false }}'
@@ -140,8 +149,17 @@ READ_ONLY.each do |filename, expected_environment|
     end
     fail!("#{filename}:#{job_name} is missing executable dispatch guard") unless gidx
     fail!("#{filename}:#{job_name} guard must precede every production credential/access step") if aidx && gidx >= aidx
-    fail!("#{filename}:#{job_name} is missing environment-scoped credential validation") unless credential_idx
-    fail!("#{filename}:#{job_name} must validate environment-scoped credentials after the guard and before SSH/API access") if gidx >= credential_idx || (aidx && credential_idx >= aidx)
+
+    case access_kind(job)
+    when :credential_backed
+      fail!("#{filename}:#{job_name} is missing environment-scoped credential validation") unless credential_idx
+      fail!("#{filename}:#{job_name} must validate environment-scoped credentials after the guard and before SSH/API access") if gidx >= credential_idx || (aidx && credential_idx >= aidx)
+    when :public_http
+      fail!("#{filename}:#{job_name} public HTTP-only diagnostics must not reference production credentials") if YAML.dump(job).match?(/secrets\\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/)
+      fail!("#{filename}:#{job_name} public HTTP-only diagnostics must not use SSH actions") if YAML.dump(job).match?(/appleboy\\/ssh-action/)
+    else
+      fail!("#{filename}:#{job_name} has no recognized production access behavior")
+    end
     guard = steps[gidx]
     env = guard.fetch('env', {})
     %w[TARGET_SHA OPERATION_REASON CONFIRM_PRODUCTION_OPERATION EXPECTED_CONFIRMATION].each do |key|
