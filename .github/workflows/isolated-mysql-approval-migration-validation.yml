@@ -154,8 +154,10 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/ExecutionLeaseServiceTest.php
       - name: Prove lease exclusion across independent PHP processes on MySQL
         run: php tests/Support/verify-execution-lease-multiprocess.php
-      - name: Validate source snapshot, observation and retrieval idempotency on MySQL
+      - name: Validate chronological source snapshot ordering and retrieval recovery on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceSnapshotTest.php tests/Feature/SourceRetrievalTest.php
+      - name: Prove source snapshot ordering across independent PHP processes on MySQL
+        run: php tests/Support/verify-source-snapshot-ordering-multiprocess.php
       - name: Validate discovery outcome idempotency on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceChangeDiscoveryIdempotencyTest.php
       - name: Validate discovery outcome batch consistency on MySQL
