@@ -154,7 +154,11 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
         ]);
 
         $pipeline = Mockery::mock(SourceMonitoringPipeline::class);
-        $pipeline->shouldNotReceive('run');
+        $pipeline->shouldReceive('run')->once()->andReturn([
+            'run' => (object) ['status' => 'completed', 'id' => 455],
+            'observation' => null,
+            'intelligence' => null,
+        ]);
         $this->app->instance(SourceMonitoringPipeline::class, $pipeline);
 
         try {
@@ -164,7 +168,7 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
                     $heartbeats = 0;
                     $ownedHeartbeat = function () use ($heartbeat, &$heartbeats): void {
                         $heartbeats++;
-                        if ($heartbeats === 3) {
+                        if ($heartbeats === 4) {
                             DB::table('governed_execution_leases')
                                 ->where('task_key', 'monitoring-policy-heartbeat-loss-test')
                                 ->update(['owner_token' => (string) Str::uuid()]);
@@ -187,7 +191,10 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
             'source_monitoring_policy_id' => $policy->id,
             'status' => 'running',
         ]);
-        $this->assertDatabaseCount('monitoring_policy_run_sources', 0);
+        $sourceCheckpoint = DB::table('monitoring_policy_run_sources')->first();
+        $this->assertNotNull($sourceCheckpoint);
+        $this->assertSame('running', $sourceCheckpoint->status);
+        $this->assertNull($policy->fresh()->last_run_at);
         $this->assertDatabaseHas('governed_execution_runs', [
             'task_key' => 'monitoring-policy-heartbeat-loss-test',
             'status' => 'failed',
