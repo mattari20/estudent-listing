@@ -221,6 +221,47 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
         self.assertTrue(any("missing approved production environment" in e for e in errors))
         self.assertTrue(any("no dispatch guard" in e for e in errors))
 
+
+    def test_valid_production_job_passes_only_when_guard_precedes_step_scoped_ssh(self):
+        document = {
+            "concurrency": {"group": "estudent-production-access",
+                            "cancel-in-progress": False, "queue": "max"},
+            "jobs": {"audit": {
+                "environment": "production-readonly-diagnostics",
+                "steps": [
+                    {"uses": "actions/checkout@v4"},
+                    {"run": "bash scripts/ci/validate-production-dispatch.sh"},
+                    {"env": {"HOST": "${{ secrets.HOSTINGER_SSH_HOST }}"},
+                     "uses": "appleboy/ssh-action@v1"},
+                ],
+            }},
+        }
+        events = {"workflow_dispatch": {"inputs": {
+            "target_sha": {}, "operation_reason": {},
+            "confirm_production_operation": {},
+        }}}
+        self.assertEqual(validate_production_workflow(document, events), [])
+
+    def test_job_level_production_secret_is_rejected_before_guard(self):
+        document = {
+            "concurrency": {"group": "estudent-production-access",
+                            "cancel-in-progress": False, "queue": "max"},
+            "jobs": {"audit": {
+                "environment": "production-readonly-diagnostics",
+                "env": {"HOST": "${{ secrets.HOSTINGER_SSH_HOST }}"},
+                "steps": [
+                    {"run": "bash scripts/ci/validate-production-dispatch.sh"},
+                    {"uses": "appleboy/ssh-action@v1"},
+                ],
+            }},
+        }
+        events = {"workflow_dispatch": {"inputs": {
+            "target_sha": {}, "operation_reason": {},
+            "confirm_production_operation": {},
+        }}}
+        errors = validate_production_workflow(document, events)
+        self.assertTrue(any("job scope" in error for error in errors))
+
     def test_all_actual_production_workflows_are_manual_and_guarded(self):
         for path in WORKFLOWS.glob("*.yml"):
             with self.subTest(workflow=path.name):
