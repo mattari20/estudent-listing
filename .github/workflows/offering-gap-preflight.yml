@@ -56,6 +56,11 @@ jobs:
       - name: Validate requested revision and read-only credentials
         env:
           REQUESTED_REVISION: ${{ inputs.target_sha }}
+          DB_HOST: ${{ secrets.OFFERING_GAP_DB_HOST }}
+          DB_PORT: ${{ secrets.OFFERING_GAP_DB_PORT }}
+          DB_DATABASE: ${{ secrets.OFFERING_GAP_DB_DATABASE }}
+          DB_USERNAME: ${{ secrets.OFFERING_GAP_DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.OFFERING_GAP_DB_PASSWORD }}
         shell: bash
         run: |
           set -euo pipefail
