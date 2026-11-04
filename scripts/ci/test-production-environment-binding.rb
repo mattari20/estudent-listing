@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require 'yaml'
+require 'date'
 require 'set'
 
 ROOT = File.expand_path('../..', __dir__)
@@ -119,7 +120,7 @@ READ_ONLY.each do |filename, expected_environment|
   pass("#{filename}: manual-only, #{expected_environment}, guard before access")
 end
 
-(BLOCKED_OPERATIONS + [RESET_WORKFLOW]).each do |filename|
+BLOCKED_OPERATIONS.each do |filename|
   path = File.join(WORKFLOWS, filename)
   fail!("missing blocked production workflow #{filename}") unless File.file?(path)
   workflow = parse_workflow(path)
@@ -184,4 +185,11 @@ fail!('dispatch guard must reject non-lowercase/non-40-character SHAs') unless g
 fail!('dispatch guard must reject a generic confirmation') unless guard.include?('AUTHORIZE-PRODUCTION-OPERATION')
 pass('shared guard enforces manual dispatch, main, exact current SHA, reason and unique confirmation')
 
-puts "SUMMARY: #{READ_ONLY.length} read-only workflows, #{BLOCKED_OPERATIONS.length} blocked operations, one blocked reset/recovery workflow, #{paths.length} total workflows"
+if File.file?(File.join(WORKFLOWS, RESET_WORKFLOW))
+  recovery = parse_workflow(File.join(WORKFLOWS, RESET_WORKFLOW))
+  recovery_events = events_for(recovery)
+  fail!('administrator recovery must remain manual-only') unless recovery_events.keys.map(&:to_s) == ['workflow_dispatch']
+  puts 'BLOCKED OWNER ACTION: secure-institutes-admin-recovery.yml remains on main; owner-reported Actions UI disablement is not independently verifiable, and PR #1016 proposes retiring this workflow. Do not dispatch or re-enable it.'
+end
+
+puts "SUMMARY: #{READ_ONLY.length} read-only workflows, #{BLOCKED_OPERATIONS.length} blocked operations, #{paths.length} total workflows"
