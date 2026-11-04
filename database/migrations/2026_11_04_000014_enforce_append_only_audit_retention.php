@@ -17,6 +17,7 @@ return new class extends Migration
         'structured_enrichment_promotion_events',
         'official_source_refresh_events',
         'import_conflict_events',
+        'import_reconciliation_events',
         'governed_execution_run_events',
     ];
 
@@ -162,11 +163,34 @@ return new class extends Migration
     {
         foreach (self::MYSQL_APPEND_ONLY_TABLES as $table) {
             $suffix = substr(hash('sha256', $table), 0, 16);
+            $updateBody = $table === 'import_reconciliation_events'
+                ? "BEGIN
+                    IF NOT (
+                        OLD.import_row_id IS NOT NULL AND NEW.import_row_id IS NULL
+                        AND OLD.id <=> NEW.id
+                        AND OLD.import_batch_id <=> NEW.import_batch_id
+                        AND OLD.event_type <=> NEW.event_type
+                        AND OLD.state <=> NEW.state
+                        AND OLD.severity <=> NEW.severity
+                        AND OLD.subject_type <=> NEW.subject_type
+                        AND OLD.subject_id <=> NEW.subject_id
+                        AND OLD.description <=> NEW.description
+                        AND OLD.metadata <=> NEW.metadata
+                        AND OLD.actor_type <=> NEW.actor_type
+                        AND OLD.actor_id <=> NEW.actor_id
+                        AND OLD.occurred_at <=> NEW.occurred_at
+                        AND OLD.created_at <=> NEW.created_at
+                        AND OLD.updated_at <=> NEW.updated_at
+                    ) THEN
+                        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Import reconciliation history is immutable except nullable row detachment';
+                    END IF;
+                END"
+                : "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Append-only audit history cannot be changed or deleted'";
             $this->createMysqlTriggerIfMissing(
                 'audit_immut_'.$suffix.'_u',
                 $table,
                 'UPDATE',
-                "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Append-only audit history cannot be changed or deleted'"
+                $updateBody
             );
             $this->createMysqlTriggerIfMissing(
                 'audit_immut_'.$suffix.'_d',
@@ -233,6 +257,32 @@ return new class extends Migration
         foreach (self::SQLITE_APPEND_ONLY_TABLES as $table) {
             $suffix = substr(hash('sha256', $table), 0, 16);
             foreach (['UPDATE' => 'u', 'DELETE' => 'd'] as $operation => $short) {
+                if ($table === 'import_reconciliation_events' && $operation === 'UPDATE') {
+                    DB::unprepared(
+                        'CREATE TRIGGER IF NOT EXISTS audit_immut_'.$suffix.'_'.$short
+                        .' BEFORE UPDATE ON '.$table
+                        ." WHEN NOT (
+                            OLD.import_row_id IS NOT NULL AND NEW.import_row_id IS NULL
+                            AND OLD.id IS NEW.id
+                            AND OLD.import_batch_id IS NEW.import_batch_id
+                            AND OLD.event_type IS NEW.event_type
+                            AND OLD.state IS NEW.state
+                            AND OLD.severity IS NEW.severity
+                            AND OLD.subject_type IS NEW.subject_type
+                            AND OLD.subject_id IS NEW.subject_id
+                            AND OLD.description IS NEW.description
+                            AND OLD.metadata IS NEW.metadata
+                            AND OLD.actor_type IS NEW.actor_type
+                            AND OLD.actor_id IS NEW.actor_id
+                            AND OLD.occurred_at IS NEW.occurred_at
+                            AND OLD.created_at IS NEW.created_at
+                            AND OLD.updated_at IS NEW.updated_at
+                        )
+                        BEGIN SELECT RAISE(ABORT, 'Import reconciliation history is immutable except nullable row detachment'); END"
+                    );
+                    continue;
+                }
+
                 DB::unprepared(
                     'CREATE TRIGGER IF NOT EXISTS audit_immut_'.$suffix.'_'.$short
                     .' BEFORE '.$operation.' ON '.$table
