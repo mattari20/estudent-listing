@@ -193,6 +193,30 @@ class SourceChangeDiscoveryIdempotencyTest extends TestCase
         $this->assertDatabaseCount('assertions', 2);
     }
 
+    public function test_existing_success_outcome_is_not_returned_when_its_batch_is_incomplete(): void
+    {
+        $observation = $this->prepareCandidateDiscoveryObservation();
+        $first = app(SourceChangeDiscoveryService::class)->process($observation);
+        $batchId = (int) $first['batch_id'];
+
+        ImportBatch::query()->whereKey($batchId)->update(['completed_at' => null]);
+
+        try {
+            app(SourceChangeDiscoveryService::class)->process($observation);
+            $this->fail('A successful outcome must not be reused when its candidate batch is incomplete.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame(
+                'Discovery outcome references a missing or incomplete candidate batch; completion cannot be reported.',
+                $exception->getMessage()
+            );
+        }
+
+        $this->assertDatabaseCount('institute_discovery_run_outcomes', 1);
+        $this->assertDatabaseCount('import_batches', 1);
+        $this->assertDatabaseCount('import_rows', 2);
+    }
+
+
     private function prepareCandidateDiscoveryObservation(): SourceChangeObservation
     {
         Storage::fake('local');
@@ -248,7 +272,7 @@ class SourceChangeDiscoveryIdempotencyTest extends TestCase
         ]);
 
         $verifier = \Mockery::mock(OfficialSourceIdentityVerifier::class);
-        $verifier->shouldReceive('verify')->twice()->andReturn([
+        $verifier->shouldReceive('verify')->atLeast()->once()->andReturn([
             'verified' => true,
             'blockers' => [],
         ]);
