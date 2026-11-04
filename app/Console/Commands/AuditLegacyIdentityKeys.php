@@ -14,7 +14,12 @@ class AuditLegacyIdentityKeys extends Command
     public function handle(LegacyIdentityKeyInventoryService $inventory): int
     {
         if (! app()->environment('testing')) {
-            $this->error('This inventory command is restricted to APP_ENV=testing. Production and local databases are not accepted.');
+            $this->error('This inventory command is restricted to APP_ENV=testing.');
+            return self::FAILURE;
+        }
+
+        if (! $this->usesAnExplicitlyIsolatedTestDatabase()) {
+            $this->error('Refusing inventory: the active database connection is not an explicitly isolated test database.');
             return self::FAILURE;
         }
 
