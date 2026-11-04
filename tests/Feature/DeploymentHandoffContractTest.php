@@ -30,6 +30,7 @@ class DeploymentHandoffContractTest extends TestCase
         $this->assertStringContainsString('workflow_run_head_sha=$GITHUB_SHA', $deployWorkflow);
         $this->assertStringContainsString('workflow_run_name=Controlled Hostinger Code Deployment', $deployWorkflow);
         $this->assertStringContainsString('deployment_attempt=$GITHUB_RUN_ATTEMPT', $deployWorkflow);
+        $this->assertStringContainsString('if: false # blocked until production-operations is owner-authorized and configured', $deployWorkflow);
 
         // Production migration is manual/confirmed only. It emits the discovery handoff
         // only when the SSH-side schema/ledger checks complete successfully.
@@ -43,6 +44,7 @@ class DeploymentHandoffContractTest extends TestCase
         $this->assertStringContainsString('migration_run_id=$GITHUB_RUN_ID', $migrationWorkflow);
         $this->assertStringContainsString('workflow_run_name=Controlled Official-Source Refresh Migration', $migrationWorkflow);
         $this->assertStringNotContainsString("\n  push:\n", $migrationWorkflow);
+        $this->assertStringContainsString('if: false # blocked until production-operations is owner-authorized and configured', $migrationWorkflow);
 
         // Discovery consumes a schema handoff from the exact triggering migration run,
         // verifies its identity and application target, and rechecks schema readiness
@@ -56,13 +58,17 @@ class DeploymentHandoffContractTest extends TestCase
         $this->assertStringContainsString('SCHEMA_HANDOFF_TARGET_REVISION', $discoveryWorkflow);
         $this->assertStringContainsString('official_source_refresh_schema_gate', $discoveryWorkflow);
         $this->assertStringContainsString('BLOCKED_OFFICIAL_SOURCE_REFRESH_SCHEMA_NOT_READY', $discoveryWorkflow);
-        $this->assertStringContainsString('workflow_run:', $discoveryWorkflow);
+        $this->assertStringContainsString('if: false # blocked until production-operations is owner-authorized and configured', $discoveryWorkflow);
+        $this->assertStringContainsString("\n  workflow_dispatch:\n", $discoveryWorkflow);
+        $this->assertStringNotContainsString("\n  workflow_run:\n", $discoveryWorkflow);
         $this->assertStringContainsString('- "Controlled Official-Source Refresh Migration"', $discoveryWorkflow);
-        $this->assertStringContainsString('schedule:', $discoveryWorkflow);
+        $this->assertStringNotContainsString("\n  schedule:\n", $discoveryWorkflow);
         $this->assertStringNotContainsString("\n  push:\n", $discoveryWorkflow);
 
         // Readiness repeats after the controlled migration workflow succeeds.
-        $this->assertStringContainsString('workflow_run:', $readinessWorkflow);
+        $this->assertStringContainsString("\n  workflow_dispatch:\n", $readinessWorkflow);
+        $this->assertStringNotContainsString("\n  workflow_run:\n", $readinessWorkflow);
+        $this->assertStringNotContainsString("\n  schedule:\n", $readinessWorkflow);
         $this->assertStringContainsString('- Controlled Official-Source Refresh Migration', $readinessWorkflow);
         $this->assertStringContainsString('schema_ready', $readinessWorkflow);
     }
