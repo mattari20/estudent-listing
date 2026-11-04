@@ -19,7 +19,7 @@ No fourth environment is assumed or created. In particular, `production-operatio
 
 ## 2. Production workflow inventory and disposition
 
-The current workflow tree contains 35 workflow files. The 26 production-facing workflows below are classified by capability and protected as follows. Every active read-only diagnostic workflow is manual-only, declares its owner-confirmed environment, and checks the exact dispatch SHA/reason/unique confirmation before external production access. Credential-backed SSH/API diagnostics additionally validate required environment-scoped credentials after the guard and before credential use. The public HTTP-only monitors do not use SSH, database credentials, or private API tokens; they require the same manual dispatch guard and protected environment, but correctly have no private credential-validation step.
+The current workflow tree contains 34 workflow files after retirement of the obsolete administrator recovery workflow. The 26 production-facing workflows below are classified by capability and protected as follows. Every active read-only diagnostic workflow is manual-only, declares its owner-confirmed environment, and checks the exact dispatch SHA/reason/unique confirmation before external production access. Credential-backed SSH/API diagnostics additionally validate required environment-scoped credentials after the guard and before credential use. The public HTTP-only monitors do not use SSH, database credentials, or private API tokens; they require the same manual dispatch guard and protected environment, but correctly have no private credential-validation step.
 
 ### 2.1 Read-only production diagnostics — 17 workflows
 
