@@ -9,6 +9,18 @@ on:
         default: ''
         type: string
 
+      target_sha:
+        description: "Exact 40-character SHA of the current main revision."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this production operation."
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type AUTHORIZE-READONLY-DIAGNOSTICS to proceed after environment approval."
+        required: true
+        type: string
 concurrency:
   group: estudent-production-access
   cancel-in-progress: false
