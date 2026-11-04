@@ -1,0 +1,48 @@
+name: Phase 1C-21 Apply Reviewed Implementation Patch
+
+on:
+  push:
+    branches:
+      - phase-1c-21-operator-transition-hardening
+    paths:
+      - '.github/phase-1c-21.patch.gz.b64'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    name: Apply implementation to verified source branch
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout implementation branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Verify expected baseline and apply patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="8aa2ee2416b2729d05afd249961085b888b61910"
+          actual_base="$(git rev-parse HEAD~2)"
+          test "$actual_base" = "$expected"
+          base64 --decode .github/phase-1c-21.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/phase-1c-21.patch"
+          git apply --check "$RUNNER_TEMP/phase-1c-21.patch"
+          git apply "$RUNNER_TEMP/phase-1c-21.patch"
+          rm .github/phase-1c-21.patch.gz.b64
+          rm .github/workflows/phase-1c-21-apply-patch.yml
+          git diff --check
+          for file in             app/Services/IdentityResolutionDecisionService.php             app/Services/OperatorTransitionService.php             app/Services/InstituteImportPromoter.php             app/Services/BulkImportPromotionService.php             app/Http/Controllers/InstituteImportPromotionController.php             app/Http/Controllers/InstituteBulkPromotionController.php             tests/Feature/OperatorTransitionAtomicityTest.php             tests/Support/verify-operator-transition-multiprocess.php; do
+            php -l "$file"
+          done
+
+      - name: Commit and push implementation changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: harden operator transitions and audit atomicity"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
