@@ -19,9 +19,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: step3-record-level-remediation-audit
   cancel-in-progress: false
-  queue: max
 jobs:
   audit:
     environment: production-readonly-diagnostics
