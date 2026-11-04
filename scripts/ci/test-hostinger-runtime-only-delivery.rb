@@ -20,6 +20,21 @@ end
 workflow = YAML.load_file(workflow_path)
 triggers = workflow["on"] || workflow[true]
 assert_contract(triggers.is_a?(Hash) && triggers.keys == ["workflow_dispatch"], "manual workflow_dispatch only")
+inputs = triggers.fetch("workflow_dispatch").fetch("inputs")
+%w[target_sha operation_reason confirm_production_operation].each do |name|
+  assert_contract(inputs.fetch(name)["required"] == true && inputs.fetch(name)["type"] == "string", "#{name} must be required text")
+end
+concurrency = workflow.fetch("concurrency")
+assert_contract(concurrency["group"] == "estudent-production-access" && concurrency["cancel-in-progress"] == false && concurrency["queue"] == "max", "shared queued production concurrency is required")
+runtime_job = workflow.fetch("jobs").fetch("runtime-diagnostic")
+assert_contract(runtime_job["environment"] == "production-readonly-diagnostics", "read-only diagnostics environment is required")
+runtime_steps = runtime_job.fetch("steps")
+guard_index = runtime_steps.index { |step| step.fetch("run", "").include?("scripts/ci/validate-production-dispatch.sh") }
+first_secret_index = runtime_steps.index do |step|
+  step.fetch("env", {}).to_s.include?("secrets.HOSTINGER_SSH_") ||
+    step.fetch("with", {}).to_s.include?("secrets.HOSTINGER_SSH_")
+end
+assert_contract(guard_index && first_secret_index && guard_index < first_secret_index, "dispatch guard must precede production SSH credentials and access")
 assert_contract(workflow.fetch("permissions").fetch("contents") == "read", "contents permission is read-only")
 assert_contract(source.include?("ref: 3b0b1bc40206bb665f34064f265c2975f5ea19ef"), "source revision is pinned")
 assert_contract(source.include?("PROJECT_PATH='/home/u537436044/domains/estudent.pk/public_html/institutes'"), "production project path is fixed")

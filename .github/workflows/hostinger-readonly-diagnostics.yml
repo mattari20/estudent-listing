@@ -1,12 +1,6 @@
 name: Hostinger Read-only Diagnostics
 
 on:
-  push:
-    branches:
-      - main
-  schedule:
-    # Automatically re-check Hostinger revision alignment every six hours.
-    - cron: "17 */6 * * *"
   workflow_dispatch:
     inputs:
       project_path:
@@ -15,19 +9,44 @@ on:
         type: string
         default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
 
+      target_sha:
+        description: "Exact 40-character SHA of the current main revision."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this production operation."
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type AUTHORIZE-HOSTINGER-READONLY-DIAGNOSTICS to proceed after environment approval."
+        required: true
+        type: string
 permissions:
   contents: read
-
 concurrency:
-  group: hostinger-readonly-diagnostics
+  group: estudent-production-access
   cancel-in-progress: false
+  queue: max
 
 jobs:
   diagnostics:
     name: Run read-only Institutes diagnostics over SSH
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     timeout-minutes: 5
     steps:
+      - name: Checkout exact dispatch revision for authorization checks
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-HOSTINGER-READONLY-DIAGNOSTICS"
+        run: bash scripts/ci/validate-production-dispatch.sh
       - name: Checkout repository for revision comparison
         uses: actions/checkout@v4
         with:

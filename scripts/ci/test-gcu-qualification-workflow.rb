@@ -3,13 +3,27 @@
 
 require "yaml"
 
-workflow_path = File.expand_path("../../.github/workflows/hostinger-gcu-single-source-qualification.yml", __dir__)
-source = File.read(workflow_path)
-YAML.parse(source)
-
 def assert_contract(condition, message)
   abort("GCU qualification workflow contract failed: #{message}") unless condition
 end
+
+workflow_path = File.expand_path("../../.github/workflows/hostinger-gcu-single-source-qualification.yml", __dir__)
+source = File.read(workflow_path)
+workflow = YAML.load_file(workflow_path)
+triggers = workflow['on'] || workflow[true]
+assert_contract(triggers.is_a?(Hash) && triggers.keys == ['workflow_dispatch'], 'manual workflow_dispatch must be the only trigger')
+inputs = triggers.fetch('workflow_dispatch').fetch('inputs')
+%w[target_sha operation_reason confirm_production_operation].each do |name|
+  assert_contract(inputs.fetch(name)['required'] == true && inputs.fetch(name)['type'] == 'string', "#{name} must be required text")
+end
+concurrency = workflow.fetch('concurrency')
+assert_contract(concurrency['group'] == 'estudent-production-access' && concurrency['cancel-in-progress'] == false && concurrency['queue'] == 'max', 'shared queued production concurrency is required')
+job = workflow.fetch('jobs').fetch('qualify')
+assert_contract(job['environment'] == 'production-operations', 'production-operations environment is required')
+steps = job.fetch('steps')
+guard_index = steps.index { |step| step.fetch('run', '').include?('scripts/ci/validate-production-dispatch.sh') }
+first_secret_index = steps.index { |step| step.fetch('env', {}).to_s.include?('secrets.HOSTINGER_SSH_') || step.fetch('with', {}).to_s.include?('secrets.HOSTINGER_SSH_') || step.fetch('uses', '').start_with?('appleboy/ssh-action') }
+assert_contract(guard_index && first_secret_index && guard_index < first_secret_index, 'dispatch guard must precede every production SSH credential/action')
 
 assert_contract(source.include?("workflow_dispatch:"), "manual workflow_dispatch trigger is required")
 assert_contract(source.include?('default: false'), "explicit confirmation must default to false")

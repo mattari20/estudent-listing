@@ -16,19 +16,44 @@ on:
           - "yes"
         default: "no"
 
+      target_sha:
+        description: "Exact 40-character SHA of the current main revision."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this production operation."
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type AUTHORIZE-PRODUCTION-OPERATION to proceed after environment approval."
+        required: true
+        type: string
 permissions:
   contents: read
-
 concurrency:
-  group: controlled-pakistan-geography-seed
+  group: estudent-production-access
   cancel-in-progress: false
+  queue: max
 
 jobs:
   seed:
     name: Preflight, seed geography, and verify
     runs-on: ubuntu-latest
+    environment: production-operations
     timeout-minutes: 5
     steps:
+      - name: Checkout exact dispatch revision for authorization checks
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-PAKISTAN-GEOGRAPHY-SEED"
+        run: bash scripts/ci/validate-production-dispatch.sh
       - name: Validate input and inspect preflight
         uses: appleboy/ssh-action@v1.2.0
         env:

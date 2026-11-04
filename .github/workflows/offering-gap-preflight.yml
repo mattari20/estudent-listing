@@ -1,27 +1,28 @@
 name: Read-only offering-gap preflight
 
 on:
-  # Run every day at 02:00 UTC (07:00 Pakistan time) against the current main commit.
-  schedule:
-    - cron: '0 2 * * *'
-  # Also verify relevant workflow/code/register changes after they land on main.
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/offering-gap-preflight.yml'
-      - 'app/Console/Commands/OfferingGapPreflight.php'
-      - 'app/Console/Commands/ReconcileProgrammeOfferingGaps.php'
-      - 'docs/step3-offering-gap-evidence-register.csv'
   workflow_dispatch:
     inputs:
-      revision:
-        description: Optional full 40-character commit SHA; defaults to the event commit SHA
-        required: false
-        default: ''
+      target_sha:
+        description: "Exact 40-character SHA of the current main revision."
+        required: true
         type: string
+      operation_reason:
+        description: "Reason or ticket reference for this production operation."
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type AUTHORIZE-READONLY-DIAGNOSTICS to proceed after environment approval."
+        required: true
+        type: string
+concurrency:
+  group: estudent-production-access
+  cancel-in-progress: false
+  queue: max
 
 permissions:
   contents: read
+
 
 # Restrict this environment to authorized maintainers. Reuse the existing
 # database-user credentials stored as environment secrets; never print their values.
@@ -38,16 +39,28 @@ jobs:
       APP_DEBUG: 'false'
       APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       DB_CONNECTION: mysql
-      DB_HOST: ${{ secrets.OFFERING_GAP_DB_HOST }}
-      DB_PORT: ${{ secrets.OFFERING_GAP_DB_PORT }}
-      DB_DATABASE: ${{ secrets.OFFERING_GAP_DB_DATABASE }}
-      DB_USERNAME: ${{ secrets.OFFERING_GAP_DB_USERNAME }}
-      DB_PASSWORD: ${{ secrets.OFFERING_GAP_DB_PASSWORD }}
 
     steps:
+      - name: Checkout exact dispatch revision for authorization checks
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS"
+        run: bash scripts/ci/validate-production-dispatch.sh
       - name: Validate requested revision and read-only credentials
         env:
-          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          REQUESTED_REVISION: ${{ inputs.target_sha }}
+          DB_HOST: ${{ secrets.OFFERING_GAP_DB_HOST }}
+          DB_PORT: ${{ secrets.OFFERING_GAP_DB_PORT }}
+          DB_DATABASE: ${{ secrets.OFFERING_GAP_DB_DATABASE }}
+          DB_USERNAME: ${{ secrets.OFFERING_GAP_DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.OFFERING_GAP_DB_PASSWORD }}
         shell: bash
         run: |
           set -euo pipefail
@@ -74,12 +87,12 @@ jobs:
       - name: Checkout exact approved revision
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.revision || github.sha }}
+          ref: ${{ inputs.target_sha }}
           persist-credentials: false
 
       - name: Verify revision and required preflight files
         env:
-          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          REQUESTED_REVISION: ${{ inputs.target_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -107,6 +120,12 @@ jobs:
 
       - name: Run read-only preflight (no migrations)
         id: preflight
+        env:
+          DB_HOST: ${{ secrets.OFFERING_GAP_DB_HOST }}
+          DB_PORT: ${{ secrets.OFFERING_GAP_DB_PORT }}
+          DB_DATABASE: ${{ secrets.OFFERING_GAP_DB_DATABASE }}
+          DB_USERNAME: ${{ secrets.OFFERING_GAP_DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.OFFERING_GAP_DB_PASSWORD }}
         shell: bash
         run: |
           set +e
@@ -154,6 +173,12 @@ jobs:
 
       - name: Run read-only programme-offering reconciliation
         id: reconciliation
+        env:
+          DB_HOST: ${{ secrets.OFFERING_GAP_DB_HOST }}
+          DB_PORT: ${{ secrets.OFFERING_GAP_DB_PORT }}
+          DB_DATABASE: ${{ secrets.OFFERING_GAP_DB_DATABASE }}
+          DB_USERNAME: ${{ secrets.OFFERING_GAP_DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.OFFERING_GAP_DB_PASSWORD }}
         shell: bash
         run: |
           set +e

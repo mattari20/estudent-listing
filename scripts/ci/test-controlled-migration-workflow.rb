@@ -16,9 +16,18 @@ inputs = triggers.fetch('workflow_dispatch').fetch('inputs')
   abort "ERROR: #{name} must be a required boolean defaulting false" unless input['required'] == true && input['type'] == 'boolean' && input['default'] == false
 end
 abort 'ERROR: workflow permissions changed unexpectedly' unless workflow.fetch('permissions').fetch('contents') == 'read'
-abort 'ERROR: concurrency protection changed unexpectedly' unless workflow.fetch('concurrency')['group'] == 'controlled-official-source-refresh-migration' && workflow.fetch('concurrency')['cancel-in-progress'] == false
+%w[target_sha operation_reason confirm_production_operation].each do |name|
+  input = inputs.fetch(name) { abort "ERROR: missing production dispatch input #{name}" }
+  abort "ERROR: #{name} must be required text" unless input['required'] == true && input['type'] == 'string'
+end
+abort 'ERROR: concurrency protection changed unexpectedly' unless workflow.fetch('concurrency')['group'] == 'estudent-production-access' && workflow.fetch('concurrency')['cancel-in-progress'] == false && workflow.fetch('concurrency')['queue'] == 'max'
 
 job = workflow.fetch('jobs').fetch('migrate')
+abort 'ERROR: migration job must require production-operations environment' unless job['environment'] == 'production-operations'
+steps = job.fetch('steps')
+guard_index = steps.index { |item| item.fetch('run', '').include?('scripts/ci/validate-production-dispatch.sh') }
+ssh_index = steps.index { |item| item.fetch('uses', '').start_with?('appleboy/ssh-action') }
+abort 'ERROR: exact-SHA dispatch guard must precede migration SSH action' unless guard_index && ssh_index && guard_index < ssh_index
 step = job.fetch('steps').find { |item| item['name'] == 'Validate target and run guarded migration' }
 abort 'ERROR: guarded migration SSH step was not found' unless step
 script = step.fetch('with').fetch('script')

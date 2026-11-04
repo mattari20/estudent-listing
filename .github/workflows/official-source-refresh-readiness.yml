@@ -8,21 +8,26 @@ on:
         required: true
         type: string
         default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
-  workflow_run:
-    workflows:
-      - Controlled Hostinger Code Deployment
-      - Controlled Official-Source Refresh Migration
-    types:
-      - completed
-    branches:
-      - main
 
+
+      target_sha:
+        description: "Exact 40-character SHA of the current main revision."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this production operation."
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type AUTHORIZE-READONLY-DIAGNOSTICS to proceed after environment approval."
+        required: true
+        type: string
 permissions:
   contents: read
-
 concurrency:
-  group: official-source-refresh-readiness
+  group: estudent-production-access
   cancel-in-progress: false
+  queue: max
 
 jobs:
   resolve-revision:
@@ -34,7 +39,7 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ inputs.target_sha }}
           fetch-depth: 0
       - name: Resolve latest application-code revision
         id: revision
@@ -47,12 +52,24 @@ jobs:
           echo "expected_application_revision=$revision"
 
   diagnose:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     name: Verify deployed code and refresh migration without writes
     needs: resolve-revision
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     timeout-minutes: 5
     steps:
+      - name: Checkout exact dispatch revision for authorization checks
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS"
+        run: bash scripts/ci/validate-production-dispatch.sh
       - name: Run read-only SSH diagnostics
         uses: appleboy/ssh-action@v1.2.0
         env:

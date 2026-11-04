@@ -9,19 +9,44 @@ on:
         type: string
         default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
 
+      target_sha:
+        description: "Exact 40-character SHA of the current main revision."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this production operation."
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type AUTHORIZE-READONLY-DIAGNOSTICS to proceed after environment approval."
+        required: true
+        type: string
 permissions:
   contents: read
-
 concurrency:
-  group: hostinger-readonly-offering-gap-audit
+  group: estudent-production-access
   cancel-in-progress: false
+  queue: max
 
 jobs:
   audit:
     name: Run host-local read-only offering-gap audit
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     timeout-minutes: 10
     steps:
+      - name: Checkout exact dispatch revision for authorization checks
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS"
+        run: bash scripts/ci/validate-production-dispatch.sh
       - name: Prepare deterministic audit report stamp
         id: audit_stamp
         shell: bash

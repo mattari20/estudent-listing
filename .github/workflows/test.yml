@@ -55,6 +55,19 @@ jobs:
       - name: Prepare test database
         run: php artisan migrate:fresh --force
 
+      - name: Parse workflow YAML syntax
+        run: |
+          ruby -e 'require "yaml"; Dir.glob(".github/workflows/*.yml").each { |path| YAML.load_file(path, aliases: true) }'
+
+      - name: Run Project Controller offline unit tests
+        run: python3 -m unittest discover -s tests/project_controller -v
+
+      - name: Run Command Orchestrator offline unit tests
+        run: python3 -m unittest discover -s tests/project_controller -p 'test_project_command_orchestrator.py' -v
+
+      - name: Run Project Controller offline smoke check
+        run: python3 scripts/project_controller.py --offline --output-dir "$RUNNER_TEMP/project-controller-offline-smoke"
+
       - name: Test public listing detail-link state classification
         run: python3 scripts/ci/test-resolve-institute-detail-link.py
 
@@ -86,3 +99,6 @@ jobs:
 
       - name: Run tests
         run: composer test
+
+      - name: Test production workflow isolation contract
+        run: python3 scripts/ci/test-production-workflow-isolation.py
