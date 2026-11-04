@@ -5,7 +5,7 @@ on:
     branches:
       - phase-1c-21-operator-transition-hardening
     paths:
-      - '.github/phase-1c-21.patch.parts/part05'
+      - '.github/phase-1c-21.patch.parts/part04'
 
 permissions:
   contents: write
