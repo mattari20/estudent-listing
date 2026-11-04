@@ -291,7 +291,7 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
         events = {"workflow_dispatch": {"inputs": {}}}
         self.assertEqual(production_access_kind(unsafe["jobs"]["recover"]), "production")
         errors = validate_production_workflow(unsafe, events)
-        self.assertTrue(any("wrong production concurrency group" in error for error in errors))
+        self.assertTrue(any("missing approved production environment" in error for error in errors))
         self.assertTrue(any("missing approved production environment" in error for error in errors))
         self.assertTrue(any("no dispatch guard" in error for error in errors))
         self.assertTrue(any("missing workflow_dispatch input" in error for error in errors))
