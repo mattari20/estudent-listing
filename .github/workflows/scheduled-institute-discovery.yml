@@ -1,23 +1,15 @@
 name: Scheduled Governed Institute Discovery
 
 on:
-  schedule:
-    - cron: "15 * * * *"
   workflow_dispatch:
-  workflow_run:
-    workflows:
-      - "Controlled Official-Source Refresh Migration"
-    types: [completed]
-    branches: [main]
-
 permissions:
   actions: read
   contents: read
 
 concurrency:
-  group: scheduled-governed-institute-discovery
+  group: estudent-production-access
   cancel-in-progress: false
-
+  queue: max
 jobs:
   source-refresh-handoff:
     if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
@@ -105,6 +97,7 @@ jobs:
           echo "scheduled_ai_extraction=disabled"
 
   discover:
+    if: false # blocked until production-operations is owner-authorized and configured
     name: Run governed discovery and source monitoring
     needs: [resolve-target, source-refresh-handoff]
     # Manual and scheduled runs intentionally skip the migration handoff job.
