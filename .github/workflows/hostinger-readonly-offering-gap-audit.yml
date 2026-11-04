@@ -48,6 +48,30 @@ jobs:
           CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
           EXPECTED_CONFIRMATION: "AUTHORIZE-OFFERING-GAP-READONLY-AUDIT-HOSTINGER"
         run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
+      - name: Validate environment-scoped production credentials
+        env:
+          OFFERING_GAP_READONLY_HOSTINGER_SSH_HOST: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_HOST }}
+          OFFERING_GAP_READONLY_HOSTINGER_SSH_USER: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_USER }}
+          OFFERING_GAP_READONLY_HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          OFFERING_GAP_READONLY_HOSTINGER_SSH_FINGERPRINT: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_FINGERPRINT }}
+          OFFERING_GAP_READONLY_HOSTINGER_SSH_PORT: ${{ secrets.OFFERING_GAP_READONLY_HOSTINGER_SSH_PORT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in
+          "OFFERING_GAP_READONLY_HOSTINGER_SSH_HOST"
+          "OFFERING_GAP_READONLY_HOSTINGER_SSH_USER"
+          "OFFERING_GAP_READONLY_HOSTINGER_SSH_PRIVATE_KEY"
+          "OFFERING_GAP_READONLY_HOSTINGER_SSH_FINGERPRINT"
+          "OFFERING_GAP_READONLY_HOSTINGER_SSH_PORT"
+          ; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required environment-scoped credential: $name"
+              exit 1
+            fi
+          done
+          echo "environment_scoped_credentials=present"
+
       - name: Prepare deterministic audit report stamp
         id: audit_stamp
         shell: bash
