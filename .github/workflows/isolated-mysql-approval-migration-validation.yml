@@ -17,6 +17,7 @@ on:
       - 'app/Services/MonitoringAuditService.php'
       - 'app/Services/SourceMonitoringBatchService.php'
       - 'app/Services/MonitoringPolicyCheckpointService.php'
+      - 'app/Services/MonitoringPolicyStateService.php'
       - 'app/Models/SecurityAuditEvent.php'
       - 'tests/Feature/MonitoringAlertsTest.php'
       - 'tests/Feature/SourceMonitoringBatchRecoveryTest.php'
