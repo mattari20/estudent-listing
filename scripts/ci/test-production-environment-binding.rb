@@ -25,9 +25,7 @@ READ_ONLY = {
   'readonly-reset-inventory.yml' => 'production-readonly-diagnostics',
   'step3-candidate-audit.yml' => 'production-readonly-diagnostics',
   'step3-record-level-remediation-audit.yml' => 'production-readonly-diagnostics',
-  'verify-uvas-public-directory.yml' => 'production-readonly-diagnostics',
-  'institutes-public-monitor.yml' => 'production-readonly-diagnostics',
-  'public-browser-runtime-diagnostics.yml' => 'production-readonly-diagnostics'
+  'verify-uvas-public-directory.yml' => 'production-readonly-diagnostics'
 }.freeze
 
 BLOCKED_OPERATIONS = %w[
@@ -42,6 +40,21 @@ BLOCKED_OPERATIONS = %w[
 ].to_set.freeze
 
 RESET_WORKFLOW = 'secure-institutes-admin-recovery.yml'
+
+CONCURRENCY_GROUPS = {
+  'controlled-discovery-outcome-migration.yml' => ['controlled-discovery-outcome-migration', false],
+  'controlled-hostinger-code-deploy.yml' => ['controlled-hostinger-code-deployment', false],
+  'controlled-import-batch-duplicate-rows-migration.yml' => ['controlled-import-batch-duplicate-rows-migration', false],
+  'controlled-institution-field-approvals-migration.yml' => ['controlled-institution-field-approvals-migration', false],
+  'controlled-pakistan-geography-seed.yml' => ['controlled-pakistan-geography-seed', false],
+  'institutes-diagnostics-verify.yml' => ['institutes-protected-diagnostics-verification', false],
+  'institutes-private-diagnostics-report.yml' => ['institutes-private-diagnostics-report', false],
+  'institutes-public-monitor.yml' => ['institutes-public-site-monitor', true],
+  'public-browser-runtime-diagnostics.yml' => ['public-browser-runtime-diagnostics', false],
+  'step3-candidate-audit.yml' => ['step3-discovery-candidate-audit', false],
+  'step3-record-level-remediation-audit.yml' => ['step3-record-level-remediation-audit', false],
+  'offering-gap-preflight.yml' => ['offering-gap-preflight', false]
+}.freeze
 
 def fail!(message)
   warn "FAIL: #{message}"
@@ -159,6 +172,17 @@ pass("#{confirmation_phrases.length} read-only operation confirmations are uniqu
   end
   pass("#{filename}: production execution explicitly blocked pending owner authorization")
 end
+
+
+# Preserve workflow-specific serialization/cancellation contracts.
+CONCURRENCY_GROUPS.each do |filename, (expected_group, expected_cancel)|
+  workflow = parse_workflow(File.join(WORKFLOWS, filename))
+  concurrency = workflow.fetch('concurrency', {})
+  fail!("#{filename} concurrency group changed") unless concurrency['group'] == expected_group
+  fail!("#{filename} cancel-in-progress changed") unless concurrency['cancel-in-progress'] == expected_cancel
+end
+pass('workflow-specific concurrency groups and cancellation semantics are preserved')
+
 
 # The three owner-confirmed environment names are the only workflow environment
 # names allowed. A fourth environment must never be silently introduced.
