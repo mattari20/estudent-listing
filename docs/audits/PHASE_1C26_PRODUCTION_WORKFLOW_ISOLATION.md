@@ -95,11 +95,20 @@ The Python regression suite now parses actual YAML with `scripts/ci/read-workflo
 
 The guard now restricts `operation_reason` to 8–128 safe ASCII characters to prevent multiline/control-character log injection. The required `Test` workflow also runs the offline Project Controller unit suite, Command Orchestrator unit suite, and offline controller smoke check; these do not invoke live repository inventory or production services.
 
+## Exact-head validation snapshot
+
+- `main`: `92e748f7aeedb25d098775be6ff16abbbda23749`
+- PR #1016 head: `5a2dd4ea621f2c991b0522e9753ebb893873836b`
+- `Laravel CI`: run `41814322540`, exact-head success. Laravel PHPUnit and Pint verification passed.
+- `Test`: run `41814322351`, exact-head failure only at the final structural production-isolation gate. The preceding workflow YAML parser, offline Project Controller tests, offline Command Orchestrator tests, controller smoke check, existing migration/discovery/GCU/runtime contracts, and `composer test` all passed. The final audit reports only `secure-institutes-admin-recovery.yml` as unprotected.
+- Isolated MySQL migration workflow was not dispatched: this PR changes workflow/test code, not database migrations, and its migration-focused PR path filter did not match.
+- No production-facing workflow was dispatched.
+
 **Current blocker:** the structural audit correctly flags `secure-institutes-admin-recovery.yml`. Its SSH action and recovery secret remain executable through manual dispatch without the exact-SHA guard, reason input, `production-operations` environment or shared concurrency. A repository write attempting to secure this legacy workflow was blocked by the available GitHub write action. It was not bypassed. The new isolation test intentionally remains red until the owner disables that workflow or it is remediated in an authorized change.
 
 ## Completion status
 
 **Repository implementation:** core workflow isolation and regression repairs implemented; administrator-recovery remains an executable security exception. The isolation Test intentionally fails on that single exception.  
 **GitHub environment protection:** owner action required; not verified. Administrator-recovery must be disabled by the owner pending remediation.  
-**Phase 1C-26A:** not complete; owner must disable/remediate administrator-recovery.  
+**Phase 1C-26A:** NOT COMPLETE; owner must disable/remediate administrator-recovery, then rerun exact-head CI.  
 **Phase 1C:** not complete.  
