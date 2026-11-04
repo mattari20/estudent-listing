@@ -29,9 +29,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: production-readonly-diagnostics
     timeout-minutes: 4
-    env:
-      INSTITUTES_DIAGNOSTICS_TOKEN: ${{ secrets.INSTITUTES_DIAGNOSTICS_TOKEN }}
-      INSTITUTES_PRIVATE_REPORTS_TOKEN: ${{ secrets.INSTITUTES_PRIVATE_REPORTS_TOKEN }}
     steps:
       - name: Checkout exact dispatch revision for authorization checks
         uses: actions/checkout@v4
@@ -46,6 +43,9 @@ jobs:
           EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS"
         run: bash scripts/ci/validate-production-dispatch.sh
       - name: Retrieve report and store only in private repository
+        env:
+          INSTITUTES_DIAGNOSTICS_TOKEN: ${{ secrets.INSTITUTES_DIAGNOSTICS_TOKEN }}
+          INSTITUTES_PRIVATE_REPORTS_TOKEN: ${{ secrets.INSTITUTES_PRIVATE_REPORTS_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
