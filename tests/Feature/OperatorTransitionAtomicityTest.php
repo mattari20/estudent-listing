@@ -157,6 +157,7 @@ class OperatorTransitionAtomicityTest extends TestCase
         $service = app(OperatorTransitionService::class);
 
         $first = $service->recordPromotionDecision($row, 807, 'approved', 'Reviewed parent institution.', 'quick_approve');
+        $row->update(['status' => 'promoted']);
         $replay = $service->recordPromotionDecision($row, 807, 'approved', 'Reviewed parent institution.', 'quick_approve');
 
         $this->assertSame($first->id, $replay->id);
