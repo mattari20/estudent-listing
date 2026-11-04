@@ -2183,27 +2183,51 @@ This is a bounded recovery improvement only. Abrupt process death, heartbeat/val
 - Next Phase 1C task: audit and failure-injection hardening of downstream discovery/candidate-batch side effects and replay boundaries (candidate/batch persistence, duplicate/idempotency behavior). Production scheduler/worker/runtime evidence and production-readiness certification remain separate later gates.
 - Protected data unchanged: GCU rows #348–353 and batches #19–23; AI extraction and additional 20 HEC profiles remain disabled. No production operations or dummy data.
 
-
 ### Phase 1C-17 — downstream discovery and candidate-batch failure recovery (2026-11-04)
 
-- Base verified before edits: `8c9c7e389a290bdddb842164b5bf2da70294baf4`; PRs #993–#1001 and existing Phase 1C idempotency/recovery audits inspected.
-- Existing DB transaction and source-row lock in `InstituteDiscoveryAgentService` and `InstituteIdentityDiscoveryService` are retained. Evidence, batch, candidate rows, assertions and finalization remain one DB transaction.
-- Added deterministic SHA-256 identities and nullable unique DB constraints for discovery batches, evidence, candidate rows and candidate assertion links. Historical rows remain NULL and untouched; no deletion or merge.
+- Base verified before edits: \`8c9c7e389a290bdddb842164b5bf2da70294baf4\`; PRs #993–#1001 and existing Phase 1C idempotency/recovery audits inspected.
+- PR #1002 merged successfully. Final implementation head: \`c182311b749e7c094c7d2c13b00812c220eea5f0\`. Squash merge commit: \`25024ebfb4e31563590e46819a3a4dba50c01511\`.
+- Verified current \`main\` at the start of Phase 1C-18: \`25024ebfb4e31563590e46819a3a4dba50c01511\`, exactly matching the Phase 1C-17 merge commit.
+- Added deterministic SHA-256 identities and nullable unique DB constraints for discovery batches, evidence, candidate rows and candidate assertion links. Historical rows remain NULL and untouched.
 - Added failure-injection tests for evidence/batch/partial-row/assertion/finalization persistence, review-package failure rollback/retry, discovery-outcome persistence failure and failed-outcome replay.
 - Added an independent-PHP-process MySQL concurrency proof for two concurrent attempts against the same source/profile/snapshot.
-- Audit: `docs/audits/PHASE_1C_DISCOVERY_CANDIDATE_BATCH_FAILURE_RECOVERY.md`.
-- Exact-head Laravel CI, Test, isolated MySQL (including candidate recovery tests and the new two-process proof) and Project Controller validation remains pending. Do not merge until the actual MySQL logs and all exact-head checks pass.
-- Known limitation: private CSV/manifest filesystem writes cannot join the DB transaction. The review package validates both files and checksum before reuse; replay regenerates incomplete packages, but orphaned artifacts can remain and no cleanup/outbox worker is introduced.
+- Audit: \`docs/audits/PHASE_1C_DISCOVERY_CANDIDATE_BATCH_FAILURE_RECOVERY.md\`.
+
+#### Final exact-head validation — PR #1002
+
+Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four required workflow jobs:
+
+| Workflow | Run | Job | Result |
+|---|---:|---:|---|
+| Test | #41759860084 | 126344720822 | PASS — 843 tests, 3,755 assertions |
+| Laravel CI | #41759860096 | 126344720492 | PASS — 843 tests, 3,755 assertions; Pint 46 files |
+| Institutes Directory Project Controller | #41759860104 | 126344786882 | Job PASS |
+| Isolated MySQL migration/recovery | #41759860039 | 126344720417 | PASS |
+
+- Actual MySQL logs confirm MySQL 8.4 migration/schema/ledger verification and idempotent second migration; lease multiprocess exclusion; source snapshot/retrieval; discovery outcome idempotency and batch consistency; candidate failure recovery; source event/reverification; alert/audit; and monitoring policy checkpoint recovery.
+- Candidate concurrency log: two independent PHP processes both returned batch #16; exactly one batch, two candidate rows, one evidence record and two assertion links were persisted.
+- Test and Laravel CI logs each end with \`OK (843 tests, 3755 assertions)\`; Pint verification passed for 46 files.
+- The Project Controller workflow job completed successfully, but its internal read-only inventory report showed only 2/5 inventory tasks passed and marked Hostinger read-only diagnostics BLOCKED. This is not a production-readiness pass.
+- The prior pre-merge wording and earlier run IDs have been superseded by the final PR-head evidence above.
+
+#### Remaining Phase 1C-17 boundary
+
+- MySQL candidate persistence is transactional and replay-safe, but private CSV/manifest files are not part of the DB transaction. PR #1002 explicitly left orphaned package recovery and cleanup unresolved; Phase 1C-18 addresses that boundary.
 - No production operation or data access; no AI/HEC activation; GCU rows #348–353 and batches #19–23 protected; no dummy production data.
-- Phase 1C remains IN PROGRESS; production readiness remains NOT CERTIFIED.
 
+### Phase 1C-18 — review-package filesystem recovery and orphan reconciliation (2026-11-04)
 
-- Phase 1C-17 follow-up hardening: matching legacy batches with missing `completed_at` now fail closed rather than being reused; successful discovery outcomes verify their referenced candidate batch still exists and is validated/completed before reporting success. Regression tests cover both conditions.
+- Baseline verified: \`main\` exactly \`25024ebfb4e31563590e46819a3a4dba50c01511\`; PR #1002 merge and its final exact-head workflows/logs reconciled above.
+- Implementation branch: \`fix/phase-1c-18-review-package-filesystem-recovery\`.
+- Reworking private package generation to use per-batch/snapshot filesystem locks, atomic temporary-file replacement, manifest-last completion semantics and strict package/schema/batch/snapshot/source/checksum validation.
+- Reworking orphan reconciliation to default to dry-run, require explicit \`--apply\`, enforce a configurable grace period (minimum 24 hours), preserve every existing DB batch, reject unknown files/symlinks/path escapes and serialize cleanup with generation.
+- Added feature coverage for interrupted/incomplete pairs, checksum and identity corruption, incomplete batches, orphan dry-run/apply, stale temporary artifacts, valid/recent package preservation, unknown files, symlink protection, source mismatch and replay.
+- Added an isolated-MySQL independent-process package writer test and extended Test/Laravel CI/Project Controller/isolated MySQL validation paths.
+- Audit: \`docs/audits/PHASE_1C_REVIEW_PACKAGE_FILESYSTEM_RECOVERY.md\`.
+- Exact final PR-head validation and merge are pending. Do not treat Phase 1C-18 as complete until all required checks pass on the final documentation-inclusive head and merged \`main\` is verified.
 
+### Next Phase 1C engineering task
 
-### Phase 1C-17 — exact-head validation recorded
-
-- Implementation head `5e55b41c23002ff3acf66fbbb69be4d918ee0b2f` passed Test (#41759567182: 843 tests/3,755 assertions), Laravel CI (#41759567170: same totals; Pint 46 files), Project Controller (#41759567189) and isolated MySQL (#41759567167).
-- MySQL logs explicitly confirm discovery outcome idempotency (6 tests/40 assertions), outcome-to-batch consistency (5 tests/17 assertions), candidate failure/replay (16 tests/115 assertions), and the two-process same-batch proof (one batch, two rows, one evidence, two assertions).
-- A documentation-only evidence update follows; final PR-head workflows must be rechecked before merge.
-- Remaining known limitation: private CSV/manifest writes are not transactional with MySQL; incomplete pairs are rejected and regenerated on replay, but orphaned private artifacts are not automatically swept.
+- After Phase 1C-18 passes and merges, continue with **institution identity conflict/resolution persistence under replay and concurrent attempts**: inspect conflict creation/resolution history, establish durable uniqueness and state transitions, add failure-injection/replay tests and independent-process MySQL concurrency coverage.
+- Phase 1C remains IN PROGRESS. Production scheduler/worker/runtime evidence and production-readiness certification remain separate gates.
+- Protected data unchanged: GCU rows #348–353 and batches #19–23; AI extraction and additional 20 HEC profiles remain disabled. No production operations or dummy data.
