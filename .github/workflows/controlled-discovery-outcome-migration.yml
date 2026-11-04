@@ -18,9 +18,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: controlled-discovery-outcome-migration
   cancel-in-progress: false
-  queue: max
 jobs:
   migrate:
     if: false # blocked until production-operations is owner-authorized and configured
