@@ -60,7 +60,7 @@ These workflows are manual-only and their production jobs have a literal fail-cl
 | `hostinger-gcu-single-source-qualification.yml` | Remote source qualification and private report write | `workflow_dispatch` only | None | `HOSTINGER_SSH_HOST`, `_USER`, `_PRIVATE_KEY`, `_PORT`, `_FINGERPRINT` | Blocked; do not treat as a read-only diagnostic |
 | `scheduled-institute-discovery.yml` | Discovery/source monitoring with possible production writes | `workflow_dispatch` only | None | Same four `HOSTINGER_SSH_*` values; `GITHUB_TOKEN` for artifact handoff | Blocked; duplicate job-level condition removed so the fail-closed condition cannot be overridden |
 
-No `production-operations` environment was created or declared. If the owner later wants any of these operations enabled, that requires a separate explicit authorization to create and protect an operations environment, migrate credentials into it, and review each workflow's operation-specific safeguards. Until then, these jobs remain blocked.
+No write-capable production operation is authorized by this phase. These jobs remain blocked; do not assign them to either read-only environment or assume a fourth environment exists. Any future operation requires a separately approved design and explicit owner authorization before its workflow or environment configuration is changed.
 
 ### 2.3 Administrator password-reset recovery — retired
 
