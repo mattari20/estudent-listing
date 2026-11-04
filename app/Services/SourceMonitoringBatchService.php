@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Source;
 use Closure;
+use Throwable;
 
 class SourceMonitoringBatchService
 {
@@ -37,7 +38,36 @@ class SourceMonitoringBatchService
             foreach ($sources as $source) {
                 $heartbeat?->__invoke();
                 $summary['sources']++;
-                $result = app(SourceMonitoringPipeline::class)->run($source);
+
+                try {
+                    $result = app(SourceMonitoringPipeline::class)->run($source);
+                } catch (Throwable $exception) {
+                    // A thrown retrieval/parser/intelligence exception must be treated
+                    // as a failed source attempt, not allowed to bypass policy state.
+                    // Keep exception messages out of alerts/audits because they may
+                    // contain response fragments, credentials or provider details.
+                    $summary['failed']++;
+                    $failed = true;
+                    $exceptionClass = mb_substr(get_class($exception), 0, 160);
+
+                    app(MonitoringAlertService::class)->raise(
+                        'retrieval_failure',
+                        app(MonitoringAlertPolicyService::class)->severityForFailures($policy->consecutive_failures + 1),
+                        'Source monitoring pipeline threw '.$exceptionClass.'.',
+                        $source,
+                        $policy,
+                        ['exception_class' => $exceptionClass]
+                    );
+                    app(MonitoringAuditService::class)->record(
+                        'retrieval_failure',
+                        'Source monitoring pipeline threw an exception',
+                        $source->id,
+                        'warning',
+                        ['exception_class' => $exceptionClass, 'policy_id' => $policy->id]
+                    );
+
+                    continue;
+                }
 
                 if (($result['run']->status ?? '') !== 'completed') {
                     $summary['failed']++;
