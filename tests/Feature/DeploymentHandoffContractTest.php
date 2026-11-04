@@ -56,14 +56,21 @@ class DeploymentHandoffContractTest extends TestCase
         $this->assertStringContainsString('SCHEMA_HANDOFF_TARGET_REVISION', $discoveryWorkflow);
         $this->assertStringContainsString('official_source_refresh_schema_gate', $discoveryWorkflow);
         $this->assertStringContainsString('BLOCKED_OFFICIAL_SOURCE_REFRESH_SCHEMA_NOT_READY', $discoveryWorkflow);
-        $this->assertStringContainsString('workflow_run:', $discoveryWorkflow);
-        $this->assertStringContainsString('- "Controlled Official-Source Refresh Migration"', $discoveryWorkflow);
-        $this->assertStringContainsString('schedule:', $discoveryWorkflow);
+        $this->assertStringContainsString('workflow_dispatch:', $discoveryWorkflow);
+        $this->assertStringContainsString('target_sha:', $discoveryWorkflow);
+        $this->assertStringContainsString('environment: production-operations', $discoveryWorkflow);
+        $this->assertStringContainsString('scripts/ci/validate-production-dispatch.sh', $discoveryWorkflow);
+        $this->assertStringNotContainsString('workflow_run:', $discoveryWorkflow);
+        $this->assertStringNotContainsString('schedule:', $discoveryWorkflow);
         $this->assertStringNotContainsString("\n  push:\n", $discoveryWorkflow);
 
-        // Readiness repeats after the controlled migration workflow succeeds.
-        $this->assertStringContainsString('workflow_run:', $readinessWorkflow);
-        $this->assertStringContainsString('- Controlled Official-Source Refresh Migration', $readinessWorkflow);
-        $this->assertStringContainsString('schema_ready', $readinessWorkflow);
+        // Readiness is now an explicit, protected manual dispatch; no workflow_run
+        // handoff can expose production credentials or bypass the authorization gate.
+        $this->assertStringContainsString('workflow_dispatch:', $readinessWorkflow);
+        $this->assertStringContainsString('target_sha:', $readinessWorkflow);
+        $this->assertStringContainsString('environment: production-readonly-diagnostics', $readinessWorkflow);
+        $this->assertStringContainsString('scripts/ci/validate-production-dispatch.sh', $readinessWorkflow);
+        $this->assertStringNotContainsString('workflow_run:', $readinessWorkflow);
+        $this->assertStringNotContainsString('schedule:', $readinessWorkflow);
     }
 }
