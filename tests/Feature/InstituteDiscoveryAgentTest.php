@@ -368,7 +368,7 @@ class InstituteDiscoveryAgentTest extends TestCase
         try {
             app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
             $this->fail('A candidate batch insert failure must abort discovery persistence.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertSame('injected discovery persistence failure', $exception->getMessage());
         }
 
@@ -388,7 +388,7 @@ class InstituteDiscoveryAgentTest extends TestCase
         try {
             app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
             $this->fail('A partial candidate row failure must roll back the complete batch.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertSame('injected discovery persistence failure', $exception->getMessage());
         }
 
@@ -408,7 +408,7 @@ class InstituteDiscoveryAgentTest extends TestCase
         try {
             app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
             $this->fail('An assertion-link persistence failure must abort discovery persistence.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertSame('injected discovery persistence failure', $exception->getMessage());
         }
 
@@ -428,7 +428,7 @@ class InstituteDiscoveryAgentTest extends TestCase
         try {
             app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
             $this->fail('A batch finalization failure must roll back candidate persistence.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertSame('injected discovery persistence failure', $exception->getMessage());
         }
 
@@ -443,16 +443,16 @@ class InstituteDiscoveryAgentTest extends TestCase
     {
         $this->prepareCuiDiscoveryRun();
 
-        $reviewPackage = \\Mockery::mock(InstituteDiscoveryReviewPackageService::class)->makePartial();
+        $reviewPackage = \Mockery::mock(InstituteDiscoveryReviewPackageService::class)->makePartial();
         $reviewPackage->shouldReceive('create')
             ->once()
-            ->andThrow(new \\RuntimeException('injected review package failure'));
+            ->andThrow(new \RuntimeException('injected review package failure'));
         $this->app->instance(InstituteDiscoveryReviewPackageService::class, $reviewPackage);
 
         try {
             app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
             $this->fail('A review package failure must prevent batch completion.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertSame('injected review package failure', $exception->getMessage());
         }
 
@@ -482,13 +482,13 @@ class InstituteDiscoveryAgentTest extends TestCase
         $this->assertSame('reused', $second['review_package']['status']);
         $this->assertNotEmpty(ImportBatch::findOrFail($first['batch_id'])->discovery_identity_key);
         $this->assertSame(2, ImportRow::where('import_batch_id', $first['batch_id'])->whereNotNull('discovery_identity_key')->count());
-        $this->assertSame(1, \\App\\Models\\Evidence::whereNotNull('discovery_identity_key')->count());
-        $this->assertSame(2, \\App\\Models\\Assertion::whereNotNull('discovery_identity_key')->count());
+        $this->assertSame(1, \App\Models\Evidence::whereNotNull('discovery_identity_key')->count());
+        $this->assertSame(2, \App\Models\Assertion::whereNotNull('discovery_identity_key')->count());
         $this->assertDatabaseCount('import_batches', 1);
         $this->assertDatabaseCount('import_rows', 2);
         $this->assertDatabaseCount('assertions', 2);
 
-        $this->expectException(\\Illuminate\\Database\\QueryException::class);
+        $this->expectException(\Illuminate\Database\QueryException::class);
         ImportBatch::create([
             'batch_key' => 'manual-duplicate-identity-test',
             'discovery_identity_key' => ImportBatch::findOrFail($first['batch_id'])->discovery_identity_key,
@@ -509,7 +509,7 @@ class InstituteDiscoveryAgentTest extends TestCase
         try {
             app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
             $this->fail('An evidence persistence failure must abort candidate persistence.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertSame('injected discovery persistence failure', $exception->getMessage());
         }
 
@@ -544,7 +544,7 @@ class InstituteDiscoveryAgentTest extends TestCase
         ]);
     }
 
-    private function injectDiscoverySqlFailure(string $table, string $operation, int $occurrence = 1): \\Closure
+    private function injectDiscoverySqlFailure(string $table, string $operation, int $occurrence = 1): \Closure
     {
         $count = 0;
         $triggered = false;
@@ -561,7 +561,7 @@ class InstituteDiscoveryAgentTest extends TestCase
             $count++;
             if ($count === $occurrence) {
                 $triggered = true;
-                throw new \\RuntimeException('injected discovery persistence failure');
+                throw new \RuntimeException('injected discovery persistence failure');
             }
         });
 
