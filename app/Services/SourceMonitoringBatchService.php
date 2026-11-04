@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace App\\Services;
 
-use App\Models\Source;
+use App\\Models\\Source;
 use Closure;
-use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class SourceMonitoringBatchService
@@ -12,6 +11,7 @@ class SourceMonitoringBatchService
     public function run(?int $policyId = null, ?Closure $heartbeat = null, ?string $executionRunId = null): array
     {
         $policies = app(MonitoringDuePolicyService::class)->due($policyId);
+        $checkpoints = app(MonitoringPolicyCheckpointService::class);
         $summary = [
             'policies' => 0,
             'sources' => 0,
@@ -26,32 +26,24 @@ class SourceMonitoringBatchService
         ];
 
         foreach ($policies as $policy) {
+            // A failed heartbeat is an infrastructure/ownership failure. It is
+            // intentionally outside retrieval exception handling and aborts work.
             $heartbeat?->__invoke();
             $summary['policies']++;
 
-            app(MonitoringPolicyValidationService::class)->validate($policy);
+            $checkpoints->interruptOpenAttempts((int) $policy->id);
+            $policyRunId = $checkpoints->startPolicyRun((int) $policy->id, $executionRunId);
 
-            // A previous run left in 'running' state has no successful final checkpoint.
-            // Mark it interrupted before opening a new attempt; never rewrite its history.
-            DB::table('monitoring_policy_runs')
-                ->where('source_monitoring_policy_id', $policy->id)
-                ->where('status', 'running')
-                ->update([
-                    'status' => 'interrupted',
-                    'failure_code' => 'superseded_by_new_attempt',
-                    'finished_at' => now(),
-                    'updated_at' => now(),
-                ]);
+            try {
+                app(MonitoringPolicyValidationService::class)->validate($policy);
+            } catch (Throwable $exception) {
+                // Validation is a policy failure, not a source retrieval failure.
+                // Persist only a fixed code; never persist exception messages.
+                $checkpoints->failPolicyRun($policyRunId, 'policy_validation_failed');
+                throw $exception;
+            }
 
-            $policyRunId = DB::table('monitoring_policy_runs')->insertGetId([
-                'source_monitoring_policy_id' => $policy->id,
-                'execution_run_id' => $executionRunId,
-                'status' => 'running',
-                'started_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
+            $heartbeat?->__invoke();
             $sources = $policy->source_id
                 ? Source::whereKey($policy->source_id)->get()
                 : Source::where('status', 'active')->whereNotNull('url')->get();
@@ -61,37 +53,30 @@ class SourceMonitoringBatchService
             foreach ($sources as $source) {
                 $heartbeat?->__invoke();
                 $summary['sources']++;
-                DB::table('monitoring_policy_run_sources')->updateOrInsert(
-                    ['monitoring_policy_run_id' => $policyRunId, 'source_id' => $source->id],
-                    ['status' => 'running', 'started_at' => now(), 'finished_at' => null, 'failure_code' => null, 'updated_at' => now(), 'created_at' => now()]
-                );
+                $checkpoints->startSource($policyRunId, (int) $source->id);
 
                 try {
                     $result = app(SourceMonitoringPipeline::class)->run($source);
                 } catch (Throwable $exception) {
-                    // A thrown retrieval/parser/intelligence exception must be treated
-                    // as a failed source attempt, not allowed to bypass policy state.
-                    // Keep exception messages out of alerts/audits because they may
-                    // contain response fragments, credentials or provider details.
+                    // Confirm ownership before classifying a thrown pipeline error
+                    // as a source failure. A heartbeat failure must escape unchanged.
+                    $heartbeat?->__invoke();
                     $summary['failed']++;
                     $failed = true;
                     $exceptionClass = mb_substr(get_class($exception), 0, 160);
 
-                    DB::table('monitoring_policy_run_sources')
-                        ->where('monitoring_policy_run_id', $policyRunId)
-                        ->where('source_id', $source->id)
-                        ->update(['status' => 'failed', 'failure_code' => $exceptionClass, 'finished_at' => now(), 'updated_at' => now()]);
+                    $checkpoints->failSource($policyRunId, (int) $source->id, $exceptionClass);
                     app(MonitoringAlertService::class)->raise(
                         'retrieval_failure',
                         app(MonitoringAlertPolicyService::class)->severityForFailures($policy->consecutive_failures + 1),
-                        'Source monitoring pipeline threw '.$exceptionClass.'.',
+                        'Source monitoring pipeline failed.',
                         $source,
                         $policy,
                         ['exception_class' => $exceptionClass]
                     );
                     app(MonitoringAuditService::class)->record(
                         'retrieval_failure',
-                        'Source monitoring pipeline threw an exception',
+                        'Source monitoring pipeline failed.',
                         $source->id,
                         'warning',
                         ['exception_class' => $exceptionClass, 'policy_id' => $policy->id]
@@ -100,21 +85,27 @@ class SourceMonitoringBatchService
                     continue;
                 }
 
+                // The pipeline may have taken long enough for ownership to expire.
+                // Do not project outcomes or checkpoint success until renewed.
+                $heartbeat?->__invoke();
+
                 if (($result['run']->status ?? '') !== 'completed') {
                     $summary['failed']++;
                     $failed = true;
-                    DB::table('monitoring_policy_run_sources')
-                        ->where('monitoring_policy_run_id', $policyRunId)
-                        ->where('source_id', $source->id)
-                        ->update(['status' => 'failed', 'failure_code' => 'retrieval_not_completed', 'retrieval_run_id' => $result['run']->id ?? null, 'finished_at' => now(), 'updated_at' => now()]);
+                    $runId = $result['run']->id ?? null;
+                    $checkpoints->failSource(
+                        $policyRunId,
+                        (int) $source->id,
+                        'retrieval_not_completed',
+                        $runId !== null ? (int) $runId : null
+                    );
                     app(MonitoringAlertService::class)->raise(
                         'retrieval_failure',
                         app(MonitoringAlertPolicyService::class)->severityForFailures($policy->consecutive_failures + 1),
-                        'Source retrieval failed: '.($result['run']->error_message ?? 'unknown error'),
+                        'Source retrieval failed.',
                         $source,
                         $policy
                     );
-                    $runId = $result['run']->id ?? null;
                     app(MonitoringAuditService::class)->record(
                         'retrieval_failure',
                         'Source retrieval failed',
@@ -123,11 +114,11 @@ class SourceMonitoringBatchService
                         ['retrieval_run_id' => $runId],
                         $runId !== null ? 'monitoring:retrieval_failure:'.$runId : null
                     );
+
                     continue;
                 }
 
                 $summary['completed']++;
-
                 $observation = $result['observation'] ?? null;
 
                 if ($observation?->change_state === 'changed') {
@@ -153,9 +144,6 @@ class SourceMonitoringBatchService
                     );
                 }
 
-                // Record every successful retrieval observation, including unchanged
-                // and baseline snapshots. Otherwise healthy no-change runs leave the
-                // outcome ledger empty and live scheduler acceptance cannot be proven.
                 if ($observation !== null) {
                     $discovery = app(SourceChangeDiscoveryService::class)->process($observation);
 
@@ -170,35 +158,20 @@ class SourceMonitoringBatchService
                     }
                 }
 
-                // This is the durable source completion checkpoint. If the process
-                // dies before this write, the next attempt replays the source through
-                // existing retrieval/observation/outcome idempotency boundaries.
-                DB::table('monitoring_policy_run_sources')
-                    ->where('monitoring_policy_run_id', $policyRunId)
-                    ->where('source_id', $source->id)
-                    ->update([
-                        'status' => 'completed',
-                        'retrieval_run_id' => $result['run']->id ?? null,
-                        'observation_id' => $observation?->id,
-                        'finished_at' => now(),
-                        'updated_at' => now(),
-                    ]);
+                // Check ownership again immediately before recording completion.
+                $heartbeat?->__invoke();
+                $checkpoints->completeSource(
+                    $policyRunId,
+                    (int) $source->id,
+                    isset($result['run']->id) ? (int) $result['run']->id : null,
+                    $observation?->id !== null ? (int) $observation->id : null
+                );
             }
 
-            $failed
-                ? app(MonitoringPolicyStateService::class)->failure($policy)
-                : app(MonitoringPolicyStateService::class)->success($policy);
-
-            $policy->update(['last_run_at' => now()]);
-
-            DB::table('monitoring_policy_runs')
-                ->where('id', $policyRunId)
-                ->update([
-                    'status' => $failed ? 'failed' : 'completed',
-                    'summary' => json_encode($summary, JSON_THROW_ON_ERROR),
-                    'finished_at' => now(),
-                    'updated_at' => now(),
-                ]);
+            $heartbeat?->__invoke();
+            // State changes, last_run_at and final policy checkpoint are one DB
+            // transaction. Any persistence exception rolls all three back.
+            $checkpoints->finalizePolicy($policy, $policyRunId, $failed, $summary);
         }
 
         return $summary;
