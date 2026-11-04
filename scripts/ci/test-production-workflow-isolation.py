@@ -36,8 +36,13 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
                 else:
                     # This legacy account-recovery workflow is deliberately held for owner protection configuration.
                     self.assertIn("RECOVER-EXISTING-ADMIN-1", text)
-                self.assertIn("TARGET_SHA", text)
-                self.assertIn("scripts/ci/validate-production-dispatch.sh", text)
+                if path.name not in OWNER_CONFIG_EXCEPTIONS:
+                    self.assertIn("      target_sha:", trigger)
+                    self.assertIn("TARGET_SHA", text)
+                    self.assertIn("scripts/ci/validate-production-dispatch.sh", text)
+                else:
+                    self.assertNotIn("TARGET_SHA", text)
+                    self.assertNotIn("environment:", text)
 
     def test_ci_workflows_do_not_use_production_credentials_or_ssh(self):
         for name in ("test.yml", "laravel-ci.yml", "isolated-mysql-approval-migration-validation.yml",
