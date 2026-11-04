@@ -24,7 +24,7 @@ RECOVERY_WORKFLOW = WORKFLOWS / "secure-institutes-admin-recovery.yml"
 ADMIN_RECOVERY_NAME = re.compile(r"(?:admin.*recover|recover.*admin)", re.IGNORECASE)
 PRODUCTION_REMOTE_COMMAND = re.compile(r"\b(?:ssh|scp|sftp)\s+(?:-[A-Za-z][^\s]*\s+)*[^\s]+")
 PRODUCTION_DATABASE_COMMAND = re.compile(r"\b(?:mysql|mariadb|psql)\b(?=[^\n]*(?:--host(?:=|\s+)(?!127\.0\.0\.1\b|localhost\b)|-h\s+(?!127\.0\.0\.1\b|localhost\b)))", re.IGNORECASE)
-PRODUCTION_ARTISAN_COMMAND = re.compile(r"\b(?:php(?:[0-9]+(?:\.[0-9]+)*)?\s+|["']?\$[A-Z_][A-Z0-9_]*["']?\s+)artisan\b")
+PRODUCTION_ARTISAN_COMMAND = re.compile(r"\b(?:php(?:[0-9]+(?:\.[0-9]+)*)?\s+artisan\b|\$[A-Z_][A-Z0-9_]*\s+artisan\b)")
 PRODUCTION_SECRET_NAME_PARTS = (
     "HOSTINGER_SSH_", "OFFERING_GAP_DB_", "INSTITUTES_DIAGNOSTICS_TOKEN",
     "INSTITUTES_PRIVATE_REPORTS_TOKEN", "INSTITUTES_ADMIN_RECOVERY_PASSWORD",
