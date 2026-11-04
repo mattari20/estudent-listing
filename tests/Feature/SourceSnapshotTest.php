@@ -177,4 +177,107 @@ class SourceSnapshotTest extends TestCase {
         $this->assertSame($second->content_hash, $observation->details['current']['content_hash']);
         $this->assertSame('https://university.example.edu/programs', $observation->details['current']['reference']);
     }
+
+
+    public function test_normal_chronological_snapshots_select_the_immediate_predecessor(): void
+    {
+        $source = Source::create(['source_type' => 'web', 'name' => 'Chronological Source', 'status' => 'active']);
+        $service = app(SourceSnapshotService::class);
+        $a = $service->capture($source, 'A', 'https://example.test/chronology', 'text/plain', [], null, \Illuminate\Support\Carbon::parse('2026-11-01 10:00:00'));
+        $b = $service->capture($source, 'B', 'https://example.test/chronology', 'text/plain', [], null, \Illuminate\Support\Carbon::parse('2026-11-02 10:00:00'));
+        $c = $service->capture($source, 'C', 'https://example.test/chronology', 'text/plain', [], null, \Illuminate\Support\Carbon::parse('2026-11-03 10:00:00'));
+        $compare = app(SourceChangeObservationService::class);
+
+        $observationA = $compare->compare($a);
+        $observationB = $compare->compare($b);
+        $observationC = $compare->compare($c);
+
+        $this->assertNull($observationA->previous_snapshot_id);
+        $this->assertSame($a->id, $observationB->previous_snapshot_id);
+        $this->assertSame($b->id, $observationC->previous_snapshot_id);
+        $this->assertSame('changed', $observationB->change_state);
+        $this->assertSame('changed', $observationC->change_state);
+    }
+
+    public function test_late_middle_snapshot_queues_explicit_reconciliation_without_rewriting_history(): void
+    {
+        $source = Source::create(['source_type' => 'web', 'name' => 'Late Snapshot Source', 'status' => 'active']);
+        $service = app(SourceSnapshotService::class);
+        $a = $service->capture($source, 'A', 'https://example.test/late', 'text/plain', [], null, \Illuminate\Support\Carbon::parse('2026-11-01 10:00:00'));
+        $c = $service->capture($source, 'C', 'https://example.test/late', 'text/plain', [], null, \Illuminate\Support\Carbon::parse('2026-11-03 10:00:00'));
+        $compare = app(SourceChangeObservationService::class);
+        $compare->compare($a);
+        $observationC = $compare->compare($c);
+        $this->assertSame($a->id, $observationC->previous_snapshot_id);
+
+        $b = $service->capture($source, 'B', 'https://example.test/late', 'text/plain', [], null, \Illuminate\Support\Carbon::parse('2026-11-02 10:00:00'));
+        $observationB = $compare->compare($b);
+        $observationC->refresh();
+
+        $this->assertSame($a->id, $observationB->previous_snapshot_id);
+        $this->assertSame($a->id, $observationC->previous_snapshot_id, 'Historical comparison is not silently rewritten.');
+        $request = \App\Models\SourceSnapshotReconciliationRequest::query()
+            ->where('current_snapshot_id', $c->id)
+            ->where('triggering_snapshot_id', $b->id)
+            ->firstOrFail();
+        $this->assertSame($b->id, $request->expected_previous_snapshot_id);
+        $this->assertSame($a->id, $request->recorded_previous_snapshot_id);
+        $this->assertSame('pending_review', $request->status);
+
+        $compare->compare($b);
+        $this->assertDatabaseCount('source_snapshot_reconciliation_requests', 1);
+    }
+
+    public function test_equal_capture_timestamps_use_snapshot_id_as_stable_tie_breaker(): void
+    {
+        $source = Source::create(['source_type' => 'web', 'name' => 'Equal Timestamp Source', 'status' => 'active']);
+        $service = app(SourceSnapshotService::class);
+        $timestamp = \Illuminate\Support\Carbon::parse('2026-11-02 10:00:00');
+        $first = $service->capture($source, 'first', 'https://example.test/equal', 'text/plain', [], null, $timestamp);
+        $second = $service->capture($source, 'second', 'https://example.test/equal', 'text/plain', [], null, $timestamp);
+
+        $observation = app(SourceChangeObservationService::class)->compare($second);
+
+        $this->assertSame($first->id, $observation->previous_snapshot_id);
+        $this->assertSame($first->captured_at->toISOString(), $second->captured_at->toISOString());
+    }
+
+    public function test_snapshot_capture_replay_preserves_original_timestamp_and_observation_identity(): void
+    {
+        $source = Source::create(['source_type' => 'web', 'name' => 'Capture Replay Source', 'status' => 'active']);
+        $service = app(SourceSnapshotService::class);
+        $timestamp = \Illuminate\Support\Carbon::parse('2026-11-02 10:00:00');
+        $first = $service->capture($source, 'stable', 'https://example.test/replay', 'text/plain', [], 'chronology-replay-key', $timestamp);
+        $replay = $service->capture($source, 'stable', 'https://example.test/replay', 'text/plain', [], 'chronology-replay-key', now());
+        $compare = app(SourceChangeObservationService::class);
+
+        $firstObservation = $compare->compare($first);
+        $replayObservation = $compare->compare($replay);
+
+        $this->assertSame($first->id, $replay->id);
+        $this->assertSame($timestamp->toISOString(), $replay->captured_at->toISOString());
+        $this->assertSame($firstObservation->id, $replayObservation->id);
+        $this->assertDatabaseCount('source_snapshots', 1);
+        $this->assertDatabaseCount('source_change_observations', 1);
+    }
+
+    public function test_late_snapshot_does_not_change_snapshot_content_or_source_ownership(): void
+    {
+        $source = Source::create(['source_type' => 'web', 'name' => 'Ownership Source', 'status' => 'active']);
+        $other = Source::create(['source_type' => 'web', 'name' => 'Other Ownership Source', 'status' => 'active']);
+        $service = app(SourceSnapshotService::class);
+        $later = $service->capture($source, 'later payload', 'https://example.test/owned', 'text/plain', [], null, \Illuminate\Support\Carbon::parse('2026-11-03 10:00:00'));
+        $compare = app(SourceChangeObservationService::class);
+        $laterObservation = $compare->compare($later);
+        $earlier = $service->capture($source, 'earlier payload', 'https://example.test/owned', 'text/plain', [], null, \Illuminate\Support\Carbon::parse('2026-11-02 10:00:00'));
+        $compare->compare($earlier);
+
+        $this->assertSame($source->id, $later->fresh()->source_id);
+        $this->assertSame($source->id, $earlier->fresh()->source_id);
+        $this->assertSame('later payload', $later->fresh()->content);
+        $this->assertSame('earlier payload', $earlier->fresh()->content);
+        $this->assertSame($later->id, $laterObservation->fresh()->current_snapshot_id);
+        $this->assertNotSame($other->id, $later->fresh()->source_id);
+    }
+
 }
