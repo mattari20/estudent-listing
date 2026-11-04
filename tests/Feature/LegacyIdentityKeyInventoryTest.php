@@ -182,7 +182,7 @@ class LegacyIdentityKeyInventoryTest extends TestCase
         config(['database.default' => 'unrecognized_connection']);
         DB::purge('unrecognized_connection');
 
-        $inventory = \\Mockery::mock(LegacyIdentityKeyInventoryService::class);
+        $inventory = \Mockery::mock(LegacyIdentityKeyInventoryService::class);
         $inventory->shouldNotReceive('report');
         $this->app->instance(LegacyIdentityKeyInventoryService::class, $inventory);
 
@@ -198,7 +198,7 @@ class LegacyIdentityKeyInventoryTest extends TestCase
         ]);
         DB::purge('mysql');
 
-        $inventory = \\Mockery::mock(LegacyIdentityKeyInventoryService::class);
+        $inventory = \Mockery::mock(LegacyIdentityKeyInventoryService::class);
         $inventory->shouldNotReceive('report');
         $this->app->instance(LegacyIdentityKeyInventoryService::class, $inventory);
 
