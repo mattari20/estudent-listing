@@ -4,7 +4,7 @@
 
 The executable GitHub Actions workflow `.github/workflows/secure-institutes-admin-recovery.yml` is retired from this branch. It is not an approved recovery mechanism and must not be reintroduced or dispatched.
 
-The repository owner has reported that the corresponding GitHub Actions workflow was manually disabled. Keep that disabled state in place as defense in depth. Repository deletion does not itself prove or change the account-level disabled setting.
+The owner-supplied GitHub Actions screenshot supports that the corresponding workflow was disabled in the Actions UI. Keep that disabled state in place as defense in depth. This is owner-supplied evidence, not an independently queried account setting. Repository deletion does not itself prove or change the account-level disabled setting.
 
 ## Why it was retired
 
