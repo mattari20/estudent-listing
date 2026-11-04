@@ -18,6 +18,8 @@ on:
       - 'tests/Support/verify-review-package-multiprocess.php'
       - 'tests/Feature/InstituteIdentityPersistenceRecoveryTest.php'
       - 'tests/Support/verify-identity-conflict-multiprocess.php'
+      - '.github/workflows/phase-1c-21-apply-patch.yml'
+      - '.github/phase-1c-21.patch.parts/part06'
       - 'app/Services/BulkImportPromotionService.php'
       - 'app/Services/OperatorTransitionService.php'
       - 'app/Services/InstituteImportPromoter.php'
