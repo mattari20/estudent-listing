@@ -54,12 +54,29 @@ The private review package consists of CSV and manifest files on the local files
 
 ## Validation evidence
 
-Pending exact PR-head Laravel CI, Test, isolated MySQL and Project Controller checks. The MySQL log must explicitly show:
-- `InstituteDiscoveryAgentTest.php` failure-injection and replay tests passing.
-- `SourceChangeDiscoveryIdempotencyTest.php` outcome failure/replay tests passing.
-- `verify-discovery-batch-multiprocess.php` passing with one logical batch across two PHP processes.
+**Validated implementation head:** `5e55b41c23002ff3acf66fbbb69be4d918ee0b2f` (PR #1002; base `8c9c7e389a290bdddb842164b5bf2da70294baf4`).
 
-Record exact run/job IDs and test totals here before merge.
+| Workflow | Run / job | Result |
+|---|---|---|
+| Test | Run `41759567182`, job `126343758800` | PASS — 843 tests, 3,755 assertions |
+| Laravel CI | Run `41759567170`, job `126343758594` | PASS — 843 tests, 3,755 assertions; Pint format and verification passed for 46 files |
+| Institutes Directory Project Controller | Run `41759567189`, job `126343776353` | PASS — workflow syntax, offline fixtures, read-only inventory and report artifact |
+| Isolated MySQL migration/recovery | Run `41759567167`, job `126343758707` | PASS — isolated MySQL 8.4 migration, schema and recovery workflow |
+
+### Actual isolated MySQL log evidence
+
+- `SourceChangeDiscoveryIdempotencyTest.php`: **6 tests, 40 assertions — PASS**.
+- `SourceChangeDiscoveryServiceTest.php`: **5 tests, 17 assertions — PASS**.
+- `InstituteDiscoveryAgentTest.php`: **16 tests, 115 assertions — PASS**.
+- Dedicated discovery outcome batch consistency step — PASS.
+- Dedicated candidate batch failure recovery step — PASS.
+- Independent-process concurrency script — PASS. Log: two PHP processes concurrently persisted one logical discovery batch; both returned batch #16, with one batch, two candidate rows, one evidence record and two assertion links.
+- Existing source snapshot/retrieval, event/reverification, alert/audit, execution-lease and monitoring-policy MySQL recovery steps also passed.
+- The migration/schema and migration-ledger checks completed successfully.
+
+An earlier full-suite run exposed a stale mock fixture that returned a hard-coded candidate batch ID without persisting a completed batch. The fixture was corrected to create a completed database batch; the final implementation head above passed all required workflows.
+
+The PR subsequently received a documentation-only evidence/tracker update. All four required workflows are being rerun on that final documentation-inclusive PR head before merge.
 
 ## Safety and non-claims
 
