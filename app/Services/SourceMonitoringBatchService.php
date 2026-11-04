@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Source;
 use Closure;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Throwable;
 
 class SourceMonitoringBatchService
@@ -30,6 +29,8 @@ class SourceMonitoringBatchService
             $heartbeat?->__invoke();
             $summary['policies']++;
 
+            app(MonitoringPolicyValidationService::class)->validate($policy);
+
             // A previous run left in 'running' state has no successful final checkpoint.
             // Mark it interrupted before opening a new attempt; never rewrite its history.
             DB::table('monitoring_policy_runs')
@@ -50,7 +51,6 @@ class SourceMonitoringBatchService
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-            app(MonitoringPolicyValidationService::class)->validate($policy);
 
             $sources = $policy->source_id
                 ? Source::whereKey($policy->source_id)->get()
