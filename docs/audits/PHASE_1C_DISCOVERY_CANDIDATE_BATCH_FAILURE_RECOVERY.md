@@ -30,7 +30,8 @@ No duplicate implementation of these protections was added.
 | Evidence persistence | Evidence insertion is part of the same transaction and now has a unique batch-scoped identity. Failure rolls back the candidate batch. |
 | Assertion/link persistence | Assertion rows are part of the same transaction and now have deterministic unique identities derived from their candidate row. Failure rolls back evidence, batch and candidate rows. |
 | Batch completion/finalization | The final batch update remains inside the transaction. An update failure rolls back all related DB writes; no completed batch is committed. |
-| Replay / duplicate candidates | A deterministic batch key is computed from source, profile, content hash, source type, extraction mode, extractor version and explicit superseded-batch ID. Existing logical batches are reused; new nullable unique constraints protect batch/evidence/row/assertion identities. |
+| Replay / duplicate candidates | A deterministic batch key is computed from source, profile, content hash, source type, extraction mode, extractor version and explicit superseded-batch ID. Existing logical batches are reused only when `status=validated` and `completed_at` is present; an incomplete matching legacy batch fails closed rather than being reported complete or silently duplicated. New nullable unique constraints protect batch/evidence/row/assertion identities. |
+| Existing discovery outcome replay | Outcomes that claim candidates/duplicates/empty discovery are returned only after the referenced batch is found and confirmed validated with a completion timestamp. Missing/incomplete referenced batches fail closed. |
 | Interrupted transaction | A process death before commit is handled by database rollback. A subsequent attempt reuses the same deterministic identity and creates one committed logical batch. |
 | Concurrent same-source attempts | Existing source-row lock serializes persistence; independent-process MySQL test exercises two concurrent attempts. Database unique keys are the final duplicate guard. |
 | Related-record consistency | Evidence, batch, rows, assertions and batch finalization remain in one DB transaction. Discovery outcome is a separate later commit and can be retried without duplicating the batch. |
@@ -44,6 +45,7 @@ No duplicate implementation of these protections was added.
 - Added SQL failure injection for evidence insert, batch insert, second candidate-row insert, assertion insert and batch finalization update.
 - Added review-package failure rollback/retry coverage.
 - Added outcome-insert failure replay and partial candidate failure/recovery coverage.
+- Added regression tests proving incomplete legacy batches and successful outcomes referencing incomplete batches are never reported as completed.
 - Added an isolated MySQL independent-process test. Two workers start behind a barrier and invoke the same profile/snapshot concurrently; both must return the same batch ID and the DB must contain one batch, two candidate rows, one evidence row and two assertion links.
 
 ## Filesystem boundary and limitation
