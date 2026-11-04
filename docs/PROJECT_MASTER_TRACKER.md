@@ -2307,3 +2307,15 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 
 
 - Phase 1C-22 merge gate: PR #1007 changes application and migration paths. A push to main would trigger both Hostinger Read-only Diagnostics (every main push; SSH + public HTTP) and Automated Live Data Integrity Audit (application/database path push; SSH + read-only production Artisan DB report). These workflows were confirmed on the PR #1006 merge push (runs #41778840327 and #41778840448), both failed at their production-facing steps. Phase 1C-22 explicitly prohibits those operations; PR #1007 must remain open until a separately authorized safe workflow-separation path exists. No workflow protections are weakened or bypassed.
+
+
+---
+
+## Phase 1C — review-package row-set and evidence integrity (2026-11-04)
+
+- Branch: `phase-1c-review-package-integrity`, based on main `e9feccedbb20078c3af24656e6399d55383b6722`.
+- Remediation adds manifest-v3 row-set and evidence-set SHA-256 digests; reloads batch/source/rows under the package lock; rejects evidence not owned by the exact source/snapshot and matching batch identity key when available; and rebuilds stale packages instead of silently reusing them.
+- Added regression tests for changed rows, changed evidence, cross-snapshot evidence and legacy schema-v2 manifests.
+- Audit: `docs/audits/PHASE_1C_REVIEW_PACKAGE_INTEGRITY.md`.
+- Status: IMPLEMENTED on branch; exact-head Test/Laravel CI/Project Controller/isolated MySQL validation pending. No merge or production verification is claimed. The existing filesystem/database transaction boundary remains; evidence is validated at batch/source/snapshot scope because the current schema has no per-candidate evidence foreign key.
+- No production operation. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and extra 20 HEC profiles remain disabled; no dummy production data.
