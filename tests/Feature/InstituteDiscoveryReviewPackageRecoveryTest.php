@@ -270,6 +270,23 @@ class InstituteDiscoveryReviewPackageRecoveryTest extends TestCase
         app(InstituteDiscoveryReviewPackageService::class)->reconcileOrphans(168, true);
     }
 
+
+    public function test_path_traversal_is_rejected_by_the_package_path_guard(): void
+    {
+        Storage::fake('local');
+        $service = app(InstituteDiscoveryReviewPackageService::class);
+        $method = new \\ReflectionMethod($service, 'safeAbsolutePath');
+
+        try {
+            $method->invoke($service, Storage::disk('local'), 'institute-discovery-review-packages/../outside', false);
+            $this->fail('A traversal path must be rejected.');
+        } catch (\\ReflectionException $exception) {
+            throw $exception;
+        } catch (\\RuntimeException $exception) {
+            $this->assertStringContainsString('Unsafe review-package path', $exception->getMessage());
+        }
+    }
+
     public function test_snapshot_from_another_source_is_rejected(): void
     {
         Storage::fake('local');
