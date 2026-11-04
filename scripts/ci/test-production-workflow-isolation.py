@@ -22,7 +22,7 @@ PRODUCTION_SECRET_MARKERS = (
 SSH_ACTION = "appleboy/ssh-action"
 RECOVERY_WORKFLOW = WORKFLOWS / "secure-institutes-admin-recovery.yml"
 ADMIN_RECOVERY_NAME = re.compile(r"(?:admin.*recover|recover.*admin)", re.IGNORECASE)
-GUARD_COMMAND = re.compile(r"^\\s*(?:bash\\s+)?scripts/ci/validate-production-dispatch\\.sh(?:\\s|$)", re.MULTILINE)
+GUARD_COMMAND = re.compile(r"^\s*(?:bash\s+)?scripts/ci/validate-production-dispatch\.sh(?:\s|$)", re.MULTILINE)
 
 
 def workflow_files():
@@ -219,8 +219,9 @@ def validate_production_workflow(document, events):
             if binding not in str(guard_env.get(variable, "")):
                 errors.append(f"job {name} guard does not bind {variable} to {binding}")
         expected_confirmation = str(guard_env.get("EXPECTED_CONFIRMATION", "")).strip()
-        if not re.fullmatch(r"AUTHORIZE-[A-Z0-9-]{8,}", expected_confirmation):
-            errors.append(f"job {name} guard lacks a well-formed operation-specific confirmation phrase")
+        if (not re.fullmatch(r"AUTHORIZE-[A-Z0-9-]{8,}", expected_confirmation)
+                or expected_confirmation == "AUTHORIZE-PRODUCTION-OPERATION"):
+            errors.append(f"job {name} guard lacks a unique operation-specific confirmation phrase")
 
         if "confirm_discovery" in inputs:
             if inputs["confirm_discovery"].get("required") is not True or inputs["confirm_discovery"].get("type") != "string":
@@ -599,6 +600,62 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
                               conclusion=conclusion, sha=sha):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("only workflow_dispatch is accepted", result.stderr)
+
+
+    def test_workflow_level_production_secret_is_rejected_without_production_job(self):
+        document = {
+            "env": {"HOST": "${{ secrets.HOSTINGER_SSH_HOST }}"},
+            "jobs": {"ordinary": {"steps": [{"run": "echo ordinary CI"}]}},
+        }
+        errors = validate_production_workflow(document, {"pull_request": {}})
+        self.assertTrue(any("workflow scope" in error for error in errors))
+
+    def test_guard_path_in_step_name_is_not_treated_as_executed(self):
+        document = {
+            "concurrency": {"group": "estudent-production-access",
+                            "cancel-in-progress": False, "queue": "max"},
+            "jobs": {"audit": {
+                "environment": "production-readonly-diagnostics",
+                "steps": [
+                    {"name": "scripts/ci/validate-production-dispatch.sh"},
+                    {"uses": "appleboy/ssh-action@v1"},
+                ],
+            }},
+        }
+        events = {"workflow_dispatch": {"inputs": {
+            "target_sha": {"required": True, "type": "string"},
+            "operation_reason": {"required": True, "type": "string"},
+            "confirm_production_operation": {"required": True, "type": "string"},
+        }}}
+        errors = validate_production_workflow(document, events)
+        self.assertTrue(any("no dispatch guard" in error for error in errors))
+
+    def test_generic_confirmation_phrase_is_rejected(self):
+        document = {
+            "concurrency": {"group": "estudent-production-access",
+                            "cancel-in-progress": False, "queue": "max"},
+            "jobs": {"audit": {
+                "environment": "production-readonly-diagnostics",
+                "steps": [
+                    {"uses": "actions/checkout@v4",
+                     "with": {"ref": "${{ github.sha }}", "fetch-depth": 0}},
+                    {"env": {
+                        "TARGET_SHA": "${{ inputs.target_sha }}",
+                        "OPERATION_REASON": "${{ inputs.operation_reason }}",
+                        "CONFIRM_PRODUCTION_OPERATION": "${{ inputs.confirm_production_operation }}",
+                        "EXPECTED_CONFIRMATION": "AUTHORIZE-PRODUCTION-OPERATION",
+                     }, "run": "bash scripts/ci/validate-production-dispatch.sh"},
+                    {"uses": "appleboy/ssh-action@v1"},
+                ],
+            }},
+        }
+        events = {"workflow_dispatch": {"inputs": {
+            "target_sha": {"required": True, "type": "string"},
+            "operation_reason": {"required": True, "type": "string"},
+            "confirm_production_operation": {"required": True, "type": "string"},
+        }}}
+        errors = validate_production_workflow(document, events)
+        self.assertTrue(any("unique operation-specific" in error for error in errors))
 
 
 if __name__ == "__main__":
