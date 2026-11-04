@@ -7,6 +7,7 @@ on:
       - '.github/workflows/laravel-ci.yml'
       - 'database/migrations/**'
       - 'tests/Feature/AppendOnlyAuditRetentionTest.php'
+      - 'tests/Support/verify-append-only-audit-triggers.php'
       - 'tests/Feature/InstitutionFieldApprovalServiceTest.php'
       - 'tests/Feature/ExecutionLeaseServiceTest.php'
       - 'tests/Support/verify-execution-lease-multiprocess.php'
@@ -193,3 +194,5 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/SourceMonitoringBatchRecoveryTest.php
       - name: Validate append-only audit retention on MySQL
         run: vendor/bin/phpunit tests/Feature/AppendOnlyAuditRetentionTest.php
+      - name: Verify MySQL audit trigger naming, rollback and idempotent reinstallation
+        run: php tests/Support/verify-append-only-audit-triggers.php
