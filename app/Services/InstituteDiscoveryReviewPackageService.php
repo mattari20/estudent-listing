@@ -401,6 +401,20 @@ class InstituteDiscoveryReviewPackageService
             }
         }
 
+        if ($batch->discovery_identity_key !== null) {
+            $expectedEvidenceKey = app(DiscoveryPersistenceIdentityService::class)
+                ->evidenceKey((string) $batch->discovery_identity_key);
+            $derivedEvidenceId = Evidence::query()
+                ->where('source_id', $batch->source_id)
+                ->where('snapshot_id', $snapshot->id)
+                ->where('discovery_identity_key', $expectedEvidenceKey)
+                ->value('id');
+
+            if ($derivedEvidenceId !== null) {
+                $ids->push((int) $derivedEvidenceId);
+            }
+        }
+
         $ids = $ids->filter(fn ($id) => (int) $id > 0)->map(fn ($id) => (int) $id)->unique()->sort()->values();
         $records = Evidence::query()
             ->whereIn('id', $ids)
