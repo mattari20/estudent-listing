@@ -129,12 +129,37 @@ def validate_production_workflow(document, events):
         if access_index is None:
             errors.append(f"job {name} has no identifiable production access step")
             continue
-        guarded = any(
-            "scripts/ci/validate-production-dispatch.sh" in flatten(step)
-            for step in steps[:access_index]
-        )
-        if not guarded:
+
+        guard_index = next((
+            index for index, step in enumerate(steps[:access_index])
+            if "scripts/ci/validate-production-dispatch.sh" in flatten(step)
+        ), None)
+        if guard_index is None:
             errors.append(f"job {name} has no dispatch guard before production access")
+            continue
+
+        guard_step = steps[guard_index]
+        guard_env = guard_step.get("env", {}) if isinstance(guard_step, dict) else {}
+        required_bindings = {
+            "TARGET_SHA": "inputs.target_sha",
+            "OPERATION_REASON": "inputs.operation_reason",
+            "CONFIRM_PRODUCTION_OPERATION": "inputs.confirm_production_operation",
+        }
+        for variable, binding in required_bindings.items():
+            if binding not in str(guard_env.get(variable, "")):
+                errors.append(f"job {name} guard does not bind {variable} to {binding}")
+        if not str(guard_env.get("EXPECTED_CONFIRMATION", "")).strip():
+            errors.append(f"job {name} guard lacks an operation-specific confirmation phrase")
+
+        checkout_index = next((
+            index for index, step in enumerate(steps[:guard_index])
+            if isinstance(step, dict)
+            and step.get("uses", "").startswith("actions/checkout")
+            and step.get("with", {}).get("ref") == "${{ github.sha }}"
+            and str(step.get("with", {}).get("fetch-depth")) == "0"
+        ), None)
+        if checkout_index is None:
+            errors.append(f"job {name} must fetch the exact event SHA with full history before the guard")
     return errors
 
 
