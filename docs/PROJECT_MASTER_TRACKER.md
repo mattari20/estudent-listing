@@ -2241,7 +2241,8 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 - Added an independent-PHP-process MySQL proof for concurrent resolver and decision attempts.
 - Updated Laravel CI formatting paths and isolated-MySQL recovery steps. Production remains outside scope.
 - Audit: `docs/audits/PHASE_1C_INSTITUTION_IDENTITY_CONFLICT_REPLAY_RECOVERY.md`.
-- Exact final PR-head validation and merge are pending.
+- First complete validation on PR head `43fd6c14712e452f97a7f926be846e99a51c9a01` (merge candidate `11adef8959ec8b505eb4c3f3d59dbea17a947ab6`): Test #41768530553 PASS (865 tests / 3,822 assertions); Laravel CI #41768530539 PASS (same test total); Isolated MySQL #41768530572 PASS (identity/conflict tests 6 tests / 31 assertions and independent-process resolver/decision proof PASS); Project Controller #41768530567 workflow PASS but internal Hostinger/open-PR/tracker gates remain blocked; automatic public browser diagnostics #41768530533 PASS with valid HTTP 200 JSON and zero institutions.
+- A CI follow-up adds the new PHP files to the explicit Pint verification list. Final documentation-inclusive PR-head rerun is required before merge.
 
 ### Next Phase 1C engineering task
 
