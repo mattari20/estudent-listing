@@ -151,27 +151,27 @@ checks the changed PHP files.
 ## 6.1 Exact documentation-inclusive PR-head validation
 
 PR #1003 final validated head at this checkpoint:
-`2e07568ee269f4c651e966e6e96c2ca4ab48f9af`.
+`ad042b965212d4212e146c051c2716b42c31b386`.
 
 | Workflow | Run | Job | Result |
 |---|---:|---:|---|
-| Laravel CI | #41762472570 | 126353098576 | PASS — 858 tests, 3,790 assertions; Pint 46 files |
-| Test | #41762472740 | 126353099539 | PASS — 858 tests, 3,790 assertions |
-| Institutes Directory Project Controller | #41762472725 | 126353194315 | Job PASS; internal inventory 2/5 |
-| Isolated MySQL migration/recovery | #41762472693 | 126353098891 | PASS |
+| Laravel CI | #41762950743 | 126354621037 | PASS — 859 tests, 3,791 assertions; Pint 46 files |
+| Test | #41762950754 | 126354622180 | PASS — 859 tests, 3,791 assertions |
+| Institutes Directory Project Controller | #41762950884 | 126354621834 | Job PASS; internal inventory 2/5 |
+| Isolated MySQL migration/recovery | #41762950810 | 126354621448 | PASS |
 
 Actual isolated MySQL logs show:
 - migration/schema/ledger verification and idempotent second migration passed;
 - review-package recovery tests: **16 tests, 56 assertions — PASS**;
-- concurrent generation/cleanup proof: **PASS** — independent PHP processes shared the per-package lock, the final CSV/manifest pair passed identity/checksum verification, and the stale temporary artifact was reconciled;
+- concurrent writer/cleanup proof: **PASS** — two independent package writers and one cleanup process shared the per-package lock; one writer created the pair, the other reused it, the final CSV/manifest pair passed identity/checksum verification, and the stale temporary artifact was reconciled;
 - existing approval migration (17 tests/87 assertions), snapshot/retrieval (23/65), discovery outcome idempotency (6/40), outcome consistency (5/17), candidate failure recovery (16/115), source event/reverification (6/16), alert/audit (12/70) and policy recovery (12/70) steps passed;
 - prior candidate-batch two-process MySQL proof also passed.
 
-Test and Laravel CI each report `OK (858 tests, 3790 assertions)`. Laravel CI's Pint formatting and verification steps passed for 46 files, including the new package service, command, tests and multiprocess script.
+Test and Laravel CI each report `OK (859 tests, 3791 assertions)`. Laravel CI's Pint formatting and verification steps passed for 46 files, including the new package service, command, tests and multiprocess script.
 
 The Project Controller workflow job passed, but its internal read-only project inventory remains **2/5**: authoritative protocol/tracker and governed discovery workflow passed; Hostinger read-only diagnostics, open-PR review/CI and tracker evidence reconciliation were marked BLOCKED. The open-PR review gate is expected to remain blocked while PR #1003 is open. This is not a production-readiness pass.
 
-An earlier exact-head test attempt exposed compatibility expectations for the existing `--days` option and empty-root output. The implementation retained that option as a safe alias, restored the empty-root message, and the corrected full-suite run above passed. The initial failed run is not counted as validation.
+Earlier test attempts exposed compatibility expectations for the existing `--days` option and empty-root output, followed by an escaped Reflection namespace in the explicit path-traversal test. The option/message and test syntax were corrected; the final full-suite and MySQL runs above passed. Failed earlier attempts are not counted as validation.
 
 ## 7. Safety
 
