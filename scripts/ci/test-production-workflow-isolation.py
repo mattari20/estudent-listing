@@ -25,9 +25,9 @@ ADMIN_RECOVERY_NAME = re.compile(r"(?:admin.*recover|recover.*admin)", re.IGNORE
 GUARD_COMMAND = re.compile(r"^\s*(?:bash\s+)?scripts/ci/validate-production-dispatch\.sh(?:\s|$)", re.MULTILINE)
 
 
-def workflow_files():
+def workflow_files(directory=WORKFLOWS):
     """Return every supported GitHub Actions YAML workflow file."""
-    return sorted(set(WORKFLOWS.glob("*.yml")) | set(WORKFLOWS.glob("*.yaml")))
+    return sorted(set(directory.glob("*.yml")) | set(directory.glob("*.yaml")))
 PRODUCTION_REMOTE_COMMAND = re.compile(r"\b(?:ssh|scp|sftp)\s+(?:-[A-Za-z][^\s]*\s+)*[^\s]+")
 PRODUCTION_DATABASE_COMMAND = re.compile(r"\b(?:mysql|mariadb|psql)\b(?=[^\n]*(?:--host(?:=|\s+)(?!127\.0\.0\.1\b|localhost\b)|-h\s+(?!127\.0\.0\.1\b|localhost\b)))", re.IGNORECASE)
 PRODUCTION_ARTISAN_COMMAND = re.compile(r"\b(?:php(?:[0-9]+(?:\.[0-9]+)*)?\s+artisan\b|\$[A-Z_][A-Z0-9_]*\s+artisan\b)")
@@ -233,8 +233,7 @@ def validate_production_workflow(document, events):
             errors.append(f"job {name} uses discovery confirmation without a matching workflow input")
 
         for prior_step in steps[:guard_index]:
-            prior_env = prior_step.get("env", {}) if isinstance(prior_step, dict) else {}
-            if has_production_access_configuration(access_configuration(prior_env)):
+            if has_production_access_configuration(access_configuration(prior_step)):
                 errors.append(f"job {name} exposes production credentials before its dispatch guard")
 
         checkout_index = next((
@@ -600,6 +599,44 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("only workflow_dispatch is accepted", result.stderr)
 
+
+    def test_both_yaml_workflow_extensions_are_discovered(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            yml = directory / "one.yml"
+            yaml = directory / "two.yaml"
+            yml.write_text("name: one\\n")
+            yaml.write_text("name: two\\n")
+            self.assertEqual(set(workflow_files(directory)), {yml, yaml})
+
+    def test_step_with_production_secret_before_guard_is_rejected(self):
+        document = {
+            "concurrency": {"group": "estudent-production-access",
+                            "cancel-in-progress": False, "queue": "max"},
+            "jobs": {"audit": {
+                "environment": "production-readonly-diagnostics",
+                "steps": [
+                    {"uses": "actions/checkout@v4",
+                     "with": {"ref": "${{ github.sha }}", "fetch-depth": 0}},
+                    {"uses": "some/action@v1",
+                     "with": {"token": "${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}"}},
+                    {"env": {
+                        "TARGET_SHA": "${{ inputs.target_sha }}",
+                        "OPERATION_REASON": "${{ inputs.operation_reason }}",
+                        "CONFIRM_PRODUCTION_OPERATION": "${{ inputs.confirm_production_operation }}",
+                        "EXPECTED_CONFIRMATION": "AUTHORIZE-READONLY-AUDIT",
+                     }, "run": "bash scripts/ci/validate-production-dispatch.sh"},
+                    {"uses": "appleboy/ssh-action@v1"},
+                ],
+            }},
+        }
+        events = {"workflow_dispatch": {"inputs": {
+            "target_sha": {"required": True, "type": "string"},
+            "operation_reason": {"required": True, "type": "string"},
+            "confirm_production_operation": {"required": True, "type": "string"},
+        }}}
+        errors = validate_production_workflow(document, events)
+        self.assertTrue(any("credentials before its dispatch guard" in error for error in errors))
 
     def test_workflow_level_production_secret_is_rejected_without_production_job(self):
         document = {
