@@ -61,7 +61,7 @@ class DeploymentHandoffContractTest extends TestCase
         $this->assertStringContainsString('if: false # blocked until production-operations is owner-authorized and configured', $discoveryWorkflow);
         $this->assertStringContainsString("\n  workflow_dispatch:\n", $discoveryWorkflow);
         $this->assertStringNotContainsString("\n  workflow_run:\n", $discoveryWorkflow);
-        $this->assertStringContainsString('- "Controlled Official-Source Refresh Migration"', $discoveryWorkflow);
+        $this->assertStringNotContainsString('- "Controlled Official-Source Refresh Migration"', $discoveryWorkflow);
         $this->assertStringNotContainsString("\n  schedule:\n", $discoveryWorkflow);
         $this->assertStringNotContainsString("\n  push:\n", $discoveryWorkflow);
 
