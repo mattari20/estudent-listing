@@ -154,7 +154,7 @@ try {
     if ($disk->exists($staleTemp)) {
         throw new RuntimeException('The cleanup process did not reconcile the stale temporary artifact.');
     }
-    fwrite(STDOUT, "PASS: concurrent generation and cleanup shared the per-package lock; the final CSV/manifest pair is valid and the stale temporary artifact was reconciled. No database candidate rows were changed.\n");
+    fwrite(STDOUT, "PASS: two independent package writers and a cleanup process shared the per-package lock; one writer created the pair, the other reused it, and the stale temporary artifact was reconciled. No database candidate rows were changed.\n");
 } finally {
     foreach ($workers as [$process, $pipes]) {
         if (is_resource($process)) {
