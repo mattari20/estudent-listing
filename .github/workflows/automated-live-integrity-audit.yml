@@ -2,34 +2,19 @@ name: Automated Live Data Integrity Audit
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "17 3 * * *"
-  push:
-    branches:
-      - main
-    paths:
-      - "app/**"
-      - "bootstrap/**"
-      - "config/**"
-      - "database/**"
-      - "routes/**"
-      - "composer.json"
-      - "composer.lock"
-      - "public/**"
-      - "artisan"
-      - ".github/workflows/automated-live-integrity-audit.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: automated-live-integrity-audit
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
   audit:
     name: Run read-only integrity report on Hostinger
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     timeout-minutes: 10
     steps:
       - name: Checkout main and resolve expected application-code revision
