@@ -3,6 +3,7 @@
 from pathlib import Path
 import json
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -19,6 +20,16 @@ PRODUCTION_SECRET_MARKERS = (
     "secrets.INSTITUTES_ADMIN_RECOVERY_PASSWORD",
 )
 SSH_ACTION = "appleboy/ssh-action"
+RECOVERY_WORKFLOW = WORKFLOWS / "secure-institutes-admin-recovery.yml"
+ADMIN_RECOVERY_NAME = re.compile(r"(?:admin.*recover|recover.*admin)", re.IGNORECASE)
+PRODUCTION_REMOTE_COMMAND = re.compile(r"\\b(?:ssh|scp|sftp)\\s+(?:-[A-Za-z][^\\s]*\\s+)*[^\\s]+")
+PRODUCTION_SECRET_NAME_PARTS = (
+    "HOSTINGER_SSH_", "OFFERING_GAP_DB_", "INSTITUTES_DIAGNOSTICS_TOKEN",
+    "INSTITUTES_PRIVATE_REPORTS_TOKEN", "INSTITUTES_ADMIN_RECOVERY_PASSWORD",
+    "PRODUCTION", "PROD_DB", "DATABASE", "DB_HOST", "DB_PASSWORD",
+    "DB_USERNAME", "SSH_PRIVATE_KEY",
+)
+PRODUCTION_SECRET_REFERENCE = re.compile(r"\\$\\{\\{\\s*secrets\\.([A-Z0-9_]+)\\s*\\}\\}")
 
 
 def parse_workflow(path):
@@ -50,7 +61,7 @@ def access_configuration(value):
         return {
             key: access_configuration(item)
             for key, item in value.items()
-            if key not in {"run", "name", "description"}
+            if key not in {"name", "description"}
         }
     if isinstance(value, list):
         return [access_configuration(item) for item in value]
@@ -58,8 +69,12 @@ def access_configuration(value):
 
 
 def has_production_access_configuration(value):
+    """Detect production credentials and remote-access commands in parsed YAML."""
     if isinstance(value, dict):
         if str(value.get("uses", "")).startswith(SSH_ACTION):
+            return True
+        run_script = value.get("run")
+        if isinstance(run_script, str) and PRODUCTION_REMOTE_COMMAND.search(run_script):
             return True
         return any(
             has_production_access_configuration(item)
@@ -69,7 +84,12 @@ def has_production_access_configuration(value):
     if isinstance(value, list):
         return any(has_production_access_configuration(item) for item in value)
     if isinstance(value, str):
-        return any(marker in value for marker in PRODUCTION_SECRET_MARKERS)
+        if any(marker in value for marker in PRODUCTION_SECRET_MARKERS):
+            return True
+        for match in PRODUCTION_SECRET_REFERENCE.finditer(value):
+            secret_name = match.group(1)
+            if any(part in secret_name for part in PRODUCTION_SECRET_NAME_PARTS):
+                return True
     return False
 
 
@@ -96,13 +116,18 @@ def validate_production_workflow(document, events):
         return []
 
     errors = []
+    if has_production_access_configuration(access_configuration(document.get("env", {}))):
+        errors.append("workflow exposes production credentials at workflow scope")
     if set(events) != {"workflow_dispatch"}:
         errors.append(f"production workflow has non-manual triggers: {sorted(events)}")
     dispatch = events.get("workflow_dispatch", {})
     inputs = dispatch.get("inputs", {}) if isinstance(dispatch, dict) else {}
     for required in ("target_sha", "operation_reason", "confirm_production_operation"):
-        if required not in inputs:
+        input_config = inputs.get(required)
+        if not isinstance(input_config, dict):
             errors.append(f"missing workflow_dispatch input: {required}")
+        elif input_config.get("required") is not True or input_config.get("type") != "string":
+            errors.append(f"workflow_dispatch input {required} must be a required string")
 
     concurrency = document.get("concurrency", {})
     if not isinstance(concurrency, dict):
@@ -164,6 +189,46 @@ def validate_production_workflow(document, events):
 
 
 class ProductionWorkflowIsolationTest(unittest.TestCase):
+    def test_retired_administrator_recovery_workflow_is_absent(self):
+        self.assertFalse(
+            RECOVERY_WORKFLOW.exists(),
+            "unsafe administrator-recovery workflow must remain retired",
+        )
+
+    def test_unsafe_administrator_recovery_ssh_reintroduction_is_rejected(self):
+        unsafe = {
+            "concurrency": {
+                "group": "institutes-existing-admin-recovery",
+                "cancel-in-progress": False,
+            },
+            "jobs": {"recover": {
+                "steps": [{
+                    "uses": "appleboy/ssh-action@v1.2.0",
+                    "env": {
+                        "RECOVERY_PASSWORD": "${{ secrets.INSTITUTES_ADMIN_RECOVERY_PASSWORD }}",
+                        "HOST": "${{ secrets.HOSTINGER_SSH_HOST }}",
+                    },
+                }],
+            }},
+        }
+        events = {"workflow_dispatch": {"inputs": {}}}
+        self.assertEqual(production_access_kind(unsafe["jobs"]["recover"]), "production")
+        errors = validate_production_workflow(unsafe, events)
+        self.assertTrue(any("wrong production concurrency group" in error for error in errors))
+        self.assertTrue(any("missing approved production environment" in error for error in errors))
+        self.assertTrue(any("no dispatch guard" in error for error in errors))
+        self.assertTrue(any("missing workflow_dispatch input" in error for error in errors))
+
+    def test_no_administrator_recovery_ssh_workflow_is_reintroduced(self):
+        reintroduced = []
+        for path in WORKFLOWS.glob("*.yml"):
+            if not ADMIN_RECOVERY_NAME.search(path.stem):
+                continue
+            document, _, jobs = parse_workflow(path)
+            if any(production_access_kind(job) for job in jobs.values()):
+                reintroduced.append(path.name)
+        self.assertEqual(reintroduced, [])
+
     def test_ordinary_test_workflow_keeps_normal_ci_triggers(self):
         _, events, _ = parse_workflow(WORKFLOWS / "test.yml")
         self.assertIn("pull_request", events)
@@ -268,8 +333,9 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
             }},
         }
         events = {"workflow_dispatch": {"inputs": {
-            "target_sha": {}, "operation_reason": {},
-            "confirm_production_operation": {},
+            "target_sha": {"required": True, "type": "string"},
+            "operation_reason": {"required": True, "type": "string"},
+            "confirm_production_operation": {"required": True, "type": "string"},
         }}}
         self.assertEqual(validate_production_workflow(document, events), [])
 
