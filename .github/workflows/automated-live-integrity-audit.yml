@@ -40,7 +40,7 @@ jobs:
           TARGET_SHA: ${{ inputs.target_sha }}
           OPERATION_REASON: ${{ inputs.operation_reason }}
           CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
-          EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS"
+          EXPECTED_CONFIRMATION: "AUTHORIZE-LIVE-INTEGRITY-AUDIT"
         run: bash scripts/ci/validate-production-dispatch.sh
       - name: Checkout main and resolve expected application-code revision
         uses: actions/checkout@v4
