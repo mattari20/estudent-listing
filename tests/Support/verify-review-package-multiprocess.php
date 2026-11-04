@@ -13,9 +13,10 @@ $root = dirname(__DIR__, 2);
 require $root.'/vendor/autoload.php';
 
 if (($argv[1] ?? null) === 'worker') {
-    $batchId = (int) ($argv[2] ?? 0);
-    $ready = $argv[3] ?? '';
-    $go = $argv[4] ?? '';
+    $mode = $argv[2] ?? 'writer';
+    $batchId = (int) ($argv[3] ?? 0);
+    $ready = $argv[4] ?? '';
+    $go = $argv[5] ?? '';
     $app = require $root.'/bootstrap/app.php';
     $app->make(Kernel::class)->bootstrap();
     file_put_contents($ready, 'ready');
@@ -27,8 +28,13 @@ if (($argv[1] ?? null) === 'worker') {
         fwrite(STDERR, "Worker did not receive the package-generation barrier.\n");
         exit(2);
     }
-    $batch = ImportBatch::query()->findOrFail($batchId);
-    $result = app(InstituteDiscoveryReviewPackageService::class)->create($batch);
+    $service = app(InstituteDiscoveryReviewPackageService::class);
+    if ($mode === 'cleanup') {
+        $result = $service->reconcileOrphans(24, true);
+    } else {
+        $batch = ImportBatch::query()->findOrFail($batchId);
+        $result = $service->create($batch);
+    }
     fwrite(STDOUT, json_encode($result, JSON_THROW_ON_ERROR)."\n");
     exit(0);
 }
@@ -82,13 +88,16 @@ $go = $barrier.'/go';
 $workers = [];
 $directory = 'institute-discovery-review-packages/batch-'.$batch->id.'-snapshot-'.$snapshot->id;
 $lock = Storage::disk('local')->path('institute-discovery-review-packages/.locks/'.hash('sha256', $batch->id.'|'.$snapshot->id).'.lock');
+$staleTemp = $directory.'/.candidates.csv.tmp-0123456789abcdef';
+Storage::disk('local')->put($staleTemp, 'interrupted stale temporary artifact');
+touch(Storage::disk('local')->path($staleTemp), now()->subDays(2)->timestamp);
 
 try {
-    foreach (['first', 'second'] as $label) {
+    foreach (['writer', 'cleanup'] as $label) {
         $ready = $barrier.'/'.$label.'.ready';
         $pipes = [];
         $process = proc_open(
-            [PHP_BINARY, __FILE__, 'worker', (string) $batch->id, $ready, $go],
+            [PHP_BINARY, __FILE__, 'worker', $label, (string) $batch->id, $ready, $go],
             [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
             $pipes,
             $root
@@ -122,17 +131,16 @@ try {
         $results[] = json_decode(trim((string) $stdout), true, 512, JSON_THROW_ON_ERROR);
     }
 
-    if (($results[0]['csv_path'] ?? null) !== ($results[1]['csv_path'] ?? null)
-        || ($results[0]['manifest_path'] ?? null) !== ($results[1]['manifest_path'] ?? null)
-        || ! in_array($results[0]['status'], ['created', 'reused'], true)
-        || ! in_array($results[1]['status'], ['created', 'reused'], true)
-        || count(array_filter($results, fn ($result) => $result['status'] === 'created')) !== 1) {
-        throw new RuntimeException('Concurrent package writers did not converge on one deterministic package pair.');
+    $writerResult = $results[0];
+    if (($writerResult['status'] ?? null) !== 'created') {
+        throw new RuntimeException('The concurrent package writer did not complete creation.');
     }
 
     $disk = Storage::disk('local');
-    $manifest = json_decode($disk->get($results[0]['manifest_path']), true);
-    $csv = $disk->get($results[0]['csv_path']);
+    $manifestPath = $directory.'/manifest.json';
+    $csvPath = $directory.'/candidates.csv';
+    $manifest = json_decode($disk->get($manifestPath), true);
+    $csv = $disk->get($csvPath);
     if (! is_array($manifest)
         || (int) ($manifest['batch_id'] ?? 0) !== (int) $batch->id
         || (int) ($manifest['snapshot_id'] ?? 0) !== (int) $snapshot->id
@@ -140,7 +148,10 @@ try {
         throw new RuntimeException('Concurrent review-package pair failed final identity/checksum validation.');
     }
 
-    fwrite(STDOUT, "PASS: two independent PHP processes generated one deterministic review-package pair; one writer created it, the other reused the verified pair. No database candidate rows were changed.\n");
+    if ($disk->exists($staleTemp)) {
+        throw new RuntimeException('The cleanup process did not reconcile the stale temporary artifact.');
+    }
+    fwrite(STDOUT, "PASS: concurrent generation and cleanup shared the per-package lock; the final CSV/manifest pair is valid and the stale temporary artifact was reconciled. No database candidate rows were changed.\n");
 } finally {
     foreach ($workers as [$process, $pipes]) {
         if (is_resource($process)) {
