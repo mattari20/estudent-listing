@@ -18,7 +18,7 @@ on:
         required: true
         type: string
       confirm_production_operation:
-        description: "Type AUTHORIZE-READONLY-DIAGNOSTICS to proceed after environment approval."
+        description: "Type AUTHORIZE-HOSTINGER-READONLY-DIAGNOSTICS to proceed after environment approval."
         required: true
         type: string
 permissions:
@@ -45,7 +45,7 @@ jobs:
           TARGET_SHA: ${{ inputs.target_sha }}
           OPERATION_REASON: ${{ inputs.operation_reason }}
           CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
-          EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS"
+          EXPECTED_CONFIRMATION: "AUTHORIZE-HOSTINGER-READONLY-DIAGNOSTICS"
         run: bash scripts/ci/validate-production-dispatch.sh
       - name: Checkout repository for revision comparison
         uses: actions/checkout@v4
