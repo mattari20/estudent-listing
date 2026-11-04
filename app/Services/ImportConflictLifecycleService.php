@@ -16,13 +16,13 @@ class ImportConflictLifecycleService
         string $type,
         string $severity,
         string $description,
-        ?string $subjectType,
-        ?int $subjectId,
+        ?string $relatedSubjectType,
+        ?int $relatedId,
         array $details,
     ): ImportConflict {
-        return DB::transaction(function () use ($row, $type, $severity, $description, $subjectType, $subjectId, $details): ImportConflict {
+        return DB::transaction(function () use ($row, $type, $severity, $description, $relatedSubjectType, $relatedId, $details): ImportConflict {
             $lockedRow = ImportRow::query()->whereKey($row->id)->lockForUpdate()->firstOrFail();
-            $identityKey = $this->identityKey($lockedRow, $type, $subjectType, $subjectId, $details);
+            $identityKey = $this->identityKey($lockedRow, $type, $relatedSubjectType, $relatedId, $details);
 
             $existing = ImportConflict::query()->where('identity_key', $identityKey)->first();
             if ($existing) {
@@ -33,15 +33,15 @@ class ImportConflictLifecycleService
                 return $existing;
             }
 
-            // Preserve legacy conflicts that predate identity keys; do not duplicate
-            // an already-open matching record while those historical rows remain NULL.
+            // Legacy conflicts predate identity keys. Reuse a matching open record
+            // without rewriting its historical payload or creating a duplicate.
             $legacy = ImportConflict::query()
                 ->where('import_row_id', $lockedRow->id)
                 ->where('conflict_type', $type)
                 ->where('status', 'open')
-                ->where('related_row_id', $subjectId)
-                ->where('related_subject_type', $subjectType)
-                ->where('related_subject_id', $subjectId === null ? null : $subjectId)
+                ->where('related_row_id', $relatedSubjectType === null ? $relatedId : null)
+                ->where('related_subject_type', $relatedSubjectType)
+                ->where('related_subject_id', $relatedSubjectType === null ? null : $relatedId)
                 ->first();
 
             if ($legacy) {
@@ -60,9 +60,9 @@ class ImportConflictLifecycleService
                 'severity' => $severity,
                 'status' => 'open',
                 'description' => $description,
-                'related_row_id' => $subjectId,
-                'related_subject_type' => $subjectType,
-                'related_subject_id' => $subjectId,
+                'related_row_id' => $relatedSubjectType === null ? $relatedId : null,
+                'related_subject_type' => $relatedSubjectType,
+                'related_subject_id' => $relatedSubjectType === null ? null : $relatedId,
                 'details' => $details,
             ]);
 
@@ -168,16 +168,16 @@ class ImportConflictLifecycleService
     private function identityKey(
         ImportRow $row,
         string $type,
-        ?string $subjectType,
-        ?int $subjectId,
+        ?string $relatedSubjectType,
+        ?int $relatedId,
         array $details,
     ): string {
         return hash('sha256', json_encode([
             'version' => 1,
             'import_row_id' => (int) $row->id,
             'conflict_type' => $type,
-            'related_subject_type' => $subjectType,
-            'related_subject_id' => $subjectId,
+            'related_subject_type' => $relatedSubjectType,
+            'related_id' => $relatedId,
             'details' => $details,
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
