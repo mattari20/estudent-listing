@@ -118,7 +118,7 @@ Command:
 
 - Dry-run is the default.
 - Deletion requires explicit \`--apply\`.
-- Minimum age defaults to 168 hours and cannot be configured below 24 hours.
+- Minimum age defaults to 2,160 hours (90 days) and cannot be configured below 24 hours. The legacy `--days` option remains accepted and is converted to hours.
 - Only exact batch/snapshot package directories beneath the dedicated local
   private root are considered.
 - Generation and cleanup share the same per-package lock.
