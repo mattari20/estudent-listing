@@ -493,7 +493,7 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
                 if any(production_access_kind(job) for job in jobs.values()):
                     self.assertNotRegex(
                         source,
-                        r"secrets\\.(?:HOSTINGER_SSH_|INSTITUTES_DIAGNOSTICS_TOKEN|INSTITUTES_PRIVATE_REPORTS_TOKEN)",
+                        r"secrets\.(?:HOSTINGER_SSH_|INSTITUTES_DIAGNOSTICS_TOKEN|INSTITUTES_PRIVATE_REPORTS_TOKEN)",
                         "active read-only diagnostics must not fall back to repository-level production credentials",
                     )
                     errors = validate_production_workflow(document, events)
