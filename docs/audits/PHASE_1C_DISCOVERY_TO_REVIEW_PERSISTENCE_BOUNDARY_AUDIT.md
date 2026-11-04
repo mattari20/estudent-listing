@@ -133,9 +133,9 @@ This is not a distributed transaction. A successful database transaction does no
 
 InstituteImportPromotionController::reject creates an IdentityResolutionDecision directly, updates ImportRow status/notes, then creates an ImportPromotionEvent. These operations are not enclosed in one DB transaction. For institution rows this also bypasses IdentityResolutionDecisionService, so the new decision_identity_key remains NULL and identical request replay is not handled by the idempotent service. A failure after the decision insert can leave a decision without a rejected row; a failure after row update can leave a rejected row without its audit event.
 
-publishInstitution updates the canonical institution status to active and then records the audit event, also without one transaction. An audit insert failure can leave the institution published without its corresponding event. Similar direct decision/audit sequencing exists in quickApprove and enrichmentDecision for non-institution paths.
+publishInstitution updates the canonical institution status to active and then records the audit event, also without one transaction. An audit insert failure can leave the institution published without its corresponding event. Concurrent publish requests can also both observe the inactive state and append duplicate publication events because the controller does not lock the institution/row or use a publication idempotency key. Concurrent rejection requests can race before the row status changes, producing duplicate NULL-key decisions and audit events. Similar direct decision/audit sequencing exists in quickApprove and enrichmentDecision for non-institution paths.
 
-Recommended separate implementation: route these transitions through transactional application services; make state change, decision identity and audit insert one transaction; add failure injection for each write boundary and duplicate request tests.
+Recommended separate implementation: route these transitions through transactional application services; make state change, decision identity and audit insert one transaction; lock the relevant row/canonical record; add failure injection for each write boundary and concurrent duplicate-request tests.
 
 ### P1 — Identity decision endpoint lacks an explicit row-state guard
 
