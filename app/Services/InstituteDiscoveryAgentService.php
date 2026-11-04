@@ -168,11 +168,19 @@ class InstituteDiscoveryAgentService
             throw new \RuntimeException('AI extraction is currently enabled only for programme discovery profiles.');
         }
 
+        $batchIdentityKey = $this->batchIdentityKey(
+            $profile,
+            $source,
+            $snapshot,
+            $useAi,
+            $forceNewBatch ? $supersedesBatchId : null
+        );
         $existingBatch = $this->existingBatchForSnapshot(
             $profile,
             $source,
             $snapshot,
             $useAi,
+            $batchIdentityKey,
             $forceNewBatch ? $supersedesBatchId : null
         );
         if ($existingBatch) {
@@ -195,7 +203,7 @@ class InstituteDiscoveryAgentService
             );
 
         if ($candidates === []) {
-            return $this->persistEmptyOutcome($profile, $institution, $source, $snapshot, $entityType, $useAi, $supersedesBatchId);
+            return $this->persistEmptyOutcome($profile, $institution, $source, $snapshot, $entityType, $useAi, $supersedesBatchId, $batchIdentityKey);
         }
 
         $excerptLines = [];
@@ -210,6 +218,7 @@ class InstituteDiscoveryAgentService
 
         $evidence = Evidence::create([
             'source_id' => $source->id,
+            'discovery_identity_key' => app(DiscoveryPersistenceIdentityService::class)->evidenceKey($batchIdentityKey),
             'snapshot_id' => $snapshot->id,
             'reference' => $source->url,
             'excerpt' => mb_substr($excerpt, 0, 10000),
@@ -220,6 +229,7 @@ class InstituteDiscoveryAgentService
 
         $batch = ImportBatch::create([
             'batch_key' => ($useAi ? 'ai-' : 'agent-').$profile.'-'.Str::lower(Str::random(16)),
+            'discovery_identity_key' => $batchIdentityKey,
             'entity_type' => $entityType,
             'source_type' => $useAi ? 'ai_extraction' : 'automated_discovery',
             'source_id' => $source->id,
@@ -284,8 +294,12 @@ class InstituteDiscoveryAgentService
                 ? $blockers
                 : ($duplicate ? [$duplicate['message']] : null);
 
+            $rowIdentityKey = app(DiscoveryPersistenceIdentityService::class)->rowKey($batchIdentityKey, $index + 1);
+            $rowIdentityKey = app(DiscoveryPersistenceIdentityService::class)->rowKey($batchIdentityKey, 1);
             $row = ImportRow::create([
                 'import_batch_id' => $batch->id,
+                'discovery_identity_key' => $rowIdentityKey,
+                'discovery_identity_key' => $rowIdentityKey,
                 'row_number' => $index + 1,
                 'status' => $status,
                 'match_state' => $blockers !== [] ? 'unresolved' : ($duplicate ? 'duplicate' : 'unresolved'),
@@ -299,6 +313,8 @@ class InstituteDiscoveryAgentService
 
             Assertion::create([
                 'evidence_id' => $evidence->id,
+                'discovery_identity_key' => app(DiscoveryPersistenceIdentityService::class)->assertionKey($rowIdentityKey, 'candidate_'.$entityType),
+                'discovery_identity_key' => app(DiscoveryPersistenceIdentityService::class)->assertionKey($rowIdentityKey, 'candidate_'.$entityType),
                 'subject_type' => $entityType === 'institution' ? ImportRow::class : Institution::class,
                 'subject_id' => $entityType === 'institution' ? $row->id : $institution->id,
                 'attribute' => 'candidate_'.$entityType,
@@ -353,8 +369,17 @@ class InstituteDiscoveryAgentService
         Source $source,
         SourceSnapshot $snapshot,
         bool $useAi,
+        string $batchIdentityKey,
         ?int $refreshOfBatchId = null,
     ): ?ImportBatch {
+        $identifiedBatch = ImportBatch::query()
+            ->where('discovery_identity_key', $batchIdentityKey)
+            ->first();
+
+        if ($identifiedBatch) {
+            return $identifiedBatch;
+        }
+
         $sourceType = $useAi ? 'ai_extraction' : 'automated_discovery';
         $batchPrefix = ($useAi ? 'ai-' : 'agent-').$profile.'-';
         $versionMarker = 'discovery_extractor_version='.InstituteDiscoveryCandidateExtractor::VERSION;
@@ -436,10 +461,13 @@ class InstituteDiscoveryAgentService
         string $entityType,
         bool $useAi,
         ?int $supersedesBatchId = null,
+        ?string $batchIdentityKey = null,
     ): array {
+        $batchIdentityKey ??= $this->batchIdentityKey($profile, $source, $snapshot, $useAi, $supersedesBatchId);
         $evidence = Evidence::create([
             'source_id' => $source->id,
             'snapshot_id' => $snapshot->id,
+            'discovery_identity_key' => app(DiscoveryPersistenceIdentityService::class)->evidenceKey($batchIdentityKey),
             'reference' => $source->url,
             'excerpt' => 'No '.$entityType.' candidates were extracted from this source snapshot.',
             'content_hash' => $snapshot->content_hash,
@@ -449,6 +477,7 @@ class InstituteDiscoveryAgentService
 
         $batch = ImportBatch::create([
             'batch_key' => ($useAi ? 'ai-' : 'agent-').$profile.'-'.Str::lower(Str::random(16)),
+            'discovery_identity_key' => $batchIdentityKey,
             'entity_type' => $entityType,
             'source_type' => $useAi ? 'ai_extraction' : 'automated_discovery',
             'source_id' => $source->id,
@@ -483,6 +512,24 @@ class InstituteDiscoveryAgentService
             'outcome' => 'no_candidates',
             'review_package' => $reviewPackage,
         ];
+    }
+
+    private function batchIdentityKey(
+        string $profile,
+        Source $source,
+        SourceSnapshot $snapshot,
+        bool $useAi,
+        ?int $supersedesBatchId = null,
+    ): string {
+        return app(DiscoveryPersistenceIdentityService::class)->batchKey(
+            (int) $source->id,
+            $profile,
+            (string) $snapshot->content_hash,
+            $useAi ? 'ai_extraction' : 'automated_discovery',
+            $useAi ? 'ai' : 'deterministic',
+            InstituteDiscoveryCandidateExtractor::VERSION,
+            $supersedesBatchId
+        );
     }
 
     private function entityType(string $profile): string
