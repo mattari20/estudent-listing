@@ -26,7 +26,7 @@ The structural regression suite parses the actual workflow YAML and scans every 
 - A protected environment: `production-readonly-diagnostics`, `production-operations`, or `offering-gap-readonly-audit`, according to operation.
 - Shared concurrency group `estudent-production-access`, `cancel-in-progress: false`, and `queue: max`.
 - No production credentials at workflow or job scope before the guard; credentials remain step-scoped and least-privilege.
-- Detection of SSH actions, direct SSH/SCP/SFTP shell commands, and production database/SSH secret references.
+- Detection of SSH actions, direct SSH/SCP/SFTP shell commands, non-local MySQL/MariaDB/PostgreSQL client commands, Artisan commands in protected production environments, and production database/SSH secret references. Ordinary CI and local scheduled checks are explicitly tested to remain free of production access.
 
 The regression also asserts that the retired administrator-recovery workflow is absent, tests an unsafe SSH recovery reintroduction fixture, tests direct remote SSH and production DB secret detection, and preserves ordinary CI `push` and `pull_request` triggers.
 
