@@ -13,6 +13,11 @@ return new class extends Migration
             $table->unique('identity_key', 'identity_match_candidates_identity_key_unique');
         });
 
+        Schema::table('identity_resolution_decisions', function (Blueprint $table): void {
+            $table->char('decision_identity_key', 64)->nullable();
+            $table->unique('decision_identity_key', 'identity_resolution_decisions_identity_key_unique');
+        });
+
         Schema::table('import_conflicts', function (Blueprint $table): void {
             $table->char('identity_key', 64)->nullable();
             $table->unique('identity_key', 'import_conflicts_identity_key_unique');
@@ -38,6 +43,11 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('import_conflict_events');
+
+        Schema::table('identity_resolution_decisions', function (Blueprint $table): void {
+            $table->dropUnique('identity_resolution_decisions_identity_key_unique');
+            $table->dropColumn('decision_identity_key');
+        });
 
         Schema::table('import_conflicts', function (Blueprint $table): void {
             $table->dropUnique('import_conflicts_identity_key_unique');
