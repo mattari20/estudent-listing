@@ -135,6 +135,7 @@ class DeploymentHandoffContractTest extends TestCase
         $this->assertNotEmpty($productionJobs, 'Expected at least one production-access job.');
 
         foreach ($productionJobs as $name => $job) {
+            $this->assertFalse($this->containsProductionSecret($job['env'] ?? []), $name.' must not expose production secrets at job scope.');
             $this->assertSame($environment, $job['environment'] ?? null, $name.' environment mismatch.');
             $steps = $job['steps'] ?? [];
             $accessIndex = null;
