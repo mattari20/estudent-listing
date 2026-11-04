@@ -200,8 +200,7 @@ def validate_production_workflow(document, events):
             errors.append(f"job {name} exposes production credentials at job scope before its guard")
         if job.get("environment") not in {
             "production-readonly-diagnostics",
-            "production-operations",
-            "offering-gap-readonly-audit",
+                        "offering-gap-readonly-audit",
         }:
             errors.append(f"job {name} missing approved production environment")
         steps = job.get("steps", [])
@@ -209,8 +208,7 @@ def validate_production_workflow(document, events):
             steps,
             include_artisan=job.get("environment") in {
                 "production-readonly-diagnostics",
-                "production-operations",
-                "offering-gap-readonly-audit",
+                                "offering-gap-readonly-audit",
             },
         )
         if access_index is None:
@@ -491,10 +489,15 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
         for path in workflow_files():
             with self.subTest(workflow=path.name):
                 document, events, jobs = parse_workflow(path)
-                if not any(production_access_kind(job) for job in jobs.values()):
-                    continue
-                errors = validate_production_workflow(document, events)
-                self.assertEqual(errors, [], "; ".join(errors))
+                source = path.read_text()
+                if any(production_access_kind(job) for job in jobs.values()):
+                    self.assertNotRegex(
+                        source,
+                        r"secrets\\.(?:HOSTINGER_SSH_|INSTITUTES_DIAGNOSTICS_TOKEN|INSTITUTES_PRIVATE_REPORTS_TOKEN)",
+                        "active read-only diagnostics must not fall back to repository-level production credentials",
+                    )
+                    errors = validate_production_workflow(document, events)
+                    self.assertEqual(errors, [], "; ".join(errors))
 
     def test_ordinary_ci_jobs_have_no_production_credentials_or_ssh(self):
         ordinary = (
