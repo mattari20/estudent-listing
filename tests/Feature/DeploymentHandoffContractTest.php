@@ -69,7 +69,13 @@ class DeploymentHandoffContractTest extends TestCase
         $this->assertStringContainsString("\n  workflow_dispatch:\n", $readinessWorkflow);
         $this->assertStringNotContainsString("\n  workflow_run:\n", $readinessWorkflow);
         $this->assertStringNotContainsString("\n  schedule:\n", $readinessWorkflow);
-        $this->assertStringContainsString('- Controlled Official-Source Refresh Migration', $readinessWorkflow);
+        // Readiness is an independently authorized manual diagnostic, not a
+        // workflow_run continuation. The migration-to-discovery artifact handoff
+        // is asserted above against the exact triggering migration run.
+        $this->assertStringContainsString('environment: production-readonly-diagnostics', $readinessWorkflow);
+        $this->assertStringContainsString('EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS-SOURCE-READINESS"', $readinessWorkflow);
+        $this->assertStringContainsString("'check' => 'official_source_refresh_schema_readiness'", $readinessWorkflow);
+        $this->assertStringContainsString("'mutation_performed' => false", $readinessWorkflow);
         $this->assertStringContainsString('schema_ready', $readinessWorkflow);
     }
 }
