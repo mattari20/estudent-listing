@@ -33,6 +33,17 @@ No automatic backfill, merge, key assignment, historical decision rewrite or can
 
 ## Status and safety
 
-IMPLEMENTED on branch. TESTED awaits final exact-head Test, Laravel CI, Project Controller and isolated MySQL results. MERGED and PRODUCTION VERIFIED are not claimed.
+## Phase 1C-28 exact-head validation
+
+Current `main` at verification: `92e748f7aeedb25d098775be6ff16abbbda23749` (the PR head is not behind current main).
+
+Final PR head: `f99eb4a350f984c7293e9fee729043c55adb6bde`.
+
+- Test run [41833654494](https://github.com/mattari20/estudent-listing/actions/runs/41833654494): passed — 893 tests, 3,949 assertions.
+- Laravel CI run [41833654453](https://github.com/mattari20/estudent-listing/actions/runs/41833654453): passed, including Pint formatting verification for the command and both inventory test files.
+- Project Controller run [41833654439](https://github.com/mattari20/estudent-listing/actions/runs/41833654439): passed.
+- Isolated MySQL run [41833654465](https://github.com/mattari20/estudent-listing/actions/runs/41833654465): passed. The existing inventory command succeeded against the isolated `approval_migration_test` database, and command-level refusal fixtures passed against production/ambiguous configurations.
+
+IMPLEMENTED and TESTED on the exact PR head. MERGED and PRODUCTION VERIFIED are not claimed.
 
 No production query or mutation was performed. GCU rows #348–353 and batches #19–23 remain protected. AI extraction and the additional 20 HEC profiles remain disabled. No dummy production data.
