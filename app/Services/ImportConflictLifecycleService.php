@@ -26,6 +26,10 @@ class ImportConflictLifecycleService
 
             $existing = ImportConflict::query()->where('identity_key', $identityKey)->first();
             if ($existing) {
+                if ($existing->status === 'open' && $lockedRow->match_state !== 'conflict') {
+                    $lockedRow->update(['match_state' => 'conflict']);
+                }
+
                 return $existing;
             }
 
@@ -41,6 +45,10 @@ class ImportConflictLifecycleService
                 ->first();
 
             if ($legacy) {
+                if ($lockedRow->match_state !== 'conflict') {
+                    $lockedRow->update(['match_state' => 'conflict']);
+                }
+
                 return $legacy;
             }
 
