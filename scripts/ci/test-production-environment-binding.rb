@@ -120,7 +120,7 @@ READ_ONLY.each do |filename, expected_environment|
   pass("#{filename}: manual-only, #{expected_environment}, guard before access")
 end
 
-BLOCKED_OPERATIONS.each do |filename|
+(BLOCKED_OPERATIONS + [RESET_WORKFLOW]).each do |filename|
   path = File.join(WORKFLOWS, filename)
   fail!("missing blocked production workflow #{filename}") unless File.file?(path)
   workflow = parse_workflow(path)
@@ -183,13 +183,14 @@ guard = File.read(File.join(ROOT, 'scripts/ci/validate-production-dispatch.sh'))
 end
 fail!('dispatch guard must reject non-lowercase/non-40-character SHAs') unless guard.include?('^[0-9a-f]{40}$')
 fail!('dispatch guard must reject a generic confirmation') unless guard.include?('AUTHORIZE-PRODUCTION-OPERATION')
+fail!('dispatch guard must execute from its isolated checkout') unless guard.include?('cd "$(dirname "${BASH_SOURCE[0]}")/../.."')
 pass('shared guard enforces manual dispatch, main, exact current SHA, reason and unique confirmation')
 
 if File.file?(File.join(WORKFLOWS, RESET_WORKFLOW))
   recovery = parse_workflow(File.join(WORKFLOWS, RESET_WORKFLOW))
   recovery_events = events_for(recovery)
   fail!('administrator recovery must remain manual-only') unless recovery_events.keys.map(&:to_s) == ['workflow_dispatch']
-  puts 'BLOCKED OWNER ACTION: secure-institutes-admin-recovery.yml remains on main; owner-reported Actions UI disablement is not independently verifiable, and PR #1016 proposes retiring this workflow. Do not dispatch or re-enable it.'
+  puts 'BLOCKED OWNER ACTION: secure-institutes-admin-recovery.yml remains on main; it is explicitly skipped and bound to production-reset. Its legacy repository-level credential references must be migrated to production-reset environment secrets before any future re-authorization.'
 end
 
 puts "SUMMARY: #{READ_ONLY.length} read-only workflows, #{BLOCKED_OPERATIONS.length} blocked operations, #{paths.length} total workflows"
