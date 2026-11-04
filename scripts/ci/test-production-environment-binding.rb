@@ -62,7 +62,7 @@ end
 
 def production_job?(job)
   serialized = YAML.dump(job)
-  serialized.match?(/appleboy\/ssh-action|secrets\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|PRODUCTION_RESET_|HOSTINGER_SSH_|INSTITUTES_)/) ||
+    serialized.match?(/appleboy\/ssh-action|secrets\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/) ||
     serialized.include?('https://estudent.pk/institutes')
 end
 def guard_index(steps)
