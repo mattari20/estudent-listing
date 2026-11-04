@@ -4,6 +4,7 @@ from pathlib import Path
 import json
 import os
 import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -246,6 +247,52 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
             with self.subTest(workflow=name):
                 self.assertNotIn("push", events)
                 self.assertNotIn("pull_request", events)
+
+
+    def test_dispatch_guard_accepts_only_current_main_revision_with_valid_confirmation(self):
+        guard = ROOT / "scripts" / "ci" / "validate-production-dispatch.sh"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            remote = root / "remote.git"
+            checkout = root / "checkout"
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True,
+                           text=True, capture_output=True)
+            checkout.mkdir()
+            subprocess.run(["git", "init", "-b", "main"], cwd=checkout, check=True,
+                           text=True, capture_output=True)
+            subprocess.run(["git", "config", "user.email", "ci@example.invalid"],
+                           cwd=checkout, check=True)
+            subprocess.run(["git", "config", "user.name", "CI Test"],
+                           cwd=checkout, check=True)
+            (checkout / "README.md").write_text("isolated guard fixture\\n")
+            subprocess.run(["git", "add", "README.md"], cwd=checkout, check=True)
+            subprocess.run(["git", "commit", "-m", "fixture"], cwd=checkout, check=True,
+                           text=True, capture_output=True)
+            subprocess.run(["git", "remote", "add", "origin", str(remote)],
+                           cwd=checkout, check=True)
+            subprocess.run(["git", "push", "-u", "origin", "main"],
+                           cwd=checkout, check=True, text=True, capture_output=True)
+            target_sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"], cwd=checkout, check=True,
+                text=True, capture_output=True
+            ).stdout.strip()
+            env = {
+                **os.environ,
+                "GITHUB_EVENT_NAME": "workflow_dispatch",
+                "GITHUB_REF": "refs/heads/main",
+                "GITHUB_SHA": target_sha,
+                "TARGET_SHA": target_sha,
+                "OPERATION_REASON": "ticket-12345",
+                "CONFIRM_PRODUCTION_OPERATION": "AUTHORIZE-READONLY-DIAGNOSTICS",
+                "EXPECTED_CONFIRMATION": "AUTHORIZE-READONLY-DIAGNOSTICS",
+            }
+            result = subprocess.run(
+                ["bash", str(guard)], cwd=checkout, env=env,
+                text=True, capture_output=True
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("production_dispatch_authorized=true", result.stdout)
+            self.assertIn(target_sha, result.stdout)
 
     def test_dispatch_guard_rejects_invalid_inputs_and_workflow_run_events(self):
         guard = ROOT / "scripts" / "ci" / "validate-production-dispatch.sh"
