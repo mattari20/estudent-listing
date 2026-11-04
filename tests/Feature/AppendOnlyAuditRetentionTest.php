@@ -268,4 +268,69 @@ class AppendOnlyAuditRetentionTest extends TestCase
         }
     }
 
+
+    public function test_reconciliation_event_history_is_immutable_except_nullable_row_detachment(): void
+    {
+        [$batch, $row] = $this->batchAndRow();
+        $event = ImportReconciliationEvent::create([
+            'import_batch_id' => $batch->id,
+            'import_row_id' => $row->id,
+            'event_type' => 'multiple_identity_matches',
+            'state' => 'open',
+            'severity' => 'error',
+            'description' => 'reconciliation history record',
+            'metadata' => ['match_state' => 'conflict'],
+            'occurred_at' => now(),
+        ]);
+
+        try {
+            $event->update(['description' => 'rewritten through Eloquent']);
+            $this->fail('Reconciliation event model updates must be rejected.');
+        } catch (RuntimeException) {
+            $this->assertDatabaseHas('import_reconciliation_events', [
+                'id' => $event->id,
+                'description' => 'reconciliation history record',
+            ]);
+        }
+
+        try {
+            DB::table('import_reconciliation_events')->where('id', $event->id)
+                ->update(['description' => 'rewritten through direct SQL']);
+            $this->fail('Direct SQL UPDATE of reconciliation history must be rejected.');
+        } catch (QueryException) {
+            $this->assertDatabaseHas('import_reconciliation_events', [
+                'id' => $event->id,
+                'description' => 'reconciliation history record',
+                'import_row_id' => $row->id,
+            ]);
+        }
+
+        try {
+            DB::table('import_reconciliation_events')->where('id', $event->id)->delete();
+            $this->fail('Direct SQL DELETE of reconciliation history must be rejected.');
+        } catch (QueryException) {
+            $this->assertDatabaseHas('import_reconciliation_events', ['id' => $event->id]);
+        }
+
+        $deletedRows = DB::table('import_rows')->where('id', $row->id)->delete();
+        $this->assertSame(1, $deletedRows);
+        $this->assertDatabaseHas('import_reconciliation_events', [
+            'id' => $event->id,
+            'import_batch_id' => $batch->id,
+            'import_row_id' => null,
+            'description' => 'reconciliation history record',
+        ]);
+
+        try {
+            DB::table('import_batches')->where('id', $batch->id)->delete();
+            $this->fail('Batch deletion must not remove reconciliation history.');
+        } catch (QueryException) {
+            $this->assertDatabaseHas('import_reconciliation_events', [
+                'id' => $event->id,
+                'import_batch_id' => $batch->id,
+            ]);
+        }
+    }
+
+
 }
