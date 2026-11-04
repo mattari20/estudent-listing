@@ -80,7 +80,8 @@ end
 # Classify executable behavior, not workflow filenames.
 def access_kind(job)
   serialized = YAML.dump(job)
-  return :credential_backed if serialized.match?(/appleboy\\/ssh-action|secrets\\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/)
+  credential_reference = serialized.match?(/secrets[.](?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/)
+  return :credential_backed if serialized.include?('appleboy/ssh-action') || credential_reference
   return :public_http if serialized.include?('https://estudent.pk/institutes')
   :none
 end
@@ -98,7 +99,7 @@ def first_access_index(steps)
     serialized = YAML.dump(step)
     name = step.is_a?(Hash) ? step.fetch('name', '').to_s : ''
     credential_validation = name.match?(/Validate environment-scoped production credentials|Validate requested revision and read-only credentials/)
-    !credential_validation && (serialized.match?(/appleboy\\/ssh-action|secrets\\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/) || serialized.include?('https://estudent.pk/institutes'))
+    !credential_validation && (serialized.include?('appleboy/ssh-action') || serialized.match?(/secrets[.](?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/) || serialized.include?('https://estudent.pk/institutes'))
   end
 end
 
@@ -155,8 +156,8 @@ READ_ONLY.each do |filename, expected_environment|
       fail!("#{filename}:#{job_name} is missing environment-scoped credential validation") unless credential_idx
       fail!("#{filename}:#{job_name} must validate environment-scoped credentials after the guard and before SSH/API access") if gidx >= credential_idx || (aidx && credential_idx >= aidx)
     when :public_http
-      fail!("#{filename}:#{job_name} public HTTP-only diagnostics must not reference production credentials") if YAML.dump(job).match?(/secrets\\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/)
-      fail!("#{filename}:#{job_name} public HTTP-only diagnostics must not use SSH actions") if YAML.dump(job).match?(/appleboy\\/ssh-action/)
+      fail!("#{filename}:#{job_name} public HTTP-only diagnostics must not reference production credentials") if YAML.dump(job).match?(/secrets[.](?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/)
+      fail!("#{filename}:#{job_name} public HTTP-only diagnostics must not use SSH actions") if YAML.dump(job).include?('appleboy/ssh-action')
     else
       fail!("#{filename}:#{job_name} has no recognized production access behavior")
     end
