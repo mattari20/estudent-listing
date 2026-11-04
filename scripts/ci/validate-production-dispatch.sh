@@ -16,7 +16,7 @@ expected="${EXPECTED_CONFIRMATION:-}"
 [[ "$target" =~ ^[0-9a-f]{40}$ ]] || fail "target_sha must be exactly 40 lowercase hexadecimal characters"
 [[ "${GITHUB_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || fail "GitHub event SHA is invalid"
 [[ "$target" == "$GITHUB_SHA" ]] || fail "target_sha must equal the dispatch event SHA"
-[[ "$reason" =~ [[:alnum:]] ]] && [[ "${#reason}" -ge 8 ]] || fail "operation_reason must contain at least 8 characters"
+[[ "$reason" =~ ^[A-Za-z0-9][A-Za-z0-9._:/#-]{7,127}$ ]] || fail "operation_reason must be 8-128 safe ASCII characters (letters, digits, dot, underscore, colon, slash, hash, or hyphen)"
 [[ -n "$expected" && "$confirmation" == "$expected" ]] || fail "operation-specific confirmation does not match"
 
 git rev-parse --verify "$target^{commit}" >/dev/null 2>&1 || fail "target SHA is not available locally"
