@@ -52,7 +52,7 @@ class MonitoringPolicyCheckpointService
 
     public function startSource(int $policyRunId, int $sourceId): void
     {
-        DB::table('monitoring_policy_run_sources')->updateOrInsert(
+        $persisted = DB::table('monitoring_policy_run_sources')->updateOrInsert(
             ['monitoring_policy_run_id' => $policyRunId, 'source_id' => $sourceId],
             [
                 'status' => 'running',
@@ -63,6 +63,10 @@ class MonitoringPolicyCheckpointService
                 'created_at' => now(),
             ]
         );
+
+        if (! $persisted) {
+            throw new RuntimeException('Source start checkpoint was not persisted.');
+        }
     }
 
     public function failSource(int $policyRunId, int $sourceId, string $failureCode, ?int $retrievalRunId = null): void
@@ -118,7 +122,9 @@ class MonitoringPolicyCheckpointService
                 $state->success($policy);
             }
 
-            $policy->update(['last_run_at' => now()]);
+            if (! $policy->update(['last_run_at' => now()])) {
+                throw new RuntimeException('Policy last-run timestamp was not persisted.');
+            }
 
             $updated = DB::table('monitoring_policy_runs')
                 ->where('id', $policyRunId)
