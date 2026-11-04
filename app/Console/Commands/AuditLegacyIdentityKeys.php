@@ -83,6 +83,10 @@ class AuditLegacyIdentityKeys extends Command
         }
 
         if ($driver === 'sqlite') {
+            if ($connectionName !== 'sqlite') {
+                return false;
+            }
+
             if ($database === ':memory:') {
                 return true;
             }
@@ -101,12 +105,15 @@ class AuditLegacyIdentityKeys extends Command
         if ($driver === 'mysql') {
             $host = strtolower(trim((string) ($connectionConfig['host'] ?? '')));
             $username = (string) ($connectionConfig['username'] ?? '');
+            $port = (int) ($connectionConfig['port'] ?? 0);
             $isLocalHost = in_array($host, ['127.0.0.1', 'localhost', '::1'], true);
 
             // MySQL is accepted only for this repository's isolated GitHub Actions
             // service database; local forwarding or arbitrary *_test schemas are not.
-            return getenv('GITHUB_ACTIONS') === 'true'
+            return $connectionName === 'mysql'
+                && getenv('GITHUB_ACTIONS') === 'true'
                 && $isLocalHost
+                && $port === 3306
                 && $database === 'approval_migration_test'
                 && $username === 'approval_ci';
         }
