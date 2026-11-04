@@ -18,9 +18,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: controlled-official-source-refresh-migration
+  group: estudent-production-access
   cancel-in-progress: false
-
+  queue: max
 jobs:
   resolve-target:
     name: Resolve approved application-code revision
@@ -45,6 +45,7 @@ jobs:
           echo "expected_application_revision=$revision"
 
   migrate:
+    if: false # blocked until production-operations is owner-authorized and configured
     name: Verify deployed code and optionally apply one additive migration
     needs: resolve-target
     runs-on: ubuntu-latest
