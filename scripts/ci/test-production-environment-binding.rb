@@ -53,7 +53,8 @@ CONCURRENCY_GROUPS = {
   'public-browser-runtime-diagnostics.yml' => ['public-browser-runtime-diagnostics', false],
   'step3-candidate-audit.yml' => ['step3-discovery-candidate-audit', false],
   'step3-record-level-remediation-audit.yml' => ['step3-record-level-remediation-audit', false],
-  'offering-gap-preflight.yml' => ['offering-gap-preflight', false]
+  'offering-gap-preflight.yml' => ['offering-gap-preflight', false],
+  'verify-uvas-public-directory.yml' => ['verify-uvas-public-directory', false]
 }.freeze
 
 def fail!(message)
