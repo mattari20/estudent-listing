@@ -57,6 +57,7 @@ jobs:
           tests/Unit/InstituteDiscoveryCandidateExtractorTest.php
           tests/Feature/DatabaseHealthCheckTest.php
           tests/Feature/LegacyIdentityKeyInventoryTest.php
+          tests/Feature/AuditLegacyIdentityKeysCommandSafetyTest.php
           tests/Feature/GeographySeedPreflightTest.php
           app/Services/ExecutionLeaseService.php
           app/Console/Commands/BootstrapInstituteAgent.php
@@ -196,6 +197,7 @@ jobs:
           tests/Unit/InstituteDiscoveryCandidateExtractorTest.php
           tests/Feature/DatabaseHealthCheckTest.php
           tests/Feature/LegacyIdentityKeyInventoryTest.php
+          tests/Feature/AuditLegacyIdentityKeysCommandSafetyTest.php
           tests/Feature/GeographySeedPreflightTest.php
           app/Services/ExecutionLeaseService.php
           app/Console/Commands/BootstrapInstituteAgent.php
