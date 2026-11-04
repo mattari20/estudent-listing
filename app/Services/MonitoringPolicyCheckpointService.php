@@ -8,29 +8,31 @@ use RuntimeException;
 
 class MonitoringPolicyCheckpointService
 {
-    public function interruptOpenAttempts(int $policyId): void
-    {
-        DB::table('monitoring_policy_runs')
-            ->where('source_monitoring_policy_id', $policyId)
-            ->where('status', 'running')
-            ->update([
-                'status' => 'interrupted',
-                'failure_code' => 'superseded_by_new_attempt',
-                'finished_at' => now(),
-                'updated_at' => now(),
-            ]);
-    }
-
     public function startPolicyRun(int $policyId, ?string $executionRunId): int
     {
-        return (int) DB::table('monitoring_policy_runs')->insertGetId([
-            'source_monitoring_policy_id' => $policyId,
-            'execution_run_id' => $executionRunId,
-            'status' => 'running',
-            'started_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        return (int) DB::transaction(function () use ($policyId, $executionRunId): int {
+            // Retain historical attempts, but only supersede them atomically with
+            // creation of the replacement attempt. An insert failure rolls this
+            // classification back and leaves the old attempt unchanged.
+            DB::table('monitoring_policy_runs')
+                ->where('source_monitoring_policy_id', $policyId)
+                ->where('status', 'running')
+                ->update([
+                    'status' => 'interrupted',
+                    'failure_code' => 'superseded_by_new_attempt',
+                    'finished_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            return (int) DB::table('monitoring_policy_runs')->insertGetId([
+                'source_monitoring_policy_id' => $policyId,
+                'execution_run_id' => $executionRunId,
+                'status' => 'running',
+                'started_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
     }
 
     public function failPolicyRun(int $policyRunId, string $failureCode): void
