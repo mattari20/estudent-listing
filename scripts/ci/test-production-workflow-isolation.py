@@ -35,6 +35,7 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
                     self.assertRegex(text, r"(?m)^    environment: (production-readonly-diagnostics|production-operations|offering-gap-readonly-audit)$")
                     self.assertIn("group: estudent-production-access", text)
                     self.assertIn("cancel-in-progress: false", text)
+                    self.assertIn("queue: max", text)
                 else:
                     # This legacy account-recovery workflow is deliberately held for owner protection configuration.
                     self.assertIn("RECOVER-EXISTING-ADMIN-1", text)
