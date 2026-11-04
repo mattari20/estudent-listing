@@ -7,6 +7,7 @@ on:
       - '.github/workflows/laravel-ci.yml'
       - 'database/migrations/**'
       - 'tests/Feature/LegacyIdentityKeyInventoryTest.php'
+      - 'tests/Feature/AuditLegacyIdentityKeysCommandSafetyTest.php'
       - 'tests/Feature/InstitutionFieldApprovalServiceTest.php'
       - 'tests/Feature/ExecutionLeaseServiceTest.php'
       - 'tests/Support/verify-execution-lease-multiprocess.php'
@@ -178,6 +179,8 @@ jobs:
         run: php tests/Support/verify-review-package-multiprocess.php
       - name: Validate legacy NULL identity-key inventory on MySQL
         run: vendor/bin/phpunit tests/Feature/LegacyIdentityKeyInventoryTest.php
+      - name: Prove identity inventory command refuses production and ambiguous database configs
+        run: vendor/bin/phpunit tests/Feature/AuditLegacyIdentityKeysCommandSafetyTest.php
       - name: Validate institution identity conflict and decision replay on MySQL
         run: vendor/bin/phpunit tests/Feature/InstituteIdentityPersistenceRecoveryTest.php
       - name: Prove institution identity conflict and decision concurrency on MySQL
