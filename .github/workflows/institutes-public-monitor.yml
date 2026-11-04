@@ -19,9 +19,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
-  cancel-in-progress: false
-  queue: max
+  group: institutes-public-site-monitor
+  cancel-in-progress: true
 jobs:
   public-smoke-check:
     environment: production-readonly-diagnostics
