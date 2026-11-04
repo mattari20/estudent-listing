@@ -62,7 +62,7 @@ class MonitoringPolicyCheckpointService
 
     public function heartbeatPolicyRun(int $policyRunId): void
     {
-        $updated = DB::table('monitoring_policy_runs')
+        DB::table('monitoring_policy_runs')
             ->where('id', $policyRunId)
             ->where('status', 'running')
             ->update([
@@ -70,7 +70,10 @@ class MonitoringPolicyCheckpointService
                 'updated_at' => now(),
             ]);
 
-        if ($updated !== 1) {
+        if (! DB::table('monitoring_policy_runs')
+            ->where('id', $policyRunId)
+            ->where('status', 'running')
+            ->exists()) {
             throw new RuntimeException('Monitoring policy run heartbeat was not persisted.');
         }
     }
