@@ -1,0 +1,38 @@
+# Phase 1C — Legacy NULL idempotency-key inventory
+
+Date: 2026-11-04  
+Repository: mattari20/estudent-listing  
+Base: e9feccedbb20078c3af24656e6399d55383b6722
+
+## Inventory scope
+
+The repository now has seven nullable persistence-identity columns relevant to discovery and identity replay:
+
+- identity_match_candidates.identity_key
+- identity_resolution_decisions.decision_identity_key
+- import_conflicts.identity_key
+- import_batches.discovery_identity_key
+- evidence.discovery_identity_key
+- import_rows.discovery_identity_key
+- assertions.discovery_identity_key
+
+NULL values are classified as legacy/unkeyed. This is a report category only; a NULL value does not prove that a historical row is duplicate, safe to merge, or safe to assign a deterministic key.
+
+## Reproducible read-only implementation
+
+- Added LegacyIdentityKeyInventoryService, which checks schema availability, reports total/keyed/NULL counts and returns a bounded ordered sample of NULL-key row IDs per table.
+- Added institutes:audit-legacy-identity-keys. It refuses to run unless APP_ENV=testing and bounds the sample limit to 1–1000. It does not write keys, change candidate state, merge identities or rewrite decisions.
+- Added LegacyIdentityKeyInventoryTest with isolated test-database fixtures across all seven tables. The test verifies one NULL-key row per table, seven total NULL-key rows and unchanged NULL values after inventory.
+- Added the focused inventory test to the isolated MySQL workflow.
+
+## Findings and disposition
+
+The repository fixture inventory is now reproducible, and the implementation deliberately does not classify any production historical rows. No production inventory was run because production database access is prohibited by this mission. The actual count and classification of legacy production NULL-key records therefore remains an external acceptance blocker requiring separate read-only production authorization and an approved private report destination.
+
+No automatic backfill, merge, key assignment, historical decision rewrite or candidate-state change is authorized by this package.
+
+## Status and safety
+
+IMPLEMENTED on branch. TESTED awaits exact-head Test, Laravel CI, Project Controller and isolated MySQL results. MERGED and PRODUCTION VERIFIED are not claimed.
+
+No production query or mutation was performed. GCU rows #348–353 and batches #19–23 remain protected. AI extraction and the additional 20 HEC profiles remain disabled. No dummy production data.
