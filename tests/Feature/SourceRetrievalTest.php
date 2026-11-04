@@ -124,14 +124,14 @@ class SourceRetrievalTest extends TestCase {
  public function test_snapshot_persistence_exception_is_not_misclassified_as_retrieval_failure(): void {
   Http::fake(['https://example.test/*'=>Http::response('official content',200,['Content-Type'=>'text/html'])]);
   $source=Source::create(['source_type'=>'web','name'=>'Snapshot Storage Failure','url'=>'https://example.test/snapshot-storage-failure','status'=>'active']);
-  $snapshots=\\Mockery::mock(\\App\\Services\\SourceSnapshotService::class);
-  $snapshots->shouldReceive('capture')->once()->andThrow(new \\RuntimeException('database unavailable'));
-  $this->app->instance(\\App\\Services\\SourceSnapshotService::class,$snapshots);
+  $snapshots=\Mockery::mock(\App\Services\SourceSnapshotService::class);
+  $snapshots->shouldReceive('capture')->once()->andThrow(new \RuntimeException('database unavailable'));
+  $this->app->instance(\App\Services\SourceSnapshotService::class,$snapshots);
 
   try {
-   app(\\App\\Services\\SourceRetrievalService::class)->retrieve($source,'snapshot-storage-failure-key');
+   app(\App\Services\SourceRetrievalService::class)->retrieve($source,'snapshot-storage-failure-key');
    $this->fail('Snapshot persistence errors must propagate.');
-  } catch (\\RuntimeException $exception) {
+  } catch (\RuntimeException $exception) {
    $this->assertSame('database unavailable',$exception->getMessage());
   }
 
