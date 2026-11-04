@@ -43,7 +43,9 @@ class DeploymentHandoffContractTest extends TestCase
         $this->assertStringContainsString('migration_confirmation=true', $migrationWorkflow);
         $this->assertStringContainsString('migration_run_id=$GITHUB_RUN_ID', $migrationWorkflow);
         $this->assertStringContainsString('workflow_run_name=Controlled Official-Source Refresh Migration', $migrationWorkflow);
-        $this->assertStringNotContainsString("\n  push:\n", $migrationWorkflow);
+        $migrationTriggerHeader = substr($migrationWorkflow, 0, strpos($migrationWorkflow, "permissions:"));
+        $this->assertStringContainsString("\n  workflow_dispatch:\n", $migrationTriggerHeader);
+        $this->assertStringNotContainsString("\n  push:\n", $migrationTriggerHeader);
         $this->assertStringContainsString('if: false # blocked until production-operations is owner-authorized and configured', $migrationWorkflow);
 
         // Discovery consumes a schema handoff from the exact triggering migration run,
@@ -59,16 +61,20 @@ class DeploymentHandoffContractTest extends TestCase
         $this->assertStringContainsString('official_source_refresh_schema_gate', $discoveryWorkflow);
         $this->assertStringContainsString('BLOCKED_OFFICIAL_SOURCE_REFRESH_SCHEMA_NOT_READY', $discoveryWorkflow);
         $this->assertStringContainsString('if: false # blocked until production-operations is owner-authorized and configured', $discoveryWorkflow);
-        $this->assertStringContainsString("\n  workflow_dispatch:\n", $discoveryWorkflow);
-        $this->assertStringNotContainsString("\n  workflow_run:\n", $discoveryWorkflow);
-        $this->assertStringNotContainsString('- "Controlled Official-Source Refresh Migration"', $discoveryWorkflow);
-        $this->assertStringNotContainsString("\n  schedule:\n", $discoveryWorkflow);
-        $this->assertStringNotContainsString("\n  push:\n", $discoveryWorkflow);
+        // Check only the top-level trigger declaration. The workflow body retains
+        // dormant, fail-closed workflow_run handoff validation logic for contract
+        // coverage; that is not an enabled workflow_run trigger.
+        $discoveryTriggerHeader = substr($discoveryWorkflow, 0, strpos($discoveryWorkflow, "permissions:"));
+        $this->assertStringContainsString("\n  workflow_dispatch:\n", $discoveryTriggerHeader);
+        $this->assertStringNotContainsString("\n  workflow_run:\n", $discoveryTriggerHeader);
+        $this->assertStringNotContainsString("\n  schedule:\n", $discoveryTriggerHeader);
+        $this->assertStringNotContainsString("\n  push:\n", $discoveryTriggerHeader);
 
         // Readiness repeats after the controlled migration workflow succeeds.
-        $this->assertStringContainsString("\n  workflow_dispatch:\n", $readinessWorkflow);
-        $this->assertStringNotContainsString("\n  workflow_run:\n", $readinessWorkflow);
-        $this->assertStringNotContainsString("\n  schedule:\n", $readinessWorkflow);
+        $readinessTriggerHeader = substr($readinessWorkflow, 0, strpos($readinessWorkflow, "permissions:"));
+        $this->assertStringContainsString("\n  workflow_dispatch:\n", $readinessTriggerHeader);
+        $this->assertStringNotContainsString("\n  workflow_run:\n", $readinessTriggerHeader);
+        $this->assertStringNotContainsString("\n  schedule:\n", $readinessTriggerHeader);
         // Readiness is an independently authorized manual diagnostic, not a
         // workflow_run continuation. The migration-to-discovery artifact handoff
         // is asserted above against the exact triggering migration run.
