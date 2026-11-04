@@ -160,7 +160,7 @@ try {
     $batch = ImportBatch::query()->findOrFail($batchId);
     $batchCount = ImportBatch::query()->where('discovery_identity_key', $batch->discovery_identity_key)->count();
     $rowCount = ImportRow::query()->where('import_batch_id', $batchId)->count();
-    $evidenceCount = Evidence::query()->where('discovery_identity_key', '!=', null)->count();
+    $evidenceCount = Evidence::query()->whereNotNull('discovery_identity_key')->count();
     $assertionCount = DB::table('assertions')->whereNotNull('discovery_identity_key')->count();
 
     if ($batchCount !== 1 || $rowCount !== 2 || $evidenceCount !== 1 || $assertionCount !== 2) {
