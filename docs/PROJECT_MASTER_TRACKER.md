@@ -2244,8 +2244,24 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 - First complete validation on PR head `43fd6c14712e452f97a7f926be846e99a51c9a01` (merge candidate `11adef8959ec8b505eb4c3f3d59dbea17a947ab6`): Test #41768530553 PASS (865 tests / 3,822 assertions); Laravel CI #41768530539 PASS (same test total); Isolated MySQL #41768530572 PASS (identity/conflict tests 6 tests / 31 assertions and independent-process resolver/decision proof PASS); Project Controller #41768530567 workflow PASS but internal Hostinger/open-PR/tracker gates remain blocked; automatic public browser diagnostics #41768530533 PASS with valid HTTP 200 JSON and zero institutions.
 - A CI follow-up adds the new PHP files to the explicit Pint verification list. Final documentation-inclusive PR-head rerun is required before merge.
 
-### Next Phase 1C engineering task
+### Phase 1C-20 — Discovery-to-Review persistence boundary audit (2026-11-04)
 
-- After Phase 1C-19 passes and merges, continue with **Phase 1C-20 — Discovery-to-Review Persistence Boundary Audit**: reconcile transaction boundaries and replay outcomes across source snapshots, discovery outcomes, candidate batches, identity matches, conflict events, review-package artifacts and operator decisions.
-- Phase 1C remains IN PROGRESS. Production scheduler/worker/runtime evidence and production-readiness certification remain separate gates.
-- Protected data unchanged: GCU rows #348–353 and batches #19–23; AI extraction and additional 20 HEC profiles remain disabled. No production operations or dummy data.
+- Audit document: docs/audits/PHASE_1C_DISCOVERY_TO_REVIEW_PERSISTENCE_BOUNDARY_AUDIT.md.
+- Baseline fetched directly from GitHub: main = 54bf5e6b9878080951b521b61a261a233f18322a; this equals PR #1004 merge commit.
+- PR #1003 merged at 86ded5d52cbc6a329ae4559919e7da5111876b20. PR #1004 merged at 54bf5e6b9878080951b521b61a261a233f18322a; final implementation head b33e95287e377176a0e9c80b9c5eef05214a7157.
+- Exact final PR #1004 head passed Test #41769183222 (865 tests / 3,822 assertions), Laravel CI #41769182981 (same total; Pint format and verification passed for 59 files), Project Controller #41769182984 (workflow job PASS; internal inventory 2/5), and isolated MySQL #41769182903.
+- Actual MySQL logs confirm migration 2026_11_04_000012, identity suite 6 tests / 31 assertions, and independent-process identity proof PASS. The proof converged on one match candidate, one open conflict, one detection event, one identity decision and one audit event.
+- Audited retrieval, snapshot/observation, monitoring checkpoints, change intelligence, discovery outcomes, candidate batches/evidence/assertions, review-package filesystem recovery, identity matching, conflict events, operator decisions, promotion and publication.
+- Confirmed P1 findings: operator reject/publish state changes are not atomic with audit events; institution reject bypasses the idempotent identity-decision service; the decide endpoint/service lacks an explicit candidate-state guard; snapshot comparison can select a later snapshot as the "previous" snapshot.
+- P2 findings: review-package reuse does not bind to a current DB row-set digest/evidence ownership; append-only history is not DB-enforced and cascades with parent deletion; retrieval snapshot/run completion split lacks targeted final-update failure proof; monitoring checkpoint tables lack FK constraints and rely on the guarded command lease for single active execution.
+- Audit distinguishes DB transactions, filesystem atomic rename/manifest completion, and end-to-end exactly-once semantics. No production operation or data change occurred; protected GCU rows #348–353 and batches #19–23 remain untouched; AI extraction and additional 20 HEC profiles remain disabled.
+- Phase 1C remains IN PROGRESS. This is an audit/planning milestone, not an implementation or production-readiness certification.
+
+### Recommended next Phase 1C implementation task
+
+- Phase 1C-21 — Operator Transition Atomicity and State-Guard Hardening.
+- Acceptance criteria are documented in the Phase 1C-20 audit: atomic state+decision+audit transactions; idempotent institution rejection; candidate-state enforcement under row lock; atomic publication+audit; failure injection at every persistence write; identical and different multi-process MySQL decision races; promotion/publication conflict gates; exact-final-head four-workflow evidence.
+- Do not begin Phase 1C-21 until the Phase 1C-20 audit is reviewed and its documentation PR is validated.
+- Production readiness remains a separate gate. Hostinger read-only diagnostics remain blocked (run 41763809883); no production access or mutation was performed.
+- Protected data unchanged: GCU rows #348–353 and batches #19–23; AI extraction and additional 20 HEC profiles remain disabled. No dummy production data.
+
