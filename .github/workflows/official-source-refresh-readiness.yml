@@ -24,9 +24,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: official-source-refresh-readiness
   cancel-in-progress: false
-  queue: max
+
 jobs:
   resolve-revision:
     name: Resolve expected application revision
