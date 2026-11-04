@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: controlled-institution-field-approvals-migration
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
@@ -41,6 +41,7 @@ jobs:
     name: Preflight, run only the target migration, and verify
     needs: resolve-target
     runs-on: ubuntu-latest
+    environment: production-operations
     timeout-minutes: 8
     steps:
       - name: Verify deployed code, preflight, and run only the authorized migration
