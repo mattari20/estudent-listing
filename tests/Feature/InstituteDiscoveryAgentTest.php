@@ -11,6 +11,7 @@ use App\Services\InstituteDiscoveryReviewPackageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class InstituteDiscoveryAgentTest extends TestCase
@@ -355,6 +356,195 @@ class InstituteDiscoveryAgentTest extends TestCase
         $this->assertSame(2, ImportRow::where('import_batch_id', $original['batch_id'])->count());
         $this->assertSame(2, ImportRow::where('import_batch_id', $refreshed['batch_id'])
             ->where('status', 'candidate')->count());
+    }
+
+
+    public function test_candidate_batch_evidence_rows_and_assertions_roll_back_when_batch_insert_fails(): void
+    {
+        $this->prepareCuiDiscoveryRun();
+
+        $failureTriggered = $this->injectDiscoverySqlFailure('import_batches', 'insert');
+
+        try {
+            app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
+            $this->fail('A candidate batch insert failure must abort discovery persistence.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertSame('injected discovery persistence failure', $exception->getMessage());
+        }
+
+        $this->assertTrue($failureTriggered());
+        $this->assertDatabaseCount('evidence', 0);
+        $this->assertDatabaseCount('import_batches', 0);
+        $this->assertDatabaseCount('import_rows', 0);
+        $this->assertDatabaseCount('assertions', 0);
+    }
+
+    public function test_partial_candidate_row_persistence_rolls_back_the_entire_batch(): void
+    {
+        $this->prepareCuiDiscoveryRun();
+
+        $failureTriggered = $this->injectDiscoverySqlFailure('import_rows', 'insert', 2);
+
+        try {
+            app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
+            $this->fail('A partial candidate row failure must roll back the complete batch.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertSame('injected discovery persistence failure', $exception->getMessage());
+        }
+
+        $this->assertTrue($failureTriggered());
+        $this->assertDatabaseCount('evidence', 0);
+        $this->assertDatabaseCount('import_batches', 0);
+        $this->assertDatabaseCount('import_rows', 0);
+        $this->assertDatabaseCount('assertions', 0);
+    }
+
+    public function test_candidate_assertion_link_failure_rolls_back_evidence_batch_and_rows(): void
+    {
+        $this->prepareCuiDiscoveryRun();
+
+        $failureTriggered = $this->injectDiscoverySqlFailure('assertions', 'insert');
+
+        try {
+            app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
+            $this->fail('An assertion-link persistence failure must abort discovery persistence.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertSame('injected discovery persistence failure', $exception->getMessage());
+        }
+
+        $this->assertTrue($failureTriggered());
+        $this->assertDatabaseCount('evidence', 0);
+        $this->assertDatabaseCount('import_batches', 0);
+        $this->assertDatabaseCount('import_rows', 0);
+        $this->assertDatabaseCount('assertions', 0);
+    }
+
+    public function test_batch_finalization_failure_rolls_back_all_candidate_records(): void
+    {
+        $this->prepareCuiDiscoveryRun();
+
+        $failureTriggered = $this->injectDiscoverySqlFailure('import_batches', 'update');
+
+        try {
+            app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
+            $this->fail('A batch finalization failure must roll back candidate persistence.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertSame('injected discovery persistence failure', $exception->getMessage());
+        }
+
+        $this->assertTrue($failureTriggered());
+        $this->assertDatabaseCount('evidence', 0);
+        $this->assertDatabaseCount('import_batches', 0);
+        $this->assertDatabaseCount('import_rows', 0);
+        $this->assertDatabaseCount('assertions', 0);
+    }
+
+    public function test_review_package_failure_rolls_back_database_candidate_batch_and_retry_succeeds(): void
+    {
+        $this->prepareCuiDiscoveryRun();
+
+        $reviewPackage = \\Mockery::mock(InstituteDiscoveryReviewPackageService::class)->makePartial();
+        $reviewPackage->shouldReceive('create')
+            ->once()
+            ->andThrow(new \\RuntimeException('injected review package failure'));
+        $this->app->instance(InstituteDiscoveryReviewPackageService::class, $reviewPackage);
+
+        try {
+            app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
+            $this->fail('A review package failure must prevent batch completion.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertSame('injected review package failure', $exception->getMessage());
+        }
+
+        $this->assertDatabaseCount('evidence', 0);
+        $this->assertDatabaseCount('import_batches', 0);
+        $this->assertDatabaseCount('import_rows', 0);
+        $this->assertDatabaseCount('assertions', 0);
+
+        $this->app->instance(InstituteDiscoveryReviewPackageService::class, new InstituteDiscoveryReviewPackageService());
+        $summary = app(InstituteDiscoveryAgentService::class)->run('cui-lahore');
+
+        $this->assertSame(2, $summary['candidate_rows']);
+        $this->assertDatabaseCount('import_batches', 1);
+        $this->assertDatabaseCount('import_rows', 2);
+        $this->assertDatabaseCount('assertions', 2);
+    }
+
+    public function test_replay_uses_database_enforced_batch_row_evidence_and_assertion_identities(): void
+    {
+        $this->prepareCuiDiscoveryRun();
+
+        $service = app(InstituteDiscoveryAgentService::class);
+        $first = $service->run('cui-lahore');
+        $second = $service->run('cui-lahore');
+
+        $this->assertSame($first['batch_id'], $second['batch_id']);
+        $this->assertSame('reused', $second['review_package']['status']);
+        $this->assertNotEmpty(ImportBatch::findOrFail($first['batch_id'])->discovery_identity_key);
+        $this->assertSame(2, ImportRow::where('import_batch_id', $first['batch_id'])->whereNotNull('discovery_identity_key')->count());
+        $this->assertSame(2, \\App\\Models\\Evidence::whereNotNull('discovery_identity_key')->count());
+        $this->assertSame(2, \\App\\Models\\Assertion::whereNotNull('discovery_identity_key')->count());
+        $this->assertDatabaseCount('import_batches', 1);
+        $this->assertDatabaseCount('import_rows', 2);
+        $this->assertDatabaseCount('assertions', 2);
+
+        $this->expectException(\\Illuminate\\Database\\QueryException::class);
+        ImportBatch::create([
+            'batch_key' => 'manual-duplicate-identity-test',
+            'discovery_identity_key' => ImportBatch::findOrFail($first['batch_id'])->discovery_identity_key,
+            'entity_type' => 'program',
+            'source_type' => 'automated_discovery',
+            'source_id' => $first['source_id'],
+            'status' => 'validated',
+            'received_at' => now(),
+        ]);
+    }
+
+    private function prepareCuiDiscoveryRun(): void
+    {
+        Storage::fake('local');
+        Institution::create([
+            'name' => 'COMSATS University Islamabad Lahore Campus',
+            'slug' => 'comsats-university-islamabad-lahore-campus',
+            'status' => 'active',
+        ]);
+
+        $html = '<html><body>
+            <a>Bachelor of Science (BS) in Computer Science</a>
+            <a>Bachelor of Science (BS) in Psychology</a>
+        </body></html>';
+
+        Http::fake([
+            'https://lahore.comsats.edu.pk/academics.aspx' => Http::response(
+                $html,
+                200,
+                ['Content-Type' => 'text/html']
+            ),
+        ]);
+    }
+
+    private function injectDiscoverySqlFailure(string $table, string $operation, int $occurrence = 1): \\Closure
+    {
+        $count = 0;
+        $triggered = false;
+        DB::connection()->beforeExecuting(function (string $query) use ($table, $operation, $occurrence, &$count, &$triggered): void {
+            $sql = strtolower($query);
+            if (! str_contains($sql, $operation.' into') && ! str_starts_with(ltrim($sql), $operation.' ')) {
+                return;
+            }
+
+            if (! str_contains($sql, strtolower($table))) {
+                return;
+            }
+
+            $count++;
+            if ($count === $occurrence) {
+                $triggered = true;
+                throw new \\RuntimeException('injected discovery persistence failure');
+            }
+        });
+
+        return static fn (): bool => $triggered;
     }
 
 }
