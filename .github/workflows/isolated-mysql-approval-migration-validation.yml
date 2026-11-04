@@ -12,6 +12,7 @@ on:
       - 'tests/Feature/SourceSnapshotTest.php'
       - 'tests/Feature/SourceRetrievalTest.php'
       - 'tests/Feature/SourceChangeDiscoveryIdempotencyTest.php'
+      - 'tests/Feature/SourceChangeDiscoveryServiceTest.php'
       - 'tests/Feature/InstituteDiscoveryAgentTest.php'
       - 'tests/Support/verify-discovery-batch-multiprocess.php'
       - 'app/Services/DiscoveryPersistenceIdentityService.php'
@@ -129,6 +130,8 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/SourceSnapshotTest.php tests/Feature/SourceRetrievalTest.php
       - name: Validate discovery outcome idempotency on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceChangeDiscoveryIdempotencyTest.php
+      - name: Validate discovery outcome batch consistency on MySQL
+        run: vendor/bin/phpunit tests/Feature/SourceChangeDiscoveryServiceTest.php
       - name: Validate discovery candidate batch failure recovery on MySQL
         run: vendor/bin/phpunit tests/Feature/InstituteDiscoveryAgentTest.php
       - name: Prove candidate batch identity across independent PHP processes on MySQL
