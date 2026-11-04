@@ -3,12 +3,6 @@ name: Read-only offering-gap preflight
 on:
   workflow_dispatch:
     inputs:
-      revision:
-        description: Optional full 40-character commit SHA; defaults to the event commit SHA
-        required: false
-        default: ''
-        type: string
-
       target_sha:
         description: "Exact 40-character SHA of the current main revision."
         required: true
@@ -66,7 +60,7 @@ jobs:
         run: bash scripts/ci/validate-production-dispatch.sh
       - name: Validate requested revision and read-only credentials
         env:
-          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          REQUESTED_REVISION: ${{ inputs.target_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -93,12 +87,12 @@ jobs:
       - name: Checkout exact approved revision
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.revision || github.sha }}
+          ref: ${{ inputs.target_sha }}
           persist-credentials: false
 
       - name: Verify revision and required preflight files
         env:
-          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          REQUESTED_REVISION: ${{ inputs.target_sha }}
         shell: bash
         run: |
           set -euo pipefail
