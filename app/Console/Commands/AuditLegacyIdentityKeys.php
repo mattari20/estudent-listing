@@ -49,6 +49,7 @@ class AuditLegacyIdentityKeys extends Command
 
         return self::SUCCESS;
     }
+
     /**
      * Validate the resolved Laravel connection configuration without opening a PDO
      * connection or issuing a query. APP_ENV alone is not a database safety boundary.
@@ -107,5 +108,4 @@ class AuditLegacyIdentityKeys extends Command
 
         return false;
     }
-
 }
