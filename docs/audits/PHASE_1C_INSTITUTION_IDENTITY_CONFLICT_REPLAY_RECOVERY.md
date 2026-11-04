@@ -84,8 +84,14 @@ The isolated-MySQL process proof starts two independent PHP workers against the 
 - The idempotency identity for operator decisions intentionally includes the reason. A changed reason is a new decision event, not an overwrite.
 - Identity match candidates and conflict event history remain review metadata; this work does not certify the accuracy of source evidence or canonical identity.
 - Project Controller's internal 2/5 inventory remains a separate operational gate. Hostinger/runtime readiness is not inferred from repository CI.
-- Exact final PR-head CI evidence, actual isolated-MySQL logs, merge and post-merge `main` verification remain pending.
+- Final PR #1004 implementation head: b33e95287e377176a0e9c80b9c5eef05214a7157; merged at 54bf5e6b9878080951b521b61a261a233f18322a. Current main was fetched directly and matches the merge commit.
+- Exact final-head Test #41769183222 PASS (865 tests / 3,822 assertions); Laravel CI #41769182981 PASS (same total; Pint format and verification passed for 59 files); Project Controller #41769182984 job PASS (internal inventory 2/5, Hostinger diagnostics blocked); isolated MySQL #41769182903 PASS.
+- Actual MySQL logs confirm migration 2026_11_04_000012, identity feature tests 6 tests / 31 assertions, event-failure rollback, and independent-process identity proof PASS. Two workers converged on one match candidate, one open conflict, one detection event, one identity decision and one audit event; row remained blocked in conflict state.
+- The independent-process proof covers identical decision replay. It does not prove concurrent different actor/reason outcomes; that remains an explicit follow-up coverage gap.
+- Project Controller internal inventory is not production readiness. Hostinger read-only diagnostics remain blocked.
 
 ## Next Phase 1C task
 
-After this phase merges, perform a consolidated **Phase 1C-20 — Discovery-to-Review Persistence Boundary Audit**. Reconcile transaction boundaries and replay outcomes across source snapshot, discovery outcome, candidate batch, identity match, conflict event, review-package artifact and operator decision records. Keep canonical promotion/publication and all production runtime operations outside scope.
+Phase 1C-20 — Discovery-to-Review Persistence Boundary Audit is documented in docs/audits/PHASE_1C_DISCOVERY_TO_REVIEW_PERSISTENCE_BOUNDARY_AUDIT.md. It records the complete lifecycle findings, including the remaining operator transition atomicity, state-guard and snapshot ordering gaps.
+
+The recommended next implementation is Phase 1C-21 — Operator Transition Atomicity and State-Guard Hardening. Do not treat this audit as permission to start implementation before its documentation PR is reviewed and validated. Canonical promotion/publication and all production runtime operations remain separately gated.
