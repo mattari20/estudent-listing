@@ -37,12 +37,12 @@ No automatic backfill, merge, key assignment, historical decision rewrite or can
 
 Current `main` at verification: `92e748f7aeedb25d098775be6ff16abbbda23749` (the PR head is not behind current main).
 
-Final PR head: `f99eb4a350f984c7293e9fee729043c55adb6bde`.
+Validated implementation head: `40b1095185503799c4596af663042a62569ac043`.
 
-- Test run [41833654494](https://github.com/mattari20/estudent-listing/actions/runs/41833654494): passed — 893 tests, 3,949 assertions.
-- Laravel CI run [41833654453](https://github.com/mattari20/estudent-listing/actions/runs/41833654453): passed, including Pint formatting verification for the command and both inventory test files.
-- Project Controller run [41833654439](https://github.com/mattari20/estudent-listing/actions/runs/41833654439): passed.
-- Isolated MySQL run [41833654465](https://github.com/mattari20/estudent-listing/actions/runs/41833654465): passed. The existing inventory command succeeded against the isolated `approval_migration_test` database, and command-level refusal fixtures passed against production/ambiguous configurations.
+- Test run [41834246567](https://github.com/mattari20/estudent-listing/actions/runs/41834246567): passed — 894 tests, 3,951 assertions.
+- Laravel CI run [41834246289](https://github.com/mattari20/estudent-listing/actions/runs/41834246289): passed, including Pint formatting verification for the command and both inventory test files.
+- Project Controller run [41834246267](https://github.com/mattari20/estudent-listing/actions/runs/41834246267): passed.
+- Isolated MySQL run [41834247230](https://github.com/mattari20/estudent-listing/actions/runs/41834247230): passed. The inventory command succeeded against the isolated `approval_migration_test` database; production-host, local production-name, URL override, unknown connection, and alias refusal fixtures passed before the inventory service was called.
 
 IMPLEMENTED and TESTED on the exact PR head. MERGED and PRODUCTION VERIFIED are not claimed.
 
