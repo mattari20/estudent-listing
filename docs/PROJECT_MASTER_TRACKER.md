@@ -2314,7 +2314,7 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 ## Phase 1C — review-package row-set and evidence integrity (2026-11-04)
 
 - Branch: `phase-1c-review-package-integrity`, based on main `e9feccedbb20078c3af24656e6399d55383b6722`.
-- Remediation adds manifest-v3 row-set and evidence-set SHA-256 digests; reloads batch/source/rows under the package lock; rejects evidence not owned by the exact source/snapshot and matching batch identity key when available; and rebuilds stale packages instead of silently reusing them.
+- Remediation adds manifest-v3 row-set and evidence-set SHA-256 digests; reloads batch/source/rows under the package lock; rejects evidence not owned by the exact source/snapshot and matching repository-derived evidence identity key when available; and rebuilds stale packages instead of silently reusing them.
 - Added regression tests for changed rows, changed evidence, cross-snapshot evidence and legacy schema-v2 manifests.
 - Audit: `docs/audits/PHASE_1C_REVIEW_PACKAGE_INTEGRITY.md`.
 - Status: IMPLEMENTED on branch; exact-head Test/Laravel CI/Project Controller/isolated MySQL validation pending. No merge or production verification is claimed. The existing filesystem/database transaction boundary remains; evidence is validated at batch/source/snapshot scope because the current schema has no per-candidate evidence foreign key.
