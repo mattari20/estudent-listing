@@ -155,7 +155,8 @@ Do not delete remaining repository-level `HOSTINGER_SSH_*`, `INSTITUTES_ADMIN_RE
 8. No workflow declares `production-operations` or any other unconfirmed environment.
 9. Ordinary CI retains push/pull-request triggers and remains free of production secrets/SSH actions.
 10. The shared guard enforces event type, main ref, exact current SHA, bounded reason, operation-specific confirmation, and execution from its isolated checkout.
-11. Duplicate job-level `if` conditions cannot silently override a blocked operation.
+11. Workflow-specific concurrency groups and cancellation semantics are retained and regression-tested.
+12. Blocked write-capable/reset jobs have exactly one fail-closed job-level condition, preventing duplicate YAML keys from overriding the block.
 
 The CI suite is intended to run on the dedicated PR. No production workflow was dispatched. No production database or Hostinger operation was performed.
 
