@@ -19,9 +19,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: readonly-reset-inventory
   cancel-in-progress: false
-  queue: max
+
 jobs:
   inventory:
     environment: production-readonly-diagnostics
