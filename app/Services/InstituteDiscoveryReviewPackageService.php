@@ -258,15 +258,23 @@ class InstituteDiscoveryReviewPackageService
             || (string) ($manifest['batch_key'] ?? '') !== (string) $batch->batch_key
             || (int) ($manifest['source_id'] ?? 0) !== (int) $batch->source_id
             || (string) ($manifest['source_type'] ?? '') !== (string) $batch->source_type
+            || (string) ($manifest['entity_type'] ?? '') !== (string) $batch->entity_type
             || (string) ($manifest['snapshot_hash'] ?? '') !== (string) $snapshot->content_hash
+            || ($manifest['canonical_mutations_performed'] ?? null) !== false
+            || ($manifest['automatic_approval_performed'] ?? null) !== false
             || ($manifest['files']['csv'] ?? null) !== 'candidates.csv'
             || ! in_array($manifest['status'] ?? null, ['review_required', 'no_candidates'], true)
             || (int) ($manifest['candidate_count'] ?? -1) !== $batch->rows->count()
-            || ! is_string($manifest['checksums']['candidates_csv_sha256'] ?? null)) {
+            || ! is_string($manifest['checksums']['candidates_csv_sha256'] ?? null)
+            || preg_match('/^[a-f0-9]{64}$/', $manifest['checksums']['candidates_csv_sha256']) !== 1) {
             return null;
         }
         $csv = $disk->get($csvPath);
         if (! is_string($csv) || ! hash_equals($manifest['checksums']['candidates_csv_sha256'], hash('sha256', $csv))) {
+            return null;
+        }
+        $csvRows = preg_split('/\\r\\n|\\n|\\r/', trim($csv));
+        if (! is_array($csvRows) || count($csvRows) !== $batch->rows->count() + 1) {
             return null;
         }
         $expectedStatus = $batch->rows->isEmpty() ? 'no_candidates' : 'review_required';
