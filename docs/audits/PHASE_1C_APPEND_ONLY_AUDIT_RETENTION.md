@@ -1,35 +1,37 @@
-# Phase 1C — Database-enforced append-only audit retention
+# Phase 1C — Append-only audit retention safeguards
 
 Date: 2026-11-04  
 Repository: mattari20/estudent-listing  
 Base: e9feccedbb20078c3af24656e6399d55383b6722
 
-## Scope review
+## Scope
 
-The repository contains immutable decision/event history alongside mutable lifecycle state. The migration treats the following as append-only: security_audit_events, change_events, identity_resolution_decisions, verification_decisions, provenance_review_events, import_reconciliation_events, import_promotion_decisions, import_promotion_events, reverification_events, structured_enrichment_promotion_events, official_source_refresh_events and import_conflict_events.
+The repository contains immutable decision/event history alongside mutable lifecycle state. The migration replaces destructive cascade relationships with restrictive foreign keys for identity-resolution decisions, verification decisions, import reconciliation batch history, import promotion decisions/events, reverification events, structured-enrichment promotion events, import-conflict events and governed execution-run events.
 
-Data-quality events, current import-conflict state, monitoring alerts and monitoring policy/source checkpoints are not made immutable by this change because they carry mutable lifecycle or recovery state. Their audit history is represented by the separate append-only event records where applicable.
+A preflight checks every affected child-to-parent relationship and fails closed if existing orphan history is found. No historical rows are rewritten or deleted.
 
-## Database enforcement implemented
+## Safeguards implemented
 
-- Adds BEFORE UPDATE and BEFORE DELETE triggers for each scoped event/history table on both MySQL and SQLite.
-- Adds BEFORE DELETE parent guards for import rows, import batches, assertions, data-reverification queue rows, enrichment import rows and import conflicts where existing cascade relationships could remove dependent history.
-- Parent deletion is rejected only when retained audit history exists; the guards do not blanket-disable deletion of records with no protected history.
-- The triggers are installed by a new ordered migration and are removed by its down migration.
-- No existing historical rows are rewritten, copied or deleted.
+- Restrictive foreign keys prevent parent deletion from cascading away the listed history records.
+- Eloquent model guards reject updates and deletes for security audit events, verification decisions, provenance review events, import promotion decisions/events, import conflict events, reverification events, structured enrichment promotion events and official source refresh events.
+- Identity-resolution decision records reject deletion and all decision-content changes. A single NULL-to-non-NULL decision_identity_key enrichment is permitted to preserve the existing legacy idempotent replay path; decision, actor, reason and timestamp content remain immutable.
+- Import-reconciliation event rows retain their existing nullable row association semantics; batch deletion is restricted while reconciliation history exists.
+- Mutable operational state (data-quality lifecycle, monitoring checkpoints/alerts, current conflict state and other mutable projections) is not incorrectly classified as immutable event history.
+
+## Why database triggers are not used
+
+The first isolated MySQL validation attempt rejected CREATE TRIGGER with MySQL error 1419 because the CI database account lacks SUPER while binary logging is enabled. A migration requiring trigger-creation privileges would therefore be unsafe to assume on the managed Hostinger database. The trigger-based attempt was replaced with ordinary foreign-key migrations and Eloquent model guards. No privilege escalation or CI MySQL server configuration change was made.
 
 ## Regression coverage
 
-Added tests for security-audit event update/delete rejection, promotion-event update/delete rejection, import-row and import-batch cascade prevention, and transaction rollback. The isolated MySQL workflow now runs the focused test file against MySQL 8.4 in addition to the normal SQLite suite.
+The focused test covers Eloquent update/delete rejection, one-time legacy decision-key enrichment, decision-content immutability, parent-row/batch deletion protection and transaction rollback. The isolated MySQL workflow runs the same focused test against MySQL 8.4.
 
-## Scope limitations
+## Unresolved limitation
 
-The trigger set is a repository-level database enforcement layer for the explicitly listed event tables and known cascade parents. It is not a claim that every table with an audit-like name in the wider application is immutable. Mutable operational state remains mutable. A future schema change introducing new audit/event tables or new cascade paths must extend this inventory and its tests.
+Foreign keys protect retained history from parent cascades, and model guards protect normal Eloquent mutation paths. Direct SQL UPDATE/DELETE against an event table can still bypass Eloquent guards because database triggers could not be installed with the available MySQL privileges. Therefore this package is a partial safeguard, not a claim of fully database-enforced append-only immutability. Full direct-SQL enforcement requires a separately approved database privilege/security design compatible with the actual managed MySQL host. No production access was used to investigate those privileges.
 
-## Safety and status
+## Status and safety
 
-Repository migration and isolated CI only. No production migration, production database access, Hostinger, Artisan production command, deployment or history rewrite was performed.
+IMPLEMENTED: restrictive FK migration and model guards on branch. TESTED: awaits exact-head Test/Laravel CI/Project Controller/isolated MySQL. MERGED and PRODUCTION VERIFIED are not claimed. Direct-SQL event mutation remains an explicit unresolved P1/P2 security limitation pending an approved database-level enforcement mechanism.
 
-IMPLEMENTED on branch. TESTED awaits exact-head Test, Laravel CI, Project Controller and isolated MySQL results. MERGED and PRODUCTION VERIFIED are not claimed.
-
-GCU rows #348–353 and batches #19–23 remain protected. AI extraction and the additional 20 HEC profiles remain disabled. No dummy production data.
+No production migration, database access, Hostinger, Artisan production command, deployment or history rewrite was performed. GCU rows #348–353 and batches #19–23 remain protected. AI extraction and the additional 20 HEC profiles remain disabled. No dummy production data.
