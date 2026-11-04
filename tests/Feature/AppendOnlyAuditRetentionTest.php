@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ImportBatch;
 use App\Models\ImportPromotionEvent;
 use App\Models\ImportRow;
+use App\Models\IdentityResolutionDecision;
 use App\Models\SecurityAuditEvent;
 use Illuminate\Database\QueryException;
 use RuntimeException;
@@ -137,4 +138,35 @@ class AppendOnlyAuditRetentionTest extends TestCase
         $this->assertDatabaseHas('security_audit_events', ['event_type' => 'preexisting_audit_event']);
         $this->assertDatabaseMissing('security_audit_events', ['event_type' => 'rolled_back_audit_event']);
     }
+
+    public function test_identity_decision_allows_only_one_time_legacy_key_enrichment(): void
+    {
+        [$batch, $row] = $this->batchAndRow();
+        $decision = IdentityResolutionDecision::create([
+            'import_row_id' => $row->id,
+            'institution_id' => null,
+            'decision' => 'deferred',
+            'actor_type' => 'system',
+            'reason' => 'historical decision',
+            'decided_at' => now(),
+        ]);
+
+        $decision->update(['decision_identity_key' => hash('sha256', 'legacy-decision-key')]);
+        $this->assertNotNull($decision->fresh()->decision_identity_key);
+
+        try {
+            $decision->update(['reason' => 'rewritten historical reason']);
+            $this->fail('Historical decision content must remain immutable.');
+        } catch (RuntimeException) {
+            $this->assertDatabaseHas('identity_resolution_decisions', [
+                'id' => $decision->id,
+                'reason' => 'historical decision',
+            ]);
+        }
+
+        $this->expectException(RuntimeException::class);
+        $decision->delete();
+    }
+
+
 }
