@@ -127,12 +127,7 @@ class DeploymentHandoffContractTest extends TestCase
     {
         $productionJobs = [];
         foreach (($workflow['jobs'] ?? []) as $name => $job) {
-            $serialized = json_encode($job, JSON_THROW_ON_ERROR);
-            if (str_contains($serialized, 'appleboy/ssh-action')
-                || str_contains($serialized, 'secrets.HOSTINGER_SSH_')
-                || str_contains($serialized, 'secrets.OFFERING_GAP_DB_')
-                || str_contains($serialized, 'secrets.INSTITUTES_DIAGNOSTICS_TOKEN')
-                || str_contains($serialized, 'secrets.INSTITUTES_PRIVATE_REPORTS_TOKEN')) {
+            if ($this->jobHasProductionAccess($job)) {
                 $productionJobs[$name] = $job;
             }
         }
@@ -145,17 +140,10 @@ class DeploymentHandoffContractTest extends TestCase
             $accessIndex = null;
             $guardIndex = null;
             foreach ($steps as $index => $step) {
-                $serialized = json_encode($step, JSON_THROW_ON_ERROR);
-                if ($guardIndex === null && str_contains($serialized, 'scripts/ci/validate-production-dispatch.sh')) {
+                if ($guardIndex === null && str_contains((string) ($step['run'] ?? ''), 'scripts/ci/validate-production-dispatch.sh')) {
                     $guardIndex = $index;
                 }
-                if ($accessIndex === null && (
-                    str_contains($serialized, 'appleboy/ssh-action')
-                    || str_contains($serialized, 'secrets.HOSTINGER_SSH_')
-                    || str_contains($serialized, 'secrets.OFFERING_GAP_DB_')
-                    || str_contains($serialized, 'secrets.INSTITUTES_DIAGNOSTICS_TOKEN')
-                    || str_contains($serialized, 'secrets.INSTITUTES_PRIVATE_REPORTS_TOKEN')
-                )) {
+                if ($accessIndex === null && $this->stepHasProductionAccess($step)) {
                     $accessIndex = $index;
                 }
             }
@@ -163,6 +151,51 @@ class DeploymentHandoffContractTest extends TestCase
             $this->assertNotNull($guardIndex, $name.' dispatch guard missing.');
             $this->assertLessThan($accessIndex, $guardIndex, $name.' guard must run before production access.');
         }
+    }
+
+    private function jobHasProductionAccess(array $job): bool
+    {
+        if ($this->containsProductionSecret($job['env'] ?? [])) {
+            return true;
+        }
+
+        foreach (($job['steps'] ?? []) as $step) {
+            if ($this->stepHasProductionAccess($step)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function stepHasProductionAccess(array $step): bool
+    {
+        if (str_starts_with((string) ($step['uses'] ?? ''), 'appleboy/ssh-action')) {
+            return true;
+        }
+
+        return $this->containsProductionSecret([
+            'env' => $step['env'] ?? [],
+            'with' => $step['with'] ?? [],
+        ]);
+    }
+
+    private function containsProductionSecret(mixed $configuration): bool
+    {
+        $serialized = json_encode($configuration, JSON_THROW_ON_ERROR);
+
+        foreach ([
+            'secrets.HOSTINGER_SSH_',
+            'secrets.OFFERING_GAP_DB_',
+            'secrets.INSTITUTES_DIAGNOSTICS_TOKEN',
+            'secrets.INSTITUTES_PRIVATE_REPORTS_TOKEN',
+        ] as $marker) {
+            if (str_contains($serialized, $marker)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 }
