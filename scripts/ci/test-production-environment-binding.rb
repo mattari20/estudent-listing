@@ -23,7 +23,9 @@ READ_ONLY = {
   'readonly-reset-inventory.yml' => 'production-readonly-diagnostics',
   'step3-candidate-audit.yml' => 'production-readonly-diagnostics',
   'step3-record-level-remediation-audit.yml' => 'production-readonly-diagnostics',
-  'verify-uvas-public-directory.yml' => 'production-readonly-diagnostics'
+  'verify-uvas-public-directory.yml' => 'production-readonly-diagnostics',
+  'institutes-public-monitor.yml' => 'production-readonly-diagnostics',
+  'public-browser-runtime-diagnostics.yml' => 'production-readonly-diagnostics'
 }.freeze
 
 BLOCKED_OPERATIONS = %w[
