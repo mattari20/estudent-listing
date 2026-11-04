@@ -20,9 +20,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: diagnose-hostinger-laravel-path
   cancel-in-progress: false
-  queue: max
+
 jobs:
   diagnose:
     environment: production-readonly-diagnostics
