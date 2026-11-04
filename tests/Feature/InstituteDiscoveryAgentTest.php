@@ -565,7 +565,9 @@ class InstituteDiscoveryAgentTest extends TestCase
             }
         });
 
-        return static fn (): bool => $triggered;
+        return function () use (&$triggered): bool {
+            return $triggered;
+        };
     }
 
 }
