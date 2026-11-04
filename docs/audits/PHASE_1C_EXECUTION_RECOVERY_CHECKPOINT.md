@@ -223,3 +223,8 @@ PR #1011 was strengthened after final acceptance review identified that `import_
 - The new reconciliation-event test proves direct SQL UPDATE/DELETE rejection, row deletion preserving event history with only the nullable row FK set to NULL, and batch deletion rejection.
 
 This resolves the scope gap on the tested code head. The PR remains unmerged because a main push triggers prohibited Hostinger SSH diagnostics. Production trigger presence remains unverified.
+
+
+### Phase 1C-24 documentation-carrier validation rule
+
+PR #1015 carries this checkpoint, the final acceptance audit and the tracker update. Since any change to these documents changes PR #1015's own head, the live PR head and its associated exact-head checks are authoritative; earlier check IDs are historical and must not be reused as evidence for a later head. The final exact-head results are recorded in the PR's latest reconciliation comment and visible in GitHub Checks. PR #1015 remains unmerged under the Hostinger SSH main-push safety hold.

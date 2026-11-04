@@ -2386,3 +2386,8 @@ The earlier 22-trigger/8-test evidence for PR #1011 is superseded by the expande
 - No production DB, migration, privilege, Hostinger or deployment operation was performed.
 
 PR #1011 remains open/unmerged under the main-push Hostinger SSH safety hold. Production trigger presence is not certified.
+
+
+### Phase 1C-24 documentation-carrier validation rule
+
+PR #1015 carries this tracker and the consolidated final audit/checkpoint. Its current head SHA and exact-head workflow results must always be read from the live PR; prior-head run IDs are historical and must not be treated as current after a documentation commit. PR #1015 remains open because merging would trigger the prohibited Hostinger SSH workflow.

@@ -39,7 +39,7 @@ All compare endpoints use current `main` as base and report `behind_by=0`. Exact
 | #1012 | `6496a17a20526910cbf905fa9e377bbdbb79f857` | 12 | Test #41789844641; Laravel #41789844612; Controller #41789844592; MySQL #41789844663 | OPEN; merge blocked |
 | #1013 | `80a33cb2fdf4df4e0d83d3e7f6f212fedb5f9aa1` | 7 | Test #41789877948; Laravel #41789877914; Controller #41789877954; MySQL #41789878008 | OPEN; merge blocked; production inventory not run |
 | #1014 | `7351c2eda62445a9e3836552e53975d5037751f4` | 5 | Test #41789945725; Laravel #41789945742; Controller #41789945746; Command Orchestrator #41789945755 | OPEN; merge blocked |
-| #1015 | `5f7387202ea0703fd031cf845c164f9b29b2928c` | 1 | Test #41790821474; Laravel #41790821470 | OPEN; documentation PR; these checks predate this Phase 1C-24 audit update and must be rerun on the updated final PR head |
+| #1015 | Self-carried documentation PR; read its current exact head and checks from the live PR | — | Current PR-head checks are authoritative on #1015; this audit intentionally does not pin its own check SHA | OPEN; merge blocked |
 
 The older `base_sha` field returned by the PR metadata connector for #1009–#1014 is stale relative to the current base ref. The live compare endpoint is the authority for ancestry: each branch has current main as its merge base and is not behind. The raw open-PR list confirms the actual base ref is `main`.
 
@@ -196,12 +196,11 @@ The MySQL run also passed the configured chronological retrieval, candidate-batc
 
 ### PR #1015 — recovery checkpoint and final documentation
 
-The PR currently updates `docs/audits/PHASE_1C_EXECUTION_RECOVERY_CHECKPOINT.md`. This Phase 1C-24 update adds the consolidated final audit and tracker reconciliation to the same existing PR branch; it does not create a duplicate documentation PR.
+PR #1015 is the existing documentation carrier for `docs/audits/PHASE_1C_EXECUTION_RECOVERY_CHECKPOINT.md`, `docs/audits/PHASE_1C_FINAL_ACCEPTANCE_AUDIT.md` and the Phase 1C-24 tracker reconciliation. No duplicate PR was created.
 
-The prior head `5f7387202ea0703fd031cf845c164f9b29b2928c` passed Test #41790821474 and Laravel CI #41790821470. Those checks predate the Phase 1C-24 documentation commits; the final updated PR head must be revalidated before it can be called tested.
+Because this PR carries the audit that records its own acceptance, its check SHA necessarily changes whenever the audit/checkpoint/tracker is edited. For that reason, this document does not hard-code its own current head or workflow run IDs. Always use the live PR #1015 head SHA and its associated exact-head check runs as the authoritative validation. Earlier head runs are historical only.
 
-**Disposition:** documentation implementation in progress on existing PR #1015; final exact-head checks pending; NOT MERGED.
-
+**Disposition:** documentation implementation is present on the existing PR branch; current exact-head validation is exposed by GitHub on PR #1015; NOT MERGED.
 ## 5. Consolidated Phase 1C acceptance matrix
 
 | # | Original acceptance requirement | Implementation location / PR | Regression proof | Merge state | Final classification / limitation |
@@ -217,7 +216,7 @@ The prior head `5f7387202ea0703fd031cf845c164f9b29b2928c` passed Test #417908214
 | 9 | Legacy NULL identity-key inventory | LegacyIdentityKeyInventoryService, testing-only command and fixture tests; PR #1013 | Test #41789877948; Laravel #41789877914; Controller #41789877954; MySQL #41789878008. | OPEN #1013 | IMPLEMENTED / TESTED in isolated CI; NOT MERGED; PRODUCTION VERIFICATION REQUIRED. |
 | 10 | Command Orchestrator safe command parsing | Parser, workflow and tests; PR #1014 | Test #41789945725; Laravel #41789945742; Controller #41789945746; Command Orchestrator #41789945755; ten parser tests passed. | OPEN #1014 | IMPLEMENTED / TESTED; NOT MERGED; default-branch issue-comment execution still unverified. |
 | 11 | Regression coverage and isolated MySQL validation | Combined test suites and independent PHP-process proofs across PRs #1002–#1013 | Exact-head runs above; #1012 MySQL run #41789844663 includes the prior candidate, review-package, identity, operator, chronology and monitoring suites; #1013 adds inventory; #1011 separately proves MySQL audit triggers. | Individual PR heads tested; no single integrated main head | TESTED per-package; integrated cross-package validation BLOCKED until safe sequential merge. |
-| 12 | Documentation and tracker consistency | Existing checkpoint, new final audit and project tracker; PR #1015 | Prior head Test #41790821474 and Laravel #41790821470 passed; Phase 1C-24 update invalidates those checks and requires final-head rerun. | OPEN #1015 | IMPLEMENTED on PR branch; final exact-head TEST pending; NOT MERGED. |
+| 12 | Documentation and tracker consistency | Existing checkpoint, new final audit and project master tracker; PR #1015 | Current exact-head Test, Laravel CI, Project Controller and isolated MySQL checks are read from live PR #1015; this self-carried audit intentionally avoids pinning its own check SHA. | OPEN #1015 | IMPLEMENTED on PR branch; exact-head TEST status is maintained by the live PR; NOT MERGED. |
 
 ## 6. Production verification requirements
 
@@ -267,7 +266,7 @@ After an authorized safe integration path exists, recheck each exact head, requi
 | Dimension | Status |
 |---|---|
 | IMPLEMENTED | Yes, for the delivered repository packages |
-| TESTED | Yes, on the exact individual PR heads listed; final documentation PR head still requires revalidation after this update |
+| TESTED | Yes, on the exact implementation-code heads listed; for self-carried PR #1015, use the live PR head and its exact-head check suite because any audit edit changes that head |
 | MERGED | Earlier foundation PRs #1002–#1008 are merged; required continuation PRs #1009–#1015 are not merged |
 | PRODUCTION VERIFIED | No |
 | Integrated Phase 1C acceptance | BLOCKED |
