@@ -8,13 +8,14 @@ permissions:
   actions: read
 
 concurrency:
-  group: hostinger-phase-5b18-runtime-only
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
   runtime-diagnostic:
     name: Deliver approved PHP diagnostic and inspect runtime once
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     timeout-minutes: 8
     steps:
       - name: Checkout exact approved main revision
