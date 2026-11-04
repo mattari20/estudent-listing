@@ -21,8 +21,8 @@ NULL values are classified as legacy/unkeyed. This is a report category only; a 
 ## Reproducible read-only implementation
 
 - Added LegacyIdentityKeyInventoryService, which checks schema availability, reports total/keyed/NULL counts and returns a bounded ordered sample of NULL-key row IDs per table.
-- Added institutes:audit-legacy-identity-keys. It refuses to run unless APP_ENV=testing and bounds the sample limit to 1–1000. It does not write keys, change candidate state, merge identities or rewrite decisions.
-- Added LegacyIdentityKeyInventoryTest with isolated test-database fixtures across all seven tables. The test verifies one NULL-key row per table, seven total NULL-key rows and unchanged NULL values after inventory.
+- Added institutes:audit-legacy-identity-keys. It requires APP_ENV=testing and independently inspects the resolved Laravel database connection before calling the inventory service. It accepts only SQLite :memory: or the repository's database/testing.sqlite file, or the exact local GitHub Actions MySQL service tuple (host localhost/127.0.0.1/::1, database approval_migration_test, username approval_ci, GITHUB_ACTIONS=true). It rejects remote hosts, non-test database names, arbitrary MySQL connections, database URL overrides, read/write split configurations and unknown drivers/connections. It also bounds the sample limit to 1–1000. No PDO connection or query is opened during the guard.
+- Added LegacyIdentityKeyInventoryTest with isolated test-database fixtures across all seven tables. It verifies one NULL-key row per table, seven total NULL-key rows and unchanged NULL values after inventory. Command-level cases prove that remote production MySQL, a non-test database on localhost, database URL overrides, and unknown connection names are refused before the inventory service is called; a positive command test uses the explicitly configured isolated test database.
 - Added the focused inventory test to the isolated MySQL workflow.
 
 ## Findings and disposition
@@ -33,6 +33,6 @@ No automatic backfill, merge, key assignment, historical decision rewrite or can
 
 ## Status and safety
 
-IMPLEMENTED on branch. TESTED awaits exact-head Test, Laravel CI, Project Controller and isolated MySQL results. MERGED and PRODUCTION VERIFIED are not claimed.
+IMPLEMENTED on branch. TESTED awaits final exact-head Test, Laravel CI, Project Controller and isolated MySQL results. MERGED and PRODUCTION VERIFIED are not claimed.
 
 No production query or mutation was performed. GCU rows #348–353 and batches #19–23 remain protected. AI extraction and the additional 20 HEC profiles remain disabled. No dummy production data.
