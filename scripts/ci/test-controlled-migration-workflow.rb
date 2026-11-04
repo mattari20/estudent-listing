@@ -16,7 +16,7 @@ inputs = triggers.fetch('workflow_dispatch').fetch('inputs')
   abort "ERROR: #{name} must be a required boolean defaulting false" unless input['required'] == true && input['type'] == 'boolean' && input['default'] == false
 end
 abort 'ERROR: workflow permissions changed unexpectedly' unless workflow.fetch('permissions').fetch('contents') == 'read'
-abort 'ERROR: concurrency protection changed unexpectedly' unless workflow.fetch('concurrency')['group'] == 'controlled-official-source-refresh-migration' && workflow.fetch('concurrency')['cancel-in-progress'] == false
+abort 'ERROR: concurrency protection changed unexpectedly' unless workflow.fetch('concurrency')['group'] == 'estudent-production-access' && workflow.fetch('concurrency')['cancel-in-progress'] == false
 
 job = workflow.fetch('jobs').fetch('migrate')
 step = job.fetch('steps').find { |item| item['name'] == 'Validate target and run guarded migration' }
