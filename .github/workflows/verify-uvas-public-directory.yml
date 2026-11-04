@@ -17,6 +17,7 @@ on:
 concurrency:
   group: estudent-production-access
   cancel-in-progress: false
+  queue: max
 
 permissions:
   contents: read
