@@ -151,12 +151,18 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
             self.assertTrue(any("non-manual triggers" in error for error in errors))
 
     def test_non_workflow_test_file_mentioning_ssh_action_is_not_production_access(self):
-        fixture = ROOT / "scripts" / "ci" / "test-production-workflow-isolation.py"
-        _, events, jobs = parse_workflow(WORKFLOWS / "test.yml")
-        self.assertIsNotNone(fixture)
-        self.assertFalse(any(production_access_kind(job) for job in jobs.values()))
-        self.assertIn("pull_request", events)
-        self.assertIn("push", events)
+        fixture_workflow = {
+            "on": {"pull_request": {}, "push": {"branches": ["main"]}},
+            "jobs": {"test": {"steps": [
+                {"run": "assert the literal text appleboy/ssh-action is rejected in production jobs"}
+            ]}},
+        }
+        self.assertFalse(any(
+            production_access_kind(job)
+            for job in fixture_workflow["jobs"].values()
+        ))
+        self.assertIn("pull_request", fixture_workflow["on"])
+        self.assertIn("push", fixture_workflow["on"])
 
     def test_real_ssh_action_is_detected_as_production_access(self):
         self.assertEqual(
