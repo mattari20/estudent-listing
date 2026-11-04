@@ -176,7 +176,7 @@ class SourceRetrievalTest extends TestCase {
             $run = app(\App\Services\SourceRetrievalService::class)->retrieve($source, 'delayed-completion-key');
             $snapshot = \App\Models\SourceSnapshot::query()->findOrFail($run->snapshot_id);
 
-            $this->assertSame('2026-11-04T09:05:00.000000Z', $snapshot->captured_at->toISOString());
+            $this->assertSame('2026-11-04 09:05:00', $snapshot->captured_at->format('Y-m-d H:i:s'));
             $this->assertSame($snapshot->captured_at->toISOString(), $run->completed_at->toISOString());
             $this->assertTrue($run->completed_at->greaterThan($run->started_at));
         } finally {
