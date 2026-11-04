@@ -61,11 +61,14 @@ class InstituteDiscoveryReviewPackageRecoveryTest extends TestCase
         return [$directory, $directory.'/candidates.csv', $directory.'/manifest.json'];
     }
 
-    private function old(string $path): void
+    private function old(string $absolute): void
     {
-        $absolute = Storage::disk('local')->path($path);
         touch($absolute, now()->subDays(10)->timestamp);
-        touch(dirname($absolute), now()->subDays(10)->timestamp);
+        if (is_dir($absolute)) {
+            touch($absolute, now()->subDays(10)->timestamp);
+        } else {
+            touch(dirname($absolute), now()->subDays(10)->timestamp);
+        }
     }
 
     public function test_interrupted_csv_only_package_is_rebuilt_and_manifest_is_written_last(): void
@@ -305,6 +308,6 @@ class InstituteDiscoveryReviewPackageRecoveryTest extends TestCase
         $this->assertSame($first['csv_path'], $second['csv_path']);
         $this->assertSame(0, $batch->rows()->count());
         $this->assertSame(0, ImportBatch::query()->whereKey($batch->id)->firstOrFail()->rows()->count());
-        $this->assertFileExists($diskPath = Storage::disk('local')->path('institute-discovery-review-packages/.locks/'.hash('sha256', $batch->id.'|'.$snapshot->id).'.lock'));
+        $this->assertFileExists(Storage::disk('local')->path('institute-discovery-review-packages/.locks/'.hash('sha256', $batch->id.'|'.$snapshot->id).'.lock'));
     }
 }
