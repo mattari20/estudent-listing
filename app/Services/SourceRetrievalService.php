@@ -95,7 +95,7 @@ class SourceRetrievalService
         $body = $response->body();
 
         if (! $response->successful()) {
-            return $this->markFailed($run, $httpStatus, $contentType, 'http_status_'.$httpStatus);
+            return $this->markFailed($run, $httpStatus, $contentType, 'HTTP '.$httpStatus);
         }
 
         if (strlen($body) > 5 * 1024 * 1024) {
