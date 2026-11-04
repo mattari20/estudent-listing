@@ -83,6 +83,7 @@ jobs:
           app/Services/SourceChangeDiscoveryService.php
           app/Models/InstituteDiscoveryRunOutcome.php
           tests/Feature/SourceChangeDiscoveryIdempotencyTest.php
+          tests/Feature/SourceChangeDiscoveryServiceTest.php
           app/Services/DiscoveryPersistenceIdentityService.php
           app/Services/InstituteDiscoveryAgentService.php
           app/Services/InstituteIdentityDiscoveryService.php
@@ -159,6 +160,7 @@ jobs:
           app/Services/SourceChangeDiscoveryService.php
           app/Models/InstituteDiscoveryRunOutcome.php
           tests/Feature/SourceChangeDiscoveryIdempotencyTest.php
+          tests/Feature/SourceChangeDiscoveryServiceTest.php
           app/Services/DiscoveryPersistenceIdentityService.php
           app/Services/InstituteDiscoveryAgentService.php
           app/Services/InstituteIdentityDiscoveryService.php
