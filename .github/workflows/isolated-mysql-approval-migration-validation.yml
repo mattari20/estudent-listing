@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/isolated-mysql-approval-migration-validation.yml'
+      - '.github/workflows/laravel-ci.yml'
       - 'database/migrations/**'
       - 'tests/Feature/InstitutionFieldApprovalServiceTest.php'
       - 'tests/Feature/ExecutionLeaseServiceTest.php'
