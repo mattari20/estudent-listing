@@ -121,6 +121,8 @@ This is not a distributed transaction. A successful database transaction does no
 | Same identity conflict replay and event failure rollback | InstituteIdentityPersistenceRecoveryTest | Covered; 6 tests / 31 assertions |
 | Concurrent identical conflict/decision replay | verify-identity-conflict-multiprocess.php | Covered; independent PHP workers converge |
 | Concurrent different resolution actors/reasons | No independent-process race test found | UNVERIFIED |
+| Identity decision audit-event insert failure | Service transaction encloses decision and audit; no targeted audit-insert failure injection test found | Transaction boundary verified by code inspection; rollback behavior UNVERIFIED by focused test |
+| Reject/publication audit insert failure | No transaction/failure-injection tests found for these controller boundaries | Gap confirmed by code inspection; partial state is possible |
 | DB commit failure after filesystem package write | Transactional DB plus orphan cleanup design; no commit-failure proof located | UNVERIFIED as a forced commit failure; recovery relies on orphan reconciliation |
 | Legacy NULL identity keys | Identity decision replay test and nullable unique schema | Decision compatibility covered; comprehensive legacy candidate/conflict mixed-history fixtures are not demonstrated |
 | Operator rejection and publication audit failure | No transaction/failure-injection tests found for these controller boundaries | Gap confirmed by code inspection |
@@ -176,7 +178,7 @@ monitoring_policy_runs and monitoring_policy_run_sources use unsigned IDs and in
 - Candidate batch, evidence, candidate rows and assertions are persisted in a DB transaction under a source row lock; the unique discovery identity keys and MySQL multiprocess proof support identical replay.
 - Discovery outcome persistence is intentionally later than batch persistence. A failed outcome write is recoverable by replaying the same observation/profile identity and reusing the existing completed batch.
 - Conflict creation and conflict resolution include conflict state and event persistence in the same DB transaction. Event failure rollback is covered.
-- Identity decision creation and its promotion audit event share one transaction in IdentityResolutionDecisionService.
+- Identity decision creation and its promotion audit event share one transaction in IdentityResolutionDecisionService. The current focused tests cover identical replay and legacy decision reuse, but do not inject failure into the audit-event insert itself.
 - Canonical institution promotion itself is a DB transaction; the institution is created with candidate status, and row promotion/audit are committed together. Publication is a separate explicit step and must not be conflated with promotion.
 - Review package writes use per-package flock, unique temp files, same-filesystem rename and manifest-last completion. This gives a recoverable filesystem pair on one shared local filesystem, not a MySQL/filesystem distributed transaction.
 - Monitoring alert identities and audit idempotency keys make their individual effects replayable; they do not make the complete monitoring pipeline one transaction.
