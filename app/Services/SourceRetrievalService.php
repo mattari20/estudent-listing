@@ -85,8 +85,6 @@ class SourceRetrievalService
                 'eStudent-SourceMonitor/1.0'
             );
         } catch (Throwable $exception) {
-            // Only the external retrieval boundary is classified as a retrieval
-            // failure. Persist a class-only diagnostic, never the exception message.
             return $this->markFailed($run, null, null, 'retrieval_exception:'.mb_substr(get_class($exception), 0, 120));
         }
 
@@ -102,9 +100,10 @@ class SourceRetrievalService
             return $this->markFailed($run, $httpStatus, $contentType, 'response_too_large');
         }
 
-        // Snapshot persistence and retrieval-run completion are deliberately
-        // outside the network exception boundary. Database/infrastructure errors
-        // propagate so the policy checkpoint remains incomplete and recoverable.
+        // captured_at is the authoritative time at which the successful response
+        // body became an observed snapshot. Persist it once and reuse it when a
+        // retry finds the existing capture key.
+        $capturedAt = now();
         $snapshot = app(SourceSnapshotService::class)->capture(
             $source,
             $body,
@@ -112,6 +111,7 @@ class SourceRetrievalService
             $contentType,
             $response->headers(),
             hash('sha256', 'retrieval-snapshot:v1|'.$run->id),
+            $capturedAt,
         );
 
         $run->update([
@@ -121,7 +121,7 @@ class SourceRetrievalService
             'content_length' => strlen($body),
             'content_hash' => $snapshot->content_hash,
             'snapshot_id' => $snapshot->id,
-            'completed_at' => now(),
+            'completed_at' => $snapshot->captured_at ?? $capturedAt,
             'error_message' => null,
         ]);
 
