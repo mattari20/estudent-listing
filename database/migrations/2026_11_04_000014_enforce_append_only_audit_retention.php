@@ -20,6 +20,19 @@ return new class extends Migration
         'governed_execution_run_events',
     ];
 
+    private const MYSQL_APPEND_ONLY_TABLES = [
+        'security_audit_events',
+        'verification_decisions',
+        'provenance_review_events',
+        'import_promotion_decisions',
+        'import_promotion_events',
+        'reverification_events',
+        'structured_enrichment_promotion_events',
+        'official_source_refresh_events',
+        'import_conflict_events',
+        'governed_execution_run_events',
+    ];
+
     private const SQLITE_PARENT_GUARDS = [
         'import_rows' => [
             'EXISTS (SELECT 1 FROM identity_resolution_decisions WHERE import_row_id = OLD.id)',
@@ -142,6 +155,76 @@ return new class extends Migration
             $table->foreign('run_id', 'governed_run_event_restrict_fk')
                 ->references('id')->on('governed_execution_runs')->restrictOnDelete();
         });
+        $this->installMysqlGuards();
+    }
+
+    private function installMysqlGuards(): void
+    {
+        foreach (self::MYSQL_APPEND_ONLY_TABLES as $table) {
+            $suffix = substr(hash('sha256', $table), 0, 16);
+            $this->createMysqlTriggerIfMissing(
+                'audit_immut_'.$suffix.'_u',
+                $table,
+                'UPDATE',
+                "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Append-only audit history cannot be changed or deleted'"
+            );
+            $this->createMysqlTriggerIfMissing(
+                'audit_immut_'.$suffix.'_d',
+                $table,
+                'DELETE',
+                "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Append-only audit history cannot be changed or deleted'"
+            );
+        }
+
+        $this->createMysqlTriggerIfMissing(
+            'identity_decision_update_guard',
+            'identity_resolution_decisions',
+            'UPDATE',
+            "BEGIN
+                IF NOT (
+                    OLD.decision_identity_key IS NULL AND NEW.decision_identity_key IS NOT NULL
+                    AND OLD.import_row_id <=> NEW.import_row_id
+                    AND OLD.institution_id <=> NEW.institution_id
+                    AND OLD.decision <=> NEW.decision
+                    AND OLD.actor_type <=> NEW.actor_type
+                    AND OLD.actor_id <=> NEW.actor_id
+                    AND OLD.reason <=> NEW.reason
+                    AND OLD.decided_at <=> NEW.decided_at
+                    AND OLD.created_at <=> NEW.created_at
+                ) THEN
+                    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Identity decision history is immutable except one-time key enrichment';
+                END IF;
+            END"
+        );
+        $this->createMysqlTriggerIfMissing(
+            'identity_decision_delete_guard',
+            'identity_resolution_decisions',
+            'DELETE',
+            "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Identity decision history cannot be deleted'"
+        );
+    }
+
+    private function createMysqlTriggerIfMissing(string $name, string $table, string $event, string $body): void
+    {
+        $exists = DB::table('information_schema.TRIGGERS')
+            ->where('TRIGGER_SCHEMA', DB::getDatabaseName())
+            ->where('TRIGGER_NAME', $name)
+            ->exists();
+
+        if (! $exists) {
+            DB::unprepared('CREATE TRIGGER '.$name.' BEFORE '.$event.' ON '.$table.' FOR EACH ROW '.$body);
+        }
+    }
+
+    private function dropMysqlGuards(): void
+    {
+        foreach (self::MYSQL_APPEND_ONLY_TABLES as $table) {
+            $suffix = substr(hash('sha256', $table), 0, 16);
+            DB::unprepared('DROP TRIGGER IF EXISTS audit_immut_'.$suffix.'_u');
+            DB::unprepared('DROP TRIGGER IF EXISTS audit_immut_'.$suffix.'_d');
+        }
+        DB::unprepared('DROP TRIGGER IF EXISTS identity_decision_update_guard');
+        DB::unprepared('DROP TRIGGER IF EXISTS identity_decision_delete_guard');
     }
 
     private function installSqliteGuards(): void
@@ -203,6 +286,8 @@ return new class extends Migration
             }
             return;
         }
+
+        $this->dropMysqlGuards();
 
         Schema::table('governed_execution_run_events', function (Blueprint $table): void {
             $table->dropForeign('governed_run_event_restrict_fk');
