@@ -31,8 +31,22 @@ class IdentityResolutionDecisionService
                 'reason' => $reason,
             ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 
-            $record = IdentityResolutionDecision::firstOrCreate(
-                ['decision_identity_key' => $identityKey],
+            $legacy = IdentityResolutionDecision::query()
+                ->where('import_row_id', $lockedRow->id)
+                ->whereNull('decision_identity_key')
+                ->where('decision', $decision)
+                ->where('institution_id', $institutionId)
+                ->where('actor_type', 'user')
+                ->where('actor_id', $actorId)
+                ->where('reason', $reason)
+                ->first();
+
+            if ($legacy) {
+                $legacy->update(['decision_identity_key' => $identityKey]);
+                $record = $legacy;
+            } else {
+                $record = IdentityResolutionDecision::firstOrCreate(
+                    ['decision_identity_key' => $identityKey],
                 [
                     'import_row_id' => $lockedRow->id,
                     'institution_id' => $institutionId,
@@ -41,8 +55,9 @@ class IdentityResolutionDecisionService
                     'actor_id' => $actorId,
                     'reason' => $reason,
                     'decided_at' => now(),
-                ]
-            );
+                    ]
+                );
+            }
 
             if ($record->wasRecentlyCreated) {
                 app(ImportPromotionAuditService::class)->record(
