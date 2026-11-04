@@ -2134,3 +2134,13 @@ The test is CI-only and must not be represented as production concurrency eviden
 No production DB/SSH/hPanel/Artisan/migration/deployment/cron/worker/backup/restore operation; no source retrieval, candidate staging/approval/import, canonical promotion or publication; no dummy production data. GCU history remains protected. AI extraction and the additional 20 HEC profiles remain disabled. Phase 1B remains closed and frozen.
 
 **Phase 1C closeout: NOT MET. Production readiness: NOT CERTIFIED.**
+
+
+### Phase 1C follow-on — PR #998 and monitoring exception recovery (2026-11-04)
+
+- PR #998 merged at `503c21ca657a81539e8d52059362eddd30dc53fe`; screenshot and GitHub merge record show four checks passed. It adds a bounded independent-PHP-process contention proof against isolated MySQL.
+- Current branch work addresses a further failure boundary: a thrown `SourceMonitoringPipeline` exception previously bypassed policy failure/last-run updates.
+- Added a per-source exception boundary, safe exception-class-only alert/audit diagnostics, a regression test, and MySQL CI coverage.
+- Audit: `docs/audits/PHASE_1C_MONITORING_PIPELINE_EXCEPTION_RECOVERY.md`.
+
+This is a bounded recovery improvement only. Abrupt process death, heartbeat/validation/persistence exceptions, and per-policy durable checkpoints remain open. Exact-head CI is required before merge. Production readiness is still NOT CERTIFIED; no production operations or data changes have occurred.
