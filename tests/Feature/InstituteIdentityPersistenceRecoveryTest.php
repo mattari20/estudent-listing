@@ -12,6 +12,7 @@ use App\Models\ImportRow;
 use App\Models\Institution;
 use App\Services\ImportConflictLifecycleService;
 use App\Services\IdentityResolutionDecisionService;
+use App\Services\ImportPromotionAuditService;
 use App\Services\InstituteIdentityResolver;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -97,7 +98,7 @@ class InstituteIdentityPersistenceRecoveryTest extends TestCase
             'reason' => 'Legacy operator decision.',
             'decided_at' => now(),
         ]);
-        app(\\App\\Services\\ImportPromotionAuditService::class)->record(
+        app(ImportPromotionAuditService::class)->record(
             $row,
             'promotion_approved',
             705,
