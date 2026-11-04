@@ -3,6 +3,10 @@
 
 require "yaml"
 
+def assert_contract(condition, message)
+  abort("GCU qualification workflow contract failed: #{message}") unless condition
+end
+
 workflow_path = File.expand_path("../../.github/workflows/hostinger-gcu-single-source-qualification.yml", __dir__)
 source = File.read(workflow_path)
 workflow = YAML.load_file(workflow_path)
@@ -20,10 +24,6 @@ steps = job.fetch('steps')
 guard_index = steps.index { |step| step.fetch('run', '').include?('scripts/ci/validate-production-dispatch.sh') }
 first_secret_index = steps.index { |step| step.fetch('env', {}).to_s.include?('secrets.HOSTINGER_SSH_') || step.fetch('with', {}).to_s.include?('secrets.HOSTINGER_SSH_') || step.fetch('uses', '').start_with?('appleboy/ssh-action') }
 assert_contract(guard_index && first_secret_index && guard_index < first_secret_index, 'dispatch guard must precede every production SSH credential/action')
-
-def assert_contract(condition, message)
-  abort("GCU qualification workflow contract failed: #{message}") unless condition
-end
 
 assert_contract(source.include?("workflow_dispatch:"), "manual workflow_dispatch trigger is required")
 assert_contract(source.include?('default: false'), "explicit confirmation must default to false")
