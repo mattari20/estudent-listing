@@ -407,7 +407,7 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
     }
 
 
-    public function test_policy_run_checkpoint_insert_failure_prevents_all_source_work(): void
+    public function test_policy_run_checkpoint_insert_failure_rolls_back_interruption_and_prevents_source_work(): void
     {
         $source = Source::create([
             'source_type' => 'official',
@@ -425,10 +425,21 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
             'cadence' => 'daily',
             'consecutive_failures' => 0,
         ]);
+        $previousRunId = DB::table('monitoring_policy_runs')->insertGetId([
+            'source_monitoring_policy_id' => $policy->id,
+            'execution_run_id' => null,
+            'status' => 'running',
+            'started_at' => now()->subMinutes(5),
+            'created_at' => now()->subMinutes(5),
+            'updated_at' => now()->subMinutes(5),
+        ]);
 
-        $checkpoints = Mockery::mock(MonitoringPolicyCheckpointService::class)->makePartial();
-        $checkpoints->shouldReceive('startPolicyRun')->once()->andThrow(new RuntimeException('policy checkpoint insert failed'));
-        $this->app->instance(MonitoringPolicyCheckpointService::class, $checkpoints);
+        DB::connection()->beforeExecuting(function (string $query): void {
+            $sql = strtolower($query);
+            if (str_contains($sql, 'insert into') && str_contains($sql, 'monitoring_policy_runs')) {
+                throw new RuntimeException('policy checkpoint insert failed');
+            }
+        });
         $pipeline = Mockery::mock(SourceMonitoringPipeline::class);
         $pipeline->shouldNotReceive('run');
         $this->app->instance(SourceMonitoringPipeline::class, $pipeline);
@@ -440,7 +451,8 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
             $this->assertSame('policy checkpoint insert failed', $exception->getMessage());
         }
 
-        $this->assertDatabaseCount('monitoring_policy_runs', 0);
+        $this->assertSame('running', DB::table('monitoring_policy_runs')->where('id', $previousRunId)->value('status'));
+        $this->assertDatabaseCount('monitoring_policy_runs', 1);
         $this->assertDatabaseCount('monitoring_policy_run_sources', 0);
     }
 
