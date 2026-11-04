@@ -18,6 +18,8 @@ on:
       - 'app/Services/SourceMonitoringBatchService.php'
       - 'app/Models/SecurityAuditEvent.php'
       - 'tests/Feature/MonitoringAlertsTest.php'
+      - 'tests/Feature/SourceMonitoringBatchRecoveryTest.php'
+      - 'app/Services/SourceMonitoringBatchService.php'
       - 'app/Models/ChangeEvent.php'
       - 'app/Services/SourceChangeEventProjector.php'
       - 'app/Services/SourceChangeDiscoveryService.php'
@@ -113,3 +115,5 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/SourceChangeIntelligenceTest.php
       - name: Validate monitoring alert and audit replay idempotency on MySQL
         run: vendor/bin/phpunit tests/Feature/MonitoringAlertsTest.php
+      - name: Validate monitoring policy recovery after pipeline exceptions on MySQL
+        run: vendor/bin/phpunit tests/Feature/SourceMonitoringBatchRecoveryTest.php
