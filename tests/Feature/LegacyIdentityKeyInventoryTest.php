@@ -205,5 +205,4 @@ class LegacyIdentityKeyInventoryTest extends TestCase
         $this->artisan('institutes:audit-legacy-identity-keys')
             ->assertExitCode(1);
     }
-
 }
