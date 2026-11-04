@@ -154,18 +154,31 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
         $pipeline = Mockery::mock(SourceMonitoringPipeline::class);
         $pipeline->shouldNotReceive('run');
         $this->app->instance(SourceMonitoringPipeline::class, $pipeline);
-        $heartbeats = 0;
 
         try {
-            app(SourceMonitoringBatchService::class)->run($policy->id, function () use (&$heartbeats): void {
-                $heartbeats++;
-                if ($heartbeats === 3) {
-                    throw new RuntimeException('lease ownership lost');
+            app(ExecutionLeaseService::class)->run(
+                'monitoring-policy-heartbeat-loss-test',
+                function ($heartbeat, string $executionRunId) use ($policy): int {
+                    $heartbeats = 0;
+                    $ownedHeartbeat = function () use ($heartbeat, &$heartbeats): void {
+                        $heartbeats++;
+                        if ($heartbeats === 3) {
+                            DB::table('governed_execution_leases')
+                                ->where('task_key', 'monitoring-policy-heartbeat-loss-test')
+                                ->update(['owner_token' => (string) Str::uuid()]);
+                        }
+
+                        $heartbeat();
+                    };
+
+                    app(SourceMonitoringBatchService::class)->run($policy->id, $ownedHeartbeat, $executionRunId);
+
+                    return 0;
                 }
-            });
-            $this->fail('Lost ownership must abort the batch.');
+            );
+            $this->fail('Lost execution ownership must abort the batch.');
         } catch (RuntimeException $exception) {
-            $this->assertSame('lease ownership lost', $exception->getMessage());
+            $this->assertSame('Governed execution lease ownership was lost.', $exception->getMessage());
         }
 
         $this->assertDatabaseHas('monitoring_policy_runs', [
@@ -173,6 +186,13 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
             'status' => 'running',
         ]);
         $this->assertDatabaseCount('monitoring_policy_run_sources', 0);
+        $this->assertDatabaseHas('governed_execution_runs', [
+            'task_key' => 'monitoring-policy-heartbeat-loss-test',
+            'status' => 'failed',
+        ]);
+        $this->assertDatabaseHas('governed_execution_leases', [
+            'task_key' => 'monitoring-policy-heartbeat-loss-test',
+        ]);
     }
 
     public function test_source_checkpoint_insert_failure_prevents_pipeline_execution(): void
