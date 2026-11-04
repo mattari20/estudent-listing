@@ -19,9 +19,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: automated-live-integrity-audit
   cancel-in-progress: false
-  queue: max
+
 jobs:
   audit:
     environment: production-readonly-diagnostics
