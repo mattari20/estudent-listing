@@ -20,9 +20,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: controlled-pakistan-geography-seed
   cancel-in-progress: false
-  queue: max
 jobs:
   seed:
     if: false # blocked until production-operations is owner-authorized and configured
