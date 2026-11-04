@@ -90,8 +90,15 @@ end
 def first_access_index(steps)
   steps.index do |step|
     serialized = YAML.dump(step)
-    serialized.match?(/appleboy\/ssh-action|secrets\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/) ||
+    name = step.is_a?(Hash) ? step.fetch('name', '').to_s : ''
+    # A credential-validation step necessarily references environment secrets.
+    # Do not classify that validation as production access; require it to run
+    # after the dispatch guard and before the first actual SSH/API access.
+    credential_validation = name.match?(/Validate environment-scoped production credentials|Validate requested revision and read-only credentials/)
+    !credential_validation && (
+      serialized.match?(/appleboy\/ssh-action|secrets\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/) ||
       serialized.include?('https://estudent.pk/institutes')
+    )
   end
 end
 def blocked?(job)
@@ -127,15 +134,13 @@ READ_ONLY.each do |filename, expected_environment|
     steps = job.fetch('steps', [])
     gidx = guard_index(steps)
     aidx = first_access_index(steps)
+    credential_idx = steps.index do |step|
+      step.is_a?(Hash) && step.fetch('name', '').to_s.match?(/Validate environment-scoped production credentials|Validate requested revision and read-only credentials/)
+    end
     fail!("#{filename}:#{job_name} is missing executable dispatch guard") unless gidx
     fail!("#{filename}:#{job_name} guard must precede every production credential/access step") if aidx && gidx >= aidx
-    if aidx
-      first_access = YAML.dump(steps[aidx])
-      if first_access.match?(/secrets\.|appleboy\/ssh-action/) &&
-         steps[aidx].fetch('name', '') !~ /Validate environment-scoped production credentials|Validate requested revision and read-only credentials/
-        fail!("#{filename}:#{job_name} must validate environment-scoped credentials before SSH/API access")
-      end
-    end
+    fail!("#{filename}:#{job_name} is missing environment-scoped credential validation") unless credential_idx
+    fail!("#{filename}:#{job_name} must validate environment-scoped credentials after the guard and before SSH/API access") if gidx >= credential_idx || (aidx && credential_idx >= aidx)
     guard = steps[gidx]
     env = guard.fetch('env', {})
     %w[TARGET_SHA OPERATION_REASON CONFIRM_PRODUCTION_OPERATION EXPECTED_CONFIRMATION].each do |key|
