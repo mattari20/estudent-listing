@@ -148,12 +148,11 @@ def validate_production_workflow(document, events):
         name: job for name, job in jobs.items()
         if production_access_kind(job)
     }
-    if not production_jobs:
-        return []
-
     errors = []
     if has_production_access_configuration(access_configuration(document.get("env", {}))):
         errors.append("workflow exposes production credentials at workflow scope")
+    if not production_jobs:
+        return errors
     if set(events) != {"workflow_dispatch"}:
         errors.append(f"production workflow has non-manual triggers: {sorted(events)}")
     dispatch = events.get("workflow_dispatch", {})
@@ -381,7 +380,7 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
                         "TARGET_SHA": "${{ inputs.target_sha }}",
                         "OPERATION_REASON": "${{ inputs.operation_reason }}",
                         "CONFIRM_PRODUCTION_OPERATION": "${{ inputs.confirm_production_operation }}",
-                        "EXPECTED_CONFIRMATION": "AUTHORIZE-PRODUCTION-OPERATION",
+                        "EXPECTED_CONFIRMATION": "AUTHORIZE-MONITORING-MIGRATION",
                      }, "run": "bash scripts/ci/validate-production-dispatch.sh"},
                     {"run": "php artisan migrate --force"},
                 ],
