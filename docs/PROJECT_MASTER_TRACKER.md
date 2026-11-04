@@ -2325,3 +2325,17 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 - Consolidated reconciliation: `docs/audits/PHASE_1C_22_POST_MERGE_RECONCILIATION.md`.
 
 No production access or operation was initiated. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled; no dummy production data.
+
+
+---
+
+## Phase 1C — monitoring checkpoint integrity and direct-caller concurrency (2026-11-04)
+
+- Branch: phase-1c-monitoring-checkpoint-integrity, based on main e9feccedbb20078c3af24656e6399d55383b6722.
+- Added orphan preflight and foreign keys for policy-run → policy/governed-run, source-checkpoint → policy-run/source/retrieval/observation, and alert-identity → active-alert relationships. Historical checkpoint rows are retained with RESTRICT or nullable references as appropriate.
+- Added durable policy-run heartbeat_at; the batch service refreshes it alongside the outer execution lease heartbeat.
+- Direct policy-run starts now lock the policy row, reject an attempt with a heartbeat within 15 minutes, and classify only older non-heartbeating attempts as interrupted.
+- Added direct-caller and heartbeat regression tests plus an independent PHP process MySQL contention proof; extended isolated MySQL workflow.
+- Audit: docs/audits/PHASE_1C_MONITORING_CHECKPOINT_INTEGRITY.md.
+- Status: IMPLEMENTED on branch; exact-head Test/Laravel CI/Project Controller/isolated MySQL evidence pending. No merge or production verification claimed.
+- No production monitoring or data operation. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and extra 20 HEC profiles remain disabled; no dummy production data.
