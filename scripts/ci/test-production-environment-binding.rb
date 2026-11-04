@@ -127,7 +127,7 @@ READ_ONLY.each do |filename, expected_environment|
     end
     phrase = env['EXPECTED_CONFIRMATION'].to_s
     fail!("#{filename}:#{job_name} uses a generic confirmation phrase") if phrase == 'AUTHORIZE-PRODUCTION-OPERATION'
-    fail!("#{filename}:#{job_name} confirmation phrase is not operation-specific") unless phrase.match?(/\\AAUTHORIZE-[A-Z0-9-]{8,}\\z/)
+    fail!("#{filename}:#{job_name} confirmation phrase is not operation-specific") unless phrase.match?(/\AAUTHORIZE-[A-Z0-9-]{8,}\z/)
     fail!("#{filename}:#{job_name} confirmation phrase is reused") if confirmation_phrases.include?(phrase)
     confirmation_phrases << phrase
   end
