@@ -100,10 +100,6 @@ jobs:
     if: false # blocked until production-operations is owner-authorized and configured
     name: Run governed discovery and source monitoring
     needs: [resolve-target, source-refresh-handoff]
-    # Manual and scheduled runs intentionally skip the migration handoff job.
-    # always() prevents that skipped dependency from suppressing discovery, while
-    # the explicit checks preserve the approved-revision and migration-handoff gates.
-    if: ${{ always() && needs.resolve-target.result == 'success' && (github.event_name != 'workflow_run' || needs.source-refresh-handoff.outputs.verified == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
