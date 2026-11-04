@@ -2307,3 +2307,21 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 
 
 - Phase 1C-22 merge gate: PR #1007 changes application and migration paths. A push to main would trigger both Hostinger Read-only Diagnostics (every main push; SSH + public HTTP) and Automated Live Data Integrity Audit (application/database path push; SSH + read-only production Artisan DB report). These workflows were confirmed on the PR #1006 merge push (runs #41778840327 and #41778840448), both failed at their production-facing steps. Phase 1C-22 explicitly prohibits those operations; PR #1007 must remain open until a separately authorized safe workflow-separation path exists. No workflow protections are weakened or bypassed.
+
+
+---
+
+## Phase 1C-22 — post-merge reconciliation (2026-11-04)
+
+**Verified starting and current main SHA for this reconciliation:** `e9feccedbb20078c3af24656e6399d55383b6722`. PR #1007 is closed and merged at that exact commit. The earlier Phase 1C-22 text saying PR #1007 must remain open/draft is historical and is superseded by this section; the earlier pre-merge safety concern is retained as an accurate record of the decision at that time.
+
+- The chronological snapshot audit is present on main: `docs/audits/PHASE_1C_SNAPSHOT_CHRONOLOGICAL_ORDERING.md`.
+- Final documentation-inclusive PR head: `926816c741b06dd872b9d08e227fd493f0199632`.
+- Exact-head Test #41781015854 and Laravel CI #41781016062 passed 887 tests / 3,916 assertions; Pint passed. Project Controller #41781015945 job passed (internal inventory REVIEW_REQUIRED 2/5). Isolated MySQL #41781015956 passed on MySQL 8.4.13, including migration/ledger idempotency, 30 snapshot/retrieval tests / 104 assertions and independent-process chronology proof.
+- Six post-merge repository workflows passed on merge SHA: Test #41781574895, Laravel CI #41781575066, Project Controller #41781574761, Command Orchestrator #41781574890, Public Site Monitor #41781574946 and frontend build #41781574902.
+- Hostinger Read-only Diagnostics #41781574932 and Automated Live Data Integrity Audit #41781574952 failed in their production-facing jobs. These are not repository test failures and are not production readiness passes. No retry, raw-log inspection or production investigation was initiated.
+- Active ruleset #25936221 protects deletion/non-fast-forward and requires `test`; strict required-check policy is false. The separate legacy branch-protection endpoint remains unverified due connector permissions.
+- Statuses are distinct: IMPLEMENTED and TESTED; MERGED at the SHA above; PRODUCTION VERIFIED = NOT VERIFIED.
+- Consolidated reconciliation: `docs/audits/PHASE_1C_22_POST_MERGE_RECONCILIATION.md`.
+
+No production access or operation was initiated. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled; no dummy production data.
