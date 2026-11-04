@@ -193,9 +193,9 @@ BLOCKED_OPERATIONS.each do |filename|
   protected_jobs.each do |job_name, job|
     fail!("#{filename}:#{job_name} is not explicitly fail-closed") unless blocked?(job)
     job_lines = File.read(path).lines
-    job_start = job_lines.index { |line| line.match?(/^  #{Regexp.escape(job_name)}:\\s*$/) }
+    job_start = job_lines.index { |line| line.strip == "#{job_name}:" }
     fail!("#{filename}:#{job_name} job definition was not found") unless job_start
-    job_body = job_lines[(job_start + 1)..].take_while { |line| !line.match?(/^  [A-Za-z0-9_-]+:\\s*$/) }
+    job_body = job_lines[(job_start + 1)..].take_while { |line| !line.match?(/^  [A-Za-z0-9_-]+:[[:space:]]*$/) }
     fail!("#{filename}:#{job_name} must have exactly one job-level if condition") unless job_body.count { |line| line.match?(/^    if:/) } == 1
     fail!("#{filename}:#{job_name} must not bind a production environment while blocked") if job['environment']
   end
