@@ -2,38 +2,42 @@ name: Public Browser Runtime Diagnostics
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - ".github/workflows/public-browser-runtime-diagnostics.yml"
-      - "resources/**"
-      - "routes/**"
-      - "bootstrap/app.php"
-      - "tests/Feature/PublicBrowserRuntimeDiagnosticsContractTest.php"
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/public-browser-runtime-diagnostics.yml"
-      - "resources/**"
-      - "routes/**"
-      - "bootstrap/app.php"
-      - "tests/Feature/PublicBrowserRuntimeDiagnosticsContractTest.php"
-
+    inputs:
+      target_sha:
+        description: "Exact 40-character SHA of the current main revision."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this read-only production HTTP diagnostic."
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type the exact operation-specific confirmation phrase."
+        required: true
+        type: string
 permissions:
   contents: read
 
 concurrency:
-  group: public-browser-runtime-diagnostics
+  group: estudent-production-access
   cancel-in-progress: false
-
+  queue: max
 jobs:
   chromium-runtime:
+    environment: production-readonly-diagnostics
     name: Inspect public page, search, pagination, and JSON errors
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS-PUBLIC-BROWSER"
+        run: bash scripts/ci/validate-production-dispatch.sh
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
