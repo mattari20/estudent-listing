@@ -53,7 +53,7 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
         guard = (ROOT / "scripts/ci/validate-production-dispatch.sh").read_text(encoding="utf-8")
         self.assertIn('GITHUB_EVENT_NAME:-}" == "workflow_dispatch"', guard)
         self.assertIn('GITHUB_REF:-}" == "refs/heads/main"', guard)
-        self.assertIn(r'\[\[ "$target" =~ ^[0-9a-f]{40}$ \]\]', guard)
+        self.assertIn('[[ "$target" =~ ^[0-9a-f]{40}$ ]]', guard)
         self.assertIn('target" == "$GITHUB_SHA"', guard)
         self.assertIn('confirmation" == "$expected"', guard)
         self.assertIn('target" == "$main_sha"', guard)
