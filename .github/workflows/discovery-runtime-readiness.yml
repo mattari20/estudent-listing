@@ -20,9 +20,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: discovery-runtime-readiness
   cancel-in-progress: false
-  queue: max
+
 jobs:
   audit:
     environment: production-readonly-diagnostics
