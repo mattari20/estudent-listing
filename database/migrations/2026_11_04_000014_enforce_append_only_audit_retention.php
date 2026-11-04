@@ -31,6 +31,7 @@ return new class extends Migration
         'structured_enrichment_promotion_events',
         'official_source_refresh_events',
         'import_conflict_events',
+        'import_reconciliation_events',
         'governed_execution_run_events',
     ];
 
