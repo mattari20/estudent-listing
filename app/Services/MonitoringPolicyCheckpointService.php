@@ -125,7 +125,7 @@ class MonitoringPolicyCheckpointService
             $policy->refresh();
             $statePersisted = $failed
                 ? $policy->last_failure_at !== null
-                : $policy->last_success_at !== null && $policy->consecutive_failures === 0;
+                : $policy->last_success_at !== null && (int) $policy->consecutive_failures === 0;
 
             if (! $statePersisted) {
                 throw new RuntimeException('Policy state was not persisted.');
