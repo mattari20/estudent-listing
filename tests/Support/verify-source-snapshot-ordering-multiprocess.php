@@ -8,9 +8,12 @@ use App\Models\SourceRetrievalRun;
 use App\Models\SourceSnapshot;
 use App\Models\SourceSnapshotReconciliationRequest;
 use App\Services\SourceChangeObservationService;
+use App\Services\SourceRetrievalService;
 use App\Services\SourceSnapshotService;
+use App\Services\SourceUrlGuard;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use Throwable;
 
 $root = dirname(__DIR__, 2);
@@ -27,44 +30,36 @@ if (($argv[1] ?? '') === 'worker') {
         usleep(10000);
     }
     if (! is_file($go)) {
-        fwrite(STDERR, "worker barrier timed out\n");
+        fwrite(STDERR, "worker barrier timed out\\n");
         exit(2);
     }
 
     try {
+        Carbon::setTestNow(Carbon::parse($capturedAt));
+        app()->instance(SourceUrlGuard::class, new SourceUrlGuard(
+            static fn (string $host, int $type): array => [['host' => $host, 'type' => 'A', 'ip' => '93.184.216.34']]
+        ));
+        Http::fake([
+            'https://example.test/*' => Http::response($content, 200, ['Content-Type' => 'text/plain']),
+        ]);
         $source = Source::query()->findOrFail((int) $sourceId);
-        $run = SourceRetrievalRun::query()->create([
-            'source_id' => $source->id,
-            'idempotency_key' => $key,
-            'status' => 'started',
-            'started_at' => now(),
-        ]);
-        $snapshot = app(SourceSnapshotService::class)->capture(
-            $source,
-            $content,
-            'https://example.test/multiprocess',
-            'text/plain',
-            [],
-            'snapshot-'.$key,
-            Carbon::parse($capturedAt),
-        );
-        $run->update([
-            'status' => 'completed',
-            'content_hash' => $snapshot->content_hash,
-            'content_length' => $snapshot->content_length,
-            'snapshot_id' => $snapshot->id,
-            'completed_at' => $snapshot->captured_at,
-        ]);
+        $run = app(SourceRetrievalService::class)->retrieve($source, $key);
+        if ($run->status !== 'completed' || ! $run->snapshot_id) {
+            throw new RuntimeException('Mocked concurrent source retrieval did not complete.');
+        }
+        $snapshot = SourceSnapshot::query()->findOrFail($run->snapshot_id);
         $observation = app(SourceChangeObservationService::class)->compare($snapshot);
         fwrite(STDOUT, json_encode([
             'run_id' => $run->id,
             'snapshot_id' => $snapshot->id,
             'previous_snapshot_id' => $observation->previous_snapshot_id,
             'change_state' => $observation->change_state,
-        ], JSON_THROW_ON_ERROR)."\n");
+        ], JSON_THROW_ON_ERROR)."\\n");
+        Carbon::setTestNow();
         exit(0);
     } catch (Throwable $exception) {
-        fwrite(STDERR, $exception::class.': '.$exception->getMessage()."\n");
+        Carbon::setTestNow();
+        fwrite(STDERR, $exception::class.': '.$exception->getMessage()."\\n");
         exit(1);
     }
 }
@@ -221,18 +216,18 @@ try {
     }
 
     // Replaying the same capture identity and comparison must not add history.
-    $bReplay = $snapshots->capture(
-        $source,
-        'B',
-        'https://example.test/multiprocess',
-        'text/plain',
-        [],
-        (string) $b->capture_key,
-        Carbon::parse('2026-11-02 10:00:00'),
-    );
-    if ((int) $bReplay->id !== (int) $b->id) {
-        throw new RuntimeException('Identical snapshot capture replay created a second snapshot.');
+    $bRun = SourceRetrievalRun::query()->where('snapshot_id', $b->id)->firstOrFail();
+    app()->instance(SourceUrlGuard::class, new SourceUrlGuard(
+        static fn (string $host, int $type): array => [['host' => $host, 'type' => 'A', 'ip' => '93.184.216.34']]
+    ));
+    Http::fake(['https://example.test/*' => Http::response('B', 200, ['Content-Type' => 'text/plain'])]);
+    Carbon::setTestNow(Carbon::parse('2026-11-02 10:00:00'));
+    $bReplayRun = app(SourceRetrievalService::class)->retrieve($source, (string) $bRun->idempotency_key);
+    Carbon::setTestNow();
+    if ((int) $bReplayRun->id !== (int) $bRun->id || (int) $bReplayRun->snapshot_id !== (int) $b->id) {
+        throw new RuntimeException('Completed retrieval replay did not reuse its original snapshot.');
     }
+    Http::assertNothingSent();
     $comparisons->compare($b);
     $comparisons->compare($c);
 
