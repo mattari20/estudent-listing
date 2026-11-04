@@ -417,9 +417,13 @@ class InstituteDiscoveryReviewPackageService
                 throw new RuntimeException('Review-package evidence does not belong to the batch source and snapshot.');
             }
 
-            if ($batch->discovery_identity_key !== null
-                && ! hash_equals((string) $batch->discovery_identity_key, (string) $record->discovery_identity_key)) {
-                throw new RuntimeException('Review-package evidence identity does not match the discovery batch.');
+            if ($batch->discovery_identity_key !== null) {
+                $expectedEvidenceKey = app(DiscoveryPersistenceIdentityService::class)
+                    ->evidenceKey((string) $batch->discovery_identity_key);
+
+                if (! hash_equals($expectedEvidenceKey, (string) $record->discovery_identity_key)) {
+                    throw new RuntimeException('Review-package evidence identity does not match the discovery batch.');
+                }
             }
         }
 
