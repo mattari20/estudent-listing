@@ -13,9 +13,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: controlled-hostinger-code-deployment
   cancel-in-progress: false
-  queue: max
 jobs:
   resolve-target:
     name: Resolve approved application-code revision
