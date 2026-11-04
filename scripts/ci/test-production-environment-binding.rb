@@ -39,7 +39,8 @@ BLOCKED_OPERATIONS = %w[
   scheduled-institute-discovery.yml
 ].to_set.freeze
 
-RESET_WORKFLOW = 'secure-institutes-admin-recovery.yml'
+fail!('retired administrator recovery workflow must be absent') if File.exist?(File.join(WORKFLOWS, 'secure-institutes-admin-recovery.yml'))
+pass('obsolete administrator password-reset workflow remains retired')
 
 CONCURRENCY_GROUPS = {
   'controlled-discovery-outcome-migration.yml' => ['controlled-discovery-outcome-migration', false],
@@ -159,7 +160,7 @@ end
 
 pass("#{confirmation_phrases.length} read-only operation confirmations are unique")
 
-(BLOCKED_OPERATIONS + [RESET_WORKFLOW]).each do |filename|
+BLOCKED_OPERATIONS.each do |filename|
   path = File.join(WORKFLOWS, filename)
   fail!("missing blocked production workflow #{filename}") unless File.file?(path)
   workflow = parse_workflow(path)
@@ -175,11 +176,7 @@ pass("#{confirmation_phrases.length} read-only operation confirmations are uniqu
     fail!("#{filename}:#{job_name} job definition was not found") unless job_start
     job_body = job_lines[(job_start + 1)..].take_while { |line| !line.match?(/^  [A-Za-z0-9_-]+:\\s*$/) }
     fail!("#{filename}:#{job_name} must have exactly one job-level if condition") unless job_body.count { |line| line.match?(/^    if:/) } == 1
-    if filename == RESET_WORKFLOW
-      fail!("#{filename}:#{job_name} must use production-reset") unless job['environment'] == 'production-reset'
-    else
-      fail!("#{filename}:#{job_name} must not use a read-only or undeclared operations environment") if job['environment']
-    end
+    fail!("#{filename}:#{job_name} must not bind a production environment while blocked") if job['environment']
   end
   pass("#{filename}: production execution explicitly blocked pending owner authorization")
 end
