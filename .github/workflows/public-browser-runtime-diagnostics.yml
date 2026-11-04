@@ -19,9 +19,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: public-browser-runtime-diagnostics
   cancel-in-progress: false
-  queue: max
 jobs:
   chromium-runtime:
     environment: production-readonly-diagnostics
