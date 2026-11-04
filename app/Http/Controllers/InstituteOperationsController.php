@@ -103,7 +103,7 @@ class InstituteOperationsController {
   $identityDecision=IdentityResolutionDecision::query()->where('import_row_id',$importRow->id)->latest('id')->first();
   $enrichmentDecision=ImportPromotionDecision::query()->where('import_row_id',$importRow->id)->latest('id')->first();
   $history=ImportPromotionEvent::query()->where('import_row_id',$importRow->id)->latest('id')->limit(50)->get();
-  $conflicts=ImportConflict::query()->where('import_row_id',$importRow->id)->latest('id')->get();
+  $conflicts=ImportConflict::query()->with('events')->where('import_row_id',$importRow->id)->latest('id')->get();
   $dependency=$context->build($importRow);
   $parentInstitution = ($importRow->parent_subject_type === Institution::class && $importRow->parent_subject_id)
    ? Institution::query()->find($importRow->parent_subject_id) : null;
