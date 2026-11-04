@@ -116,6 +116,8 @@ def validate_production_workflow(document, events):
             errors.append("production concurrency must queue pending runs")
 
     for name, job in production_jobs.items():
+        if has_production_access_configuration(access_configuration(job.get("env", {}))):
+            errors.append(f"job {name} exposes production credentials at job scope before its guard")
         if job.get("environment") not in {
             "production-readonly-diagnostics",
             "production-operations",
