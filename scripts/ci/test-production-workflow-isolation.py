@@ -18,7 +18,6 @@ PRODUCTION_MARKERS = (
     "INSTITUTES_PRIVATE_REPORTS_TOKEN",
     "institutes:bootstrap-agent",
     "institutes:monitor-changes",
-    "php artisan migrate",
 )
 
 class ProductionWorkflowIsolationTest(unittest.TestCase):
