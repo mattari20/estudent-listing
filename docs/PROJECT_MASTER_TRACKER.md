@@ -2217,17 +2217,35 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 
 ### Phase 1C-18 — review-package filesystem recovery and orphan reconciliation (2026-11-04)
 
-- Baseline verified: \`main\` exactly \`25024ebfb4e31563590e46819a3a4dba50c01511\`; PR #1002 merge and its final exact-head workflows/logs reconciled above.
-- Implementation branch: \`fix/phase-1c-18-review-package-filesystem-recovery\`.
-- Reworking private package generation to use per-batch/snapshot filesystem locks, atomic temporary-file replacement, manifest-last completion semantics and strict package/schema/batch/snapshot/source/checksum validation.
-- Reworking orphan reconciliation to default to dry-run, require explicit \`--apply\`, enforce a configurable grace period (default 90 days; minimum 24 hours), preserve every existing DB batch, reject unknown files/symlinks/path escapes and serialize cleanup with generation.
-- Added feature coverage for interrupted/incomplete pairs, checksum and identity corruption, incomplete batches, orphan dry-run/apply, stale temporary artifacts, valid/recent package preservation, unknown files, symlink protection, source mismatch and replay.
-- Added an isolated-MySQL independent-process package writer test and extended Test/Laravel CI/Project Controller/isolated MySQL validation paths.
-- Audit: \`docs/audits/PHASE_1C_REVIEW_PACKAGE_FILESYSTEM_RECOVERY.md\`.
-- Exact final PR-head validation and merge are pending. Do not treat Phase 1C-18 as complete until all required checks pass on the final documentation-inclusive head and merged \`main\` is verified.
+- Baseline verified: `main` exactly `25024ebfb4e31563590e46819a3a4dba50c01511`; PR #1002 merge and final workflow logs reconciled.
+- PR #1003 merged successfully at `86ded5d52cbc6a329ae4559919e7da5111876b20`; final PR head `efc0b941c05030f30898116ea42793ce90c9a659`. Verified `main` matched the merge commit.
+- Final PR-head merge-candidate SHA: `9938a985d210ad15ed9fb28fd6a8ef7deb2748b5` (the synthetic pull-request merge commit containing the exact PR head).
+- Final workflow evidence:
+  - Test #41763539460 — PASS, 859 tests / 3,791 assertions.
+  - Laravel CI #41763539432 — PASS, 859 tests / 3,791 assertions; Pint and formatting verification passed.
+  - Project Controller #41763539440 — job PASS; internal inventory remained 2/5, with Hostinger diagnostics and open-PR review gates blocked. Not a production-readiness certification.
+  - Isolated MySQL #41763539457 — PASS; review-package tests 17 tests / 57 assertions, multiprocess writer/cleanup proof passed.
+- Actual logs confirm two independent package writers reused one package identity and the cleanup process shared the package lock. No candidate database rows were changed.
+- Implementation uses deterministic package identity, per-package locking, atomic temporary file replacement, manifest-last completion, strict package/schema/batch/snapshot/source/checksum validation, dry-run-first orphan cleanup, explicit `--apply`, a 90-day default grace period (24-hour minimum), and fail-closed symlink/unknown-file handling.
+- Audit: `docs/audits/PHASE_1C_REVIEW_PACKAGE_FILESYSTEM_RECOVERY.md`.
+- No production operation, cleanup, migration or database access; GCU rows #348–353 and batches #19–23 protected; AI extraction and additional 20 HEC profiles remain disabled; no dummy data.
+
+### Phase 1C-19 — institution identity conflict and resolution replay recovery (2026-11-04)
+
+- Baseline verified from `main` at Phase 1C-19 start: `86ded5d52cbc6a329ae4559919e7da5111876b20`, exactly Phase 1C-18 PR #1003's merge commit.
+- Focused branch: `fix/phase-1c-19-identity-conflict-replay`.
+- Hardening identity match persistence with a deterministic unique key and import-row locking; conflict detection now uses deterministic conflict identities and preserves blocking row state on replay.
+- Added append-only `import_conflict_events` for detection and resolution history. Conflict resolution locks both row and conflict; identical retries are idempotent and different attempts cannot overwrite an existing resolution.
+- Added deterministic idempotency for operator identity decisions; identical submissions reuse the decision and audit event, while materially different reasons remain distinct history.
+- Added feature tests for resolver replay, conflict identity uniqueness, immutable conflict resolution, transaction rollback on event failure, and identity decision replay.
+- Added an independent-PHP-process MySQL proof for concurrent resolver and decision attempts.
+- Updated Laravel CI formatting paths and isolated-MySQL recovery steps. Production remains outside scope.
+- Audit: `docs/audits/PHASE_1C_INSTITUTION_IDENTITY_CONFLICT_REPLAY_RECOVERY.md`.
+- First complete validation on PR head `43fd6c14712e452f97a7f926be846e99a51c9a01` (merge candidate `11adef8959ec8b505eb4c3f3d59dbea17a947ab6`): Test #41768530553 PASS (865 tests / 3,822 assertions); Laravel CI #41768530539 PASS (same test total); Isolated MySQL #41768530572 PASS (identity/conflict tests 6 tests / 31 assertions and independent-process resolver/decision proof PASS); Project Controller #41768530567 workflow PASS but internal Hostinger/open-PR/tracker gates remain blocked; automatic public browser diagnostics #41768530533 PASS with valid HTTP 200 JSON and zero institutions.
+- A CI follow-up adds the new PHP files to the explicit Pint verification list. Final documentation-inclusive PR-head rerun is required before merge.
 
 ### Next Phase 1C engineering task
 
-- After Phase 1C-18 passes and merges, continue with **institution identity conflict/resolution persistence under replay and concurrent attempts**: inspect conflict creation/resolution history, establish durable uniqueness and state transitions, add failure-injection/replay tests and independent-process MySQL concurrency coverage.
+- After Phase 1C-19 passes and merges, continue with **Phase 1C-20 — Discovery-to-Review Persistence Boundary Audit**: reconcile transaction boundaries and replay outcomes across source snapshots, discovery outcomes, candidate batches, identity matches, conflict events, review-package artifacts and operator decisions.
 - Phase 1C remains IN PROGRESS. Production scheduler/worker/runtime evidence and production-readiness certification remain separate gates.
 - Protected data unchanged: GCU rows #348–353 and batches #19–23; AI extraction and additional 20 HEC profiles remain disabled. No production operations or dummy data.
