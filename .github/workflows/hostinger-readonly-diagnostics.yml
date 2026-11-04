@@ -9,8 +9,6 @@ on:
         type: string
         default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
 
-permissions:
-    inputs:
       target_sha:
         description: "Exact 40-character SHA of the current main revision."
         required: true
@@ -20,11 +18,11 @@ permissions:
         required: true
         type: string
       confirm_production_operation:
-        description: "Type the exact authorization phrase shown in this workflow's validation step."
+        description: "Type AUTHORIZE-READONLY-DIAGNOSTICS to proceed after environment approval."
         required: true
         type: string
+permissions:
   contents: read
-
 concurrency:
   group: estudent-production-access
   cancel-in-progress: false
