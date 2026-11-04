@@ -56,7 +56,7 @@ def flatten(value):
 
 
 def access_configuration(value):
-    """Return action/secret configuration only; ignore run scripts and labels."""
+    """Retain executable run scripts; ignore only descriptive labels."""
     if isinstance(value, dict):
         return {
             key: access_configuration(item)
