@@ -2325,3 +2325,17 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 - Consolidated reconciliation: `docs/audits/PHASE_1C_22_POST_MERGE_RECONCILIATION.md`.
 
 No production access or operation was initiated. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled; no dummy production data.
+
+
+---
+
+## Phase 1C — database-enforced append-only audit retention (2026-11-04)
+
+- Branch: phase-1c-append-only-audit-retention, based on main e9feccedbb20078c3af24656e6399d55383b6722.
+- Replaced cascade foreign keys with RESTRICT constraints for identity decisions, verification decisions, import reconciliation batches, import promotion decisions/events, reverification events, structured enrichment events, import conflict events and governed execution-run events; an orphan preflight fails closed.
+- Added Eloquent mutation guards for scoped immutable event/decision models. Identity decisions permit only one-time NULL-to-key enrichment for the existing replay path; decision content remains immutable.
+- MySQL CI rejected CREATE TRIGGER with error 1419 because the account lacks SUPER under binary logging. Triggers were removed rather than requiring unverified Hostinger privileges. Direct SQL mutation still bypasses model guards and remains an explicit unresolved database-enforcement limitation.
+- Added regression coverage for model mutation, FK parent-deletion protection, legacy key enrichment and transaction rollback; extended isolated MySQL validation.
+- Audit: docs/audits/PHASE_1C_APPEND_ONLY_AUDIT_RETENTION.md.
+- Status: IMPLEMENTED on branch; exact-head Test/Laravel CI/Project Controller/isolated MySQL validation pending. No merge or production verification claimed.
+- No production operation. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and extra 20 HEC profiles remain disabled; no dummy production data.

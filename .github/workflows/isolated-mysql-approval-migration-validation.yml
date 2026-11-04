@@ -6,6 +6,7 @@ on:
       - '.github/workflows/isolated-mysql-approval-migration-validation.yml'
       - '.github/workflows/laravel-ci.yml'
       - 'database/migrations/**'
+      - 'tests/Feature/AppendOnlyAuditRetentionTest.php'
       - 'tests/Feature/InstitutionFieldApprovalServiceTest.php'
       - 'tests/Feature/ExecutionLeaseServiceTest.php'
       - 'tests/Support/verify-execution-lease-multiprocess.php'
@@ -105,6 +106,7 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=20
+          --log-bin-trust-function-creators=1
     env:
       APP_ENV: testing
       APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
@@ -189,3 +191,5 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/MonitoringAlertsTest.php
       - name: Validate monitoring policy recovery and durable checkpoints on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceMonitoringBatchRecoveryTest.php
+      - name: Validate append-only audit retention on MySQL
+        run: vendor/bin/phpunit tests/Feature/AppendOnlyAuditRetentionTest.php
