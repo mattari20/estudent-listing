@@ -63,6 +63,25 @@ class InstituteIdentityPersistenceRecoveryTest extends TestCase
         $this->assertSame(2, ImportConflictEvent::query()->where('import_conflict_id', $conflict->id)->count());
     }
 
+    public function test_identity_decision_replay_is_idempotent_but_distinct_decisions_remain_history(): void
+    {
+        [$row, , $institution] = $this->identityRows();
+        $service = app(IdentityResolutionDecisionService::class);
+
+        $first = $service->record($row, 704, 'approved_match', $institution->id, 'Reviewed official identity evidence.');
+        $replay = $service->record($row, 704, 'approved_match', $institution->id, 'Reviewed official identity evidence.');
+
+        $this->assertSame($first->id, $replay->id);
+        $this->assertSame(1, IdentityResolutionDecision::query()->where('import_row_id', $row->id)->count());
+        $this->assertSame(1, ImportPromotionEvent::query()->where('import_row_id', $row->id)->where('decision_type', 'identity_resolution')->count());
+        $this->assertNotEmpty($first->decision_identity_key);
+
+        $changedDecision = $service->record($row, 704, 'approved_match', $institution->id, 'A later review added further official evidence.');
+        $this->assertNotSame($first->id, $changedDecision->id);
+        $this->assertSame(2, IdentityResolutionDecision::query()->where('import_row_id', $row->id)->count());
+        $this->assertSame(2, ImportPromotionEvent::query()->where('import_row_id', $row->id)->where('decision_type', 'identity_resolution')->count());
+    }
+
     public function test_resolution_event_failure_rolls_back_conflict_and_row_state(): void
     {
         [$row] = $this->identityRows();
