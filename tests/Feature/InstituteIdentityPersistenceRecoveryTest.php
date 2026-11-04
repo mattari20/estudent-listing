@@ -3,12 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\IdentityMatchCandidate;
+use App\Models\IdentityResolutionDecision;
 use App\Models\ImportBatch;
 use App\Models\ImportConflict;
 use App\Models\ImportConflictEvent;
+use App\Models\ImportPromotionEvent;
 use App\Models\ImportRow;
 use App\Models\Institution;
 use App\Services\ImportConflictLifecycleService;
+use App\Services\IdentityResolutionDecisionService;
 use App\Services\InstituteIdentityResolver;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -94,6 +97,15 @@ class InstituteIdentityPersistenceRecoveryTest extends TestCase
             'reason' => 'Legacy operator decision.',
             'decided_at' => now(),
         ]);
+        app(\\App\\Services\\ImportPromotionAuditService::class)->record(
+            $row,
+            'promotion_approved',
+            705,
+            'Legacy operator decision.',
+            ['decision' => 'approved_match'],
+            'identity_resolution',
+            $legacy->id
+        );
 
         $replayed = app(IdentityResolutionDecisionService::class)->record(
             $row,
