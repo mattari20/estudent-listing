@@ -14,7 +14,6 @@ use App\Services\SourceUrlGuard;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
-use Throwable;
 
 $root = dirname(__DIR__, 2);
 
