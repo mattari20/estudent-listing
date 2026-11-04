@@ -82,6 +82,10 @@ jobs:
           app/Services/SourceChangeEventProjector.php
           tests/Feature/SourceChangeIntelligenceTest.php
           database/migrations/2026_11_03_000006_add_change_event_source_link_identity.php
+          app/Services/SourceChangeReverificationService.php
+          database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php
+          app/Services/SourceChangeReverificationService.php
+          database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php
 
       - name: Verify formatted discovery files
         run: >-
