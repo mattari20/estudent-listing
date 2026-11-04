@@ -7,6 +7,7 @@ use App\Models\ImportPromotionEvent;
 use App\Models\ImportRow;
 use App\Models\SecurityAuditEvent;
 use Illuminate\Database\QueryException;
+use RuntimeException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -49,8 +50,8 @@ class AppendOnlyAuditRetentionTest extends TestCase
             'description' => 'immutable event',
         ]);
 
-        $this->expectException(QueryException::class);
-        DB::table('security_audit_events')->where('id', $event->id)->update(['description' => 'rewritten']);
+        $this->expectException(RuntimeException::class);
+        $event->update(['description' => 'rewritten']);
     }
 
     public function test_security_audit_event_cannot_be_deleted(): void
@@ -61,8 +62,8 @@ class AppendOnlyAuditRetentionTest extends TestCase
             'description' => 'retained event',
         ]);
 
-        $this->expectException(QueryException::class);
-        DB::table('security_audit_events')->where('id', $event->id)->delete();
+        $this->expectException(RuntimeException::class);
+        $event->delete();
     }
 
     public function test_promotion_event_cannot_be_updated_or_deleted(): void
@@ -77,14 +78,14 @@ class AppendOnlyAuditRetentionTest extends TestCase
         ]);
 
         try {
-            DB::table('import_promotion_events')->where('id', $event->id)->update(['event_type' => 'rewritten']);
-            $this->fail('Audit event updates must be rejected by the database.');
-        } catch (QueryException) {
+            $event->update(['event_type' => 'rewritten']);
+            $this->fail('Audit event updates must be rejected by the model guard.');
+        } catch (RuntimeException) {
             $this->assertDatabaseHas('import_promotion_events', ['id' => $event->id, 'event_type' => 'approved']);
         }
 
-        $this->expectException(QueryException::class);
-        DB::table('import_promotion_events')->where('id', $event->id)->delete();
+        $this->expectException(RuntimeException::class);
+        $event->delete();
     }
 
     public function test_parent_row_and_batch_deletion_cannot_cascade_away_audit_history(): void
