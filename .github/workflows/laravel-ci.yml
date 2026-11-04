@@ -70,6 +70,7 @@ jobs:
           database/migrations/2026_11_03_000003_add_source_retrieval_idempotency_key.php
           app/Services/SourceMonitoringBatchService.php
           app/Services/MonitoringPolicyCheckpointService.php
+          app/Services/MonitoringPolicyStateService.php
           app/Console/Commands/MonitorSourceChanges.php
           database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php
           tests/Feature/SourceMonitoringBatchRecoveryTest.php
@@ -91,6 +92,7 @@ jobs:
           app/Services/MonitoringAuditService.php
           app/Services/SourceMonitoringBatchService.php
           app/Services/MonitoringPolicyCheckpointService.php
+          app/Services/MonitoringPolicyStateService.php
           app/Console/Commands/MonitorSourceChanges.php
           database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php
           tests/Feature/SourceMonitoringBatchRecoveryTest.php
@@ -104,6 +106,7 @@ jobs:
           app/Services/MonitoringAuditService.php
           app/Services/SourceMonitoringBatchService.php
           app/Services/MonitoringPolicyCheckpointService.php
+          app/Services/MonitoringPolicyStateService.php
           app/Console/Commands/MonitorSourceChanges.php
           database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php
           tests/Feature/SourceMonitoringBatchRecoveryTest.php
