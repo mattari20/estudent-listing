@@ -11,7 +11,7 @@ triggers = workflow['on'] || workflow[true]
 abort 'FAIL: discovery must use workflow_dispatch only; automatic schedule/workflow_run handoffs are prohibited' unless triggers.is_a?(Hash) && triggers.keys == ['workflow_dispatch']
 
 inputs = triggers.fetch('workflow_dispatch').fetch('inputs')
-%w[target_sha operation_reason confirm_production_operation].each do |name|
+%w[target_sha operation_reason confirm_production_operation confirm_discovery].each do |name|
   abort "FAIL: required dispatch input #{name} is missing" unless inputs.fetch(name)['required'] == true
 end
 
@@ -24,6 +24,10 @@ steps = discover.fetch('steps')
 guard_index = steps.index { |step| step.fetch('run', '').include?('scripts/ci/validate-production-dispatch.sh') }
 ssh_index = steps.index { |step| step.fetch('uses', '').start_with?('appleboy/ssh-action') }
 abort 'FAIL: dispatch guard must run before the production SSH action' unless guard_index && ssh_index && guard_index < ssh_index
+guard = steps.fetch(guard_index)
+guard_env = guard.fetch('env', {})
+abort 'FAIL: discovery guard must bind the dedicated confirmation input' unless guard_env['OPERATION_CONFIRMATION'] == '${{ inputs.confirm_discovery }}'
+abort 'FAIL: discovery guard must require the exact operation-specific phrase' unless guard_env['EXPECTED_OPERATION_CONFIRMATION'] == 'AUTHORIZE-GOVERNED-INSTITUTE-DISCOVERY'
 
 required = {
   'explicit dependencies include revision resolver and verified handoff' =>
@@ -47,4 +51,4 @@ end
 abort "#{failed.length} discovery workflow contract check(s) failed" unless failed.empty?
 
 puts 'PASS: discovery has no automatic push, pull-request, schedule, or workflow_run trigger'
-puts 'PASS: exact-SHA dispatch guard and protected production environment precede SSH'
+puts 'PASS: exact-SHA and discovery-specific authorization guard precede SSH'
