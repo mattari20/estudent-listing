@@ -2267,3 +2267,16 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 - Production readiness remains a separate gate. Hostinger read-only diagnostics remain blocked (run 41763809883); no production access or mutation was performed.
 - Protected data unchanged: GCU rows #348–353 and batches #19–23; AI extraction and additional 20 HEC profiles remain disabled. No dummy production data.
 
+
+
+### Phase 1C-21 — operator transition atomicity and state-guard hardening (2026-11-04)
+
+- Execution recovery: the previous local `git clone` failure was reproduced as DNS resolution failure in the ChatGPT local container. The latest Project Controller run `41771644665` actually checked out the expected main SHA successfully; there was no failed Phase 1C-21A Project Controller checkout run.
+- Recovered full Git history through a temporary GitHub-hosted export workflow. Run `41774288577`, job `126390899600`, verified clean checkout SHA `8aa2ee2416b2729d05afd249961085b888b61910`, ran `git fsck --full`, created and verified a Git bundle, and uploaded artifact `13296003161`. The downloaded bundle was verified and checked out locally at the exact SHA with a clean tree and 1,350 tracked files.
+- Implementation adds a shared transactional operator transition service; institution rejection uses `IdentityResolutionDecisionService`; identity decisions enforce the candidate-state guard under row lock; quick approval, enrichment decisions, bulk rejection/approval, enrichment/geography promotion and institution publication now use locked transaction boundaries. Institution promotion reloads/locks its row and decision; existing reversal transaction is retained.
+- Added `tests/Feature/OperatorTransitionAtomicityTest.php` for six requested failure boundaries plus replay/state/conflict guards. Added `tests/Support/verify-operator-transition-multiprocess.php` for independent-process MySQL rejection, competing decision, candidate-state, publication and audit-failure/retry proofs. Updated Laravel CI Pint paths and isolated MySQL workflow steps.
+- Audit: `docs/audits/PHASE_1C_OPERATOR_TRANSITION_ATOMICITY.md`.
+- Local PHP syntax and workflow YAML parsing passed; local PHP is 8.4.24 while the project requires PHP 8.5, and local Composer/MySQL/Docker are unavailable. Full validation is therefore pending GitHub-hosted PHP 8.5/MySQL 8.4 CI.
+- PR and exact final-head Test/Laravel CI/Pint/Project Controller/isolated MySQL results are pending. Do not merge before all required exact-head checks pass. This entry does not claim Phase 1C-21 complete.
+- Remaining P1: chronological snapshot predecessor ordering from Phase 1C-20. Remaining P2: review-package row-set/evidence binding, database-enforced append-only audit retention, retrieval finalization failure proof, monitoring FK/direct concurrency assumptions and legacy NULL-key inventory.
+- Safety: no production operation or data access; GCU rows #348–353 and batches #19–23 remain protected; AI extraction and additional 20 HEC profiles remain disabled; no dummy production data. Phase 1C remains IN PROGRESS; Phase 1C-22 not started.
