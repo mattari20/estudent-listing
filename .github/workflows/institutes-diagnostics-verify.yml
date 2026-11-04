@@ -20,9 +20,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: institutes-protected-diagnostics-verification
   cancel-in-progress: false
-  queue: max
 jobs:
   verify-protected-diagnostics:
     environment: production-readonly-diagnostics
