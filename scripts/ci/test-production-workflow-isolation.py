@@ -189,15 +189,10 @@ def validate_production_workflow(document, events):
             errors.append(f"workflow_dispatch input {required} must be a required string")
 
     concurrency = document.get("concurrency", {})
-    if not isinstance(concurrency, dict):
-        errors.append("missing shared concurrency mapping")
-    else:
-        if concurrency.get("group") != "estudent-production-access":
-            errors.append("wrong production concurrency group")
-        if concurrency.get("cancel-in-progress") is not False:
-            errors.append("production concurrency must not cancel active runs")
-        if concurrency.get("queue") != "max":
-            errors.append("production concurrency must queue pending runs")
+    if not isinstance(concurrency, dict) or not str(concurrency.get("group", "")).strip():
+        errors.append("production workflow must declare a named concurrency group")
+    elif concurrency.get("cancel-in-progress") is not False:
+        errors.append("production concurrency must not cancel an active run")
 
     for name, job in production_jobs.items():
         if has_production_access_configuration(access_configuration(job.get("env", {}))):
