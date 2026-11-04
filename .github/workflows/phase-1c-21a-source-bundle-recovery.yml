@@ -1,0 +1,52 @@
+name: Phase 1C-21A Verified Source Bundle Recovery
+
+on:
+  push:
+    branches:
+      - recovery/phase-1c-21a-source-bundle
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    name: Verify exact source and export Git bundle
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact repository history
+        uses: actions/checkout@v4
+        with:
+          ref: 8aa2ee2416b2729d05afd249961085b888b61910
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify source revision and repository integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="8aa2ee2416b2729d05afd249961085b888b61910"
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$expected"
+          test -z "$(git status --porcelain)"
+          git fsck --full
+          git bundle create "$RUNNER_TEMP/estudent-listing.bundle" --all
+          git bundle verify "$RUNNER_TEMP/estudent-listing.bundle"
+          git bundle list-heads "$RUNNER_TEMP/estudent-listing.bundle"
+          {
+            printf 'repository=mattari20/estudent-listing\n'
+            printf 'expected_sha=%s\n' "$expected"
+            printf 'actual_sha=%s\n' "$actual"
+            printf 'working_tree=clean\n'
+            printf 'git_fsck=passed\n'
+            printf 'bundle_verify=passed\n'
+          } > "$RUNNER_TEMP/source-verification.txt"
+
+      - name: Upload verified repository bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-1c-21a-verified-source-bundle
+          path: |
+            ${{ runner.temp }}/estudent-listing.bundle
+            ${{ runner.temp }}/source-verification.txt
+          if-no-files-found: error
+          retention-days: 3
