@@ -45,23 +45,15 @@ The older `base_sha` field returned by the PR metadata connector for #1009–#10
 
 ## 3. Production-facing workflow gate
 
-### 3.1 Workflow definitions inspected
+### 3.1 Historical workflow definitions before PR #1017 (superseded)
 
-`.github/workflows/hostinger-readonly-diagnostics.yml`:
+At the previous main baseline, `hostinger-readonly-diagnostics.yml` ran on pushes/schedule and `automated-live-integrity-audit.yml` ran on selected pushes/schedule. Those historical triggers explain the earlier integration hold and the recorded failed production-facing runs below. This subsection is historical; it is not the current main policy.
 
-- Runs on every push to `main`, on a six-hour schedule, and on manual dispatch.
-- Uses `appleboy/ssh-action@v1.2.0`.
-- Connects using the Hostinger SSH secrets and runs remote PHP/Laravel diagnostics.
+### 3.1A Current main workflow trigger verification after PR #1017
 
-`.github/workflows/automated-live-integrity-audit.yml`:
+On current main `7cd152e0626082ca112192b529f3148e68d1d960`, the inspected definitions for `hostinger-readonly-diagnostics.yml`, `automated-live-integrity-audit.yml`, `hostinger-readonly-offering-gap-audit.yml`, `institutes-public-monitor.yml`, and `public-browser-runtime-diagnostics.yml` expose `workflow_dispatch` only. Their dispatch authorization and protected environment controls remain in force. No production workflow was manually dispatched by this reconciliation.
 
-- Runs on schedule/manual dispatch and on `main` pushes affecting application/database paths.
-- Uses `appleboy/ssh-action@v1.2.0`.
-- Runs `php artisan institutes:data-integrity-report --no-ansi` on the Hostinger checkout after a revision-parity check.
-
-PRs #1009–#1013 alter application and/or database paths, so a merge would match both production-facing workflows. PRs #1014 and #1015 do not need to touch those paths to be unsafe to merge: any main push triggers Hostinger Read-only Diagnostics.
-
-No workflow trigger, secret, environment, SSH action, branch rule or protection setting was changed. No production-facing workflow was dispatched manually.
+The available GitHub connector exposes PR-associated commit workflow runs but not a repository-wide Actions run listing. The merge-commit lookup returned no PR-associated run records; that limited result cannot prove that no push-triggered run occurred. A complete post-merge Actions history must be confirmed in the GitHub Actions UI or a repository-wide run-list API view before making a categorical no-runs claim.
 
 ### 3.2 Hostinger Read-only Diagnostics failure classification
 
@@ -280,3 +272,66 @@ The individual implementation packages have substantial passing repository and i
 ### PR #1011 current-head note
 
 The implementation head `7d761c069aaea72bf33fb75bf6bd5a3df1a03d7f` passed the four checks above. The current PR branch head `53befb90ced58c9cb6b1cc8b3a000e442c624957` is a documentation-only descendant. The workflow path filters did not launch another MySQL run for that docs-only commit; no implementation/test code changed after the validated head. GitHub's current PR check state remains the authority for any later merge.
+
+
+---
+
+## Phase 1C-30 — post-PR #1017 merge and continuation PR reconciliation (2026-11-04)
+
+**Verified main SHA:** `7cd152e0626082ca112192b529f3148e68d1d960`  
+**PR #1017:** MERGED at `7cd152e0626082ca112192b529f3148e68d1d960` on 2026-11-04 16:43:30 UTC.  
+**Exact-head checks:** Test #41869269414 PASS; Laravel CI #41869269142 PASS on PR head `218bb8fe7466b0fe1912b2ec6ff9a0abe1d79752`. No production deployment was performed.
+
+### Current continuation PR state
+
+| PR | Current head | Base SHA | Exact-head checks observed | State |
+|---|---|---|---|---|
+| #1009 | `0343aa8f134de94892423fe2a94196dd6b118518` | `e9feccedbb20078c3af24656e6399d55383b6722` | Test #41789761348; Laravel #41789761321; Controller #41789761325; MySQL #41789761389 — PASS | OPEN; rebase/reconcile |
+| #1010 | `603ef598768d13f460f3ba8184050bd1a5572835` | `e9feccedbb20078c3af24656e6399d55383b6722` | Test #41789805956; Laravel #41789805901; Controller #41789805938; MySQL #41789805972 — PASS | OPEN; rebase/reconcile |
+| #1011 | `53befb90ced58c9cb6b1cc8b3a000e442c624957` | `e9feccedbb20078c3af24656e6399d55383b6722` | Test #41793451920; Laravel #41793451576; Controller #41793451963; MySQL #41793451868 — PASS | OPEN; migration #000014; integrate before #1012 |
+| #1012 | `6496a17a20526910cbf905fa9e377bbdbb79f857` | `e9feccedbb20078c3af24656e6399d55383b6722` | Test #41789844641; Laravel #41789844612; Controller #41789844592; MySQL #41789844663 — PASS | OPEN; migration #000015; after #1011 |
+| #1013 | `ec0e9e55852441207a92e63ecb7cd52ad0d6cfda` | `e9feccedbb20078c3af24656e6399d55383b6722` | Test #41836116444; Laravel #41836116346; Controller #41836116345; MySQL #41836116369 — PASS | OPEN; testing-only inventory; after #1011/#1012 workflow consolidation |
+| #1014 | `7351c2eda62445a9e3836552e53975d5037751f4` | `e9feccedbb20078c3af24656e6399d55383b6722` | Test #41789945725; Laravel #41789945742; Controller #41789945746; Orchestrator #41789945755 — PASS | OPEN; parser change; preserve multiline fail-closed behavior |
+| #1015 | `c901e74c256adffe54e50f856f9a8ac8e52d36e4` | `92e748f7aeedb25d098775be6ff16abbbda23749` | Test #41794115745; Laravel #41794115312; Controller #41794115403; MySQL #41794115800 — PASS | OPEN; documentation must be reconciled last |
+| #1016 | `743494f6a7d299b2789cb71428aeda6852018ec3` | `92e748f7aeedb25d098775be6ff16abbbda23749` | Test #41843105393; Laravel #41843105292 — PASS | OPEN; security workflow patch superseded by #1017; unique tests require selective adaptation |
+
+All seven implementation/documentation PRs #1009–#1015 are based on the previous main SHA and diverge from the new main by the #1017 merge. These passing runs are exact-head pre-merge evidence, not integrated-main evidence.
+
+### PR #1016 disposition
+
+PR #1017 supersedes the overlapping production workflow/security changes. PR #1016 is not safe to merge as-is: its unique five workflow contract test files assume an enabled `production-operations` environment and runnable write paths, which conflict with the merged fail-closed policy. Preserve only their useful assertions after rewriting them to assert blocked operations, no environment binding and no production credentials. The #1016 audit's stale environment/concurrency assumptions are not adopted. Recommend closing #1016 as superseded after owner authorization; it remains open.
+
+### Verified implementation notes and integration dependencies
+
+- #1009 implements review-package manifest v3, ordered persisted row-set and evidence-set digests, source/snapshot evidence ownership checks, and stale/legacy package rebuild behavior.
+- #1010 implements retrieval finalization recovery through a dedicated finalizer and replay/failure-boundary tests.
+- #1011 migration `2026_11_04_000014` installs SQLite and MySQL append-only UPDATE/DELETE triggers, including the narrow identity-decision key-enrichment exception and reconciliation-row detachment rule. Direct SQL tests and isolated MySQL trigger lifecycle proof cover 24 named triggers. An earlier audit finding that MySQL triggers were missing is superseded by the current migration and evidence.
+- #1012 migration `2026_11_04_000015` adds monitoring checkpoint foreign keys and heartbeat semantics, with direct-caller concurrency proof. Integrate after #1011.
+- #1013 is a testing-only read-only legacy NULL identity inventory; it rejects non-testing environments and accepts MySQL only for the isolated GitHub Actions connection. Its changes to the shared isolated-MySQL workflow must be applied after #1011 and #1012 so their coverage is retained.
+- #1014 parser accepts only exact allow-listed single-line commands; multiline/unrelated comments and output injection are rejected. Keep this behavior and test it after rebase.
+- #1015 contains historical claims that main pushes trigger Hostinger SSH. Those claims are superseded: on current main, `hostinger-readonly-diagnostics.yml`, `automated-live-integrity-audit.yml`, `institutes-public-monitor.yml`, and `public-browser-runtime-diagnostics.yml` expose `workflow_dispatch` only. The earlier pre-#1017 failures remain historical evidence, not current trigger behavior.
+
+### Post-merge workflow observability limitation
+
+The connected GitHub Actions lookup available to this audit returns PR-associated commit runs only; it does not provide repository-wide push/schedule/dispatch history. The lookup for merge commit `7cd152e...` returned no PR-associated runs, but that is not proof that no push-triggered run occurred. The previously identified Hostinger SSH workflows are confirmed `workflow_dispatch`-only on current main. Do not claim a complete repository-wide post-merge run inventory without an Actions run-list view.
+
+### Proposed controlled integration order
+
+1. #1009 — review-package row/evidence integrity.
+2. #1010 — retrieval finalization recovery.
+3. #1011 — append-only audit retention migration `000014`.
+4. #1012 — monitoring checkpoint migration `000015`.
+5. #1013 — legacy NULL identity inventory and shared MySQL workflow extension.
+6. #1014 — Command Orchestrator multiline-comment parser.
+7. #1015 — final tracker/audit reconciliation based on actual merged SHAs and integrated CI.
+
+Integrate one PR at a time: refresh main, rebase/reconcile only the next existing branch, inspect its complete diff and shared workflow changes, run exact-head Test/Laravel/Pint/Project Controller/isolated MySQL as applicable, and pause for the next owner-authorized normal protected merge. No PR was merged by this checkpoint.
+
+### Status distinctions and safety
+
+- PR #1017: IMPLEMENTED / TESTED / MERGED; production verification NOT VERIFIED.
+- PRs #1009–#1015: IMPLEMENTED / TESTED on their individual pre-merge heads; NOT MERGED; integrated-main validation NOT YET DONE.
+- PR #1016: workflow/security changes superseded; unique tests require selective adaptation; NOT CLOSED.
+- Phase 1C: NOT COMPLETE. Phase 2: NOT AUTHORIZED.
+- Production: NOT VERIFIED. No Hostinger/hPanel/SSH/database/Artisan/deployment/migration/discovery/candidate/approval/import/publishing action was performed by this reconciliation.
+- GCU rows #348–353 and batches #19–23 remain protected. AI extraction and the additional 20 HEC profiles remain disabled. No dummy production data. No `production-operations` environment introduced; the three existing environments and their settings/secrets remain unchanged.
