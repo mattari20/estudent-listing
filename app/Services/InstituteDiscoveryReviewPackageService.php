@@ -60,8 +60,9 @@ class InstituteDiscoveryReviewPackageService
             $snapshot->refresh();
 
             if ($batch->status !== 'validated' || $batch->completed_at === null
+                || ! $batch->source
                 || (int) $batch->source_id !== (int) $snapshot->source_id
-                || (int) $batch->source_id !== (int) $snapshot->source_id) {
+                || (int) $snapshot->id !== $snapshotId) {
                 throw new RuntimeException('The review package database ownership or completion state changed before generation.');
             }
 
