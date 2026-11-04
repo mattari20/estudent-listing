@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Source;
 use Closure;
+use Throwable;
 
 class SourceMonitoringBatchService
 {
