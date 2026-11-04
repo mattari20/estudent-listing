@@ -151,14 +151,14 @@ checks the changed PHP files.
 ## 6.1 Exact documentation-inclusive PR-head validation
 
 PR #1003 final validated head at this checkpoint:
-`ad042b965212d4212e146c051c2716b42c31b386`.
+`28cc57b7a4b87392de21b7d0125f7cacd4e26ba2`.
 
 | Workflow | Run | Job | Result |
 |---|---:|---:|---|
-| Laravel CI | #41762950743 | 126354621037 | PASS — 859 tests, 3,791 assertions; Pint 46 files |
-| Test | #41762950754 | 126354622180 | PASS — 859 tests, 3,791 assertions |
-| Institutes Directory Project Controller | #41762950884 | 126354621834 | Job PASS; internal inventory 2/5 |
-| Isolated MySQL migration/recovery | #41762950810 | 126354621448 | PASS |
+| Laravel CI | #41763247578 | 126355580093 | PASS — 859 tests, 3,791 assertions; Pint 46 files |
+| Test | #41763247575 | 126355579947 | PASS — 859 tests, 3,791 assertions |
+| Institutes Directory Project Controller | #41763247626 | 126355687545 | Job PASS; internal inventory 2/5 |
+| Isolated MySQL migration/recovery | #41763247586 | 126355579875 | PASS |
 
 Actual isolated MySQL logs show:
 - migration/schema/ledger verification and idempotent second migration passed;
