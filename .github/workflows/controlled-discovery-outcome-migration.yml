@@ -50,7 +50,7 @@ jobs:
           TARGET_SHA: ${{ inputs.target_sha }}
           OPERATION_REASON: ${{ inputs.operation_reason }}
           CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
-          EXPECTED_CONFIRMATION: "AUTHORIZE-PRODUCTION-OPERATION"
+          EXPECTED_CONFIRMATION: "AUTHORIZE-DISCOVERY-OUTCOME-MIGRATION"
         run: bash scripts/ci/validate-production-dispatch.sh
       - name: Checkout main
         uses: actions/checkout@v4
