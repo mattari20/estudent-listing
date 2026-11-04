@@ -83,7 +83,7 @@ jobs:
       - name: Checkout main with full history
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ inputs.target_sha }}
           fetch-depth: 0
       - name: Resolve latest application-code revision
         id: revision
