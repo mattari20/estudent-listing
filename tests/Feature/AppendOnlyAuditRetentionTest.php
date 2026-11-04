@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\ImportBatch;
 use App\Models\ImportPromotionEvent;
+use App\Models\ImportReconciliationEvent;
 use App\Models\ImportRow;
 use App\Models\IdentityResolutionDecision;
 use App\Models\SecurityAuditEvent;
