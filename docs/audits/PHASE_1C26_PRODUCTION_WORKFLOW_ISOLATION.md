@@ -93,7 +93,7 @@ The first structural audit found three workflows that placed production credenti
 
 The Python regression suite now parses actual YAML with `scripts/ci/read-workflow-yaml.rb`, distinguishes YAML `uses`/secret fields from arbitrary `run` text, checks top-level event keys, checks job environments and guard ordering, and tests positive/negative dispatch-guard cases using an isolated temporary Git remote. The Laravel deployment-handoff test now parses top-level workflow events instead of rejecting the literal word `workflow_run` inside comments or embedded scripts. Existing discovery and migration contract scripts were updated to the manual-only protected dispatch design.
 
-The guard now restricts `operation_reason` to 8–128 safe ASCII characters to prevent multiline/control-character log injection.
+The guard now restricts `operation_reason` to 8–128 safe ASCII characters to prevent multiline/control-character log injection. The required `Test` workflow also runs the offline Project Controller unit suite, Command Orchestrator unit suite, and offline controller smoke check; these do not invoke live repository inventory or production services.
 
 **Current blocker:** the structural audit correctly flags `secure-institutes-admin-recovery.yml`. Its SSH action and recovery secret remain executable through manual dispatch without the exact-SHA guard, reason input, `production-operations` environment or shared concurrency. A repository write attempting to secure this legacy workflow was blocked by the available GitHub write action. It was not bypassed. The new isolation test intentionally remains red until the owner disables that workflow or it is remediated in an authorized change.
 
