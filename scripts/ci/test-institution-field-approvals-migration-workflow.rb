@@ -10,6 +10,16 @@ triggers = workflow['on'] || workflow[true]
 
 abort 'ERROR: workflow must expose workflow_dispatch as its only trigger' unless triggers.is_a?(Hash) && triggers.keys == ['workflow_dispatch']
 abort 'ERROR: push trigger must not exist' if triggers.key?('push')
+%w[target_sha operation_reason confirm_production_operation].each do |name|
+  item = triggers.fetch('workflow_dispatch').fetch('inputs').fetch(name)
+  abort "ERROR: #{name} must be required text" unless item['required'] == true && item['type'] == 'string'
+end
+abort 'ERROR: production-operations environment is required' unless workflow.fetch('jobs').fetch('migrate')['environment'] == 'production-operations'
+steps = workflow.fetch('jobs').fetch('migrate').fetch('steps')
+guard_index = steps.index { |item| item.fetch('run', '').include?('scripts/ci/validate-production-dispatch.sh') }
+ssh_index = steps.index { |item| item.fetch('uses', '').start_with?('appleboy/ssh-action') }
+abort 'ERROR: dispatch guard must precede migration SSH action' unless guard_index && ssh_index && guard_index < ssh_index
+abort 'ERROR: shared production concurrency must queue without cancellation' unless workflow.fetch('concurrency')['group'] == 'estudent-production-access' && workflow.fetch('concurrency')['cancel-in-progress'] == false && workflow.fetch('concurrency')['queue'] == 'max'
 
 input = triggers.fetch('workflow_dispatch').fetch('inputs').fetch('confirm_migration')
 abort 'ERROR: manual confirmation must be a required boolean defaulting false' unless input['required'] == true && input['type'] == 'boolean' && input['default'] == false
