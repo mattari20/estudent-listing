@@ -2199,3 +2199,11 @@ This is a bounded recovery improvement only. Abrupt process death, heartbeat/val
 
 
 - Phase 1C-17 follow-up hardening: matching legacy batches with missing `completed_at` now fail closed rather than being reused; successful discovery outcomes verify their referenced candidate batch still exists and is validated/completed before reporting success. Regression tests cover both conditions.
+
+
+### Phase 1C-17 — exact-head validation recorded
+
+- Implementation head `5e55b41c23002ff3acf66fbbb69be4d918ee0b2f` passed Test (#41759567182: 843 tests/3,755 assertions), Laravel CI (#41759567170: same totals; Pint 46 files), Project Controller (#41759567189) and isolated MySQL (#41759567167).
+- MySQL logs explicitly confirm discovery outcome idempotency (6 tests/40 assertions), outcome-to-batch consistency (5 tests/17 assertions), candidate failure/replay (16 tests/115 assertions), and the two-process same-batch proof (one batch, two rows, one evidence, two assertions).
+- A documentation-only evidence update follows; final PR-head workflows must be rechecked before merge.
+- Remaining known limitation: private CSV/manifest writes are not transactional with MySQL; incomplete pairs are rejected and regenerated on replay, but orphaned private artifacts are not automatically swept.
