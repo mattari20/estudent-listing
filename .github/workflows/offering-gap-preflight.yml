@@ -26,19 +26,8 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-    inputs:
-      target_sha:
-        description: "Exact 40-character SHA of the current main revision."
-        required: true
-        type: string
-      operation_reason:
-        description: "Reason or ticket reference for this production operation."
-        required: true
-        type: string
-      confirm_production_operation:
-        description: "Type the exact authorization phrase shown in this workflow's validation step."
-        required: true
-        type: string  contents: read
+  contents: read
+
 
 # Restrict this environment to authorized maintainers. Reuse the existing
 # database-user credentials stored as environment secrets; never print their values.
