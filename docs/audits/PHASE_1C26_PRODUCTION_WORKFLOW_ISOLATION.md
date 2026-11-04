@@ -7,7 +7,7 @@
 
 ## Security disposition
 
-Ordinary pull requests and pushes to `main` must not start production SSH, production database, Artisan, deployment, migration, discovery, or private diagnostics operations. Production operations are now manual-dispatch only, bound to the exact current `main` SHA, require a reason and operation-specific confirmation, declare a protected GitHub environment, and share the non-cancelling `estudent-production-access` concurrency group.
+Ordinary pull requests and pushes to `main` must not start production SSH, production database, Artisan, deployment, migration, discovery, or private diagnostics operations. Production operations are now manual-dispatch only, bound to the exact current `main` SHA, require a reason and operation-specific confirmation, declare a protected GitHub environment, and share the `estudent-production-access` concurrency group with `cancel-in-progress: false` and `queue: max`, so pending runs queue instead of replacing one another (up to GitHub's 100-pending-run limit).
 
 The dispatch guard is `scripts/ci/validate-production-dispatch.sh`. It rejects non-`workflow_dispatch` events, refs other than `refs/heads/main`, malformed or mismatched SHAs, a target that is no longer the current `origin/main` SHA, missing/short reasons, and incorrect confirmation phrases.
 
@@ -77,7 +77,7 @@ The existence of an `environment:` declaration in YAML does **not** prove review
 ## Regression and safety evidence
 
 - `scripts/ci/test-production-workflow-isolation.py` is run by the required `Test` workflow.
-- It checks manual-only triggers for production-facing workflows, protected environment declarations and shared concurrency for gated workflows, exact-SHA dispatch guard usage, and absence of production SSH/secrets from ordinary CI workflows.
+- It checks manual-only triggers for production-facing workflows, protected environment declarations and shared non-cancelling queued concurrency for gated workflows, exact-SHA dispatch guard usage, and absence of production SSH/secrets from ordinary CI workflows.
 - Production `workflow_run` handoffs have been removed rather than left as an alternate authorization path.
 - No production workflow was dispatched. No Hostinger, hPanel, SSH, production DB, production Artisan, deployment, migration, discovery, or production data operation was performed.
 - PRs #1009–#1015 remain open and unmerged.
