@@ -39,9 +39,6 @@ BLOCKED_OPERATIONS = %w[
   scheduled-institute-discovery.yml
 ].to_set.freeze
 
-fail!('retired administrator recovery workflow must be absent') if File.exist?(File.join(WORKFLOWS, 'secure-institutes-admin-recovery.yml'))
-pass('obsolete administrator password-reset workflow remains retired')
-
 CONCURRENCY_GROUPS = {
   'controlled-discovery-outcome-migration.yml' => ['controlled-discovery-outcome-migration', false],
   'controlled-hostinger-code-deploy.yml' => ['controlled-hostinger-code-deployment', false],
@@ -66,6 +63,9 @@ end
 def pass(message)
   puts "PASS: #{message}"
 end
+
+fail!('retired administrator recovery workflow must be absent') if File.exist?(File.join(WORKFLOWS, 'secure-institutes-admin-recovery.yml'))
+pass('obsolete administrator password-reset workflow remains retired')
 
 def parse_workflow(path)
   YAML.load_file(path, permitted_classes: [Date, Time], aliases: true)
