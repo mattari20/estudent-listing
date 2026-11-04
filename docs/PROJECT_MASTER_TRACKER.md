@@ -2096,3 +2096,41 @@ The next balance work is downstream side-effect idempotency:
 - monitoring batch partial-failure replay needs run-scoped side-effect review.
 
 Phase 1C remains IN PROGRESS. Scheduler-owner convergence, Hostinger/provider cron/worker evidence, production revision/schema/backup evidence, protected GCU read-only reconciliation and final pilot go/no-go remain open. No production operations or GCU export were performed. Phase 1B remains closed/frozen; no dummy production data; AI and extra HEC profiles remain disabled.
+
+
+---
+
+## Phase 1C — post-PR #997 and independent-process concurrency validation (2026-11-04)
+
+**Current main baseline before this delivery:** `4a98fc11e87282389251c57afb5396f555392e02`.
+
+Verified merged engineering deliveries:
+- PR #993 — snapshot/observation idempotency; merged at `cee0df45e86422b5ede8bec77fcff5919969e6b4`.
+- PR #994 — discovery outcome idempotency; merged at `1044416ee406f9b7f78ba458afc2bc558830bcac`.
+- PR #995 — source change event identity; merged at `84970d7780625c7e52f6b808ad30462a7d944f42`.
+- PR #996 — concurrency-safe active reverification queue identity; merged at `161014240f1ace60f23c0743187f944a8fcc68dc`.
+- PR #997 — serialized monitoring alert identity and monitoring audit replay key; merged at `4a98fc11e87282389251c57afb5396f555392e02`. GitHub PR page reports all three required checks passed.
+
+### Remaining repository engineering validation
+
+The existing execution lease feature test uses nested calls within one PHP process. It is not proof of independent-process MySQL contention. The next delivery adds a separate CI script that starts two PHP workers against the isolated MySQL service, uses a barrier to ensure the first worker holds the lease before the second starts, and asserts one acquisition, one rejection and exactly one run-ledger row.
+
+Audit: `docs/audits/PHASE_1C_MYSQL_MULTIPROCESS_CONCURRENCY_VALIDATION.md`.
+
+The test is CI-only and must not be represented as production concurrency evidence. It is a bounded two-process contention proof, not a high-volume stress test.
+
+### Outstanding Phase 1C gates
+
+1. Run and inspect the independent-process MySQL proof plus exact-head Laravel CI/Test.
+2. Expand failure-injection/retry validation across every remaining side-effect boundary, including source/policy state and candidate/batch persistence.
+3. Obtain provider-side evidence for Hostinger scheduler invocation and persistent workers; do not infer invocation from the GitHub workflow.
+4. Converge to one scheduler owner only after the actual provider invocation path is evidenced and the owner approves the precise change.
+5. Obtain separately authorized read-only production evidence for application revision parity, AUTH-04 schema/ledger and backup/recoverability.
+6. Obtain separate read-only export authorization and an approved private destination before GCU reconciliation for rows #348–353 and batches #19–23.
+7. Prepare the final evidence matrix and controlled-pilot go/no-go package. Pilot execution remains separately authorized.
+
+### Safety status
+
+No production DB/SSH/hPanel/Artisan/migration/deployment/cron/worker/backup/restore operation; no source retrieval, candidate staging/approval/import, canonical promotion or publication; no dummy production data. GCU history remains protected. AI extraction and the additional 20 HEC profiles remain disabled. Phase 1B remains closed and frozen.
+
+**Phase 1C closeout: NOT MET. Production readiness: NOT CERTIFIED.**
