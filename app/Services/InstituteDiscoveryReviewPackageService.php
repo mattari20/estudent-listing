@@ -178,6 +178,10 @@ class InstituteDiscoveryReviewPackageService
             $snapshotId = (int) $matches[2];
             $relative = self::ROOT.'/'.$name;
             $absolute = $this->safeAbsolutePath($disk, $relative, true);
+            if (! is_dir($absolute)) {
+                $skipped[] = ['path' => $relative, 'reason' => 'expected package directory is not a directory'];
+                continue;
+            }
 
             $result = $this->withPackageLock($batchId, $snapshotId, function () use (
                 $disk, $absolute, $relative, $batchId, $cutoff, $apply
@@ -318,11 +322,16 @@ class InstituteDiscoveryReviewPackageService
         $lockPath = $this->safeAbsolutePath($disk, self::ROOT.'/.locks/'.hash('sha256', $batchId.'|'.$snapshotId).'.lock', false);
         $this->assertNoSymlink($lockPath);
         $handle = fopen($lockPath, 'c+');
-        if ($handle === false || ! flock($handle, LOCK_EX)) {
-            if (is_resource($handle)) {
-                fclose($handle);
-            }
-            throw new RuntimeException('Unable to acquire the review-package filesystem lock.');
+        if ($handle === false) {
+            throw new RuntimeException('Unable to open the review-package filesystem lock.');
+        }
+        $opened = fstat($handle);
+        $current = lstat($lockPath);
+        if (is_link($lockPath) || $opened === false || $current === false
+            || $opened['dev'] !== $current['dev'] || $opened['ino'] !== $current['ino']
+            || ! flock($handle, LOCK_EX)) {
+            fclose($handle);
+            throw new RuntimeException('Unable to safely acquire the review-package filesystem lock.');
         }
         try {
             return $callback();
