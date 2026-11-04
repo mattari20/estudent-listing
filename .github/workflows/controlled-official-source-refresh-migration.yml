@@ -18,9 +18,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: controlled-official-source-refresh-migration
   cancel-in-progress: false
-  queue: max
+
 jobs:
   resolve-target:
     name: Resolve approved application-code revision
