@@ -55,9 +55,6 @@ jobs:
       - name: Prepare test database
         run: php artisan migrate:fresh --force
 
-      - name: Test production workflow isolation contract
-        run: python3 scripts/ci/test-production-workflow-isolation.py
-
       - name: Parse workflow YAML syntax
         run: |
           ruby -e 'require "yaml"; Dir.glob(".github/workflows/*.yml").each { |path| YAML.load_file(path, aliases: true) }'
@@ -93,3 +90,6 @@ jobs:
 
       - name: Run tests
         run: composer test
+
+      - name: Test production workflow isolation contract
+        run: python3 scripts/ci/test-production-workflow-isolation.py
