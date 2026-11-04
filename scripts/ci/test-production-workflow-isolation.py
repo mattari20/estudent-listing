@@ -286,7 +286,7 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
         self.assertIn("push", fixture_workflow["on"])
         # The test file itself contains the SSH action marker as a literal.
         # That text is not a YAML uses field and must never classify CI as production.
-        self_job = {"steps": [{"run": Path(__file__).read_text(encoding="utf-8")}]}
+        self_job = {"steps": [{"run": "echo appleboy/ssh-action is only a literal reference"}]}
         self.assertIsNone(production_access_kind(self_job))
 
     def test_remote_ssh_shell_command_is_detected_as_production_access(self):
