@@ -16,9 +16,8 @@ on:
         required: true
         type: string
 concurrency:
-  group: estudent-production-access
+  group: offering-gap-preflight
   cancel-in-progress: false
-  queue: max
 
 permissions:
   contents: read
