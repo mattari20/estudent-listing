@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Services\LegacyIdentityKeyInventoryService;
+use Illuminate\Console\Command;
+
+class AuditLegacyIdentityKeys extends Command
+{
+    protected $signature = 'institutes:audit-legacy-identity-keys {--limit=100 : Maximum NULL-key IDs to sample per table}';
+
+    protected $description = 'Read-only inventory of legacy NULL idempotency keys in an isolated test database';
+
+    public function handle(LegacyIdentityKeyInventoryService $inventory): int
+    {
+        if (! app()->environment('testing')) {
+            $this->error('This inventory command is restricted to APP_ENV=testing. Production and local databases are not accepted.');
+            return self::FAILURE;
+        }
+
+        $limit = filter_var($this->option('limit'), FILTER_VALIDATE_INT);
+        if ($limit === false || $limit < 1 || $limit > 1000) {
+            $this->error('The --limit option must be an integer between 1 and 1000.');
+            return self::FAILURE;
+        }
+
+        $report = $inventory->report($limit);
+        $this->table(
+            ['Table', 'Key column', 'Status', 'Total', 'Keyed', 'Legacy NULL', 'Sample IDs'],
+            array_map(fn (array $row): array => [
+                $row['table'],
+                $row['column'],
+                $row['status'],
+                $row['total'],
+                $row['keyed'],
+                $row['legacy_null_key'],
+                implode(',', $row['null_id_sample']),
+            ], $report['tables'])
+        );
+        $this->line(json_encode($report['totals'], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+        $this->info('Read-only inventory complete. No keys, identities, decisions, candidate states or history were changed.');
+
+        return self::SUCCESS;
+    }
+}
