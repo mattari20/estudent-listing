@@ -22,7 +22,7 @@ if (($argv[1] ?? '') === 'worker') {
     $app = require $root.'/bootstrap/app.php';
     $app->make(Kernel::class)->bootstrap();
 
-    [, , , $sourceId, $content, $capturedAt, $key, $ready, $go] = $argv;
+    [, , $sourceId, $content, $capturedAt, $key, $ready, $go] = $argv;
     file_put_contents($ready, 'ready');
     $deadline = microtime(true) + 30;
     while (! is_file($go) && microtime(true) < $deadline) {
