@@ -25,6 +25,7 @@ $tables = [
     'structured_enrichment_promotion_events',
     'official_source_refresh_events',
     'import_conflict_events',
+    'import_reconciliation_events',
     'governed_execution_run_events',
 ];
 
@@ -65,4 +66,4 @@ $method->setAccessible(true);
 $method->invoke($migration);
 $assertTriggerSet(true);
 
-fwrite(STDOUT, "Verified 22 named MySQL audit triggers, rollback removal, reinstallation and idempotent repeated guard installation.\n");
+fwrite(STDOUT, "Verified 24 named MySQL audit triggers, rollback removal, reinstallation and idempotent repeated guard installation.\n");
