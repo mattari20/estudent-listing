@@ -10,11 +10,13 @@ class InstituteDiscoveryPackageRetentionSafetyTest extends TestCase
     public function test_old_package_is_only_deleted_when_apply_is_explicit(): void
     {
         Storage::fake('local');
-        $directory = 'institute-discovery-review-packages/snapshot-987';
+        $directory = 'institute-discovery-review-packages/batch-987-snapshot-987';
         Storage::disk('local')->put($directory.'/manifest.json', '{"test":true}');
         Storage::disk('local')->put($directory.'/candidates.csv', "candidate_name\nOld Candidate\n");
         $old = now()->subDays(120)->timestamp;
         touch(Storage::disk('local')->path($directory.'/manifest.json'), $old);
+        touch(Storage::disk('local')->path($directory.'/candidates.csv'), $old);
+        touch(Storage::disk('local')->path($directory), $old);
 
         $this->artisan('institutes:prune-discovery-review-packages', ['--days' => '90'])
             ->expectsOutputToContain('DRY RUN')

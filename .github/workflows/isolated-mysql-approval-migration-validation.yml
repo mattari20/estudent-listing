@@ -15,6 +15,12 @@ on:
       - 'tests/Feature/SourceChangeDiscoveryServiceTest.php'
       - 'tests/Feature/InstituteDiscoveryAgentTest.php'
       - 'tests/Support/verify-discovery-batch-multiprocess.php'
+      - 'tests/Support/verify-review-package-multiprocess.php'
+      - 'tests/Feature/InstituteDiscoveryReviewPackageTest.php'
+      - 'tests/Feature/InstituteDiscoveryReviewPackageRecoveryTest.php'
+      - 'app/Services/InstituteDiscoveryReviewPackageService.php'
+      - 'app/Console/Commands/PruneInstituteDiscoveryReviewPackages.php'
+      - 'docs/audits/PHASE_1C_REVIEW_PACKAGE_FILESYSTEM_RECOVERY.md'
       - 'app/Services/DiscoveryPersistenceIdentityService.php'
       - 'app/Services/InstituteDiscoveryAgentService.php'
       - 'app/Services/InstituteIdentityDiscoveryService.php'
@@ -136,6 +142,10 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/InstituteDiscoveryAgentTest.php
       - name: Prove candidate batch identity across independent PHP processes on MySQL
         run: php tests/Support/verify-discovery-batch-multiprocess.php
+      - name: Validate review-package filesystem recovery on MySQL
+        run: vendor/bin/phpunit tests/Feature/InstituteDiscoveryReviewPackageTest.php tests/Feature/InstituteDiscoveryReviewPackageRecoveryTest.php
+      - name: Prove review-package writer concurrency on independent PHP processes
+        run: php tests/Support/verify-review-package-multiprocess.php
       - name: Validate source change event and reverification queue replay on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceChangeIntelligenceTest.php
       - name: Validate monitoring alert and audit replay idempotency on MySQL
