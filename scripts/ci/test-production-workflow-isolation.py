@@ -240,7 +240,9 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
             ("mismatched SHA", {"TARGET_SHA": "b" * 40},
              "must equal the dispatch event SHA"),
             ("short reason", {"OPERATION_REASON": "no"},
-             "at least 8 characters"),
+             "8-128 safe ASCII characters"),
+            ("log injection reason", {"OPERATION_REASON": "ticket-123\\nforged=true"},
+             "8-128 safe ASCII characters"),
         ]
         for label, override, expected in cases:
             env = {**os.environ, **base, **override}
