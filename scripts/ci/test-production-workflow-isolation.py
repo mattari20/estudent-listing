@@ -422,6 +422,7 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
             "isolated-mysql-approval-migration-validation.yml",
             "project-controller.yml", "project-command-orchestrator.yml",
             "build-frontend-assets.yml", "institution-import-preflight.yml",
+            "offering-gap-source-verification.yml", "institutes-public-monitor.yml",
         )
         for name in ordinary:
             document, _, jobs = parse_workflow(WORKFLOWS / name)
@@ -429,6 +430,7 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
                 with self.subTest(workflow=name, job=job_name):
                     content = flatten(job)
                     self.assertNotIn(SSH_ACTION, content)
+                    self.assertIsNone(production_access_kind(job))
                     for marker in PRODUCTION_SECRET_MARKERS:
                         self.assertNotIn(marker, content)
 
