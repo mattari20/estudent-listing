@@ -74,7 +74,7 @@ end
 def first_access_index(steps)
   steps.index do |step|
     serialized = YAML.dump(step)
-    serialized.match?(/appleboy\/ssh-action|secrets\.(?:PRODUCTION_READONLY_|HOSTINGER_SSH_|INSTITUTES_)/) ||
+    serialized.match?(/appleboy\/ssh-action|secrets\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/) ||
       serialized.include?('https://estudent.pk/institutes')
   end
 end
