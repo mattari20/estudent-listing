@@ -201,7 +201,7 @@ class InstituteDiscoveryReviewPackageService
                     if ($staleTemps === []) {
                         return ['state' => 'skip', 'reason' => 'database batch exists; preserve package'];
                     }
-                    $paths = array_map(fn ($path) => self::ROOT.'/'.$name.'/'.basename($path), $staleTemps);
+                    $paths = array_map(fn ($path) => $relative.'/'.basename($path), $staleTemps);
                     if (! $apply) {
                         return ['state' => 'candidate', 'paths' => $paths, 'reason' => 'stale temporary artifacts; preserve package'];
                     }
