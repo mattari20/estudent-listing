@@ -111,6 +111,8 @@ fail!('credential-backed positive fixture misclassified') unless access_kind(cre
 fail!('public HTTP positive fixture misclassified') unless access_kind(public_http_fixture) == :public_http
 fail!('no-access negative fixture misclassified') unless access_kind(no_access_fixture) == :none
 fail!('public HTTP fixture incorrectly classified as credential-backed') unless access_kind(public_http_fixture) != :credential_backed
+fail!('public HTTP fixture passed the credential-backed classifier') if access_kind(public_http_fixture) == :credential_backed
+fail!('credential-backed fixture passed the public HTTP-only classifier') if access_kind(credential_fixture) == :public_http
 pass('positive/negative fixtures distinguish credential-backed and public HTTP-only diagnostics')
 def blocked?(job)
   value = job['if']
