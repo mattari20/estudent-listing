@@ -2172,11 +2172,11 @@ This is a bounded recovery improvement only. Abrupt process death, heartbeat/val
 ### Phase 1C-16 — checkpoint failure-boundary recovery validation completed (2026-11-04)
 
 - PR #1001: `https://github.com/mattari20/estudent-listing/pull/1001`.
-- Verified implementation head before this evidence-only documentation update: `0f99212a500625b2792b8a1a0cdd1c186abeff1a`; base `0ea84e9f2ffbdf948713a65d8afc1dc2e306e6d8`.
-- Test workflow run #41755801042 passed: 832 tests, 3,670 assertions.
-- Laravel CI run #41755801150 passed: 832 tests, 3,670 assertions; Pint format and verification passed for 29 files.
-- Project Controller run #41755801052 passed.
-- Isolated MySQL run #41755801173 passed. Actual MySQL logs show `SourceMonitoringBatchRecoveryTest.php` 12 tests/70 assertions and `SourceSnapshotTest.php` + `SourceRetrievalTest.php` 23 tests/65 assertions, all passing; dedicated policy recovery step succeeded.
+- Verified implementation head before this final evidence-recording documentation update: `8f622e420923b134f293d6dbc6fea41baca84f7f`; base `0ea84e9f2ffbdf948713a65d8afc1dc2e306e6d8`.
+- Test workflow run #41756508005 passed: 832 tests, 3,670 assertions.
+- Laravel CI run #41756507997 passed: 832 tests, 3,670 assertions; Pint format and verification passed for 29 files.
+- Project Controller run #41756507980 passed.
+- Isolated MySQL run #41756508028 passed. Actual MySQL logs show `SourceMonitoringBatchRecoveryTest.php` 12 tests/70 assertions and `SourceSnapshotTest.php` + `SourceRetrievalTest.php` 23 tests/65 assertions, all passing; dedicated policy recovery step succeeded.
 - Failure boundaries now include policy validation, actual lease takeover/lost heartbeat after pipeline return, policy-run insertion atomicity, per-source checkpoint start/failure/completion, policy success/failure state exceptions, `last_run_at`, finalization, snapshot persistence, and abandoned-run interruption.
 - Recovery remains replay-from-start; exactly-once execution and production readiness are not claimed.
 - Final merge is conditional on a fresh pass of all four required workflows on the final documentation-inclusive PR head.
