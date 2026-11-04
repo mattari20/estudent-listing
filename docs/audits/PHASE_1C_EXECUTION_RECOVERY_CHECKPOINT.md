@@ -206,3 +206,20 @@ Consolidated requirement-by-requirement matrix, implementation locations, exact 
 No production DB query/write, migration, Hostinger/hPanel/deployment/cron/worker operation, live discovery, candidate staging/approval, import, canonical promotion/publication or dummy production data was performed. GCU rows #348–353 and batches #19–23 remain untouched. AI extraction and the additional 20 HEC identity profiles remain disabled.
 
 **Phase 1C NOT COMPLETE. Phase 2 NOT AUTHORIZED. Production readiness NOT CERTIFIED.**
+
+
+---
+
+### Phase 1C-24 addendum — expanded audit-retention scope validated (2026-11-04)
+
+PR #1011 was strengthened after final acceptance review identified that `import_reconciliation_events` was protected from parent-batch deletion but was not in the direct UPDATE/DELETE trigger set. It is now included in the append-only scope, with only the narrow nullable `import_row_id` detachment exception required by its existing ON DELETE SET NULL relationship.
+
+- Current PR branch head: `53befb90ced58c9cb6b1cc8b3a000e442c624957`.
+- Exact implementation/test head: `7d761c069aaea72bf33fb75bf6bd5a3df1a03d7f`; subsequent commit changed only audit/tracker documentation.
+- Test #41793120096 PASS — 896 tests / 3,944 assertions.
+- Laravel CI #41793120081 PASS.
+- Project Controller #41793120151 PASS.
+- Isolated MySQL #41793120124 PASS — focused append-only suite 9 tests / 28 assertions; 24 named triggers passed existence, rollback, reinstallation and idempotency proof.
+- The new reconciliation-event test proves direct SQL UPDATE/DELETE rejection, row deletion preserving event history with only the nullable row FK set to NULL, and batch deletion rejection.
+
+This resolves the scope gap on the tested code head. The PR remains unmerged because a main push triggers prohibited Hostinger SSH diagnostics. Production trigger presence remains unverified.

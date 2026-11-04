@@ -2370,3 +2370,19 @@ Hostinger run #41789553048 was classified from GitHub Actions logs only: checkou
 Safety preserved: no production database query/write or migration; no Hostinger/hPanel/deployment/cron/worker operation; no live discovery, candidate staging/approval, import, canonical promotion or publication; no dummy production data. GCU rows #348–353 and batches #19–23 remain untouched. AI extraction and the additional 20 HEC profiles remain disabled.
 
 **Phase 1C NOT COMPLETE. Phase 2 NOT AUTHORIZED. Production verification NOT CLAIMED.**
+
+
+### Phase 1C-24 — expanded append-only audit retention exact-head evidence (2026-11-04)
+
+The earlier 22-trigger/8-test evidence for PR #1011 is superseded by the expanded reconciliation-event protection.
+
+- Current PR branch head: `53befb90ced58c9cb6b1cc8b3a000e442c624957`.
+- Exact code/test head: `7d761c069aaea72bf33fb75bf6bd5a3df1a03d7f`; later commit changed only audit/tracker documentation.
+- Test #41793120096 PASS (896 tests / 3,944 assertions).
+- Laravel CI #41793120081 PASS.
+- Project Controller #41793120151 PASS.
+- Isolated MySQL #41793120124 PASS (9 focused append-only tests / 28 assertions; 24 named trigger lifecycle proof).
+- `import_reconciliation_events` is included in both SQLite and MySQL direct-mutation guards. Its content remains immutable while the existing nullable row relationship can be detached on parent-row deletion; parent-batch deletion remains blocked.
+- No production DB, migration, privilege, Hostinger or deployment operation was performed.
+
+PR #1011 remains open/unmerged under the main-push Hostinger SSH safety hold. Production trigger presence is not certified.

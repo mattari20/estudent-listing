@@ -35,7 +35,7 @@ All compare endpoints use current `main` as base and report `behind_by=0`. Exact
 |---|---|---:|---|---|
 | #1009 | `0343aa8f134de94892423fe2a94196dd6b118518` | 12 | Test #41789761348; Laravel #41789761321; Controller #41789761325; MySQL #41789761389 | OPEN; merge blocked |
 | #1010 | `603ef598768d13f460f3ba8184050bd1a5572835` | 6 | Test #41789805956; Laravel #41789805901; Controller #41789805938; MySQL #41789805972 | OPEN; merge blocked |
-| #1011 | `8f92cd47f7b12a5430ad3bbdd7677540d2718447` | 35 | Test #41790446631; Laravel #41790446576; Controller #41790446579; MySQL #41790446802 | OPEN; merge blocked |
+| #1011 | PR head `53befb90ced58c9cb6b1cc8b3a000e442c624957` (code head `7d761c069aaea72bf33fb75bf6bd5a3df1a03d7f`) | 43 | Test #41793120096; Laravel #41793120081; Controller #41793120151; MySQL #41793120124 — all pass on the code head; subsequent commit is documentation-only | OPEN; merge blocked |
 | #1012 | `6496a17a20526910cbf905fa9e377bbdbb79f857` | 12 | Test #41789844641; Laravel #41789844612; Controller #41789844592; MySQL #41789844663 | OPEN; merge blocked |
 | #1013 | `80a33cb2fdf4df4e0d83d3e7f6f212fedb5f9aa1` | 7 | Test #41789877948; Laravel #41789877914; Controller #41789877954; MySQL #41789878008 | OPEN; merge blocked; production inventory not run |
 | #1014 | `7351c2eda62445a9e3836552e53975d5037751f4` | 5 | Test #41789945725; Laravel #41789945742; Controller #41789945746; Command Orchestrator #41789945755 | OPEN; merge blocked |
@@ -122,19 +122,31 @@ The report contents and Hostinger filesystem were not accessed. No retry, cleanu
 
 ### PR #1011 — append-only audit history retention
 
-**Implementation inspected:** `database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php`; `tests/Feature/AppendOnlyAuditRetentionTest.php`; `tests/Support/verify-append-only-audit-triggers.php`; isolated MySQL workflow.
+**Current PR branch head:** `53befb90ced58c9cb6b1cc8b3a000e442c624957`.  
+**Exact implementation/test head:** `7d761c069aaea72bf33fb75bf6bd5a3df1a03d7f`. The later commit only reconciles audit/tracker documentation; it does not change implementation or test code.
 
-- SQLite installs UPDATE/DELETE triggers for the ten scoped append-only tables and parent-delete guards.
-- MySQL installs named BEFORE UPDATE and BEFORE DELETE triggers for the same ten tables (20 triggers).
-- MySQL identity-decision UPDATE/DELETE triggers add the narrow NULL-to-non-NULL `decision_identity_key` exception. The exception requires the primary key and all other historical fields to remain unchanged; repeated enrichment, primary-key mutation, unrelated-field mutation and deletion are rejected.
-- MySQL foreign keys are changed to RESTRICT for the protected parent relationships; the SQLite implementation has equivalent explicit parent-delete guards.
-- Rollback drops the named MySQL triggers and restores the previous cascading FK definitions; SQLite rollback removes its guards.
-- The direct SQL test suite on isolated MySQL passed **8 tests / 22 assertions** in run #41790446802.
-- The same run verified all **22 named MySQL triggers**, rollback removal, reinstallation and idempotent repeated installation.
-- The isolated MySQL service alone uses `--log-bin-trust-function-creators=1`; no production privilege/configuration was changed.
-- The earlier top-level PR blocker comment about missing MySQL direct-SQL triggers has been updated to RESOLVED with the exact run evidence.
+**Implementation inspected:** `database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php`; `app/Models/ImportReconciliationEvent.php`; `tests/Feature/AppendOnlyAuditRetentionTest.php`; `tests/Support/verify-append-only-audit-triggers.php`.
 
-**Disposition:** IMPLEMENTED and TESTED on exact head; NOT MERGED; BLOCKED for integrated acceptance. No production migration was run.
+- SQLite and MySQL now protect eleven scoped append-only event tables with UPDATE/DELETE triggers (22 triggers).
+- Two additional identity-decision triggers enforce immutable decision history with the narrow one-time NULL-to-non-NULL `decision_identity_key` exception, preserving the primary key and every other historical field (24 named triggers total).
+- `import_reconciliation_events` is now included in the immutable event scope. Its content cannot be updated or deleted; only the narrow non-NULL-to-NULL `import_row_id` detachment is allowed to preserve its existing FK ON DELETE SET NULL semantics. Batch ownership remains RESTRICT.
+- `ImportReconciliationEvent` also uses the Eloquent mutation guard.
+- Direct SQL tests cover security audit rows, identity-decision enrichment/rejection, reconciliation-event UPDATE/DELETE rejection, nullable row detachment, and batch/parent retention.
+- MySQL foreign keys protect retained parent relationships; SQLite has corresponding explicit parent-delete guards.
+- The isolated MySQL service alone uses `--log-bin-trust-function-creators=1`; no production privilege or configuration was changed.
+
+**Exact implementation-head evidence:**
+
+| Workflow | Run | Result |
+|---|---:|---|
+| Test | #41793120096 | PASS — 896 tests / 3,944 assertions |
+| Laravel CI | #41793120081 | PASS |
+| Project Controller | #41793120151 | PASS |
+| Isolated MySQL | #41793120124 | PASS — focused append-only suite 9 tests / 28 assertions; all 24 named triggers verified, removed on rollback, reinstalled and idempotent |
+
+The MySQL run also passed the configured chronological retrieval, candidate-batch, review-package, identity-conflict, operator-transition and monitoring checkpoint recovery/multiprocess steps.
+
+**Disposition:** IMPLEMENTED and TESTED on code head `7d761c069aaea72bf33fb75bf6bd5a3df1a03d7f`; current PR head adds only the final documentation reconciliation. NOT MERGED because main pushes trigger prohibited Hostinger SSH workflows. Production trigger presence remains unverified.
 
 ### PR #1012 — monitoring checkpoint foreign keys and direct concurrency
 
@@ -198,7 +210,7 @@ The prior head `5f7387202ea0703fd031cf845c164f9b29b2928c` passed Test #417908214
 | 2 | Review-package filesystem recovery and evidence binding | Package service, cleanup/recovery tests; PR #1003 and row/evidence digest extension #1009 | PR #1003: Test #41763539460; Laravel #41763539432; Controller #41763539440; MySQL #41763539457. PR #1009: Test #41789761348; Laravel #41789761321; Controller #41789761325; MySQL #41789761389. | Filesystem recovery MERGED #1003 at `86ded5d52cbc6a329ae4559919e7da5111876b20`; row/evidence binding OPEN #1009 | IMPLEMENTED / TESTED; PARTIALLY MERGED; final binding extension BLOCKED. |
 | 3 | Identity conflict and decision replay | Identity resolver, conflict lifecycle/events and decision service; PR #1004 | Test #41769183222; Laravel #41769182981; Controller #41769182984; MySQL #41769182903; identity multiprocess proof. | MERGED #1004 at `54bf5e6b9878080951b521b61a261a233f18322a` | IMPLEMENTED / TESTED / MERGED. |
 | 4 | Approval and operator transition atomicity | OperatorTransitionService, IdentityResolutionDecisionService and guarded promotion/publication paths; PR #1006 | Test #41776912871; Laravel #41776912841; Controller #41776912867; MySQL #41776912864; operator multiprocess proof. | MERGED #1006 at `fc54741ea246fe1c284ba397117b90ab3d87ca55` | IMPLEMENTED / TESTED / MERGED. |
-| 5 | Audit-history immutability and retention | Migration 2026_11_04_000014, model guards, SQLite/MySQL triggers; PR #1011 | Test #41790446631; Laravel #41790446576; Controller #41790446579; MySQL #41790446802; 8 tests / 22 assertions; 22-trigger rollback/reinstall proof. | OPEN #1011 | IMPLEMENTED / TESTED; NOT MERGED; integration BLOCKED. |
+| 5 | Audit-history immutability and retention | Migration 2026_11_04_000014, model guards, SQLite/MySQL triggers; PR #1011 | Code head `7d761c069aaea72bf33fb75bf6bd5a3df1a03d7f`: Test #41793120096; Laravel #41793120081; Controller #41793120151; MySQL #41793120124; 9 tests / 28 assertions; 24-trigger rollback/reinstall proof. PR head `53befb90ced58c9cb6b1cc8b3a000e442c624957` adds documentation only. | OPEN #1011 | IMPLEMENTED / TESTED; NOT MERGED; integration BLOCKED. |
 | 6 | Retrieval snapshot finalization and retry recovery | SourceRetrievalRunFinalizer and SourceRetrievalService; PR #1010 | Test #41789805956; Laravel #41789805901; Controller #41789805938; MySQL #41789805972. | OPEN #1010 | IMPLEMENTED / TESTED; NOT MERGED; integration BLOCKED. |
 | 7 | Monitoring checkpoint consistency and concurrency | MonitoringPolicyCheckpointService, migration 2026_11_04_000015 and multiprocess test; PR #1012 | Test #41789844641; Laravel #41789844612; Controller #41789844592; MySQL #41789844663 including direct-caller multiprocess proof. | OPEN #1012 | IMPLEMENTED / TESTED; NOT MERGED; integration BLOCKED. |
 | 8 | Chronological snapshot ordering and late-history reconciliation | Source snapshot/observation services and reconciliation request migration; PR #1007 | Test #41781015854; Laravel #41781016062; Controller #41781015945; MySQL #41781015956; chronology independent-process proof. | MERGED #1007 at `e9feccedbb20078c3af24656e6399d55383b6722` | IMPLEMENTED / TESTED / MERGED. Pending reconciliation requests remain explicit review work, not automatic history rewrites. |
@@ -264,3 +276,8 @@ After an authorized safe integration path exists, recheck each exact head, requi
 **Final decision: PHASE 1C NOT COMPLETE.**
 
 The individual implementation packages have substantial passing repository and isolated-MySQL evidence. The phase cannot be accepted as complete until the remaining PRs are safely merged and the integrated main-branch regression is passed. Production verification remains a separate required activity and is not claimed here.
+
+
+### PR #1011 current-head note
+
+The implementation head `7d761c069aaea72bf33fb75bf6bd5a3df1a03d7f` passed the four checks above. The current PR branch head `53befb90ced58c9cb6b1cc8b3a000e442c624957` is a documentation-only descendant. The workflow path filters did not launch another MySQL run for that docs-only commit; no implementation/test code changed after the validated head. GitHub's current PR check state remains the authority for any later merge.
