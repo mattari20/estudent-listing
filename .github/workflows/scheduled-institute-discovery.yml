@@ -7,9 +7,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: scheduled-governed-institute-discovery
   cancel-in-progress: false
-  queue: max
+
 jobs:
   source-refresh-handoff:
     if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
