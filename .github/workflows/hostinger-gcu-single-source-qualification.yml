@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: hostinger-gcu-single-source-qualification
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
@@ -42,6 +42,7 @@ jobs:
     name: Preflight and one GCU Lahore request
     needs: resolve-target
     runs-on: ubuntu-latest
+    environment: production-operations
     timeout-minutes: 8
     steps:
       - name: Require explicit confirmation before SSH
