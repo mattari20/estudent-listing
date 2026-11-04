@@ -13,9 +13,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: controlled-institution-field-approvals-migration
   cancel-in-progress: false
-  queue: max
 jobs:
   resolve-target:
     name: Resolve reviewed application-code revision
