@@ -32,6 +32,8 @@ concurrency:
 
 jobs:
   recover:
+    if: false # blocked until owner explicitly re-authorizes recovery
+    environment: production-reset
     name: Preflight and recover existing administrator
     runs-on: ubuntu-latest
     timeout-minutes: 5
