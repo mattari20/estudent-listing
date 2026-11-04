@@ -82,6 +82,33 @@ class InstituteIdentityPersistenceRecoveryTest extends TestCase
         $this->assertSame(2, ImportPromotionEvent::query()->where('import_row_id', $row->id)->where('decision_type', 'identity_resolution')->count());
     }
 
+    public function test_identical_replay_reuses_a_legacy_decision_without_duplicate_history(): void
+    {
+        [$row, , $institution] = $this->identityRows();
+        $legacy = IdentityResolutionDecision::create([
+            'import_row_id' => $row->id,
+            'institution_id' => $institution->id,
+            'decision' => 'approved_match',
+            'actor_type' => 'user',
+            'actor_id' => 705,
+            'reason' => 'Legacy operator decision.',
+            'decided_at' => now(),
+        ]);
+
+        $replayed = app(IdentityResolutionDecisionService::class)->record(
+            $row,
+            705,
+            'approved_match',
+            $institution->id,
+            'Legacy operator decision.'
+        );
+
+        $this->assertSame($legacy->id, $replayed->id);
+        $this->assertNotEmpty($replayed->decision_identity_key);
+        $this->assertSame(1, IdentityResolutionDecision::query()->where('import_row_id', $row->id)->count());
+        $this->assertSame(1, ImportPromotionEvent::query()->where('import_row_id', $row->id)->where('decision_type', 'identity_resolution')->count());
+    }
+
     public function test_resolution_event_failure_rolls_back_conflict_and_row_state(): void
     {
         [$row] = $this->identityRows();
