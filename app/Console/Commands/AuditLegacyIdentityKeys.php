@@ -100,10 +100,15 @@ class AuditLegacyIdentityKeys extends Command
 
         if ($driver === 'mysql') {
             $host = strtolower(trim((string) ($connectionConfig['host'] ?? '')));
+            $username = (string) ($connectionConfig['username'] ?? '');
             $isLocalHost = in_array($host, ['127.0.0.1', 'localhost', '::1'], true);
-            $isTestDatabase = preg_match('/(?:^|[_-])(?:test|testing)(?:[_-]|$)/i', $database) === 1;
 
-            return $isLocalHost && $isTestDatabase;
+            // MySQL is accepted only for this repository's isolated GitHub Actions
+            // service database; local forwarding or arbitrary *_test schemas are not.
+            return getenv('GITHUB_ACTIONS') === 'true'
+                && $isLocalHost
+                && $database === 'approval_migration_test'
+                && $username === 'approval_ci';
         }
 
         return false;
