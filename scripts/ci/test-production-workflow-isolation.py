@@ -254,8 +254,14 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
             "jobs": {"audit": {
                 "environment": "production-readonly-diagnostics",
                 "steps": [
-                    {"uses": "actions/checkout@v4"},
-                    {"run": "bash scripts/ci/validate-production-dispatch.sh"},
+                    {"uses": "actions/checkout@v4",
+                     "with": {"ref": "${{ github.sha }}", "fetch-depth": 0}},
+                    {"env": {
+                        "TARGET_SHA": "${{ inputs.target_sha }}",
+                        "OPERATION_REASON": "${{ inputs.operation_reason }}",
+                        "CONFIRM_PRODUCTION_OPERATION": "${{ inputs.confirm_production_operation }}",
+                        "EXPECTED_CONFIRMATION": "AUTHORIZE-READONLY-DIAGNOSTICS",
+                     }, "run": "bash scripts/ci/validate-production-dispatch.sh"},
                     {"env": {"HOST": "${{ secrets.HOSTINGER_SSH_HOST }}"},
                      "uses": "appleboy/ssh-action@v1"},
                 ],
