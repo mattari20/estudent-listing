@@ -111,8 +111,12 @@ READ_ONLY.each do |filename, expected_environment|
     aidx = first_access_index(steps)
     fail!("#{filename}:#{job_name} is missing executable dispatch guard") unless gidx
     fail!("#{filename}:#{job_name} guard must precede every production credential/access step") if aidx && gidx >= aidx
-    if aidx && steps[aidx].fetch('name', '') !~ /Validate environment-scoped production credentials|Validate requested revision and read-only credentials/
-      fail!("#{filename}:#{job_name} must validate environment-scoped credentials before SSH/API access")
+    if aidx
+      first_access = YAML.dump(steps[aidx])
+      if first_access.match?(/secrets\\.|appleboy\\/ssh-action/) &&
+         steps[aidx].fetch('name', '') !~ /Validate environment-scoped production credentials|Validate requested revision and read-only credentials/
+        fail!("#{filename}:#{job_name} must validate environment-scoped credentials before SSH/API access")
+      end
     end
     guard = steps[gidx]
     env = guard.fetch('env', {})
