@@ -54,7 +54,7 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ inputs.target_sha }}
           fetch-depth: 1
 
       - name: Verify migration file and report selected operation
