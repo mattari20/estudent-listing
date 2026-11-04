@@ -38,7 +38,7 @@ Ordinary network/URL-policy/HTTP retrieval failures are recorded as failed retri
 
 ## Validation evidence
 
-<badge>Verified exact PR head</badge> `0f99212a500625b2792b8a1a0cdd1c186abeff1a` (PR #1001; base `0ea84e9f2ffbdf948713a65d8afc1dc2e306e6d8`).
+**Verified exact PR head:** `0f99212a500625b2792b8a1a0cdd1c186abeff1a` (PR #1001; base `0ea84e9f2ffbdf948713a65d8afc1dc2e306e6d8`).
 
 | Workflow | Run / job | Result |
 |---|---|---|
