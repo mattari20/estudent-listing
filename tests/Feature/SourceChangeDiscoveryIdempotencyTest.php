@@ -122,14 +122,14 @@ class SourceChangeDiscoveryIdempotencyTest extends TestCase
             $sql = strtolower($query);
             if (! $triggered && str_contains($sql, 'insert into') && str_contains($sql, 'institute_discovery_run_outcomes')) {
                 $triggered = true;
-                throw new \\RuntimeException('injected discovery outcome persistence failure');
+                throw new \RuntimeException('injected discovery outcome persistence failure');
             }
         });
 
         try {
             app(SourceChangeDiscoveryService::class)->process($observation);
             $this->fail('The discovery outcome persistence failure must propagate.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertSame('injected discovery outcome persistence failure', $exception->getMessage());
         }
 
@@ -163,14 +163,14 @@ class SourceChangeDiscoveryIdempotencyTest extends TestCase
             $insertedRows++;
             if (! $triggered && $insertedRows === 2) {
                 $triggered = true;
-                throw new \\RuntimeException('injected partial candidate row failure');
+                throw new \RuntimeException('injected partial candidate row failure');
             }
         });
 
         try {
             app(SourceChangeDiscoveryService::class)->process($observation);
             $this->fail('The candidate row failure must propagate after recording a failed outcome.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertSame('injected partial candidate row failure', $exception->getMessage());
         }
 
@@ -247,7 +247,7 @@ class SourceChangeDiscoveryIdempotencyTest extends TestCase
             'observed_at' => now(),
         ]);
 
-        $verifier = \\Mockery::mock(OfficialSourceIdentityVerifier::class);
+        $verifier = \Mockery::mock(OfficialSourceIdentityVerifier::class);
         $verifier->shouldReceive('verify')->twice()->andReturn([
             'verified' => true,
             'blockers' => [],
