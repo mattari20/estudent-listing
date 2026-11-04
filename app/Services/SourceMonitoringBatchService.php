@@ -33,7 +33,7 @@ class SourceMonitoringBatchService
 
             $policyRunId = $checkpoints->startPolicyRun((int) $policy->id, $executionRunId);
             $policyHeartbeat = function () use ($heartbeat, $checkpoints, $policyRunId): void {
-                $policyHeartbeat();
+                $heartbeat?->__invoke();
                 $checkpoints->heartbeatPolicyRun($policyRunId);
             };
 
