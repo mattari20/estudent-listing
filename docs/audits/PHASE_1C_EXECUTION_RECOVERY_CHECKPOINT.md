@@ -57,8 +57,8 @@ Required ruleset evidence recorded in the existing Phase 1C-22 audit: active rul
 - Not merged: app-code push would trigger both production-facing workflows described below.
 
 ### D — PR #1011: append-only audit retention
-- Patch reviewed: migration `2026_11_04_000014_enforce_append_only_audit_retention.php`, scoped model guards and MySQL/SQLite immutability triggers for selected audit/event tables; parent deletion protections; mutable lifecycle/checkpoint tables are not included in the immutable model list.
-- Regression test file covers immutability/deletion/rollback; isolated MySQL log contains successful existing independent-process recovery suites. Final detailed review of every trigger and rollback branch remains a review item before merge.
+- Patch reviewed: migration `2026_11_04_000014_enforce_append_only_audit_retention.php` creates SQLite UPDATE/DELETE triggers for selected audit/event tables and a special SQLite identity-decision key-enrichment guard. On MySQL, the migration adds orphan preflight and `RESTRICT` foreign keys to protect parents, but it does **not** create corresponding MySQL UPDATE/DELETE triggers for direct SQL mutation of audit/event rows. Eloquent model traits alone do not satisfy database-level append-only retention. This is a confirmed repository-level defect in the current PR #1011 head and blocks merge.
+- Existing regression tests exercise Eloquent model guards and direct parent deletes; they do not currently prove direct `DB::table()` UPDATE/DELETE rejection on MySQL. Add MySQL trigger creation/drop logic plus direct-SQL tests on both SQLite and isolated MySQL, then rerun exact-head checks. Existing MySQL workflow is green but does not prove the missing direct-SQL invariant.
 - Exact-head Test, Laravel CI, Project Controller and isolated MySQL runs all passed.
 - Not merged: app-code/migration push would trigger both production-facing workflows described below.
 
@@ -107,3 +107,8 @@ The mission explicitly forbids Hostinger SSH, production diagnostics and product
 Protected GCU candidate rows #348–353 and batches #19–23 were not accessed or changed. AI extraction and the additional 20 HEC profiles remain disabled. No dummy production data was created.
 
 Phase 1C is NOT ENGINEERING COMPLETE: packages are implemented and individually tested but not merged/integrated, final cross-package validation is outstanding, and external production authorization remains outstanding. Production readiness is NOT CERTIFIED.
+
+
+## Newly identified review blocker (2026-11-04)
+
+PR #1011's advertised MySQL append-only guarantee is not implemented at the database layer: the migration's MySQL branch performs orphan checks and changes selected foreign keys to `RESTRICT`, then returns without creating UPDATE/DELETE triggers. Its model trait protects Eloquent writes only. SQLite does install triggers. This means direct SQL can still mutate/delete audit rows on MySQL, so PR #1011 is TESTED but not fully acceptance-complete. Required remediation: create/drop MySQL triggers for every scoped append-only table, preserve the one-time identity decision key-enrichment exception with a narrow trigger, and add direct-query regression tests exercised by isolated MySQL. Do not merge #1011 until those checks pass.
