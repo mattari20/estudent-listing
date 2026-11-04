@@ -126,9 +126,12 @@ def production_access_kind(job):
     return None
 
 
-def first_production_step_index(steps):
+def first_production_step_index(steps, include_artisan=False):
     for index, step in enumerate(steps or []):
-        if has_production_access_configuration(access_configuration(step)):
+        configuration = access_configuration(step)
+        if has_production_access_configuration(configuration):
+            return index
+        if include_artisan and has_production_artisan_command(configuration):
             return index
     return None
 
@@ -177,7 +180,14 @@ def validate_production_workflow(document, events):
         }:
             errors.append(f"job {name} missing approved production environment")
         steps = job.get("steps", [])
-        access_index = first_production_step_index(steps)
+        access_index = first_production_step_index(
+            steps,
+            include_artisan=job.get("environment") in {
+                "production-readonly-diagnostics",
+                "production-operations",
+                "offering-gap-readonly-audit",
+            },
+        )
         if access_index is None:
             errors.append(f"job {name} has no identifiable production access step")
             continue
@@ -333,8 +343,33 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
         job = {"steps": [{"run": "mysql --host=127.0.0.1 --user=ci --password=local -e SELECT"}]}
         self.assertIsNone(production_access_kind(job))
 
-    def test_artisan_command_in_protected_production_environment_is_gated(self):
-        job = {"environment": "production-operations",
+    def test_protected_artisan_command_requires_guard_before_execution(self):
+        document = {
+            "concurrency": {"group": "estudent-production-access",
+                            "cancel-in-progress": False, "queue": "max"},
+            "jobs": {"migrate": {
+                "environment": "production-operations",
+                "steps": [
+                    {"uses": "actions/checkout@v4",
+                     "with": {"ref": "${{ github.sha }}", "fetch-depth": 0}},
+                    {"env": {
+                        "TARGET_SHA": "${{ inputs.target_sha }}",
+                        "OPERATION_REASON": "${{ inputs.operation_reason }}",
+                        "CONFIRM_PRODUCTION_OPERATION": "${{ inputs.confirm_production_operation }}",
+                        "EXPECTED_CONFIRMATION": "AUTHORIZE-PRODUCTION-OPERATION",
+                     }, "run": "bash scripts/ci/validate-production-dispatch.sh"},
+                    {"run": "php artisan migrate --force"},
+                ],
+            }},
+        }
+        events = {"workflow_dispatch": {"inputs": {
+            "target_sha": {"required": True, "type": "string"},
+            "operation_reason": {"required": True, "type": "string"},
+            "confirm_production_operation": {"required": True, "type": "string"},
+        }}}
+        self.assertEqual(validate_production_workflow(document, events), [])
+
+    def test_artisan_command_in_protected_production_environment_is_gated(self):        job = {"environment": "production-operations",
                "steps": [{"run": "php artisan migrate --force"}]}
         self.assertEqual(production_access_kind(job), "production")
 
