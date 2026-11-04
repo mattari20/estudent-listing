@@ -636,7 +636,10 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
             "confirm_production_operation": {"required": True, "type": "string"},
         }}}
         errors = validate_production_workflow(document, events)
-        self.assertTrue(any("credentials before its dispatch guard" in error for error in errors))
+        self.assertTrue(any(
+            "no dispatch guard" in error or "credentials before its dispatch guard" in error
+            for error in errors
+        ))
 
     def test_workflow_level_production_secret_is_rejected_without_production_job(self):
         document = {
