@@ -37,11 +37,10 @@ class BulkImportPromotionService
                     if ($type === 'institution') {
                         $decision = IdentityResolutionDecision::query()
                             ->where('import_row_id', $row->id)
-                            ->whereIn('decision', ['approved_new', 'approved_match'])
                             ->latest('id')
                             ->first();
 
-                        if ($decision === null) {
+                        if ($decision === null || ! in_array($decision->decision, ['approved_new', 'approved_match'], true)) {
                             $result['skipped']++;
 
                             return;
@@ -65,11 +64,10 @@ class BulkImportPromotionService
                     } else {
                         $decision = ImportPromotionDecision::query()
                             ->where('import_row_id', $row->id)
-                            ->where('decision', 'approved')
                             ->latest('id')
                             ->first();
 
-                        if ($decision === null) {
+                        if ($decision === null || $decision->decision !== 'approved') {
                             $result['skipped']++;
 
                             return;
@@ -178,27 +176,13 @@ class BulkImportPromotionService
                         return;
                     }
 
-                    $decision = $existingDecision ?? IdentityResolutionDecision::create([
-                        'import_row_id' => $row->id,
-                        'institution_id' => null,
-                        'decision' => 'approved_new',
-                        'actor_type' => 'user',
-                        'actor_id' => $actorId,
-                        'reason' => $reason,
-                        'decided_at' => now(),
-                    ]);
-
-                    if ($existingDecision === null) {
-                        app(ImportPromotionAuditService::class)->record(
-                            $row,
-                            'promotion_approved',
-                            $actorId,
-                            $reason,
-                            ['decision' => 'approved_new', 'bulk' => true],
-                            'identity_resolution',
-                            $decision->id,
-                        );
-                    }
+                    $decision = app(IdentityResolutionDecisionService::class)->record(
+                        $row,
+                        $actorId,
+                        'approved_new',
+                        null,
+                        $reason,
+                    );
 
                     app(ImportPromotionAuditService::class)->record(
                         $row,

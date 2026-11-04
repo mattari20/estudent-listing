@@ -18,6 +18,15 @@ on:
       - 'tests/Support/verify-review-package-multiprocess.php'
       - 'tests/Feature/InstituteIdentityPersistenceRecoveryTest.php'
       - 'tests/Support/verify-identity-conflict-multiprocess.php'
+      - '.github/workflows/phase-1c-21-apply-patch.yml'
+      - '.github/phase-1c-21.patch.parts/part06'
+      - 'app/Services/BulkImportPromotionService.php'
+      - 'app/Services/OperatorTransitionService.php'
+      - 'app/Services/InstituteImportPromoter.php'
+      - 'app/Services/GeographyPromotionService.php'
+      - 'app/Http/Controllers/InstituteBulkPromotionController.php'
+      - 'tests/Feature/OperatorTransitionAtomicityTest.php'
+      - 'tests/Support/verify-operator-transition-multiprocess.php'
       - 'app/Services/ImportConflictDetectionService.php'
       - 'app/Services/ImportConflictLifecycleService.php'
       - 'app/Services/InstituteIdentityResolver.php'
@@ -163,6 +172,10 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/InstituteIdentityPersistenceRecoveryTest.php
       - name: Prove institution identity conflict and decision concurrency on MySQL
         run: php tests/Support/verify-identity-conflict-multiprocess.php
+      - name: Validate operator transition atomicity and failure recovery on MySQL
+        run: vendor/bin/phpunit tests/Feature/OperatorTransitionAtomicityTest.php
+      - name: Prove operator transition concurrency across independent PHP processes on MySQL
+        run: php tests/Support/verify-operator-transition-multiprocess.php
       - name: Validate source change event and reverification queue replay on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceChangeIntelligenceTest.php
       - name: Validate monitoring alert and audit replay idempotency on MySQL

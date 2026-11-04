@@ -1,6 +1,6 @@
 # eStudent Institutes Directory — Master Tracker
 
-Last reviewed: 2026-10-30
+Last reviewed: 2026-11-04
 Repository: https://github.com/mattari20/estudent-listing
 Phase 2 structure: exactly five sequential steps. Do not start the next step until the current step's completion gate is satisfied.
 Production safety: read-only diagnostics first. No destructive data operation or production migration is authorized by this tracker.
@@ -2267,3 +2267,18 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 - Production readiness remains a separate gate. Hostinger read-only diagnostics remain blocked (run 41763809883); no production access or mutation was performed.
 - Protected data unchanged: GCU rows #348–353 and batches #19–23; AI extraction and additional 20 HEC profiles remain disabled. No dummy production data.
 
+
+
+### Phase 1C-21 — operator transition atomicity and state-guard hardening (2026-11-04)
+
+- Execution recovery: the previous local `git clone` failure was reproduced as DNS resolution failure in the ChatGPT local container. The latest Project Controller run `41771644665` actually checked out the expected main SHA successfully; there was no failed Phase 1C-21A Project Controller checkout run.
+- Recovered full Git history through a temporary GitHub-hosted export workflow. Run `41774288577`, job `126390899600`, verified clean checkout SHA `8aa2ee2416b2729d05afd249961085b888b61910`, ran `git fsck --full`, created and verified a Git bundle, and uploaded artifact `13296003161`. The downloaded bundle was verified and checked out locally at the exact SHA with a clean tree and 1,350 tracked files.
+- Implementation adds a shared transactional operator transition service; institution rejection uses `IdentityResolutionDecisionService`; identity decisions enforce the candidate-state guard under row lock; quick approval, enrichment decisions, bulk rejection/approval, bulk new-institution approval, enrichment/geography promotion and institution publication now use locked transaction boundaries. Institution promotion reloads/locks its row and latest decision; promotion/publication require the latest decision to remain approved; existing reversal transaction is retained.
+- Added `tests/Feature/OperatorTransitionAtomicityTest.php` for six requested failure boundaries plus replay/state/conflict guards. Added `tests/Support/verify-operator-transition-multiprocess.php` for independent-process MySQL rejection, competing decision, candidate-state, publication and audit-failure/retry proofs.
+- Audit: `docs/audits/PHASE_1C_OPERATOR_TRANSITION_ATOMICITY.md`.
+- Exact implementation-head validation on PR #1006 head `a7b419df6cce05ad02c5cf2b3665abe2d072617f`: Test #41776287316 PASS (880 tests / 3,877 assertions); Laravel CI #41776287333 PASS (same count; Pint format and `--test` passed for 66 files); Project Controller #41776287301 job PASS (internal inventory REVIEW_REQUIRED 2/5); isolated MySQL #41776287321 PASS (operator-transition feature suite 15 tests / 55 assertions; independent-process rejection/decision/publication/state-guard/audit-failure retry proof PASS; all existing recovery steps passed).
+- The first test attempt exposed a changed established decision-row ownership exception message; this was corrected. The successful exact code-head runs above include that correction. The audit and tracker are now being updated with this evidence; all four workflows must rerun on the documentation-inclusive final PR head before merge.
+- Local PHP is 8.4.24 while the project requires PHP 8.5; Composer/MySQL/Docker are unavailable locally. Full validation was executed on GitHub-hosted PHP 8.5/MySQL 8.4 runners.
+- PR #1006 remains open and draft. Do not merge before documentation-inclusive exact-head checks pass and repository protections permit it. This entry does not claim Phase 1C-21 complete.
+- Remaining P1: chronological snapshot predecessor ordering from Phase 1C-20. Remaining P2: review-package row-set/evidence binding, database-enforced append-only audit retention, retrieval finalization failure proof, monitoring FK/direct concurrency assumptions and legacy NULL-key inventory.
+- Safety: no production operation or data access; GCU rows #348–353 and batches #19–23 remain protected; AI extraction and additional 20 HEC profiles remain disabled; no dummy production data. Phase 1C remains IN PROGRESS; Phase 1C-22 not started.

@@ -2,9 +2,7 @@
 namespace App\Http\Controllers;
 use App\Models\IdentityResolutionDecision;
 use App\Models\IdentityMatchCandidate;
-use App\Models\ImportPromotionDecision;
 use App\Models\ImportRow;
-use App\Models\ImportConflict;
 use App\Models\DataReverificationQueue;
 use App\Models\Institution;
 use App\Services\EnrichmentPromotionService;
@@ -22,61 +20,20 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
 class InstituteImportPromotionController {
- public function quickApprove(Request $request, ImportRow $importRow, EnrichmentPromotionService $service, ImportPromotionAuditService $audit): RedirectResponse {
-  abort_unless($importRow->status==='candidate', 409);
+ public function quickApprove(Request $request, ImportRow $importRow, EnrichmentPromotionService $service, \App\Services\OperatorTransitionService $transitions): RedirectResponse {
   $importRow->load('batch');
-
-  // Institution identity is high risk: never infer "new institution" or select
-  // the highest-scoring identity candidate from a one-click action. Require the
-  // operator to review and record an explicit identity-resolution decision.
   if($importRow->batch?->entity_type==='institution'){
    return back()->withErrors([
     'approval'=>'Quick approval is disabled for institution identity rows. Review identity candidates and conflicts, then record an explicit approved-new or approved-match decision before promotion.',
    ]);
   }
-
-  $service->validateParent($importRow);
   $reason='Quick approval from the import operations review queue.';
-  $decision=ImportPromotionDecision::create([
-   'import_row_id'=>$importRow->id,
-   'decision'=>'approved',
-   'actor_type'=>'user',
-   'actor_id'=>$request->user()->id,
-   'reason'=>$reason,
-   'decided_at'=>now(),
-  ]);
-  $audit->record($importRow, 'promotion_approved', $request->user()->id, $reason, [
-   'operator_action'=>'quick_approve',
-   'decision'=>'approved',
-  ], 'import_promotion', $decision->id);
-
+  $transitions->recordPromotionDecision($importRow, (int) $request->user()->id, 'approved', $reason, 'quick_approve', $service);
   return back()->with('status', 'Import row '.$importRow->row_number.' approved. It is now ready for promotion.');
  }
- public function reject(Request $request, ImportRow $importRow, ImportPromotionAuditService $audit): RedirectResponse {
-  abort_unless(in_array($importRow->status, ['candidate', 'validated', 'duplicate', 'invalid'], true), 409);
+ public function reject(Request $request, ImportRow $importRow, \App\Services\OperatorTransitionService $transitions): RedirectResponse {
   $data=$request->validate(['reason'=>['required', 'string', 'max:2000']]);
-  $previousStatus=$importRow->status;
-  $previousMatchState=$importRow->match_state;
-  if($importRow->batch?->entity_type==='institution'){
-   $decision=IdentityResolutionDecision::create(['import_row_id'=>$importRow->id, 'institution_id'=>null, 'decision'=>'rejected', 'actor_type'=>'user', 'actor_id'=>$request->user()->id, 'reason'=>$data['reason'], 'decided_at'=>now()]);
-   $decisionType='identity_resolution';
-  } else {
-   $decision=ImportPromotionDecision::create(['import_row_id'=>$importRow->id, 'decision'=>'rejected', 'actor_type'=>'user', 'actor_id'=>$request->user()->id, 'reason'=>$data['reason'], 'decided_at'=>now()]);
-   $decisionType='import_promotion';
-  }
-  $note=trim((string) $importRow->notes);
-  $rejectionNote='Rejected by operator: '.$data['reason'];
-  $importRow->update([
-   'status'=>'rejected',
-   'notes'=>trim($note.($note!=='' ? "\n" : '').$rejectionNote),
-  ]);
-  $audit->record($importRow, 'promotion_rejected', $request->user()->id, $data['reason'], [
-   'previous_status'=>$previousStatus,
-   'new_status'=>'rejected',
-   'previous_match_state'=>$previousMatchState,
-   'new_match_state'=>$importRow->match_state,
-   'operator_action'=>'reject_import_row',
-  ], $decisionType, $decision->id);
+  $transitions->rejectRow($importRow, (int) $request->user()->id, $data['reason']);
   return redirect()->route('institutes.operations.queue', ['batch_id'=>$importRow->import_batch_id])->with('status', 'Import row '.$importRow->row_number.' was rejected and removed from the active review queue.');
  }
  public function resolve(ImportRow $importRow, InstituteIdentityResolver $resolver): RedirectResponse { abort_unless($importRow->status==='candidate', 409); $resolver->resolve($importRow); return back()->with('status', 'Identity candidates refreshed.'); }
@@ -87,11 +44,9 @@ class InstituteImportPromotionController {
   $decisions->record($importRow, (int) $request->user()->id, $data['decision'], isset($data['institution_id']) ? (int) $data['institution_id'] : null, $data['reason']);
   return back()->with('status', 'Resolution decision recorded. Repeated identical requests reuse the same immutable decision.');
  }
- public function enrichmentDecision(Request $request, ImportRow $importRow, EnrichmentPromotionService $service, ImportPromotionAuditService $audit): RedirectResponse {
-  abort_unless($importRow->status==='candidate', 409); $service->validateParent($importRow);
+ public function enrichmentDecision(Request $request, ImportRow $importRow, EnrichmentPromotionService $service, \App\Services\OperatorTransitionService $transitions): RedirectResponse {
   $data=$request->validate(['decision'=>['required', 'in:approved,rejected,conflict'], 'reason'=>['required', 'string', 'max:2000']]);
-  $decision=ImportPromotionDecision::create(['import_row_id'=>$importRow->id, 'decision'=>$data['decision'], 'actor_type'=>'user', 'actor_id'=>$request->user()->id, 'reason'=>$data['reason'], 'decided_at'=>now()]);
-  $audit->record($importRow, $data['decision']==='approved'?'promotion_approved':'promotion_rejected', $request->user()->id, $data['reason'], ['decision'=>$data['decision']], 'import_promotion', $decision->id);
+  $transitions->recordPromotionDecision($importRow, (int) $request->user()->id, $data['decision'], $data['reason'], 'enrichment_decision', $service);
   return back()->with('status', 'Enrichment promotion decision recorded.');
  }
  public function resolveConflict(Request $request, ImportRow $importRow, ImportConflictLifecycleService $lifecycle): RedirectResponse {
@@ -106,8 +61,8 @@ class InstituteImportPromotionController {
  public function promote(Request $request, ImportRow $importRow, InstituteImportPromoter $promoter, ImportCrossSourceComparisonService $comparison, ImportChangeDetectionService $changes): RedirectResponse {
   try {
    abort_unless($importRow->batch?->entity_type==='institution', 409);
-   $decision=IdentityResolutionDecision::query()->where('import_row_id', $importRow->id)->whereIn('decision', ['approved_new', 'approved_match'])->latest('id')->first();
-   if ($decision === null) return back()->withErrors(['promotion'=>'Record an approved identity decision before promoting this institution.']);
+   $decision=IdentityResolutionDecision::query()->where('import_row_id', $importRow->id)->latest('id')->first();
+   if ($decision === null || !in_array($decision->decision, ['approved_new', 'approved_match'], true)) return back()->withErrors(['promotion'=>'The latest identity decision must be explicitly approved before promoting this institution.']);
    if($decision->decision==='approved_match'){
     $institution=Institution::findOrFail($decision->institution_id);
     if($comparison->compareInstitution($importRow, $institution)>0) return back()->withErrors(['promotion'=>'Canonical data differs from the import source; resolve the resulting conflict before promotion.']);
@@ -120,42 +75,13 @@ class InstituteImportPromotionController {
    return back()->withErrors(['promotion'=>$exception instanceof \RuntimeException ? $exception->getMessage() : 'Promotion failed unexpectedly. The error has been logged; no success was recorded.']);
   }
  }
- public function publishInstitution(Request $request, ImportRow $importRow, ImportPromotionAuditService $audit): RedirectResponse {
-  abort_unless($importRow->batch?->entity_type === 'institution', 409);
-  abort_unless($importRow->status === 'promoted', 409);
-  abort_unless($importRow->canonical_subject_type === Institution::class && $importRow->canonical_subject_id, 409);
-
-  $institution = Institution::query()->findOrFail($importRow->canonical_subject_id);
-  if ($institution->status === 'active') {
-   return back()->with('status', 'Institution is already published in the directory.');
+ public function publishInstitution(Request $request, ImportRow $importRow, \App\Services\OperatorTransitionService $transitions): RedirectResponse {
+  try {
+   $institution = $transitions->publishInstitution($importRow, (int) $request->user()->id);
+   return back()->with('status', $institution->wasChanged('status') ? 'Institution published. It should now appear in the public directory.' : 'Institution is already published in the directory.');
+  } catch (RuntimeException $exception) {
+   return back()->withErrors(['publication'=>$exception->getMessage()]);
   }
-
-  $decision = IdentityResolutionDecision::query()
-   ->where('import_row_id', $importRow->id)
-   ->whereIn('decision', ['approved_new', 'approved_match'])
-   ->latest('id')->firstOrFail();
-
-  $hasActiveEvidence = \App\Models\Assertion::query()
-   ->where('subject_type', ImportRow::class)
-   ->where('subject_id', $importRow->id)
-   ->whereHas('evidence', fn ($query) => $query->where('status', 'active'))
-   ->exists();
-  abort_unless($hasActiveEvidence, 409, 'Active official source evidence is required before publication.');
-  abort_unless(!ImportConflict::where('import_row_id', $importRow->id)->where('status', 'open')->exists(), 409, 'Resolve all open import conflicts before publication.');
-
-  $previousStatus = $institution->status;
-  $institution->update(['status' => 'active', 'verified_at' => now()]);
-  $audit->record(
-   $importRow,
-   'institution_published',
-   $request->user()->id,
-   'Operator explicitly published the promoted institution to the public directory.',
-   ['institution_id' => $institution->id, 'previous_status' => $previousStatus, 'new_status' => 'active'],
-   'identity_resolution',
-   $decision->id
-  );
-
-  return redirect()->route('institutes.operations.row', $importRow)->with('status', 'Institution published. It should now appear in the public directory.');
  }
  public function captureRowEvidence(Request $request, ImportRow $importRow, \App\Services\InstituteSourceEvidenceCaptureService $service): RedirectResponse {
   abort_unless($importRow->batch?->entity_type==='institution' && $importRow->status==='candidate', 409);
@@ -180,11 +106,12 @@ class InstituteImportPromotionController {
   app(ImportPromotionAuditService::class)->record($importRow, 'source_evidence_captured', $request->user()->id, 'Operator captured official source evidence.', ['evidence_id'=>$evidence->id, 'reference'=>$data['reference']], 'source_evidence', $evidence->id);
   return back()->with('status', 'Source evidence recorded. You may now retry promotion after checking the identity decision and conflicts.');
  }
- public function enrichmentPromote(Request $request, ImportRow $importRow, EnrichmentPromotionService $service, ImportPromotionAuditService $audit): RedirectResponse {
-  abort_unless($importRow->status==='candidate', 409); $decision=ImportPromotionDecision::query()->where('import_row_id', $importRow->id)->where('decision', 'approved')->latest('id')->firstOrFail();
-  $service->validateParent($importRow); $previousStatus=$importRow->status; $previousMatch=$importRow->match_state;
-  try { $entity=$service->promote($importRow); } catch (\Throwable $e) { return back()->withErrors(['promotion'=>$e->getMessage()]); }
-  $audit->record($importRow, 'promotion_succeeded', $request->user()->id, 'Enrichment promoted to canonical data.', ['previous_status'=>$previousStatus, 'previous_match_state'=>$previousMatch, 'created_canonical'=>false, 'canonical_class'=>$entity::class], 'import_promotion', $decision->id);
+ public function enrichmentPromote(Request $request, ImportRow $importRow, EnrichmentPromotionService $service, \App\Services\OperatorTransitionService $transitions): RedirectResponse {
+  try {
+   $transitions->promoteEnrichment($importRow, (int) $request->user()->id, $service);
+  } catch (\Throwable $e) {
+   return back()->withErrors(['promotion'=>$e->getMessage()]);
+  }
   return redirect()->route('institutes.operations.row', $importRow)->with('status', 'Canonical enrichment promoted.');
  }
  public function geographyResolve(Request $request, ImportRow $importRow, \App\Services\GeographyImportResolverService $resolver): RedirectResponse {
@@ -192,12 +119,12 @@ class InstituteImportPromotionController {
   $resolver->resolve($importRow);
   return back()->with('status', 'Geography candidates refreshed.');
  }
- public function geographyPromote(Request $request, ImportRow $importRow, \App\Services\GeographyPromotionService $service, ImportPromotionAuditService $audit): RedirectResponse {
-  abort_unless($importRow->batch && $importRow->batch->entity_type==='geography', 409);
-  abort_unless($importRow->status==='candidate', 409);
-  $decision=ImportPromotionDecision::query()->where('import_row_id', $importRow->id)->where('decision', 'approved')->latest('id')->firstOrFail();
-  $entity=$service->promote($importRow);
-  $audit->record($importRow, 'promotion_succeeded', $request->user()->id, 'Geography promoted to canonical data.', ['canonical_id'=>$entity->id, 'canonical_class'=>$entity::class], 'geography_promotion', $decision->id);
+ public function geographyPromote(Request $request, ImportRow $importRow, \App\Services\GeographyPromotionService $service, \App\Services\OperatorTransitionService $transitions): RedirectResponse {
+  try {
+   $entity=$transitions->promoteGeography($importRow, (int) $request->user()->id, $service);
+  } catch (\Throwable $e) {
+   return back()->withErrors(['promotion'=>$e->getMessage()]);
+  }
   return back()->with('status', 'Canonical geography promoted: '.$entity->name);
  }
  public function reverse(Request $request, ImportRow $importRow, ImportPromotionReversalService $reversal): RedirectResponse {

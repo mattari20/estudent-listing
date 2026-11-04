@@ -17,7 +17,28 @@ class InstituteImportPromoter
 {
     public function promote(ImportRow $row, IdentityResolutionDecision $decision): Institution
     {
-        return DB::transaction(fn (): Institution => $this->promoteWithinTransaction($row, $decision));
+        return DB::transaction(function () use ($row, $decision): Institution {
+            $lockedRow = ImportRow::query()->with('batch.source')->whereKey($row->id)->lockForUpdate()->firstOrFail();
+            $providedDecision = IdentityResolutionDecision::query()
+                ->whereKey($decision->id)
+                ->where('import_row_id', $lockedRow->id)
+                ->lockForUpdate()
+                ->first();
+            if (! $providedDecision) {
+                throw new RuntimeException('Resolution decision does not belong to import row.');
+            }
+
+            $lockedDecision = IdentityResolutionDecision::query()
+                ->where('import_row_id', $lockedRow->id)
+                ->latest('id')
+                ->lockForUpdate()
+                ->firstOrFail();
+            if ((int) $lockedDecision->id !== (int) $providedDecision->id) {
+                throw new RuntimeException('The identity decision changed before promotion; review the latest decision and retry.');
+            }
+
+            return $this->promoteWithinTransaction($lockedRow, $lockedDecision);
+        });
     }
 
     private function promoteWithinTransaction(ImportRow $row, IdentityResolutionDecision $decision): Institution
@@ -65,7 +86,7 @@ class InstituteImportPromoter
         }
 
         if ($decision->decision === 'approved_match') {
-            $institution = Institution::findOrFail($decision->institution_id);
+            $institution = Institution::query()->whereKey($decision->institution_id)->lockForUpdate()->firstOrFail();
             $previousStatus = $row->status;
             $previousMatch = $row->match_state;
 
