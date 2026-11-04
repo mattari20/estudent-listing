@@ -20,6 +20,7 @@ use App\Services\ReverificationWorkflowService;
 use App\Services\CanonicalRefreshService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use RuntimeException;
 class InstituteImportPromotionController {
  public function quickApprove(Request $request, ImportRow $importRow, EnrichmentPromotionService $service, ImportPromotionAuditService $audit): RedirectResponse {
   abort_unless($importRow->status==='candidate',409);
@@ -97,7 +98,7 @@ class InstituteImportPromotionController {
   $data=$request->validate(['conflict_id'=>['required','integer','exists:import_conflicts,id'],'reason'=>['required','string','max:2000']]);
   try {
    $lifecycle->resolve($importRow, (int) $data['conflict_id'], (int) $request->user()->id, $data['reason']);
-  } catch (\\RuntimeException $exception) {
+  } catch (RuntimeException $exception) {
    return back()->withErrors(['conflict'=>$exception->getMessage()]);
   }
   return back()->with('status','Import conflict resolved with an explicit operator reason and immutable history recorded.');
