@@ -2153,3 +2153,32 @@ This is a bounded recovery improvement only. Abrupt process death, heartbeat/val
 - Recovery is replay-from-start using existing idempotency boundaries; this is not same-run continuation or atomic exactly-once processing.
 - Audit: `docs/audits/PHASE_1C_DURABLE_MONITORING_POLICY_RUN_CHECKPOINTS.md`.
 - Exact-head validation is required before merge. Phase 1C remains open; production/provider readiness is not certified.
+
+
+### Phase 1C follow-on — PR #1000 checkpoint failure-boundary recovery (2026-11-04)
+
+- Work is in progress on branch `fix/phase-1c-16-policy-checkpoint-failure-boundaries`, based on exact main SHA `0ea84e9f2ffbdf948713a65d8afc1dc2e306e6d8` (PR #1000).
+- Adds a dedicated checkpoint persistence service. Policy attempts are opened before validation so invalid policy attempts can be durably classified with a fixed safe code.
+- Heartbeat failures remain outside retrieval exception handling and abort processing. Source checkpoint writes must succeed before retrieval begins and before a source is marked complete.
+- Policy state, `last_run_at`, and final policy status are committed in one database transaction; failure leaves the attempt incomplete for later interrupted classification.
+- Refines retrieval exception boundaries: network/URL/HTTP failures produce safe failed retrieval records, while snapshot/observation/checkpoint/database exceptions propagate as infrastructure failures. Raw exception messages are not persisted by the retrieval service.
+- Adds failure-injection tests for validation, lease heartbeat loss, source checkpoint insertion/completion, policy-state persistence, `last_run_at` and policy-run finalization. Snapshot persistence failure is tested separately to ensure it is not mislabeled as a retrieval failure.
+- Audit: `docs/audits/PHASE_1C_POLICY_CHECKPOINT_FAILURE_BOUNDARY_RECOVERY.md`.
+- Exact-head Laravel CI, Test, isolated MySQL and Project Controller evidence remains pending. Do not merge until the MySQL job logs explicitly show the recovery test file passing.
+- Replay remains from the beginning, not same-attempt continuation. Checkpoints are not atomic with every downstream side effect and do not provide exactly-once execution.
+- Repository/isolated CI only. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled. No production operations or dummy data.
+
+
+### Phase 1C-16 — checkpoint failure-boundary recovery validation completed (2026-11-04)
+
+- PR #1001: `https://github.com/mattari20/estudent-listing/pull/1001`.
+- Verified implementation head before this final evidence-recording documentation update: `8f622e420923b134f293d6dbc6fea41baca84f7f`; base `0ea84e9f2ffbdf948713a65d8afc1dc2e306e6d8`.
+- Test workflow run #41756508005 passed: 832 tests, 3,670 assertions.
+- Laravel CI run #41756507997 passed: 832 tests, 3,670 assertions; Pint format and verification passed for 29 files.
+- Project Controller run #41756507980 passed.
+- Isolated MySQL run #41756508028 passed. Actual MySQL logs show `SourceMonitoringBatchRecoveryTest.php` 12 tests/70 assertions and `SourceSnapshotTest.php` + `SourceRetrievalTest.php` 23 tests/65 assertions, all passing; dedicated policy recovery step succeeded.
+- Failure boundaries now include policy validation, actual lease takeover/lost heartbeat after pipeline return, policy-run insertion atomicity, per-source checkpoint start/failure/completion, policy success/failure state exceptions, `last_run_at`, finalization, snapshot persistence, and abandoned-run interruption.
+- Recovery remains replay-from-start; exactly-once execution and production readiness are not claimed.
+- Final merge is conditional on a fresh pass of all four required workflows on the final documentation-inclusive PR head.
+- Next Phase 1C task: audit and failure-injection hardening of downstream discovery/candidate-batch side effects and replay boundaries (candidate/batch persistence, duplicate/idempotency behavior). Production scheduler/worker/runtime evidence and production-readiness certification remain separate later gates.
+- Protected data unchanged: GCU rows #348–353 and batches #19–23; AI extraction and additional 20 HEC profiles remain disabled. No production operations or dummy data.

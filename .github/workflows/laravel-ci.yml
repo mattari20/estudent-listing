@@ -69,6 +69,8 @@ jobs:
           tests/Feature/SourceRetrievalTest.php
           database/migrations/2026_11_03_000003_add_source_retrieval_idempotency_key.php
           app/Services/SourceMonitoringBatchService.php
+          app/Services/MonitoringPolicyCheckpointService.php
+          app/Services/MonitoringPolicyStateService.php
           app/Console/Commands/MonitorSourceChanges.php
           database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php
           tests/Feature/SourceMonitoringBatchRecoveryTest.php
@@ -89,6 +91,8 @@ jobs:
           app/Services/MonitoringAlertService.php
           app/Services/MonitoringAuditService.php
           app/Services/SourceMonitoringBatchService.php
+          app/Services/MonitoringPolicyCheckpointService.php
+          app/Services/MonitoringPolicyStateService.php
           app/Console/Commands/MonitorSourceChanges.php
           database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php
           tests/Feature/SourceMonitoringBatchRecoveryTest.php
@@ -101,6 +105,8 @@ jobs:
           app/Services/MonitoringAlertService.php
           app/Services/MonitoringAuditService.php
           app/Services/SourceMonitoringBatchService.php
+          app/Services/MonitoringPolicyCheckpointService.php
+          app/Services/MonitoringPolicyStateService.php
           app/Console/Commands/MonitorSourceChanges.php
           database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php
           tests/Feature/SourceMonitoringBatchRecoveryTest.php
@@ -129,6 +135,12 @@ jobs:
           app/Console/Commands/RunInstituteDiscoveryAgent.php
           database/migrations/2026_11_03_000001_create_governed_execution_leases_table.php
           tests/Feature/ExecutionLeaseServiceTest.php
+          app/Services/SourceRetrievalService.php
+          tests/Feature/SourceRetrievalTest.php
+          app/Services/SourceMonitoringBatchService.php
+          app/Services/MonitoringPolicyCheckpointService.php
+          app/Services/MonitoringPolicyStateService.php
+          tests/Feature/SourceMonitoringBatchRecoveryTest.php
           app/Services/SourceSnapshotService.php
           app/Services/SourceChangeObservationService.php
           app/Models/SourceSnapshot.php

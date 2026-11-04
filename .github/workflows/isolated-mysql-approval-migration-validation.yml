@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/isolated-mysql-approval-migration-validation.yml'
+      - '.github/workflows/laravel-ci.yml'
       - 'database/migrations/**'
       - 'tests/Feature/InstitutionFieldApprovalServiceTest.php'
       - 'tests/Feature/ExecutionLeaseServiceTest.php'
@@ -16,9 +17,13 @@ on:
       - 'app/Services/MonitoringAlertService.php'
       - 'app/Services/MonitoringAuditService.php'
       - 'app/Services/SourceMonitoringBatchService.php'
+      - 'app/Services/MonitoringPolicyCheckpointService.php'
+      - 'app/Services/MonitoringPolicyStateService.php'
       - 'app/Models/SecurityAuditEvent.php'
       - 'tests/Feature/MonitoringAlertsTest.php'
       - 'tests/Feature/SourceMonitoringBatchRecoveryTest.php'
+      - 'docs/audits/PHASE_1C_POLICY_CHECKPOINT_FAILURE_BOUNDARY_RECOVERY.md'
+      - 'docs/PROJECT_MASTER_TRACKER.md'
       - 'database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php'
       - 'app/Console/Commands/MonitorSourceChanges.php'
       - 'app/Services/SourceMonitoringBatchService.php'
