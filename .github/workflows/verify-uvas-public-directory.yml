@@ -1,17 +1,13 @@
 name: Verify UVAS Public Directory
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/audit-next-institution-catalog.yml"
-      - ".github/workflows/verify-uvas-public-directory.yml"
-  push:
-    branches:
-      - ops/audit-next-institution-catalog
+  workflow_dispatch:
+
 permissions:
   contents: read
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     steps:
       - name: Verify UVAS and all public institution routes
         uses: appleboy/ssh-action@v1.2.0
