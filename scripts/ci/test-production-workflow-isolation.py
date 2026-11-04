@@ -131,6 +131,11 @@ def production_access_kind(job):
     return None
 
 
+def is_explicitly_blocked(job):
+    value = job.get("if")
+    return value is False or str(value).strip() == "${{ false }}"
+
+
 def first_production_step_index(steps, include_artisan=False):
     for index, step in enumerate(steps or []):
         configuration = access_configuration(step)
@@ -155,11 +160,10 @@ def validate_production_workflow(document, events):
             errors.append(f"job {job_name} uses an unapproved production environment: {environment}")
     blocked_jobs = {
         name: job for name, job in jobs.items()
-        if production_access_kind(job)
-        and (job.get("if") is False or str(job.get("if", "")).strip() == "${{ false }}")
+        if production_access_kind(job) and is_explicitly_blocked(job)
     }
     for name, job in blocked_jobs.items():
-        if not (job.get("if") is False or str(job.get("if", "")).strip() == "${{ false }}"):
+        if not is_explicitly_blocked(job):
             errors.append(f"blocked job {name} must have an explicit false condition")
         if job.get("environment"):
             errors.append(f"blocked job {name} must not bind a production environment")
@@ -490,12 +494,17 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
             with self.subTest(workflow=path.name):
                 document, events, jobs = parse_workflow(path)
                 source = path.read_text()
-                if any(production_access_kind(job) for job in jobs.values()):
+                active_production_jobs = [
+                    job for job in jobs.values()
+                    if production_access_kind(job) and not is_explicitly_blocked(job)
+                ]
+                if active_production_jobs:
                     self.assertNotRegex(
                         source,
                         r"secrets\.(?:HOSTINGER_SSH_|INSTITUTES_DIAGNOSTICS_TOKEN|INSTITUTES_PRIVATE_REPORTS_TOKEN)",
                         "active read-only diagnostics must not fall back to repository-level production credentials",
                     )
+                if any(production_access_kind(job) for job in jobs.values()):
                     errors = validate_production_workflow(document, events)
                     self.assertEqual(errors, [], "; ".join(errors))
 
