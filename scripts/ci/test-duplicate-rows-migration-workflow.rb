@@ -12,6 +12,17 @@ input = dispatch.fetch('inputs').fetch('confirm_migration')
 abort 'ERROR: confirm_migration must remain a required boolean defaulting false' unless input['required'] == true && input['type'] == 'boolean' && input['default'] == false
 abort 'ERROR: workflow permissions must remain read-only for contents' unless workflow.fetch('permissions').fetch('contents') == 'read'
 abort 'ERROR: migration concurrency guard changed' unless workflow.fetch('concurrency')['cancel-in-progress'] == false
+abort 'ERROR: shared production concurrency group or queue policy changed' unless workflow.fetch('concurrency')['group'] == 'estudent-production-access' && workflow.fetch('concurrency')['queue'] == 'max'
+%w[target_sha operation_reason confirm_production_operation].each do |name|
+  item = dispatch.fetch('inputs').fetch(name)
+  abort "ERROR: #{name} must be required text" unless item['required'] == true && item['type'] == 'string'
+end
+job = workflow.fetch('jobs').fetch('migrate')
+abort 'ERROR: production-operations environment is required' unless job['environment'] == 'production-operations'
+steps = job.fetch('steps')
+guard_index = steps.index { |item| item.fetch('run', '').include?('scripts/ci/validate-production-dispatch.sh') }
+ssh_index = steps.index { |item| item.fetch('uses', '').start_with?('appleboy/ssh-action') }
+abort 'ERROR: dispatch guard must precede migration SSH action' unless guard_index && ssh_index && guard_index < ssh_index
 
 script = workflow.fetch('jobs').fetch('migrate').fetch('steps')
   .find { |step| step['name'] == 'Verify deployed code and run guarded single migration' }
