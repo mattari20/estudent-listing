@@ -2144,3 +2144,12 @@ No production DB/SSH/hPanel/Artisan/migration/deployment/cron/worker/backup/rest
 - Audit: `docs/audits/PHASE_1C_MONITORING_PIPELINE_EXCEPTION_RECOVERY.md`.
 
 This is a bounded recovery improvement only. Abrupt process death, heartbeat/validation/persistence exceptions, and per-policy durable checkpoints remain open. Exact-head CI is required before merge. Production readiness is still NOT CERTIFIED; no production operations or data changes have occurred.
+
+
+### Phase 1C follow-on — durable monitoring policy checkpoints (2026-11-04)
+
+- PR #999 merged at `473805fa0c294f09e4af1d9f1c9f2c76a7250de9`; user screenshot confirms four checks passed.
+- New branch adds durable policy-attempt and per-source checkpoint tables, links policy runs to the shared governed execution run UUID, records source completion/failure, and classifies prior still-running attempts as interrupted when a later attempt begins.
+- Recovery is replay-from-start using existing idempotency boundaries; this is not same-run continuation or atomic exactly-once processing.
+- Audit: `docs/audits/PHASE_1C_DURABLE_MONITORING_POLICY_RUN_CHECKPOINTS.md`.
+- Exact-head validation is required before merge. Phase 1C remains open; production/provider readiness is not certified.

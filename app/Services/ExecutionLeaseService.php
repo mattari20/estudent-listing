@@ -108,7 +108,7 @@ class ExecutionLeaseService
                 $this->recordEvent($runId, 'heartbeat');
             };
 
-            $result = $callback($heartbeat);
+            $result = $callback($heartbeat, $runId);
 
             if (is_int($result) && $result !== 0) {
                 $failureCode = 'command_exit_code_'.$result;

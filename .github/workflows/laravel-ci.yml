@@ -69,6 +69,9 @@ jobs:
           tests/Feature/SourceRetrievalTest.php
           database/migrations/2026_11_03_000003_add_source_retrieval_idempotency_key.php
           app/Services/SourceMonitoringBatchService.php
+          app/Console/Commands/MonitorSourceChanges.php
+          database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php
+          tests/Feature/SourceMonitoringBatchRecoveryTest.php
           tests/Feature/SourceMonitoringBatchRecoveryTest.php
           app/Services/SourceSnapshotService.php
           app/Services/SourceChangeObservationService.php
@@ -86,6 +89,9 @@ jobs:
           app/Services/MonitoringAlertService.php
           app/Services/MonitoringAuditService.php
           app/Services/SourceMonitoringBatchService.php
+          app/Console/Commands/MonitorSourceChanges.php
+          database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php
+          tests/Feature/SourceMonitoringBatchRecoveryTest.php
           tests/Feature/SourceMonitoringBatchRecoveryTest.php
           app/Models/SecurityAuditEvent.php
           tests/Feature/MonitoringAlertsTest.php
@@ -95,6 +101,9 @@ jobs:
           app/Services/MonitoringAlertService.php
           app/Services/MonitoringAuditService.php
           app/Services/SourceMonitoringBatchService.php
+          app/Console/Commands/MonitorSourceChanges.php
+          database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php
+          tests/Feature/SourceMonitoringBatchRecoveryTest.php
           app/Models/SecurityAuditEvent.php
           tests/Feature/MonitoringAlertsTest.php
           database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php
