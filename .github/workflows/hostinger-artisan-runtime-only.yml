@@ -21,9 +21,9 @@ permissions:
   actions: read
 
 concurrency:
-  group: estudent-production-access
+  group: hostinger-phase-5b18-runtime-only
   cancel-in-progress: false
-  queue: max
+
 jobs:
   runtime-diagnostic:
     environment: production-readonly-diagnostics
