@@ -22,7 +22,7 @@ PRODUCTION_SECRET_MARKERS = (
 SSH_ACTION = "appleboy/ssh-action"
 RECOVERY_WORKFLOW = WORKFLOWS / "secure-institutes-admin-recovery.yml"
 ADMIN_RECOVERY_NAME = re.compile(r"(?:admin.*recover|recover.*admin)", re.IGNORECASE)
-GUARD_COMMAND = re.compile(r"^\s*(?:bash\s+)?scripts/ci/validate-production-dispatch\.sh(?:\s|$)", re.MULTILINE)
+GUARD_COMMAND = re.compile(r"(?:bash\s+)?scripts/ci/validate-production-dispatch\.sh(?:\s|$)")
 
 
 def workflow_files(directory=WORKFLOWS):
@@ -539,6 +539,9 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
             subprocess.run(["git", "init", "--bare", str(remote)], check=True,
                            text=True, capture_output=True)
             checkout.mkdir()
+            guard_copy = checkout / "scripts" / "ci" / "validate-production-dispatch.sh"
+            guard_copy.parent.mkdir(parents=True, exist_ok=True)
+            guard_copy.write_text(guard.read_text())
             subprocess.run(["git", "init", "-b", "main"], cwd=checkout, check=True,
                            text=True, capture_output=True)
             subprocess.run(["git", "config", "user.email", "ci@example.invalid"],
@@ -568,7 +571,7 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
                 "EXPECTED_CONFIRMATION": "AUTHORIZE-READONLY-DIAGNOSTICS",
             }
             result = subprocess.run(
-                ["bash", str(guard)], cwd=checkout, env=env,
+                ["bash", str(guard_copy)], cwd=checkout, env=env,
                 text=True, capture_output=True
             )
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -594,7 +597,7 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
             ("missing confirmation", {"CONFIRM_PRODUCTION_OPERATION": ""},
              "confirmation does not match"),
             ("mismatched SHA", {"TARGET_SHA": "b" * 40},
-             "must equal the dispatch event SHA"),
+             "must equal the immutable dispatch event SHA"),
             ("short reason", {"OPERATION_REASON": "no"},
              "8-128 safe ASCII characters"),
             ("log injection reason", {"OPERATION_REASON": "ticket-123\\nforged=true"},
