@@ -9,6 +9,10 @@ on:
         default: ''
         type: string
 
+concurrency:
+  group: estudent-production-access
+  cancel-in-progress: false
+
 permissions:
     inputs:
       target_sha:
