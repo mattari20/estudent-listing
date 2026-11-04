@@ -22,6 +22,12 @@ PRODUCTION_SECRET_MARKERS = (
 SSH_ACTION = "appleboy/ssh-action"
 RECOVERY_WORKFLOW = WORKFLOWS / "secure-institutes-admin-recovery.yml"
 ADMIN_RECOVERY_NAME = re.compile(r"(?:admin.*recover|recover.*admin)", re.IGNORECASE)
+GUARD_COMMAND = re.compile(r"^\\s*(?:bash\\s+)?scripts/ci/validate-production-dispatch\\.sh(?:\\s|$)", re.MULTILINE)
+
+
+def workflow_files():
+    """Return every supported GitHub Actions YAML workflow file."""
+    return sorted(set(WORKFLOWS.glob("*.yml")) | set(WORKFLOWS.glob("*.yaml")))
 PRODUCTION_REMOTE_COMMAND = re.compile(r"\b(?:ssh|scp|sftp)\s+(?:-[A-Za-z][^\s]*\s+)*[^\s]+")
 PRODUCTION_DATABASE_COMMAND = re.compile(r"\b(?:mysql|mariadb|psql)\b(?=[^\n]*(?:--host(?:=|\s+)(?!127\.0\.0\.1\b|localhost\b)|-h\s+(?!127\.0\.0\.1\b|localhost\b)))", re.IGNORECASE)
 PRODUCTION_ARTISAN_COMMAND = re.compile(r"\b(?:php(?:[0-9]+(?:\.[0-9]+)*)?\s+artisan\b|\$[A-Z_][A-Z0-9_]*\s+artisan\b)")
@@ -194,7 +200,9 @@ def validate_production_workflow(document, events):
 
         guard_index = next((
             index for index, step in enumerate(steps[:access_index])
-            if "scripts/ci/validate-production-dispatch.sh" in flatten(step)
+            if isinstance(step, dict)
+            and isinstance(step.get("run"), str)
+            and GUARD_COMMAND.search(step["run"].strip())
         ), None)
         if guard_index is None:
             errors.append(f"job {name} has no dispatch guard before production access")
@@ -210,8 +218,24 @@ def validate_production_workflow(document, events):
         for variable, binding in required_bindings.items():
             if binding not in str(guard_env.get(variable, "")):
                 errors.append(f"job {name} guard does not bind {variable} to {binding}")
-        if not str(guard_env.get("EXPECTED_CONFIRMATION", "")).strip():
-            errors.append(f"job {name} guard lacks an operation-specific confirmation phrase")
+        expected_confirmation = str(guard_env.get("EXPECTED_CONFIRMATION", "")).strip()
+        if not re.fullmatch(r"AUTHORIZE-[A-Z0-9-]{8,}", expected_confirmation):
+            errors.append(f"job {name} guard lacks a well-formed operation-specific confirmation phrase")
+
+        if "confirm_discovery" in inputs:
+            if inputs["confirm_discovery"].get("required") is not True or inputs["confirm_discovery"].get("type") != "string":
+                errors.append("discovery requires a dedicated confirm_discovery string input")
+            if guard_env.get("OPERATION_CONFIRMATION") != "${{ inputs.confirm_discovery }}":
+                errors.append(f"job {name} guard does not bind the dedicated discovery confirmation")
+            if guard_env.get("EXPECTED_OPERATION_CONFIRMATION") != "AUTHORIZE-GOVERNED-INSTITUTE-DISCOVERY":
+                errors.append(f"job {name} guard has the wrong discovery confirmation value")
+        elif "confirm_discovery" in guard_env:
+            errors.append(f"job {name} uses discovery confirmation without a matching workflow input")
+
+        for prior_step in steps[:guard_index]:
+            prior_env = prior_step.get("env", {}) if isinstance(prior_step, dict) else {}
+            if has_production_access_configuration(access_configuration(prior_env)):
+                errors.append(f"job {name} exposes production credentials before its dispatch guard")
 
         checkout_index = next((
             index for index, step in enumerate(steps[:guard_index])
@@ -258,7 +282,7 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
 
     def test_no_administrator_recovery_ssh_workflow_is_reintroduced(self):
         reintroduced = []
-        for path in WORKFLOWS.glob("*.yml"):
+        for path in workflow_files():
             if not ADMIN_RECOVERY_NAME.search(path.stem):
                 continue
             document, _, jobs = parse_workflow(path)
@@ -445,7 +469,7 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
         self.assertTrue(any("job scope" in error for error in errors))
 
     def test_all_actual_production_workflows_are_manual_and_guarded(self):
-        for path in WORKFLOWS.glob("*.yml"):
+        for path in workflow_files():
             with self.subTest(workflow=path.name):
                 document, events, jobs = parse_workflow(path)
                 if not any(production_access_kind(job) for job in jobs.values()):
