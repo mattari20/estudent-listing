@@ -25,6 +25,9 @@ jobs:
       - name: Validate production environment binding and dispatch isolation
         run: ruby scripts/ci/test-production-environment-binding.rb
 
+      - name: Validate consolidated production workflow isolation
+        run: python3 scripts/ci/test-production-workflow-isolation.py
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
