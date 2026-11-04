@@ -19,9 +19,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: institutes-private-diagnostics-report
   cancel-in-progress: false
-  queue: max
 jobs:
   retrieve-and-store:
     environment: production-readonly-diagnostics
