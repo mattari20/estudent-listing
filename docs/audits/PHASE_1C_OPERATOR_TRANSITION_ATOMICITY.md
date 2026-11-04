@@ -9,7 +9,7 @@ Previous audit: `docs/audits/PHASE_1C_DISCOVERY_TO_REVIEW_PERSISTENCE_BOUNDARY_A
 
 This delivery addresses the Phase 1C-20 P1 operator-transition findings. It is repository and isolated-CI work only. The implementation preserves the separate identity decision, canonical promotion and public publication gates. It does not close Phase 1C or certify production readiness.
 
-**Current implementation status:** code and regression coverage are prepared on the Phase 1C-21 implementation branch; exact final PR-head Test, Laravel CI/Pint, Project Controller and isolated MySQL evidence must be recorded after the final PR head is fixed. Do not treat source recovery or local PHP syntax checks as full validation.
+**Current implementation status:** implementation and required code-head validation passed on PR #1006 implementation head `a7b419df6cce05ad02c5cf2b3665abe2d072617f`. This audit and the master tracker are now being updated with that evidence; documentation-inclusive final PR-head validation is required after these documentation changes.
 
 ## 2. Execution environment recovery
 
@@ -74,11 +74,11 @@ The local container has PHP 8.4.24, while `composer.json` requires PHP `^8.5`; C
 | Identity `decide` | No candidate-state guard in the controller/service transaction | `IdentityResolutionDecisionService::record` locks the row and permits new decisions only while it is a candidate; exact existing decision replay remains safe after a later state transition |
 | `quickApprove` | Promotion decision and audit were separate writes; candidate check used the route-bound model | Routed through `recordPromotionDecision`, which locks/reloads the row and writes the decision/audit transactionally; identical actor/decision/reason replay reuses the decision |
 | `enrichmentDecision` | Decision and audit were separate writes; candidate check was outside a lock | Uses the same locked transactional decision path |
-| Bulk approve/reject | Bulk controller had its own transaction, but institution rejection bypassed the shared identity service and retry handling was not uniform | Both paths use the transition service; row state and conflict eligibility are rechecked under lock |
-| Institution promotion | Already transactional and conflict/evidence/approval guarded, but used a potentially stale route-bound row and unlocked decision/canonical record | Reloads and locks the import row and identity decision in the transaction; approved-match canonical institution is locked |
+| Bulk approve/reject | Bulk controller had its own transaction, but institution rejection bypassed the shared identity service and retry handling was not uniform | Both paths use the transition service; row state and conflict eligibility are rechecked under lock. Bulk approve-and-promote-new also records its identity decision through the shared idempotent service |
+| Institution promotion | Already transactional and conflict/evidence/approval guarded, but used a potentially stale route-bound row and unlocked decision/canonical record; callers could select an older approval while a later rejection existed | Reloads and locks the import row and latest identity decision in the transaction; the supplied decision must still be latest; approved-match canonical institution is locked |
 | Enrichment promotion | Canonical writes and audit were separate controller-level operations | Enrichment write and audit are enclosed by a row-locked outer transaction; open conflicts block promotion |
 | Geography promotion | Geography service transaction did not include controller audit | Outer row-locked transaction now includes canonical geography update and audit; open conflicts block promotion |
-| Institution publication | Canonical status update and audit were separate; concurrent calls could duplicate events | Row and institution are locked; evidence, approved identity decision and open-conflict guards are checked; status and audit commit together; already-active replay creates no duplicate event |
+| Institution publication | Canonical status update and audit were separate; concurrent calls could duplicate events; query selected latest approved decision while ignoring a later rejection | Row and institution are locked; latest identity decision must be approved; evidence and open-conflict guards are checked; status and audit commit together; already-active replay creates no duplicate event |
 | Promotion reversal | Already transaction-bound and row-locked | Existing boundary retained; failure injection added for canonical status update rollback |
 
 The changes do not merge identity approval, canonical promotion and publication into one action. Institution quick approval remains disabled. Identity conflict resolution remains separate from identity approval. Promotion and publication continue to require explicit prior decisions and existing evidence/conflict gates.
@@ -89,9 +89,9 @@ The changes do not merge identity approval, canonical promotion and publication 
 - Extended `IdentityResolutionDecisionService` with a row-locked institution rejection transition. Institution rejection now uses the same deterministic decision identity and audit ledger as other identity decisions.
 - Added the candidate-state guard inside the identity decision transaction. Identical decision replay can return its existing immutable record after a state transition; a new decision cannot be appended to a non-candidate row.
 - Updated `InstituteImportPromotionController` to use the transactional transition service for quick approval, rejection, enrichment decisions, enrichment promotion, geography promotion and publication.
-- Updated `InstituteBulkPromotionController` to route bulk approval/rejection through the same transaction owner.
+- Updated `InstituteBulkPromotionController` to route bulk approval/rejection through the same transaction owner; `BulkImportPromotionService::approveAndPromoteNew` now uses the shared idempotent identity-decision service instead of direct decision insertion.
 - Updated `InstituteImportPromoter` to reload/lock the row and decision, and lock an approved-match canonical institution before updating the import row.
-- Added conflict guards to enrichment/geography promotion and retained the existing institution promotion and publication conflict guards.
+- Promotion and publication now require the latest decision to be an approval rather than selecting the latest record from an approval-only subset. Added conflict guards to enrichment/geography promotion and retained the institution promotion/publication conflict guards.
 - No migration is required: existing nullable unique `identity_resolution_decisions.decision_identity_key` is reused. Historical decision rows are not backfilled, deleted or rewritten except that an exact legacy replay can attach its deterministic key using the existing compatibility path.
 
 ## 5. Failure-injection and regression coverage
@@ -105,7 +105,7 @@ The changes do not merge identity approval, canonical promotion and publication 
 5. publication state update failure, rolling back and permitting retry;
 6. publication audit-event insertion failure, rolling back canonical publication and permitting retry.
 
-Additional feature coverage checks identical institution rejection replay, competing rejection rejection, non-institution rejection replay, quick-approval decision/audit replay, publication replay without duplicate publication event, non-candidate identity decision guard, and publication blocking while an identity conflict remains open.
+Additional feature coverage checks identical institution rejection replay, separate row-transition audit when a prior decision already exists, competing rejection rejection, non-institution rejection replay, quick-approval decision/audit replay after row-state transition, publication replay without duplicate publication event, non-candidate identity decision guard, latest-decision publication guard, and publication blocking while an identity conflict remains open.
 
 `tests/Support/verify-operator-transition-multiprocess.php` is an isolated-MySQL independent-process proof. It covers:
 
@@ -119,19 +119,30 @@ The isolated MySQL workflow is extended to execute the feature suite and the ind
 
 ## 6. Validation evidence
 
-Local checks completed on the recovered source workspace:
+### Exact implementation code-head validation — PR #1006
 
-- PHP syntax lint passed for the changed PHP service, controller, feature test and multiprocess script files under PHP 8.4.24;
-- YAML parsing passed for the edited Laravel CI and isolated MySQL workflow files.
+Validated implementation head: `a7b419df6cce05ad02c5cf2b3665abe2d072617f` (base `8aa2ee2416b2729d05afd249961085b888b61910`). PR #1006 is open and remains draft pending documentation-inclusive revalidation.
 
-These are not the final acceptance checks. The following exact final PR-head evidence must be appended after all documentation changes are committed:
-
-| Workflow | Run / job | Required evidence |
+| Workflow | Run / job | Result |
 |---|---|---|
-| Test | pending | Full suite test count and assertions |
-| Laravel CI | pending | Full suite count plus Pint format and `--test` result |
-| Institutes Directory Project Controller | pending | Job result and internal inventory result reported separately |
-| Isolated MySQL migration/recovery | pending | New feature suite count, all six failure boundaries, independent-process logs |
+| Test | #41776287316 / 126397309893 | PASS — 880 tests, 3,877 assertions |
+| Laravel CI | #41776287333 / 126397310179 | PASS — 880 tests, 3,877 assertions; Pint formatting and `--test` passed for 66 files |
+| Institutes Directory Project Controller | #41776287301 / 126397404490 | Job PASS; internal inventory REVIEW_REQUIRED, 2/5 tasks passed |
+| Isolated MySQL migration/recovery | #41776287321 / 126397309903 | PASS — MySQL 8.4 migration/schema/ledger checks and idempotent second migration passed; all recovery steps passed |
+
+Actual isolated-MySQL logs show:
+
+- `OperatorTransitionAtomicityTest.php`: **15 tests, 55 assertions — PASS**, including all six requested failure-injection boundaries and retry/rollback checks.
+- `verify-operator-transition-multiprocess.php`: **PASS**. Independent PHP processes converged on one identical rejection decision/audit event; competing rejection/decision and candidate-state checks serialized; concurrent publication produced one event; injected audit failure rolled back while a waiting retry committed exactly one decision and event.
+- Existing MySQL migration, lease, snapshot/retrieval, discovery outcome, candidate batch, review-package, identity conflict, source event, monitoring alert and policy checkpoint recovery steps also passed.
+
+The Project Controller job succeeded, but its internal read-only inventory is not a full project readiness pass. It remains REVIEW_REQUIRED at 2/5: Hostinger read-only diagnostics are blocked by historical run #41771644645; open-PR review and tracker-evidence reconciliation are also marked blocked while this PR is open. No Hostinger access or production operation was attempted.
+
+The first code-head run set found one compatibility regression in the established decision-row ownership error message. The implementation was corrected to preserve that message while retaining the locked latest-decision check; the successful run set above is on the corrected implementation head, not the failed earlier attempt.
+
+### Documentation-inclusive final PR-head validation
+
+This audit and `docs/PROJECT_MASTER_TRACKER.md` are being updated with the implementation evidence above. Test, Laravel CI/Pint, Project Controller and isolated MySQL must run again on the resulting documentation-inclusive PR head. The PR must remain unmerged until those exact-head runs pass.
 
 Do not merge unless all required checks pass on the exact final PR head, repository protections permit merging, and no required workflow is queued or skipped.
 
