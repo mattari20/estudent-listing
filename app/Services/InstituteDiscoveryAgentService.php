@@ -374,6 +374,8 @@ class InstituteDiscoveryAgentService
             ->first();
 
         if ($identifiedBatch) {
+            $this->assertCompletedBatch($identifiedBatch);
+
             return $identifiedBatch;
         }
 
@@ -397,6 +399,8 @@ class InstituteDiscoveryAgentService
 
             $previousSnapshot = SourceSnapshot::query()->find((int) $matches[1]);
             if ($previousSnapshot && hash_equals((string) $previousSnapshot->content_hash, (string) $snapshot->content_hash)) {
+                $this->assertCompletedBatch($batch);
+
                 return $batch;
             }
         }
@@ -412,6 +416,7 @@ class InstituteDiscoveryAgentService
         SourceSnapshot $snapshot,
         bool $useAi,
     ): array {
+        $this->assertCompletedBatch($batch);
         $batch->loadMissing('rows');
         $batchSnapshotId = $snapshot->id;
         if (preg_match('/source snapshot #(\\d+)/i', (string) $batch->notes, $matches) === 1) {
@@ -509,6 +514,15 @@ class InstituteDiscoveryAgentService
             'outcome' => 'no_candidates',
             'review_package' => $reviewPackage,
         ];
+    }
+
+    private function assertCompletedBatch(ImportBatch $batch): void
+    {
+        if ($batch->status !== 'validated' || $batch->completed_at === null) {
+            throw new \\RuntimeException(
+                'A matching discovery batch is incomplete; automatic replay is blocked to preserve historical candidate records.'
+            );
+        }
     }
 
     private function batchIdentityKey(
