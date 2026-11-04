@@ -13,13 +13,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: hostinger-readonly-offering-gap-audit
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
   audit:
     name: Run host-local read-only offering-gap audit
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     timeout-minutes: 10
     steps:
       - name: Prepare deterministic audit report stamp
