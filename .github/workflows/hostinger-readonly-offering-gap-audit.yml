@@ -25,9 +25,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: estudent-production-access
+  group: hostinger-readonly-offering-gap-audit
   cancel-in-progress: false
-  queue: max
+
 jobs:
   audit:
     environment: offering-gap-readonly-audit
