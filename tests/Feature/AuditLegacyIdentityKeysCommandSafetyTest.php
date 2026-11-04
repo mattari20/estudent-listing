@@ -61,6 +61,30 @@ class AuditLegacyIdentityKeysCommandSafetyTest extends TestCase
             ->assertExitCode(1);
     }
 
+    public function test_command_refuses_a_test_database_hidden_behind_an_unrecognized_connection_alias(): void
+    {
+        config([
+            'database.default' => 'isolated_alias',
+            'database.connections.isolated_alias' => [
+                'driver' => 'mysql',
+                'host' => '127.0.0.1',
+                'port' => 3306,
+                'database' => 'approval_migration_test',
+                'username' => 'approval_ci',
+                'password' => 'not-used',
+                'url' => null,
+            ],
+        ]);
+        DB::purge('isolated_alias');
+
+        $inventory = Mockery::mock(LegacyIdentityKeyInventoryService::class);
+        $inventory->shouldNotReceive('report');
+        $this->app->instance(LegacyIdentityKeyInventoryService::class, $inventory);
+
+        $this->artisan('institutes:audit-legacy-identity-keys')
+            ->assertExitCode(1);
+    }
+
     private function assertCommandRefusesDatabaseConfiguration(array $connection): void
     {
         config([
