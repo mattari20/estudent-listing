@@ -127,3 +127,14 @@ Final workflow IDs, exact PR head, actual MySQL output and test totals will be a
 - Production readiness is not certified.
 
 Repository and isolated CI only. No production database, Hostinger/hPanel, production Artisan, deployment, cron/worker/schedule, source retrieval/discovery, staging, approval, rejection, import, promotion or publication operation was initiated by this Phase 1C-22 work. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled; no dummy production data was created.
+
+
+## 11. Merge-safety gate
+
+A merge of PR #1007 to `main` is not currently safe under the production restrictions:
+
+- `.github/workflows/hostinger-readonly-diagnostics.yml` runs on every push to `main`. It invokes `appleboy/ssh-action@v1.2.0` and performs Hostinger diagnostics plus public production HTTP checks.
+- `.github/workflows/automated-live-integrity-audit.yml` runs on pushes to `main` when application/database paths change. This PR changes `app/**` and `database/migrations/**`, so the push path matches. It invokes `appleboy/ssh-action@v1.2.0` and runs `php artisan institutes:data-integrity-report` on Hostinger, which accesses the production database read-only.
+- The PR #1006 merge previously demonstrated both workflows starting on the merge push: Hostinger Read-only Diagnostics run #41778840327 and Automated Live Data Integrity Audit run #41778840448. Both failed at their production-facing diagnostic steps; no successful production readiness result was recorded.
+- The current Phase 1C-22 request explicitly prohibits Hostinger SSH, production diagnostics and production database access. No workflow trigger, environment, secret or SSH behavior is changed by this PR.
+- Therefore PR #1007 must remain open/draft even if all four repository/isolated-CI checks pass. Do not merge until the repository owner separately authorizes a safe workflow-separation change or another demonstrably non-production merge path. No bypass, skip or weakening of required checks is permitted.
