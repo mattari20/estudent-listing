@@ -87,6 +87,8 @@ paths = Dir.glob(File.join(WORKFLOWS, '*.{yml,yaml}')).sort
 fail!("expected exactly 35 workflow files; found #{paths.length}") unless paths.length == 35
 names = paths.map { |path| File.basename(path) }
 
+confirmation_phrases = []
+
 READ_ONLY.each do |filename, expected_environment|
   path = File.join(WORKFLOWS, filename)
   fail!("missing read-only production workflow #{filename}") unless File.file?(path)
@@ -123,12 +125,18 @@ READ_ONLY.each do |filename, expected_environment|
     %w[TARGET_SHA OPERATION_REASON CONFIRM_PRODUCTION_OPERATION EXPECTED_CONFIRMATION].each do |key|
       fail!("#{filename}:#{job_name} guard missing #{key}") if env[key].to_s.empty?
     end
-    fail!("#{filename}:#{job_name} uses a generic confirmation phrase") if env['EXPECTED_CONFIRMATION'] == 'AUTHORIZE-PRODUCTION-OPERATION'
+    phrase = env['EXPECTED_CONFIRMATION'].to_s
+    fail!("#{filename}:#{job_name} uses a generic confirmation phrase") if phrase == 'AUTHORIZE-PRODUCTION-OPERATION'
+    fail!("#{filename}:#{job_name} confirmation phrase is not operation-specific") unless phrase.match?(/\\AAUTHORIZE-[A-Z0-9-]{8,}\\z/)
+    fail!("#{filename}:#{job_name} confirmation phrase is reused") if confirmation_phrases.include?(phrase)
+    confirmation_phrases << phrase
   end
 
   fail!("#{filename} exposes workflow-level secrets") if YAML.dump(workflow.fetch('env', {})).match?(/secrets\./)
   pass("#{filename}: manual-only, #{expected_environment}, guard before access")
 end
+
+pass("#{confirmation_phrases.length} read-only operation confirmations are unique")
 
 (BLOCKED_OPERATIONS + [RESET_WORKFLOW]).each do |filename|
   path = File.join(WORKFLOWS, filename)
