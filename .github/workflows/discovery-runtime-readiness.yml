@@ -7,13 +7,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: discovery-runtime-readiness
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
   audit:
     name: Audit deployed discovery runtime without mutations
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     timeout-minutes: 8
     steps:
       - name: Resolve expected application revision
