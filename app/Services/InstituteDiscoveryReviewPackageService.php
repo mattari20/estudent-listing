@@ -182,8 +182,35 @@ class InstituteDiscoveryReviewPackageService
             $result = $this->withPackageLock($batchId, $snapshotId, function () use (
                 $disk, $absolute, $relative, $batchId, $cutoff, $apply
             ): array {
-                if (ImportBatch::query()->whereKey($batchId)->exists()) {
-                    return ['state' => 'skip', 'reason' => 'database batch exists; preserve package'];
+                $existingBatch = ImportBatch::query()->find($batchId);
+                if ($existingBatch) {
+                    $staleTemps = [];
+                    foreach (scandir($absolute) ?: [] as $entry) {
+                        if (preg_match('/^\\.(?:candidates\\.csv|manifest\\.json)\\.tmp-[a-f0-9]{16}$/', $entry) !== 1) {
+                            continue;
+                        }
+                        $tempPath = $absolute.DIRECTORY_SEPARATOR.$entry;
+                        $this->assertNoSymlink($tempPath);
+                        if (! is_file($tempPath)) {
+                            return ['state' => 'skip', 'reason' => 'temporary artifact is not a regular file'];
+                        }
+                        if ((int) (filemtime($tempPath) ?: time()) <= $cutoff) {
+                            $staleTemps[] = $tempPath;
+                        }
+                    }
+                    if ($staleTemps === []) {
+                        return ['state' => 'skip', 'reason' => 'database batch exists; preserve package'];
+                    }
+                    $paths = array_map(fn ($path) => self::ROOT.'/'.$name.'/'.basename($path), $staleTemps);
+                    if (! $apply) {
+                        return ['state' => 'candidate', 'paths' => $paths, 'reason' => 'stale temporary artifacts; preserve package'];
+                    }
+                    foreach ($staleTemps as $tempPath) {
+                        if (! unlink($tempPath)) {
+                            throw new RuntimeException('Unable to remove stale temporary artifact: '.$tempPath);
+                        }
+                    }
+                    return ['state' => 'deleted', 'paths' => $paths, 'reason' => 'stale temporary artifacts removed; package preserved'];
                 }
                 $entries = scandir($absolute) ?: [];
                 $allowed = ['.', '..', 'candidates.csv', 'manifest.json'];
