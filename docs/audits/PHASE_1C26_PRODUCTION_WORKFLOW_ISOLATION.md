@@ -83,8 +83,23 @@ The existence of an `environment:` declaration in YAML does **not** prove review
 - PRs #1009–#1015 remain open and unmerged.
 - GCU historical candidate rows #348–353 and batches #19–23 were not accessed or changed. AI extraction and the additional 20 HEC profiles remain disabled.
 
+## Phase 1C-26A regression repair addendum
+
+The first structural audit found three workflows that placed production credentials in job-level `env`, exposing them to the guard step before it ran. This was corrected:
+
+- `institutes-diagnostics-verify.yml`: diagnostics token is now scoped to the authenticated verification step after the guard.
+- `offering-gap-preflight.yml`: DB credentials are scoped to the post-guard validation and read-only Artisan steps; the duplicate environment key was removed.
+- `institutes-private-diagnostics-report.yml`: diagnostics and private-repository tokens are scoped to the post-guard retrieval step.
+
+The Python regression suite now parses actual YAML with `scripts/ci/read-workflow-yaml.rb`, distinguishes YAML `uses`/secret fields from arbitrary `run` text, checks top-level event keys, checks job environments and guard ordering, and tests positive/negative dispatch-guard cases using an isolated temporary Git remote. The Laravel deployment-handoff test now parses top-level workflow events instead of rejecting the literal word `workflow_run` inside comments or embedded scripts. Existing discovery and migration contract scripts were updated to the manual-only protected dispatch design.
+
+The guard now restricts `operation_reason` to 8–128 safe ASCII characters to prevent multiline/control-character log injection.
+
+**Current blocker:** the structural audit correctly flags `secure-institutes-admin-recovery.yml`. Its SSH action and recovery secret remain executable through manual dispatch without the exact-SHA guard, reason input, `production-operations` environment or shared concurrency. A repository write attempting to secure this legacy workflow was blocked by the available GitHub write action. It was not bypassed. The new isolation test intentionally remains red until the owner disables that workflow or it is remediated in an authorized change.
+
 ## Completion status
 
-**Repository implementation:** partially implemented; structural regression and PHP contract repairs are on the branch. Administrator-recovery remains an executable security exception.  
+**Repository implementation:** core workflow isolation and regression repairs implemented; administrator-recovery remains an executable security exception. The isolation Test intentionally fails on that single exception.  
 **GitHub environment protection:** owner action required; not verified. Administrator-recovery must be disabled by the owner pending remediation.  
+**Phase 1C-26A:** not complete; owner must disable/remediate administrator-recovery.  
 **Phase 1C:** not complete.  
