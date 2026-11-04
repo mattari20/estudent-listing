@@ -177,20 +177,34 @@ try {
         throw new RuntimeException('A did not become the baseline snapshot.');
     }
 
-    // Two retrieval workers race for the same source. B is chronologically
-    // earlier than C even if C's worker completes and compares first.
+    // Two independent workers retry separate stale retrieval runs for the
+    // same source. B is chronologically earlier than C even if C completes first.
+    $keyB = 'retrieval-B-'.bin2hex(random_bytes(3));
+    $keyC = 'retrieval-C-'.bin2hex(random_bytes(3));
+    SourceRetrievalRun::query()->create([
+        'source_id' => $source->id,
+        'idempotency_key' => $keyB,
+        'status' => 'started',
+        'started_at' => Carbon::parse('2026-11-02 09:30:00'),
+    ]);
+    SourceRetrievalRun::query()->create([
+        'source_id' => $source->id,
+        'idempotency_key' => $keyC,
+        'status' => 'started',
+        'started_at' => Carbon::parse('2026-11-03 09:30:00'),
+    ]);
     $results = $runPair([
         [
             'source_id' => $source->id,
             'content' => 'B',
             'captured_at' => '2026-11-02 10:00:00',
-            'key' => 'retrieval-B-'.bin2hex(random_bytes(3)),
+            'key' => $keyB,
         ],
         [
             'source_id' => $source->id,
             'content' => 'C',
             'captured_at' => '2026-11-03 10:00:00',
-            'key' => 'retrieval-C-'.bin2hex(random_bytes(3)),
+            'key' => $keyC,
         ],
     ], 'concurrent retrieval');
 
