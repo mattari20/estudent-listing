@@ -2,20 +2,19 @@ name: Retrieve Institutes Production Diagnostics (Private)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 4 * * *' # Daily at 04:00 UTC (09:00 Pakistan time)
 
 permissions:
   contents: read
 
 concurrency:
-  group: institutes-private-diagnostics-report
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
   retrieve-and-store:
     name: Retrieve report to private repository
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     timeout-minutes: 4
     env:
       INSTITUTES_DIAGNOSTICS_TOKEN: ${{ secrets.INSTITUTES_DIAGNOSTICS_TOKEN }}
