@@ -137,7 +137,7 @@ Do not delete remaining repository-level `HOSTINGER_SSH_*`, `INSTITUTES_ADMIN_RE
 - PR #1016 remains open and untouched. Its Phase 1C-26D audit records the Phase 1C-28 scanner hardening and requires a `production-operations` environment for write-capable operations. Its workflow changes overlap this phase and cannot be merged unchanged under the owner-confirmed three-environment policy.
 - This branch preserves the useful objective of #1016—manual-only production access, exact-SHA/reason/confirmation guard, credential ordering, concurrency isolation and regression coverage—but uses only the three owner-confirmed environments.
 - Rather than assigning deployment, migration, seed, qualification or discovery workflows to a read-only environment or silently introducing `production-operations`, this branch leaves their production jobs skipped.
-- PRs #1009–#1016 remain open and unmerged. Their branches and commits were not modified.
+- PRs #1009–#1016 remain open and unmerged. Their branches and commits were not modified; this PR branch incorporates the approved, non-conflicting #1016 security test and recovery-retirement material.
 - The Phase 1C-25B workflow inventory was rechecked against all 35 current workflow files. The 10 previously highlighted automatic production-access workflows were a subset, not the complete production-connected inventory.
 - The Phase 1C-23 execution checkpoint and Phase 1C-24 final acceptance audit were reviewed. The Phase 1C-26D/#1016 document was reviewed, including its Phase 1C-28 remediation update. No separately named Phase 1C-25B, 1C-28B or 1C-29 audit files were present in the current `main` audit directory; the owner-supplied 25B findings and the existing #1016 documentation were used as continuity evidence.
 
