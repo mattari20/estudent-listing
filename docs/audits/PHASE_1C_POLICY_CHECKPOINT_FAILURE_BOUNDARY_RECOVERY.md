@@ -38,14 +38,14 @@ Ordinary network/URL-policy/HTTP retrieval failures are recorded as failed retri
 
 ## Validation evidence
 
-**Verified exact PR head:** `0f99212a500625b2792b8a1a0cdd1c186abeff1a` (PR #1001; base `0ea84e9f2ffbdf948713a65d8afc1dc2e306e6d8`).
+**Verified exact PR head:** `8f622e420923b134f293d6dbc6fea41baca84f7f` (PR #1001; base `0ea84e9f2ffbdf948713a65d8afc1dc2e306e6d8`).
 
 | Workflow | Run / job | Result |
 |---|---|---|
-| Test | Run `41755801042`, job `126331495558` | PASS — 832 tests, 3,670 assertions |
-| Laravel CI | Run `41755801150`, job `126331495504` | PASS — 832 tests, 3,670 assertions; Pint formatted and verified 29 files |
-| Institutes Directory Project Controller | Run `41755801052`, job `126331563276` | PASS — controller syntax, offline fixtures, read-only inventory and report artifact |
-| Isolated MySQL Approval Migration Validation | Run `41755801173`, job `126331495974` | PASS — migration/schema/ledger/idempotency and all isolated MySQL recovery steps |
+| Test | Run `41756508005`, job `126333765658` | PASS — 832 tests, 3,670 assertions |
+| Laravel CI | Run `41756507997`, job `126333765885` | PASS — 832 tests, 3,670 assertions; Pint formatted and verified 35 files |
+| Institutes Directory Project Controller | Run `41756507980`, job `126333804063` | PASS — controller syntax, offline fixtures, read-only inventory and report artifact |
+| Isolated MySQL Approval Migration Validation | Run `41756508028`, job `126333766141` | PASS — migration/schema/ledger/idempotency and all isolated MySQL recovery steps |
 
 ### MySQL test log evidence
 
