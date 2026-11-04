@@ -2241,8 +2241,10 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 - Added an independent-PHP-process MySQL proof for concurrent resolver and decision attempts.
 - Updated Laravel CI formatting paths and isolated-MySQL recovery steps. Production remains outside scope.
 - Audit: `docs/audits/PHASE_1C_INSTITUTION_IDENTITY_CONFLICT_REPLAY_RECOVERY.md`.
-- First complete validation on PR head `43fd6c14712e452f97a7f926be846e99a51c9a01` (merge candidate `11adef8959ec8b505eb4c3f3d59dbea17a947ab6`): Test #41768530553 PASS (865 tests / 3,822 assertions); Laravel CI #41768530539 PASS (same test total); Isolated MySQL #41768530572 PASS (identity/conflict tests 6 tests / 31 assertions and independent-process resolver/decision proof PASS); Project Controller #41768530567 workflow PASS but internal Hostinger/open-PR/tracker gates remain blocked; automatic public browser diagnostics #41768530533 PASS with valid HTTP 200 JSON and zero institutions.
-- A CI follow-up adds the new PHP files to the explicit Pint verification list. Final documentation-inclusive PR-head rerun is required before merge.
+- Initial validation on head 43fd6c14712e452f97a7f926be846e99a51c9a01 and its merge candidate was superseded by the final documentation-inclusive PR-head validation below.
+- Final PR #1004 head b33e95287e377176a0e9c80b9c5eef05214a7157 merged at 54bf5e6b9878080951b521b61a261a233f18322a; live main was independently verified to match.
+- Exact final-head Test #41769183222 PASS (865 tests / 3,822 assertions); Laravel CI #41769182981 PASS (same total; Pint format and --test passed for 59 files); Project Controller #41769182984 job PASS (internal inventory 2/5, Hostinger diagnostics blocked); Isolated MySQL #41769182903 PASS (identity suite 6 tests / 31 assertions and independent-process identity proof PASS). Actual MySQL logs confirm migration 2026_11_04_000012 and all relevant persistence suites.
+- The Pint follow-up and final documentation-inclusive validation are complete. The Hostinger diagnostics blocker remains separate; no production readiness is claimed.
 
 ### Phase 1C-20 — Discovery-to-Review persistence boundary audit (2026-11-04)
 
