@@ -43,6 +43,28 @@ jobs:
           CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
           EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS-DISCOVERY-RUNTIME"
         run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
+      - name: Validate environment-scoped production credentials
+        env:
+          PRODUCTION_READONLY_HOSTINGER_SSH_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in
+          "PRODUCTION_READONLY_HOSTINGER_SSH_HOST"
+          "PRODUCTION_READONLY_HOSTINGER_SSH_USER"
+          "PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY"
+          "PRODUCTION_READONLY_HOSTINGER_SSH_PORT"
+          ; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required environment-scoped credential: $name"
+              exit 1
+            fi
+          done
+          echo "environment_scoped_credentials=present"
+
       - name: Resolve expected application revision
         id: revision
         uses: actions/checkout@v5
