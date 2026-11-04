@@ -20,7 +20,7 @@ if (($argv[1] ?? '') === 'worker') {
     $app = require $root.'/bootstrap/app.php';
     $app->make(Kernel::class)->bootstrap();
 
-    [, , $sourceId, $content, $capturedAt, $key, $ready, $go] = $argv;
+    [, , , $sourceId, $content, $capturedAt, $key, $ready, $go] = $argv;
     file_put_contents($ready, 'ready');
     $deadline = microtime(true) + 30;
     while (! is_file($go) && microtime(true) < $deadline) {
@@ -227,11 +227,12 @@ try {
         'https://example.test/multiprocess',
         'text/plain',
         [],
-        'snapshot-'.$b->metadata['unused'] ?? 'snapshot-replay-placeholder',
+        (string) $b->capture_key,
         Carbon::parse('2026-11-02 10:00:00'),
     );
-    // The replay identity is exercised below with the exact capture key via
-    // retrieval runs; duplicate observations are independently DB constrained.
+    if ((int) $bReplay->id !== (int) $b->id) {
+        throw new RuntimeException('Identical snapshot capture replay created a second snapshot.');
+    }
     $comparisons->compare($b);
     $comparisons->compare($c);
 
