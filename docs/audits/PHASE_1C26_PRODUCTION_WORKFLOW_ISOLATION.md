@@ -1,114 +1,100 @@
-# Phase 1C-26 — Production Workflow Isolation
+# Phase 1C-26D — Production Workflow Isolation and Recovery Retirement
 
 **Repository:** `mattari20/estudent-listing`  
-**Base:** `main`  
-**Implementation branch:** `phase-1c26-production-workflow-isolation`  
+**PR:** #1016  
+**Branch:** `phase-1c26-production-workflow-isolation`  
+**Base:** `main` at `92e748f7aeedb25d098775be6ff16abbbda23749`  
 **Scope:** Repository workflow and regression-test changes only.
 
-## Security disposition
+## Current disposition
 
-Ordinary pull requests and pushes to `main` must not start production SSH, production database, Artisan, deployment, migration, discovery, or private diagnostics operations. Production operations are now manual-dispatch only, bound to the exact current `main` SHA, require a reason and operation-specific confirmation, declare a protected GitHub environment, and share the `estudent-production-access` concurrency group with `cancel-in-progress: false` and `queue: max`, so pending runs queue instead of replacing one another (up to GitHub's 100-pending-run limit).
+The unsafe executable workflow `.github/workflows/secure-institutes-admin-recovery.yml` has been deleted from this PR branch. Its former runbook, `docs/09-operations/SECURE-SSH-ADMIN-RECOVERY.md`, is now a retirement record. Administrator recovery is not available through this repository until a separately reviewed, fully protected replacement is implemented.
 
-The dispatch guard is `scripts/ci/validate-production-dispatch.sh`. It rejects non-`workflow_dispatch` events, refs other than `refs/heads/main`, malformed or mismatched SHAs, a target that is no longer the current `origin/main` SHA, missing/short reasons, and incorrect confirmation phrases.
+The owner has reported that the legacy workflow was manually disabled in GitHub Actions. That UI state is an owner-reported safeguard; this integration cannot independently verify the account-level workflow state. Keep it disabled. Do not re-enable or dispatch it.
 
-## Trigger matrix
+The owner must remove or rotate `INSTITUTES_ADMIN_RECOVERY_PASSWORD` after confirming the retired implementation is no longer required. No secret was read or modified.
 
-| Workflow group | Before | Implemented trigger / protection |
-|---|---|---|
-| Hostinger read-only diagnostics and integrity audit | Main push and/or schedule | Manual dispatch only; exact-SHA guard; `production-readonly-diagnostics` |
-| Step 3 candidate, record-level and reset inventory audits | Main push and manual | Manual dispatch only; exact-SHA guard; `production-readonly-diagnostics` |
-| Catalog audit and UVAS public-directory verification | Pull request and ops-branch push | Manual dispatch only; exact-SHA guard; `production-readonly-diagnostics` |
-| Offering-gap live DB preflight | Main push and daily schedule | Manual dispatch only; exact-SHA guard; existing `offering-gap-readonly-audit` environment |
-| Official-source readiness and scheduled discovery | `workflow_run` handoffs and/or hourly schedule | Manual dispatch only; readiness uses `production-readonly-diagnostics`; discovery uses `production-operations` |
-| Controlled migrations, deployment, geography seed and GCU qualification | Already manual, with operation-specific confirmation | Exact-SHA/reason/confirmation guard; `production-operations` |
-| Private diagnostics retrieval and protected diagnostics verification | Manual and/or daily schedule | Manual dispatch only; exact-SHA guard; `production-readonly-diagnostics` |
-| Public browser runtime diagnostics | Pull request and main push | Manual dispatch only |
-| Public site monitor | Main push, schedule and manual | Schedule and manual retained; main-push trigger removed; no production credentials |
-| Official-source page verification | Main push, weekly schedule and manual | Retained as repository-side external-source verification; no Hostinger SSH or production DB credentials |
-| Ordinary CI, isolated MySQL, controller/orchestrator, frontend build, evidence validation | PR/push CI | Repository-only; no production SSH action or production credential reference |
+## Required controls for every remaining production workflow
 
-## Workflow inventory
+The structural regression suite parses the actual workflow YAML and scans every `.github/workflows/*.yml` file. Any production-access workflow must satisfy all of the following:
 
-The production-facing inventory reviewed includes:
+- Top-level `workflow_dispatch` only; no push, pull-request, schedule, or workflow-run trigger.
+- Required string inputs for the exact target SHA, operation reason/ticket, and operation-specific confirmation.
+- Checkout of `${{ github.sha }}` with full history before authorization.
+- The shared `scripts/ci/validate-production-dispatch.sh` guard before production credentials or remote access.
+- Guard bindings for `inputs.target_sha`, `inputs.operation_reason`, and `inputs.confirm_production_operation`, plus a non-empty operation-specific expected phrase.
+- A protected environment: `production-readonly-diagnostics`, `production-operations`, or `offering-gap-readonly-audit`, according to operation.
+- Shared concurrency group `estudent-production-access`, `cancel-in-progress: false`, and `queue: max`.
+- No production credentials at workflow or job scope before the guard; credentials remain step-scoped and least-privilege.
+- Detection of SSH actions, direct SSH/SCP/SFTP shell commands, and production database/SSH secret references.
 
-- `hostinger-readonly-diagnostics.yml`
-- `automated-live-integrity-audit.yml`
-- `offering-gap-preflight.yml`
-- `step3-record-level-remediation-audit.yml`
-- `step3-candidate-audit.yml`
-- `readonly-reset-inventory.yml`
+The regression also asserts that the retired administrator-recovery workflow is absent, tests an unsafe SSH recovery reintroduction fixture, tests direct remote SSH and production DB secret detection, and preserves ordinary CI `push` and `pull_request` triggers.
+
+## Workflow audit inventory
+
+All 35 workflow files present at the start of Phase 1C-26D were enumerated and inspected. The retired administrator-recovery workflow is the one removed, leaving 34 workflow files on the PR branch.
+
+Production-facing diagnostics, audits, and verification workflows reviewed:
+
 - `audit-next-institution-catalog.yml`
-- `verify-uvas-public-directory.yml`
-- `scheduled-institute-discovery.yml`
+- `automated-live-integrity-audit.yml`
+- `diagnose-hostinger-artisan-path.yml`
+- `discovery-runtime-readiness.yml`
+- `hostinger-artisan-runtime-only.yml`
+- `hostinger-readonly-diagnostics.yml`
+- `hostinger-readonly-offering-gap-audit.yml`
 - `official-source-refresh-readiness.yml`
+- `readonly-reset-inventory.yml`
+- `step3-candidate-audit.yml`
+- `step3-record-level-remediation-audit.yml`
+- `verify-uvas-public-directory.yml`
+- `institutes-diagnostics-verify.yml`
+- `institutes-private-diagnostics-report.yml`
+- `offering-gap-preflight.yml`
+
+Controlled production operations and migrations reviewed:
+
 - `controlled-hostinger-code-deploy.yml`
 - `controlled-discovery-outcome-migration.yml`
 - `controlled-import-batch-duplicate-rows-migration.yml`
 - `controlled-institution-field-approvals-migration.yml`
 - `controlled-official-source-refresh-migration.yml`
 - `controlled-pakistan-geography-seed.yml`
-- `diagnose-hostinger-artisan-path.yml`
-- `discovery-runtime-readiness.yml`
-- `hostinger-artisan-runtime-only.yml`
 - `hostinger-gcu-single-source-qualification.yml`
-- `hostinger-readonly-offering-gap-audit.yml`
-- `institutes-diagnostics-verify.yml`
-- `institutes-private-diagnostics-report.yml`
-- `secure-institutes-admin-recovery.yml`
+- `scheduled-institute-discovery.yml`
 
-The automatic production entry paths listed in the earlier Phase 1C-25 audit were removed. No production-facing workflow retains a `workflow_run` trigger. No PR-triggered production SSH workflow remains. The public monitor's scheduled HTTPS monitoring remains independent of repository pushes.
+The scheduled discovery workflow has a top-level manual-dispatch trigger; its conditional workflow-run handoff branch is not an event trigger. No production-facing workflow should gain a top-level `workflow_run` trigger.
 
-## Owner configuration required
+Repository-only and scheduled workflows were also reviewed, including `test.yml`, `laravel-ci.yml`, `isolated-mysql-approval-migration-validation.yml`, `institution-import-preflight.yml`, `offering-gap-source-verification.yml`, `institutes-public-monitor.yml`, `public-browser-runtime-diagnostics.yml`, `project-controller.yml`, `project-command-orchestrator.yml`, `build-frontend-assets.yml`, and evidence-register validation. The public monitor and source-verification schedules are repository-side/public HTTPS checks, not production SSH or production DB entry paths. Ordinary CI retains its normal PR/push triggers and isolated MySQL service.
 
-Repository YAML cannot configure GitHub environment protection. Before merging or using these workflows, the repository owner must:
+The isolation test is the final authority for the full workflow inventory: any production access newly introduced in any workflow is subject to the same structural validation, not a filename-based allowlist.
 
-1. Create/configure environment `production-readonly-diagnostics` with required reviewers, prevent self-review, and restrict deployment branches to `main`.
-2. Create/configure environment `production-operations` with required reviewers (preferably a distinct reviewer set), prevent self-review, and restrict deployment branches to `main`.
-3. Verify existing environment `offering-gap-readonly-audit` has the same required-reviewer and main-only restrictions.
-4. Add the required credentials as environment secrets, using least privilege:
-   - Read-only SSH workflows: `HOSTINGER_SSH_HOST`, `HOSTINGER_SSH_USER`, `HOSTINGER_SSH_PRIVATE_KEY`, `HOSTINGER_SSH_PORT`, and where used `HOSTINGER_SSH_FINGERPRINT`.
-   - Direct read-only DB workflow: `OFFERING_GAP_DB_HOST`, `OFFERING_GAP_DB_PORT`, `OFFERING_GAP_DB_DATABASE`, `OFFERING_GAP_DB_USERNAME`, `OFFERING_GAP_DB_PASSWORD`.
-   - Private diagnostics retrieval: `INSTITUTES_DIAGNOSTICS_TOKEN` and `INSTITUTES_PRIVATE_REPORTS_TOKEN`.
-5. After confirming every reference is covered by the environment secrets, remove obsolete repository-level copies of production credentials. Do not remove `INSTITUTES_ADMIN_RECOVERY_PASSWORD` until the separate legacy recovery workflow has been secured.
-6. **Administrator recovery is an unresolved executable exception.** `secure-institutes-admin-recovery.yml` still accepts `workflow_dispatch`, invokes `appleboy/ssh-action`, and consumes `HOSTINGER_SSH_*` plus `INSTITUTES_ADMIN_RECOVERY_PASSWORD`. The repository-edit attempt to add its environment/guard was rejected by the available GitHub write action, so the file was left unchanged rather than attempting a workaround. It does not have the exact-SHA guard, operation-reason input, `production-operations` environment, or shared concurrency group. **Owner action before any further merge/use:** in GitHub Actions open “Recover Existing Institutes Administrator” and choose **Disable workflow**; verify GitHub shows it disabled. Then remove or rotate `INSTITUTES_ADMIN_RECOVERY_PASSWORD` after confirming the recovery is no longer needed. Re-enable only after a separately reviewed change adds the full guard and environment protection. Do not dispatch it.
+## Owner configuration still required
 
-The existence of an `environment:` declaration in YAML does **not** prove reviewer protection is configured. Environment reviewers, wait timers, branch restrictions and secret placement were not read or changed in this task.
+Repository YAML does not prove GitHub environment protection is configured. The owner must independently verify:
 
-## Regression and safety evidence
+1. `production-readonly-diagnostics` has required reviewers, self-review prevention, and main-only deployment restrictions.
+2. `production-operations` has required reviewers, self-review prevention, and main-only deployment restrictions.
+3. `offering-gap-readonly-audit` has equivalent reviewer and branch restrictions.
+4. Production SSH, database, and private-diagnostics credentials are scoped to the appropriate protected environments and not left as unnecessary repository-level secrets.
+5. `INSTITUTES_ADMIN_RECOVERY_PASSWORD` is removed or rotated after confirming the retired recovery implementation is no longer needed.
 
-- `scripts/ci/test-production-workflow-isolation.py` is run by the required `Test` workflow.
-- It checks manual-only triggers for production-facing workflows, protected environment declarations and shared non-cancelling queued concurrency for gated workflows, exact-SHA dispatch guard usage, and absence of production SSH/secrets from ordinary CI workflows.
-- Production `workflow_run` handoffs have been removed rather than left as an alternate authorization path.
-- No production workflow was dispatched. No Hostinger, hPanel, SSH, production DB, production Artisan, deployment, migration, discovery, or production data operation was performed.
-- PRs #1009–#1015 remain open and unmerged.
-- GCU historical candidate rows #348–353 and batches #19–23 were not accessed or changed. AI extraction and the additional 20 HEC profiles remain disabled.
+No GitHub secrets, environment settings/reviewers, branch protection, required checks, or wait timers were changed.
 
-## Phase 1C-26A regression repair addendum
+## Safety and validation boundary
 
-The first structural audit found three workflows that placed production credentials in job-level `env`, exposing them to the guard step before it ran. This was corrected:
+- No Hostinger, hPanel, SSH, production DB, production Artisan, deployment, migration, discovery, candidate operation, or production workflow dispatch was performed.
+- GCU historical rows #348–353 and batches #19–23 were not accessed or modified.
+- AI extraction and the additional 20 HEC profiles remain disabled.
+- PRs #1009–#1015 and PR #1016 remain unmerged.
+- Exact-head Test and Laravel CI results are recorded in the PR execution report after the final commit's runs complete.
+- Isolated MySQL is only applicable if the migration workflow's migration-specific path filter matches; this task changes workflow/security documentation and tests, not migration files.
 
-- `institutes-diagnostics-verify.yml`: diagnostics token is now scoped to the authenticated verification step after the guard.
-- `offering-gap-preflight.yml`: DB credentials are scoped to the post-guard validation and read-only Artisan steps; the duplicate environment key was removed.
-- `institutes-private-diagnostics-report.yml`: diagnostics and private-repository tokens are scoped to the post-guard retrieval step.
+## Completion classification
 
-The Python regression suite now parses actual YAML with `scripts/ci/read-workflow-yaml.rb`, distinguishes YAML `uses`/secret fields from arbitrary `run` text, checks top-level event keys, checks job environments and guard ordering, and tests positive/negative dispatch-guard cases using an isolated temporary Git remote. The Laravel deployment-handoff test now parses top-level workflow events instead of rejecting the literal word `workflow_run` inside comments or embedded scripts. Existing discovery and migration contract scripts were updated to the manual-only protected dispatch design.
-
-The guard now restricts `operation_reason` to 8–128 safe ASCII characters to prevent multiline/control-character log injection. The required `Test` workflow also runs the offline Project Controller unit suite, Command Orchestrator unit suite, and offline controller smoke check; these do not invoke live repository inventory or production services.
-
-## Exact-head validation snapshot
-
-- `main`: `92e748f7aeedb25d098775be6ff16abbbda23749`
-- PR #1016 head: `5a2dd4ea621f2c991b0522e9753ebb893873836b`
-- `Laravel CI`: run `41814322540`, exact-head success. Laravel PHPUnit and Pint verification passed.
-- `Test`: run `41814322351`, exact-head failure only at the final structural production-isolation gate. The preceding workflow YAML parser, offline Project Controller tests, offline Command Orchestrator tests, controller smoke check, existing migration/discovery/GCU/runtime contracts, and `composer test` all passed. The final audit reports only `secure-institutes-admin-recovery.yml` as unprotected.
-- Isolated MySQL migration workflow was not dispatched: this PR changes workflow/test code, not database migrations, and its migration-focused PR path filter did not match.
-- No production-facing workflow was dispatched.
-
-**Current blocker:** the structural audit correctly flags `secure-institutes-admin-recovery.yml`. Its SSH action and recovery secret remain executable through manual dispatch without the exact-SHA guard, reason input, `production-operations` environment or shared concurrency. A repository write attempting to secure this legacy workflow was blocked by the available GitHub write action. It was not bypassed. The new isolation test intentionally remains red until the owner disables that workflow or it is remediated in an authorized change.
-
-## Completion status
-
-**Repository implementation:** core workflow isolation and regression repairs implemented; administrator-recovery remains an executable security exception. The isolation Test intentionally fails on that single exception.  
-**GitHub environment protection:** owner action required; not verified. Administrator-recovery must be disabled by the owner pending remediation.  
-**Phase 1C-26A:** NOT COMPLETE; owner must disable/remediate administrator-recovery, then rerun exact-head CI.  
-**Phase 1C:** not complete.  
+- **IMPLEMENTED:** Recovery workflow retirement, retirement documentation, and structural regression changes are present on the PR branch.
+- **TESTED:** Pending final exact-head Test and Laravel CI conclusions.
+- **MERGED:** No; PR #1016 remains open.
+- **PRODUCTION VERIFIED:** No; no production operation was performed, and GitHub environment protection/secret disposition remain owner actions.
+- **Phase 1C-26D:** Not complete until final exact-head CI passes and the owner actions above are evidenced.
+- **Phase 1C / production readiness:** Not complete or declared.
