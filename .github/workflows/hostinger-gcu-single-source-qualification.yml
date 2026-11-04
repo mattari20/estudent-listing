@@ -13,9 +13,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: hostinger-gcu-single-source-qualification
+  group: estudent-production-access
   cancel-in-progress: false
-
+  queue: max
 jobs:
   resolve-target:
     name: Resolve approved application-code revision
@@ -39,6 +39,7 @@ jobs:
           echo "target_revision=$revision" >> "$GITHUB_OUTPUT"
 
   qualify:
+    if: false # blocked until production-operations is owner-authorized and configured
     name: Preflight and one GCU Lahore request
     needs: resolve-target
     runs-on: ubuntu-latest
