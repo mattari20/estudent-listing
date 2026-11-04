@@ -59,7 +59,8 @@ jobs:
         run: python3 scripts/ci/test-production-workflow-isolation.py
 
       - name: Parse workflow YAML syntax
-        run: ruby -e 'require "yaml"; Dir.glob(".github/workflows/*.yml").each { |path| YAML.load_file(path, aliases: true) }'
+        run: |
+          ruby -e 'require "yaml"; Dir.glob(".github/workflows/*.yml").each { |path| YAML.load_file(path, aliases: true) }'
 
       - name: Test public listing detail-link state classification
         run: python3 scripts/ci/test-resolve-institute-detail-link.py
