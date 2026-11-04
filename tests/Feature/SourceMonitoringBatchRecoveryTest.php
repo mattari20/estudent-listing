@@ -20,17 +20,17 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_thrown_pipeline_exception_marks_policy_failed_and_records_safe_diagnostics(): void
+    public function test_pipeline_infrastructure_exception_leaves_attempt_incomplete_for_recovery(): void
     {
         $source = Source::create([
             'source_type' => 'official',
-            'name' => 'Recovery Test Source',
-            'url' => 'https://example.test/recovery',
+            'name' => 'Infrastructure Failure Source',
+            'url' => 'https://example.test/infrastructure-failure',
             'status' => 'active',
         ]);
 
         $policy = SourceMonitoringPolicy::create([
-            'name' => 'Recovery Test Policy',
+            'name' => 'Infrastructure Failure Policy',
             'fresh_after_days' => 14,
             'stale_after_days' => 30,
             'priority' => 'normal',
@@ -44,36 +44,31 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
         $pipeline->shouldReceive('run')
             ->once()
             ->with(Mockery::type(Source::class))
-            ->andThrow(new RuntimeException('sensitive response body must not be logged'));
+            ->andThrow(new RuntimeException('sensitive infrastructure detail'));
         $this->app->instance(SourceMonitoringPipeline::class, $pipeline);
 
-        $summary = app(SourceMonitoringBatchService::class)->run($policy->id);
+        try {
+            app(SourceMonitoringBatchService::class)->run($policy->id);
+            $this->fail('Infrastructure exceptions must propagate.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('sensitive infrastructure detail', $exception->getMessage());
+        }
 
         $policy->refresh();
-
-        $this->assertSame(1, $summary['policies']);
-        $this->assertSame(1, $summary['sources']);
-        $this->assertSame(1, $summary['failed']);
-        $this->assertSame(0, $summary['completed']);
-        $this->assertSame(3, $policy->consecutive_failures);
-        $this->assertNotNull($policy->last_failure_at);
-        $this->assertNotNull($policy->last_run_at);
-        $this->assertNotNull($policy->next_run_at);
+        $this->assertSame(2, $policy->consecutive_failures);
+        $this->assertNull($policy->last_failure_at);
+        $this->assertNull($policy->last_run_at);
 
         $policyRun = DB::table('monitoring_policy_runs')->where('source_monitoring_policy_id', $policy->id)->first();
-        $this->assertSame('failed', $policyRun->status);
-        $sourceCheckpoint = DB::table('monitoring_policy_run_sources')->where('monitoring_policy_run_id', $policyRun->id)->where('source_id', $source->id)->first();
-        $this->assertSame('failed', $sourceCheckpoint->status);
-        $this->assertSame(RuntimeException::class, $sourceCheckpoint->failure_code);
+        $this->assertSame('running', $policyRun->status);
+        $sourceCheckpoint = DB::table('monitoring_policy_run_sources')
+            ->where('monitoring_policy_run_id', $policyRun->id)
+            ->where('source_id', $source->id)
+            ->first();
+        $this->assertSame('running', $sourceCheckpoint->status);
 
-        $this->assertSame(1, MonitoringAlert::where('alert_type', 'retrieval_failure')->count());
-        $alert = MonitoringAlert::where('alert_type', 'retrieval_failure')->firstOrFail();
-        $this->assertStringContainsString(RuntimeException::class, $alert->message);
-        $this->assertStringNotContainsString('sensitive response body', $alert->message);
-
-        $audit = SecurityAuditEvent::where('event_type', 'monitoring_retrieval_failure')->firstOrFail();
-        $this->assertStringContainsString(RuntimeException::class, $audit->description);
-        $this->assertStringNotContainsString('sensitive response body', $audit->description);
+        $this->assertSame(0, MonitoringAlert::where('alert_type', 'retrieval_failure')->count());
+        $this->assertSame(0, SecurityAuditEvent::where('event_type', 'monitoring_retrieval_failure')->count());
     }
 
     public function test_new_attempt_marks_abandoned_policy_run_interrupted_and_records_completion(): void
