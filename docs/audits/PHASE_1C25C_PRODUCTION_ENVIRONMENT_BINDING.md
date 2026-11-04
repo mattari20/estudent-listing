@@ -62,13 +62,11 @@ These workflows are manual-only and their production jobs have a literal fail-cl
 
 No `production-operations` environment was created or declared. If the owner later wants any of these operations enabled, that requires a separate explicit authorization to create and protect an operations environment, migrate credentials into it, and review each workflow's operation-specific safeguards. Until then, these jobs remain blocked.
 
-### 2.3 Reset/recovery — separately isolated and blocked
+### 2.3 Administrator password-reset recovery — retired
 
-| Workflow | Purpose | Triggers | Environment | Credential references | Disposition |
-|---|---|---|---|---|---|
-| `secure-institutes-admin-recovery.yml` | Password reset/recovery of existing administrator | `workflow_dispatch` only | `production-reset` | Legacy repository-level `INSTITUTES_ADMIN_RECOVERY_PASSWORD` and `HOSTINGER_SSH_HOST`, `_USER`, `_PRIVATE_KEY`, `_PORT` remain referenced in the skipped job | Explicit `if: false`; environment bound to `production-reset`; before any future reauthorization, owner must migrate these credentials to environment-scoped secrets and independently approve the workflow |
+The executable `.github/workflows/secure-institutes-admin-recovery.yml` has been deleted from this PR branch. The password-reset mechanism is retired, not merely disabled. The non-executable retirement runbook is retained at `docs/09-operations/SECURE-SSH-ADMIN-RECOVERY.md`.
 
-The repository integration cannot independently verify the Actions UI enabled/disabled toggle. A prior owner-supplied screenshot was recorded in the Phase 1C-26D audit as evidence that the workflow was disabled in the UI. This branch additionally makes the job unconditionally skipped and binds it to `production-reset`. PR #1016 proposes deleting this workflow; it remains present on `main` until a separately authorized integration.
+The owner-supplied screenshot previously supported that the Actions UI workflow was disabled. That account-level setting is not independently verified by repository access; keep it disabled as defense in depth. Repository deletion does not change GitHub account settings.
 
 ### 2.4 Remaining repository-only workflows
 
@@ -126,7 +124,7 @@ Do not assume the database secrets can substitute for SSH credentials.
 
 ### `production-reset`
 
-The recovery job is skipped and bound to this environment. The workflow still contains legacy repository-level references to `INSTITUTES_ADMIN_RECOVERY_PASSWORD` and `HOSTINGER_SSH_*`. Before any future reauthorization, the owner must move the required recovery password and SSH connection credentials into `production-reset` environment secrets and update the workflow to use only those environment-scoped names. Do not enable or dispatch it as part of this phase.
+The environment is preserved and reserved for separately designed, explicitly approved future operations. No password-reset workflow is provided or authorized by this phase. Do not restore the retired executable recovery mechanism as a compatibility workaround.
 
 ### Repository-level secrets that must not be deleted yet
 
@@ -134,10 +132,12 @@ Do not delete remaining repository-level `HOSTINGER_SSH_*`, `INSTITUTES_ADMIN_RE
 
 ## 4. Relationship to PR #1016 and prior Phase 1C work
 
-- PR #1016 remains open and untouched. Its Phase 1C-26D audit records the Phase 1C-28 scanner hardening and requires a `production-operations` environment for write-capable operations. Its workflow changes overlap this phase and cannot be merged unchanged under the owner-confirmed three-environment policy.
-- This branch preserves the useful objective of #1016—manual-only production access, exact-SHA/reason/confirmation guard, credential ordering, concurrency isolation and regression coverage—but uses only the three owner-confirmed environments.
-- Rather than assigning deployment, migration, seed, qualification or discovery workflows to a read-only environment or silently introducing `production-operations`, this branch leaves their production jobs skipped.
-- PRs #1009–#1016 remain open and unmerged. Their branches and commits were not modified; this PR branch incorporates the approved, non-conflicting #1016 security test and recovery-retirement material.
+- PR #1016 remains open and unmerged. Its 30 overlapping files were reconciled against this branch rather than merged blindly.
+- This branch is authoritative for the 27 overlapping workflow files: it binds active read-only diagnostics to `production-readonly-diagnostics` or `offering-gap-readonly-audit`, and leaves write-capable production jobs explicitly skipped without assigning an undeclared environment.
+- The #1016 structural isolation scanner, YAML reader, and non-executable recovery-retirement runbook are incorporated here with tests adapted to the three-environment policy. The old password-reset workflow itself is deleted.
+- The shared dispatch guard in this branch requires manual dispatch, `main`, exact current-main SHA, bounded reason, and a unique operation-specific confirmation. Environment-scoped credentials are checked after the guard. Read-only diagnostic workflows do not reference repository-level Hostinger or diagnostics-token secrets.
+- No `production-operations` environment is declared or assumed. `production-reset` remains reserved for explicitly approved future operations.
+- PRs #1009–#1016 remain open and unmerged. This consolidation does not merge or close any PR.
 - The Phase 1C-25B workflow inventory was rechecked against all 35 current workflow files. The 10 previously highlighted automatic production-access workflows were a subset, not the complete production-connected inventory.
 - The Phase 1C-23 execution checkpoint and Phase 1C-24 final acceptance audit were reviewed. The Phase 1C-26D/#1016 document was reviewed, including its Phase 1C-28 remediation update. No separately named Phase 1C-25B, 1C-28B or 1C-29 audit files were present in the current `main` audit directory; the owner-supplied 25B findings and the existing #1016 documentation were used as continuity evidence.
 
@@ -150,9 +150,9 @@ Do not delete remaining repository-level `HOSTINGER_SSH_*`, `INSTITUTES_ADMIN_RE
 3. SSH/API credentials are step-scoped, environment-specific, validated after the guard, and not present at workflow/job scope.
 4. Public HTTP diagnostics are manual-only and guarded.
 5. The offering-gap DB workflow retains its dedicated environment and validates DB credentials after authorization.
-6. The eight write-capable production workflows and the separate reset/recovery workflow are manual-only and explicitly skipped.
-7. Reset/recovery is bound only to `production-reset`; blocked operations do not use an undeclared/read-only environment.
-8. No workflow declares `production-operations` or any other unconfirmed environment.
+6. The eight write-capable production workflows are manual-only and explicitly skipped, with no production environment assigned.
+7. The obsolete administrator password-reset workflow is absent; its retirement runbook remains.
+8. Only the three owner-confirmed environments may be declared; no workflow references `production-operations`.
 9. Ordinary CI retains push/pull-request triggers and remains free of production secrets/SSH actions.
 10. The shared guard enforces event type, main ref, exact current SHA, bounded reason, operation-specific confirmation, and execution from its isolated checkout.
 11. Workflow-specific concurrency groups and cancellation semantics are retained and regression-tested.
