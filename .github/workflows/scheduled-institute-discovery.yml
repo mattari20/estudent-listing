@@ -135,7 +135,7 @@ jobs:
           TARGET_SHA: ${{ inputs.target_sha }}
           OPERATION_REASON: ${{ inputs.operation_reason }}
           CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
-          EXPECTED_CONFIRMATION: "AUTHORIZE-PRODUCTION-OPERATION"
+          EXPECTED_CONFIRMATION: "AUTHORIZE-GOVERNED-DISCOVERY-DISPATCH"
           OPERATION_CONFIRMATION: ${{ inputs.confirm_discovery }}
           EXPECTED_OPERATION_CONFIRMATION: "AUTHORIZE-GOVERNED-INSTITUTE-DISCOVERY"
         run: bash scripts/ci/validate-production-dispatch.sh
