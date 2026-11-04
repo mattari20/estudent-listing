@@ -2,24 +2,19 @@ name: Step 3 Record-Level Remediation Audit
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/step3-record-level-remediation-audit.yml"
-      - "app/Console/Commands/DataGapRecordAudit.php"
 
 permissions:
   contents: read
 
 concurrency:
-  group: step3-record-level-remediation-audit
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
   audit:
     name: Run read-only record-level gap audit on Hostinger
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     timeout-minutes: 10
     steps:
       - name: Checkout main and resolve approved application revision
