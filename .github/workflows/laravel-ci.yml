@@ -82,8 +82,20 @@ jobs:
           app/Services/SourceChangeEventProjector.php
           tests/Feature/SourceChangeIntelligenceTest.php
           database/migrations/2026_11_03_000006_add_change_event_source_link_identity.php
+          app/Services/MonitoringAlertService.php
+          app/Services/MonitoringAuditService.php
+          app/Services/SourceMonitoringBatchService.php
+          app/Models/SecurityAuditEvent.php
+          tests/Feature/MonitoringAlertsTest.php
+          database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php
           app/Services/SourceChangeReverificationService.php
           database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php
+          app/Services/MonitoringAlertService.php
+          app/Services/MonitoringAuditService.php
+          app/Services/SourceMonitoringBatchService.php
+          app/Models/SecurityAuditEvent.php
+          tests/Feature/MonitoringAlertsTest.php
+          database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php
           app/Services/SourceChangeReverificationService.php
           database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php
 

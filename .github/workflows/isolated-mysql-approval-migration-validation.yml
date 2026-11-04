@@ -12,6 +12,11 @@ on:
       - 'tests/Feature/SourceChangeDiscoveryIdempotencyTest.php'
       - 'tests/Feature/SourceChangeIntelligenceTest.php'
       - 'app/Services/SourceChangeReverificationService.php'
+      - 'app/Services/MonitoringAlertService.php'
+      - 'app/Services/MonitoringAuditService.php'
+      - 'app/Services/SourceMonitoringBatchService.php'
+      - 'app/Models/SecurityAuditEvent.php'
+      - 'tests/Feature/MonitoringAlertsTest.php'
       - 'app/Models/ChangeEvent.php'
       - 'app/Services/SourceChangeEventProjector.php'
       - 'app/Services/SourceChangeDiscoveryService.php'
@@ -103,3 +108,5 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/SourceChangeDiscoveryIdempotencyTest.php
       - name: Validate source change event and reverification queue replay on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceChangeIntelligenceTest.php
+      - name: Validate monitoring alert and audit replay idempotency on MySQL
+        run: vendor/bin/phpunit tests/Feature/MonitoringAlertsTest.php

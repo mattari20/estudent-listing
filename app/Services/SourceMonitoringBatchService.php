@@ -49,11 +49,14 @@ class SourceMonitoringBatchService
                         $source,
                         $policy
                     );
+                    $runId = $result['run']->id ?? null;
                     app(MonitoringAuditService::class)->record(
                         'retrieval_failure',
                         'Source retrieval failed',
                         $source->id,
-                        'warning'
+                        'warning',
+                        ['retrieval_run_id' => $runId],
+                        $runId !== null ? 'monitoring:retrieval_failure:'.$runId : null
                     );
                     continue;
                 }
@@ -80,7 +83,8 @@ class SourceMonitoringBatchService
                         'Monitored source content changed',
                         $source->id,
                         'info',
-                        ['observation_id' => $observation->id]
+                        ['observation_id' => $observation->id],
+                        'monitoring:source_change:observation:'.$observation->id
                     );
                 }
 
