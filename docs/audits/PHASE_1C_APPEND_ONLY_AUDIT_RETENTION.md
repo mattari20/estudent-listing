@@ -76,3 +76,22 @@ The focused MySQL test and trigger lifecycle proof passed on the previously vali
 - This migration does not make all mutable operational projections append-only and does not claim production verification.
 
 No production migration, database access, Hostinger, production Artisan command, deployment or history rewrite was performed. GCU rows #348–353 and batches #19–23 remain protected. AI extraction and the additional 20 HEC profiles remain disabled. No dummy production data.
+
+
+## Final reconciliation-event coverage and exact-head validation (2026-11-04)
+
+This section supersedes the preceding note that the reconciliation-event extension still awaited validation.
+
+**Final validated code/documentation head before this addendum:** `7d761c069aaea72bf33fb75bf6bd5a3df1a03d7f`.
+
+- Test #41793120096 — PASS, **896 tests / 3,944 assertions**.
+- Laravel CI #41793120081 — PASS.
+- Institutes Directory Project Controller #41793120151 — PASS.
+- Isolated MySQL Approval Migration Validation #41793120124 — PASS.
+- Focused MySQL `AppendOnlyAuditRetentionTest.php` — **9 tests / 28 assertions**.
+- MySQL trigger lifecycle proof — **24 named triggers** verified; rollback removed them; migration up reinstalled them; repeated installation remained idempotent.
+- The same isolated MySQL run passed the existing chronological retrieval, candidate batch, review-package, identity conflict, operator transition and monitoring checkpoint recovery/multiprocess steps.
+- The reconciliation-event test passed on the same MySQL service: direct SQL event-content UPDATE and DELETE were rejected; deleting the parent import row preserved the event and nulled only `import_row_id`; deleting the parent batch was rejected.
+- The new `ImportReconciliationEvent` model guard, SQLite/MySQL triggers and narrow FK null-detachment exception are therefore IMPLEMENTED and TESTED on this exact head.
+
+The documentation-only addendum that records this validation does not change the tested migration, model, test or trigger-proof code. Its own PR-head CI is still required before merge. No production migration, trigger, privilege, database or Hostinger operation was performed.

@@ -2356,3 +2356,21 @@ This section supersedes the preceding historical note that MySQL trigger creatio
 Status: IMPLEMENTED on this PR branch; the reconciliation-event extension awaits exact-head validation. NOT MERGED. PRODUCTION VERIFIED = NOT VERIFIED.
 
 No production database or Hostinger access, migration, privilege change, deployment or history rewrite. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and additional 20 HEC profiles remain disabled; no dummy production data.
+
+
+### Phase 1C audit retention — reconciliation-event extension exact-head validation (2026-11-04)
+
+This entry supersedes the preceding note that the expanded reconciliation-event protection awaited exact-head validation.
+
+Validated implementation head: `7d761c069aaea72bf33fb75bf6bd5a3df1a03d7f`.
+
+- Test #41793120096 PASS — 896 tests / 3,944 assertions.
+- Laravel CI #41793120081 PASS.
+- Project Controller #41793120151 PASS.
+- Isolated MySQL #41793120124 PASS.
+- Focused MySQL append-only suite: 9 tests / 28 assertions.
+- MySQL trigger lifecycle: all 24 named triggers verified; rollback, reinstallation and idempotency passed.
+- Reconciliation-event direct SQL UPDATE/DELETE rejection passed. Parent import-row deletion preserved the event with only its nullable `import_row_id` set to NULL; parent batch deletion was rejected.
+- No production operation, database privilege change or Hostinger access.
+
+The subsequent documentation-only commit must pass its applicable final PR-head checks. PR #1011 remains OPEN pending safe integration; this does not certify production trigger presence or production readiness.
