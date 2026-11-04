@@ -289,8 +289,16 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
         self_job = {"steps": [{"run": Path(__file__).read_text(encoding="utf-8")}]}
         self.assertIsNone(production_access_kind(self_job))
 
-    def test_real_ssh_action_is_detected_as_production_access(self):
-        self.assertEqual(
+    def test_remote_ssh_shell_command_is_detected_as_production_access(self):
+        job = {"steps": [{"run": "timeout 60s ssh -i key operator@example.invalid true"}]}
+        self.assertEqual(production_access_kind(job), "production")
+
+    def test_generic_database_secret_is_detected_as_production_access(self):
+        job = {"steps": [{"env": {"DB_PASSWORD": "${{ secrets.PRODUCTION_DB_PASSWORD }}"},
+                         "run": "php artisan institutes:offering-gap-preflight"}]}
+        self.assertEqual(production_access_kind(job), "production")
+
+    def test_real_ssh_action_is_detected_as_production_access(self):        self.assertEqual(
             production_access_kind({"steps": [{"uses": "appleboy/ssh-action@v1"}]}),
             "production",
         )
