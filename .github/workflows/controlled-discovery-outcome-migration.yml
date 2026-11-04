@@ -18,13 +18,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: controlled-discovery-outcome-migration
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
   migrate:
     name: Preflight and optionally apply one migration
     runs-on: ubuntu-latest
+    environment: production-operations
     timeout-minutes: 5
     steps:
       - name: Checkout main
