@@ -61,9 +61,10 @@ def events_for(workflow)
 end
 
 def production_job?(job)
-  YAML.dump(job).match?(/appleboy\/ssh-action|secrets\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|PRODUCTION_RESET_|HOSTINGER_SSH_|INSTITUTES_)/)
+  serialized = YAML.dump(job)
+  serialized.match?(/appleboy\\/ssh-action|secrets\\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|PRODUCTION_RESET_|HOSTINGER_SSH_|INSTITUTES_)/) ||
+    serialized.include?('https://estudent.pk/institutes')
 end
-
 def guard_index(steps)
   steps.index do |step|
     step.is_a?(Hash) && step.fetch('run', '').include?('scripts/ci/validate-production-dispatch.sh')
@@ -73,10 +74,10 @@ end
 def first_access_index(steps)
   steps.index do |step|
     serialized = YAML.dump(step)
-    serialized.match?(/appleboy\/ssh-action|secrets\.(?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/)
+    serialized.match?(/appleboy\\/ssh-action|secrets\\.(?:PRODUCTION_READONLY_|HOSTINGER_SSH_|INSTITUTES_)/) ||
+      serialized.include?('https://estudent.pk/institutes')
   end
 end
-
 def blocked?(job)
   value = job['if']
   value == false || value.to_s.strip == '${{ false }}'
