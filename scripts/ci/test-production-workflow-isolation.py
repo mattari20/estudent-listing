@@ -22,14 +22,14 @@ PRODUCTION_SECRET_MARKERS = (
 SSH_ACTION = "appleboy/ssh-action"
 RECOVERY_WORKFLOW = WORKFLOWS / "secure-institutes-admin-recovery.yml"
 ADMIN_RECOVERY_NAME = re.compile(r"(?:admin.*recover|recover.*admin)", re.IGNORECASE)
-PRODUCTION_REMOTE_COMMAND = re.compile(r"\\b(?:ssh|scp|sftp)\\s+(?:-[A-Za-z][^\\s]*\\s+)*[^\\s]+")
+PRODUCTION_REMOTE_COMMAND = re.compile(r"\b(?:ssh|scp|sftp)\s+(?:-[A-Za-z][^\s]*\s+)*[^\s]+")
 PRODUCTION_SECRET_NAME_PARTS = (
     "HOSTINGER_SSH_", "OFFERING_GAP_DB_", "INSTITUTES_DIAGNOSTICS_TOKEN",
     "INSTITUTES_PRIVATE_REPORTS_TOKEN", "INSTITUTES_ADMIN_RECOVERY_PASSWORD",
     "PRODUCTION", "PROD_DB", "DATABASE", "DB_HOST", "DB_PASSWORD",
     "DB_USERNAME", "SSH_PRIVATE_KEY",
 )
-PRODUCTION_SECRET_REFERENCE = re.compile(r"\\$\\{\\{\\s*secrets\\.([A-Z0-9_]+)\\s*\\}\\}")
+PRODUCTION_SECRET_REFERENCE = re.compile(r"\$\{\{\s*secrets\.([A-Z0-9_]+)\s*\}\}")
 
 
 def parse_workflow(path):
