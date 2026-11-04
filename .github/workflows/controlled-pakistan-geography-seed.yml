@@ -52,7 +52,7 @@ jobs:
           TARGET_SHA: ${{ inputs.target_sha }}
           OPERATION_REASON: ${{ inputs.operation_reason }}
           CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
-          EXPECTED_CONFIRMATION: "AUTHORIZE-PRODUCTION-OPERATION"
+          EXPECTED_CONFIRMATION: "AUTHORIZE-PAKISTAN-GEOGRAPHY-SEED"
         run: bash scripts/ci/validate-production-dispatch.sh
       - name: Validate input and inspect preflight
         uses: appleboy/ssh-action@v1.2.0
