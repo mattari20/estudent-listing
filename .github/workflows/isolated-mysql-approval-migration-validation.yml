@@ -8,6 +8,7 @@ on:
       - 'database/migrations/**'
       - 'tests/Feature/LegacyIdentityKeyInventoryTest.php'
       - 'tests/Feature/AuditLegacyIdentityKeysCommandSafetyTest.php'
+      - 'docs/audits/PHASE_1C_LEGACY_NULL_IDENTITY_KEY_INVENTORY.md'
       - 'tests/Feature/InstitutionFieldApprovalServiceTest.php'
       - 'tests/Feature/ExecutionLeaseServiceTest.php'
       - 'tests/Support/verify-execution-lease-multiprocess.php'
