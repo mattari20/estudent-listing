@@ -7,6 +7,7 @@ on:
       - 'database/migrations/**'
       - 'tests/Feature/InstitutionFieldApprovalServiceTest.php'
       - 'tests/Feature/ExecutionLeaseServiceTest.php'
+      - 'tests/Support/verify-execution-lease-multiprocess.php'
       - 'tests/Feature/SourceSnapshotTest.php'
       - 'tests/Feature/SourceRetrievalTest.php'
       - 'tests/Feature/SourceChangeDiscoveryIdempotencyTest.php'
@@ -102,6 +103,8 @@ jobs:
         run: vendor/bin/phpunit --filter InstitutionFieldApprovalServiceTest
       - name: Validate execution lease ownership and recovery on MySQL
         run: vendor/bin/phpunit tests/Feature/ExecutionLeaseServiceTest.php
+      - name: Prove lease exclusion across independent PHP processes on MySQL
+        run: php tests/Support/verify-execution-lease-multiprocess.php
       - name: Validate source snapshot, observation and retrieval idempotency on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceSnapshotTest.php tests/Feature/SourceRetrievalTest.php
       - name: Validate discovery outcome idempotency on MySQL
