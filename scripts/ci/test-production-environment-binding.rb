@@ -111,6 +111,9 @@ READ_ONLY.each do |filename, expected_environment|
     aidx = first_access_index(steps)
     fail!("#{filename}:#{job_name} is missing executable dispatch guard") unless gidx
     fail!("#{filename}:#{job_name} guard must precede every production credential/access step") if aidx && gidx >= aidx
+    if aidx && steps[aidx].fetch('name', '') !~ /Validate environment-scoped production credentials|Validate requested revision and read-only credentials/
+      fail!("#{filename}:#{job_name} must validate environment-scoped credentials before SSH/API access")
+    end
     guard = steps[gidx]
     env = guard.fetch('env', {})
     %w[TARGET_SHA OPERATION_REASON CONFIRM_PRODUCTION_OPERATION EXPECTED_CONFIRMATION].each do |key|
@@ -196,4 +199,4 @@ if File.file?(File.join(WORKFLOWS, RESET_WORKFLOW))
   puts 'BLOCKED OWNER ACTION: secure-institutes-admin-recovery.yml remains on main; it is explicitly skipped and bound to production-reset. Its legacy repository-level credential references must be migrated to production-reset environment secrets before any future re-authorization.'
 end
 
-puts "SUMMARY: #{READ_ONLY.length} read-only workflows, #{BLOCKED_OPERATIONS.length} blocked operations, #{paths.length} total workflows"
+puts "SUMMARY: #{READ_ONLY.length} read-only workflows, #{BLOCKED_OPERATIONS.length} blocked operations, one blocked reset/recovery workflow, #{paths.length} total workflows"
