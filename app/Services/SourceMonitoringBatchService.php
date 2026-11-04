@@ -55,38 +55,11 @@ class SourceMonitoringBatchService
                 $summary['sources']++;
                 $checkpoints->startSource($policyRunId, (int) $source->id);
 
-                try {
-                    $result = app(SourceMonitoringPipeline::class)->run($source);
-                } catch (Throwable $exception) {
-                    // Confirm ownership before classifying a thrown pipeline error
-                    // as a source failure. A heartbeat failure must escape unchanged.
-                    $heartbeat?->__invoke();
-                    $summary['failed']++;
-                    $failed = true;
-                    $exceptionClass = mb_substr(get_class($exception), 0, 160);
-
-                    $checkpoints->failSource($policyRunId, (int) $source->id, $exceptionClass);
-                    app(MonitoringAlertService::class)->raise(
-                        'retrieval_failure',
-                        app(MonitoringAlertPolicyService::class)->severityForFailures($policy->consecutive_failures + 1),
-                        'Source monitoring pipeline failed.',
-                        $source,
-                        $policy,
-                        ['exception_class' => $exceptionClass]
-                    );
-                    app(MonitoringAuditService::class)->record(
-                        'retrieval_failure',
-                        'Source monitoring pipeline failed.',
-                        $source->id,
-                        'warning',
-                        ['exception_class' => $exceptionClass, 'policy_id' => $policy->id]
-                    );
-
-                    continue;
-                }
-
-                // The pipeline may have taken long enough for ownership to expire.
-                // Do not project outcomes or checkpoint success until renewed.
+                // The retrieval service returns an explicit failed run for network,
+                // HTTP and URL-policy failures. Exceptions escaping the pipeline are
+                // infrastructure/programming failures and must abort, not be relabeled
+                // as ordinary retrieval failures.
+                $result = app(SourceMonitoringPipeline::class)->run($source);
                 $heartbeat?->__invoke();
 
                 if (($result['run']->status ?? '') !== 'completed') {
