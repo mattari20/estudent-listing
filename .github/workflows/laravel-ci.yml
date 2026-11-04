@@ -113,6 +113,11 @@ jobs:
           database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php
           app/Services/SourceChangeReverificationService.php
           database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php
+          app/Services/InstituteDiscoveryReviewPackageService.php
+          app/Console/Commands/PruneInstituteDiscoveryReviewPackages.php
+          tests/Feature/InstituteDiscoveryReviewPackageRecoveryTest.php
+          tests/Feature/InstituteDiscoveryReviewPackageTest.php
+          tests/Support/verify-review-package-multiprocess.php
           app/Services/MonitoringAlertService.php
           app/Services/MonitoringAuditService.php
           app/Services/SourceMonitoringBatchService.php
@@ -126,6 +131,11 @@ jobs:
           database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php
           app/Services/SourceChangeReverificationService.php
           database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php
+          app/Services/InstituteDiscoveryReviewPackageService.php
+          app/Console/Commands/PruneInstituteDiscoveryReviewPackages.php
+          tests/Feature/InstituteDiscoveryReviewPackageRecoveryTest.php
+          tests/Feature/InstituteDiscoveryReviewPackageTest.php
+          tests/Support/verify-review-package-multiprocess.php
 
       - name: Verify formatted discovery files
         run: >-
