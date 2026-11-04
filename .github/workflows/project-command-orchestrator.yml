@@ -20,6 +20,7 @@ on:
     paths:
       - ".github/workflows/project-command-orchestrator.yml"
       - "scripts/project_command_orchestrator.py"
+      - "scripts/project_command_comment.py"
       - "tests/project_controller/**"
 permissions:
   contents: read
@@ -36,6 +37,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'issue_comment' && github.event.repository.default_branch || (github.event_name == 'pull_request' && github.event.pull_request.head.sha) || github.ref_name }}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
       - name: Resolve command and state target
         id: cmd
         env:
@@ -45,30 +51,7 @@ jobs:
           COMMENT: ${{ github.event.comment.body }}
           COMMENT_ISSUE: ${{ github.event.issue.number }}
         run: |
-          set -euo pipefail
-          accepted=true
-          if [[ "$EVENT" == issue_comment ]]; then
-            c="$(printf '%s' "$COMMENT" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"; i="$COMMENT_ISSUE"
-            case "$c" in
-              Continue|continue|Resume|resume|"Move to Step 2"|"move to step 2"|"Move to Step 3"|"move to step 3") ;;
-              *) accepted=false ;;
-            esac
-          elif [[ "$EVENT" == push || "$EVENT" == pull_request ]]; then
-            c="Continue"; i=""
-          else
-            c="$INPUT_COMMAND"; i="$INPUT_ISSUE"
-          fi
-          {
-            echo "value=$c"
-            echo "issue=$i"
-            echo "accepted=$accepted"
-          } >> "$GITHUB_OUTPUT"
-          if [[ "$accepted" != true ]]; then echo "Ignoring unrelated issue comment; no project command was requested."; fi
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event_name == 'issue_comment' && github.event.repository.default_branch || (github.event_name == 'pull_request' && github.event.pull_request.head.sha) || github.ref_name }}
-      - uses: actions/setup-python@v5
-        with: {python-version: "3.12"}
+          python scripts/project_command_comment.py
       - name: Restore persistent state from issue/PR comment
         if: steps.cmd.outputs.accepted == 'true' && steps.cmd.outputs.issue != ''
         env:
