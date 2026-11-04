@@ -95,7 +95,11 @@ class InstituteImportPromotionController {
  }
  public function resolveConflict(Request $request, ImportRow $importRow, ImportConflictLifecycleService $lifecycle): RedirectResponse {
   $data=$request->validate(['conflict_id'=>['required','integer','exists:import_conflicts,id'],'reason'=>['required','string','max:2000']]);
-  $lifecycle->resolve($importRow, (int) $data['conflict_id'], (int) $request->user()->id, $data['reason']);
+  try {
+   $lifecycle->resolve($importRow, (int) $data['conflict_id'], (int) $request->user()->id, $data['reason']);
+  } catch (\\RuntimeException $exception) {
+   return back()->withErrors(['conflict'=>$exception->getMessage()]);
+  }
   return back()->with('status','Import conflict resolved with an explicit operator reason and immutable history recorded.');
  }
  public function promote(Request $request, ImportRow $importRow, InstituteImportPromoter $promoter, ImportCrossSourceComparisonService $comparison, ImportChangeDetectionService $changes): RedirectResponse {
