@@ -1,12 +1,6 @@
 name: Hostinger Read-only Diagnostics
 
 on:
-  push:
-    branches:
-      - main
-  schedule:
-    # Automatically re-check Hostinger revision alignment every six hours.
-    - cron: "17 */6 * * *"
   workflow_dispatch:
     inputs:
       project_path:
@@ -19,13 +13,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: hostinger-readonly-diagnostics
+  group: estudent-production-access
   cancel-in-progress: false
 
 jobs:
   diagnostics:
     name: Run read-only Institutes diagnostics over SSH
     runs-on: ubuntu-latest
+    environment: production-readonly-diagnostics
     timeout-minutes: 5
     steps:
       - name: Checkout repository for revision comparison
