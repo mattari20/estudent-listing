@@ -10,7 +10,7 @@ class Evidence extends Model
 {
     protected $table = 'evidence';
 
-    protected $fillable = ['source_id','snapshot_id','reference','excerpt','content_hash','observed_at','published_at','expires_at','status'];
+    protected $fillable = ['source_id','snapshot_id','discovery_identity_key','reference','excerpt','content_hash','observed_at','published_at','expires_at','status'];
 
     protected $casts = ['observed_at'=>'datetime','published_at'=>'datetime','expires_at'=>'datetime'];
 

@@ -101,8 +101,68 @@ class InstituteIdentityDiscoveryService
         });
     }
 
+    private function summaryForExistingBatch(
+        string $profile,
+        Source $source,
+        SourceSnapshot $snapshot,
+        ImportBatch $batch,
+    ): array {
+        $this->assertCompletedBatch($batch);
+        $evidenceId = Evidence::query()
+            ->where('source_id', $source->id)
+            ->where('snapshot_id', $snapshot->id)
+            ->latest('id')
+            ->value('id');
+        $package = app(InstituteDiscoveryReviewPackageService::class)->create(
+            $batch,
+            $snapshot,
+            $evidenceId === null ? null : (int) $evidenceId
+        );
+
+        return [
+            'entity_type' => 'institution',
+            'profile' => $profile,
+            'institution_id' => null,
+            'source_id' => $source->id,
+            'snapshot_id' => $snapshot->id,
+            'evidence_id' => $evidenceId === null ? null : (int) $evidenceId,
+            'batch_id' => $batch->id,
+            'total_rows' => (int) ($batch->total_rows ?? $batch->rows()->count()),
+            'candidate_rows' => $batch->rows()->where('status', 'candidate')->count(),
+            'duplicate_rows' => $batch->rows()->where('status', 'duplicate')->count(),
+            'outcome' => 'reused_existing_batch',
+            'review_package' => $package,
+            'canonical_mutations_performed' => false,
+        ];
+    }
+
+    private function assertCompletedBatch(ImportBatch $batch): void
+    {
+        if ($batch->status !== 'validated' || $batch->completed_at === null) {
+            throw new RuntimeException(
+                'A matching institution identity batch is incomplete; automatic replay is blocked to preserve historical candidate records.'
+            );
+        }
+    }
+
     private function stageSnapshotLocked(string $profile, Source $source, SourceSnapshot $snapshot, array $definition): array
     {
+        $batchIdentityKey = app(DiscoveryPersistenceIdentityService::class)->batchKey(
+            (int) $source->id,
+            $profile,
+            (string) $snapshot->content_hash,
+            'automated_discovery',
+            'deterministic',
+            self::VERSION
+        );
+        $identifiedBatch = ImportBatch::query()
+            ->where('discovery_identity_key', $batchIdentityKey)
+            ->first();
+
+        if ($identifiedBatch) {
+            return $this->summaryForExistingBatch($profile, $source, $snapshot, $identifiedBatch);
+        }
+
         $versionMarker = 'institution_identity_extractor_version='.self::VERSION;
         $existingBatches = ImportBatch::query()
             ->where('source_id', $source->id)
@@ -120,6 +180,7 @@ class InstituteIdentityDiscoveryService
 
             $previousSnapshot = SourceSnapshot::query()->find((int) $matches[1]);
             if ($previousSnapshot && hash_equals((string) $previousSnapshot->content_hash, (string) $snapshot->content_hash)) {
+                $this->assertCompletedBatch($existingBatch);
                 $evidenceId = Evidence::query()
                     ->where('source_id', $source->id)
                     ->where('snapshot_id', $previousSnapshot->id)
@@ -158,6 +219,7 @@ class InstituteIdentityDiscoveryService
 
         $evidence = Evidence::create([
             'source_id' => $source->id,
+            'discovery_identity_key' => app(DiscoveryPersistenceIdentityService::class)->evidenceKey($batchIdentityKey),
             'snapshot_id' => $snapshot->id,
             'reference' => $source->url,
             'excerpt' => mb_substr($evidenceExcerpt, 0, 10000),
@@ -168,6 +230,7 @@ class InstituteIdentityDiscoveryService
 
         $batch = ImportBatch::create([
             'batch_key' => 'agent-'.$profile.'-'.Str::lower(Str::random(16)),
+            'discovery_identity_key' => $batchIdentityKey,
             'entity_type' => 'institution',
             'source_type' => 'automated_discovery',
             'source_id' => $source->id,
@@ -244,8 +307,10 @@ class InstituteIdentityDiscoveryService
             $validationErrors = $blockers !== []
                 ? array_values(array_unique($blockers))
                 : ($duplicate ? [$duplicate['message']] : null);
+            $rowIdentityKey = app(DiscoveryPersistenceIdentityService::class)->rowKey($batchIdentityKey, $index + 1);
             $row = ImportRow::create([
                 'import_batch_id' => $batch->id,
+                'discovery_identity_key' => $rowIdentityKey,
                 'row_number' => $index + 1,
                 'status' => $status,
                 'match_state' => $status === 'duplicate' ? 'duplicate' : 'unresolved',
@@ -259,6 +324,7 @@ class InstituteIdentityDiscoveryService
 
             Assertion::create([
                 'evidence_id' => $evidence->id,
+                'discovery_identity_key' => app(DiscoveryPersistenceIdentityService::class)->assertionKey($rowIdentityKey, 'institution_identity_candidate'),
                 'subject_type' => ImportRow::class,
                 'subject_id' => $row->id,
                 'attribute' => 'institution_identity_candidate',

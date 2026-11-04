@@ -2182,3 +2182,28 @@ This is a bounded recovery improvement only. Abrupt process death, heartbeat/val
 - Final merge is conditional on a fresh pass of all four required workflows on the final documentation-inclusive PR head.
 - Next Phase 1C task: audit and failure-injection hardening of downstream discovery/candidate-batch side effects and replay boundaries (candidate/batch persistence, duplicate/idempotency behavior). Production scheduler/worker/runtime evidence and production-readiness certification remain separate later gates.
 - Protected data unchanged: GCU rows #348–353 and batches #19–23; AI extraction and additional 20 HEC profiles remain disabled. No production operations or dummy data.
+
+
+### Phase 1C-17 — downstream discovery and candidate-batch failure recovery (2026-11-04)
+
+- Base verified before edits: `8c9c7e389a290bdddb842164b5bf2da70294baf4`; PRs #993–#1001 and existing Phase 1C idempotency/recovery audits inspected.
+- Existing DB transaction and source-row lock in `InstituteDiscoveryAgentService` and `InstituteIdentityDiscoveryService` are retained. Evidence, batch, candidate rows, assertions and finalization remain one DB transaction.
+- Added deterministic SHA-256 identities and nullable unique DB constraints for discovery batches, evidence, candidate rows and candidate assertion links. Historical rows remain NULL and untouched; no deletion or merge.
+- Added failure-injection tests for evidence/batch/partial-row/assertion/finalization persistence, review-package failure rollback/retry, discovery-outcome persistence failure and failed-outcome replay.
+- Added an independent-PHP-process MySQL concurrency proof for two concurrent attempts against the same source/profile/snapshot.
+- Audit: `docs/audits/PHASE_1C_DISCOVERY_CANDIDATE_BATCH_FAILURE_RECOVERY.md`.
+- Exact-head Laravel CI, Test, isolated MySQL (including candidate recovery tests and the new two-process proof) and Project Controller validation remains pending. Do not merge until the actual MySQL logs and all exact-head checks pass.
+- Known limitation: private CSV/manifest filesystem writes cannot join the DB transaction. The review package validates both files and checksum before reuse; replay regenerates incomplete packages, but orphaned artifacts can remain and no cleanup/outbox worker is introduced.
+- No production operation or data access; no AI/HEC activation; GCU rows #348–353 and batches #19–23 protected; no dummy production data.
+- Phase 1C remains IN PROGRESS; production readiness remains NOT CERTIFIED.
+
+
+- Phase 1C-17 follow-up hardening: matching legacy batches with missing `completed_at` now fail closed rather than being reused; successful discovery outcomes verify their referenced candidate batch still exists and is validated/completed before reporting success. Regression tests cover both conditions.
+
+
+### Phase 1C-17 — exact-head validation recorded
+
+- Implementation head `5e55b41c23002ff3acf66fbbb69be4d918ee0b2f` passed Test (#41759567182: 843 tests/3,755 assertions), Laravel CI (#41759567170: same totals; Pint 46 files), Project Controller (#41759567189) and isolated MySQL (#41759567167).
+- MySQL logs explicitly confirm discovery outcome idempotency (6 tests/40 assertions), outcome-to-batch consistency (5 tests/17 assertions), candidate failure/replay (16 tests/115 assertions), and the two-process same-batch proof (one batch, two rows, one evidence, two assertions).
+- A documentation-only evidence update follows; final PR-head workflows must be rechecked before merge.
+- Remaining known limitation: private CSV/manifest writes are not transactional with MySQL; incomplete pairs are rejected and regenerated on replay, but orphaned private artifacts are not automatically swept.

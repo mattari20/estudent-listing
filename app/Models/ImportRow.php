@@ -10,6 +10,7 @@ class ImportRow extends Model
 {
     protected $fillable = [
         'import_batch_id',
+        'discovery_identity_key',
         'row_number',
         'status',
         'match_state',

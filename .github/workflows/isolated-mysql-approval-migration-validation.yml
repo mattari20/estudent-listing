@@ -12,17 +12,29 @@ on:
       - 'tests/Feature/SourceSnapshotTest.php'
       - 'tests/Feature/SourceRetrievalTest.php'
       - 'tests/Feature/SourceChangeDiscoveryIdempotencyTest.php'
+      - 'tests/Feature/SourceChangeDiscoveryServiceTest.php'
+      - 'tests/Feature/InstituteDiscoveryAgentTest.php'
+      - 'tests/Support/verify-discovery-batch-multiprocess.php'
+      - 'app/Services/DiscoveryPersistenceIdentityService.php'
+      - 'app/Services/InstituteDiscoveryAgentService.php'
+      - 'app/Services/InstituteIdentityDiscoveryService.php'
+      - 'app/Models/ImportBatch.php'
+      - 'app/Models/ImportRow.php'
+      - 'app/Models/Evidence.php'
+      - 'app/Models/Assertion.php'
       - 'tests/Feature/SourceChangeIntelligenceTest.php'
       - 'app/Services/SourceChangeReverificationService.php'
       - 'app/Services/MonitoringAlertService.php'
       - 'app/Services/MonitoringAuditService.php'
       - 'app/Services/SourceMonitoringBatchService.php'
+      - 'database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php'
       - 'app/Services/MonitoringPolicyCheckpointService.php'
       - 'app/Services/MonitoringPolicyStateService.php'
       - 'app/Models/SecurityAuditEvent.php'
       - 'tests/Feature/MonitoringAlertsTest.php'
       - 'tests/Feature/SourceMonitoringBatchRecoveryTest.php'
       - 'docs/audits/PHASE_1C_POLICY_CHECKPOINT_FAILURE_BOUNDARY_RECOVERY.md'
+      - 'docs/audits/PHASE_1C_DISCOVERY_CANDIDATE_BATCH_FAILURE_RECOVERY.md'
       - 'docs/PROJECT_MASTER_TRACKER.md'
       - 'database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php'
       - 'app/Console/Commands/MonitorSourceChanges.php'
@@ -118,6 +130,12 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/SourceSnapshotTest.php tests/Feature/SourceRetrievalTest.php
       - name: Validate discovery outcome idempotency on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceChangeDiscoveryIdempotencyTest.php
+      - name: Validate discovery outcome batch consistency on MySQL
+        run: vendor/bin/phpunit tests/Feature/SourceChangeDiscoveryServiceTest.php
+      - name: Validate discovery candidate batch failure recovery on MySQL
+        run: vendor/bin/phpunit tests/Feature/InstituteDiscoveryAgentTest.php
+      - name: Prove candidate batch identity across independent PHP processes on MySQL
+        run: php tests/Support/verify-discovery-batch-multiprocess.php
       - name: Validate source change event and reverification queue replay on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceChangeIntelligenceTest.php
       - name: Validate monitoring alert and audit replay idempotency on MySQL

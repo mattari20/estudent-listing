@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ImportBatch;
 use App\Models\InstituteDiscoveryRunOutcome;
 use App\Models\SourceChangeObservation;
 use Throwable;
@@ -86,6 +87,12 @@ class SourceChangeDiscoveryService
                 throw $exception;
             }
 
+            $batchId = isset($summary['batch_id']) ? (int) $summary['batch_id'] : 0;
+            if ($batchId < 1) {
+                throw new \RuntimeException('Discovery returned no durable candidate batch reference.');
+            }
+            $this->assertCompletedBatch($batchId);
+
             $package = $summary['review_package'] ?? [];
             $extractedCount = (int) ($summary['total_rows'] ?? 0);
             $candidateCount = (int) ($summary['candidate_rows'] ?? 0);
@@ -163,6 +170,13 @@ class SourceChangeDiscoveryService
     private function summaryForExistingOutcome(InstituteDiscoveryRunOutcome $outcome): array
     {
         $details = $outcome->details ?? [];
+        if (in_array($outcome->outcome, ['candidates_created', 'duplicates_only', 'empty_candidates'], true)) {
+            $batchId = (int) ($details['batch_id'] ?? 0);
+            if ($batchId < 1) {
+                throw new \RuntimeException('A completed discovery outcome has no durable candidate batch reference.');
+            }
+            $this->assertCompletedBatch($batchId);
+        }
 
         return [
             'profile' => $outcome->profile_key,
@@ -177,6 +191,16 @@ class SourceChangeDiscoveryService
                 'review_package_status' => $outcome->review_package_status,
             ],
         ];
+    }
+
+    private function assertCompletedBatch(int $batchId): void
+    {
+        $batch = ImportBatch::query()->find($batchId);
+        if (! $batch || $batch->status !== 'validated' || $batch->completed_at === null) {
+            throw new \RuntimeException(
+                'Discovery outcome references a missing or incomplete candidate batch; completion cannot be reported.'
+            );
+        }
     }
 
     private function keyFor(int $observationId, string $profileKey, bool $useAi, string $extractorVersion): string

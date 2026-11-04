@@ -140,12 +140,26 @@ class SourceChangeDiscoveryServiceTest extends TestCase
             'materiality' => 'high',
         ]);
 
+        $batch = \App\Models\ImportBatch::create([
+            'batch_key' => 'agent-duplicate-test-completed',
+            'entity_type' => 'program',
+            'source_type' => 'automated_discovery',
+            'source_id' => $source->id,
+            'status' => 'validated',
+            'total_rows' => 63,
+            'valid_rows' => 63,
+            'candidate_rows' => 0,
+            'duplicate_rows' => 63,
+            'received_at' => now(),
+            'completed_at' => now(),
+        ]);
+
         $agent = \Mockery::mock(\App\Services\InstituteDiscoveryAgentService::class);
         $agent->shouldReceive('runFromSnapshot')->once()->with('duplicate-test', \Mockery::type(SourceSnapshot::class), false)->andReturn([
             'total_rows' => 63,
             'candidate_rows' => 0,
             'duplicate_rows' => 63,
-            'batch_id' => 17,
+            'batch_id' => $batch->id,
             'review_package' => ['status' => 'created'],
         ]);
         $this->app->instance(\App\Services\InstituteDiscoveryAgentService::class, $agent);

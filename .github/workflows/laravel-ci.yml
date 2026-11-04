@@ -83,6 +83,17 @@ jobs:
           app/Services/SourceChangeDiscoveryService.php
           app/Models/InstituteDiscoveryRunOutcome.php
           tests/Feature/SourceChangeDiscoveryIdempotencyTest.php
+          tests/Feature/SourceChangeDiscoveryServiceTest.php
+          app/Services/DiscoveryPersistenceIdentityService.php
+          app/Services/InstituteDiscoveryAgentService.php
+          app/Services/InstituteIdentityDiscoveryService.php
+          app/Models/ImportBatch.php
+          app/Models/ImportRow.php
+          app/Models/Evidence.php
+          app/Models/Assertion.php
+          database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php
+          tests/Feature/InstituteDiscoveryAgentTest.php
+          tests/Support/verify-discovery-batch-multiprocess.php
           database/migrations/2026_11_03_000005_add_discovery_outcome_idempotency_key.php
           app/Models/ChangeEvent.php
           app/Services/SourceChangeEventProjector.php
@@ -149,6 +160,17 @@ jobs:
           app/Services/SourceChangeDiscoveryService.php
           app/Models/InstituteDiscoveryRunOutcome.php
           tests/Feature/SourceChangeDiscoveryIdempotencyTest.php
+          tests/Feature/SourceChangeDiscoveryServiceTest.php
+          app/Services/DiscoveryPersistenceIdentityService.php
+          app/Services/InstituteDiscoveryAgentService.php
+          app/Services/InstituteIdentityDiscoveryService.php
+          app/Models/ImportBatch.php
+          app/Models/ImportRow.php
+          app/Models/Evidence.php
+          app/Models/Assertion.php
+          database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php
+          tests/Feature/InstituteDiscoveryAgentTest.php
+          tests/Support/verify-discovery-batch-multiprocess.php
           database/migrations/2026_11_03_000005_add_discovery_outcome_idempotency_key.php
           app/Models/ChangeEvent.php
           app/Services/SourceChangeEventProjector.php
