@@ -295,10 +295,8 @@ class InstituteDiscoveryAgentService
                 : ($duplicate ? [$duplicate['message']] : null);
 
             $rowIdentityKey = app(DiscoveryPersistenceIdentityService::class)->rowKey($batchIdentityKey, $index + 1);
-            $rowIdentityKey = app(DiscoveryPersistenceIdentityService::class)->rowKey($batchIdentityKey, 1);
             $row = ImportRow::create([
                 'import_batch_id' => $batch->id,
-                'discovery_identity_key' => $rowIdentityKey,
                 'discovery_identity_key' => $rowIdentityKey,
                 'row_number' => $index + 1,
                 'status' => $status,
@@ -313,7 +311,6 @@ class InstituteDiscoveryAgentService
 
             Assertion::create([
                 'evidence_id' => $evidence->id,
-                'discovery_identity_key' => app(DiscoveryPersistenceIdentityService::class)->assertionKey($rowIdentityKey, 'candidate_'.$entityType),
                 'discovery_identity_key' => app(DiscoveryPersistenceIdentityService::class)->assertionKey($rowIdentityKey, 'candidate_'.$entityType),
                 'subject_type' => $entityType === 'institution' ? ImportRow::class : Institution::class,
                 'subject_id' => $entityType === 'institution' ? $row->id : $institution->id,
