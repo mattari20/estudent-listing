@@ -183,6 +183,7 @@ return new class extends Migration
             "BEGIN
                 IF NOT (
                     OLD.decision_identity_key IS NULL AND NEW.decision_identity_key IS NOT NULL
+                    AND OLD.id <=> NEW.id
                     AND OLD.import_row_id <=> NEW.import_row_id
                     AND OLD.institution_id <=> NEW.institution_id
                     AND OLD.decision <=> NEW.decision
@@ -244,6 +245,7 @@ return new class extends Migration
             "CREATE TRIGGER IF NOT EXISTS identity_decision_update_guard BEFORE UPDATE ON identity_resolution_decisions
             WHEN NOT (
                 OLD.decision_identity_key IS NULL AND NEW.decision_identity_key IS NOT NULL
+                AND OLD.id IS NEW.id
                 AND OLD.import_row_id IS NEW.import_row_id
                 AND OLD.institution_id IS NEW.institution_id
                 AND OLD.decision IS NEW.decision
