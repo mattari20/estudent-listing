@@ -39,9 +39,11 @@ if (getenv('DB_CONNECTION') !== 'mysql') {
     exit(2);
 }
 
+$app = require $root.'/bootstrap/app.php';
+$app->make(Kernel::class)->bootstrap();
+
 $taskKey = 'ci-multiprocess-lease-'.(string) Str::uuid();
 $marker = sys_get_temp_dir().'/execution-lease-'.bin2hex(random_bytes(8));
-$script = __FILE__;
 $rootDirectory = $root;
 
 $start = static function (array $arguments) use ($rootDirectory): array {
@@ -68,10 +70,6 @@ try {
     $deadline = microtime(true) + 10;
     while (! is_file($marker) && microtime(true) < $deadline) {
         usleep(50000);
-        $status = proc_get_status($first);
-        if (! $status['running']) {
-            throw new RuntimeException('First worker exited before acquiring the lease.');
-        }
     }
 
     if (! is_file($marker)) {
