@@ -61,6 +61,18 @@ class AuditLegacyIdentityKeys extends Command
             return false;
         }
 
+        $connections = config('database.connections');
+        $configuredConnection = is_array($connections)
+            ? ($connections[$connectionName] ?? null)
+            : null;
+
+        if (! is_array($configuredConnection)
+            || (isset($configuredConnection['url']) && $configuredConnection['url'] !== '')
+            || array_key_exists('read', $configuredConnection)
+            || array_key_exists('write', $configuredConnection)) {
+            return false;
+        }
+
         try {
             $connection = DB::connection($connectionName);
             $connectionConfig = $connection->getConfig();
@@ -70,8 +82,8 @@ class AuditLegacyIdentityKeys extends Command
 
         if (! is_array($connectionConfig)
             || (isset($connectionConfig['url']) && $connectionConfig['url'] !== '')
-            || ! empty($connectionConfig['read'])
-            || ! empty($connectionConfig['write'])) {
+            || array_key_exists('read', $connectionConfig)
+            || array_key_exists('write', $connectionConfig)) {
             return false;
         }
 
