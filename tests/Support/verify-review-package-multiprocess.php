@@ -93,7 +93,7 @@ Storage::disk('local')->put($staleTemp, 'interrupted stale temporary artifact');
 touch(Storage::disk('local')->path($staleTemp), now()->subDays(2)->timestamp);
 
 try {
-    foreach (['writer', 'cleanup'] as $label) {
+    foreach (['writer', 'writer-second', 'cleanup'] as $label) {
         $ready = $barrier.'/'.$label.'.ready';
         $pipes = [];
         $process = proc_open(
@@ -131,9 +131,12 @@ try {
         $results[] = json_decode(trim((string) $stdout), true, 512, JSON_THROW_ON_ERROR);
     }
 
-    $writerResult = $results[0];
-    if (($writerResult['status'] ?? null) !== 'created') {
-        throw new RuntimeException('The concurrent package writer did not complete creation.');
+    $writerResults = [$results[0], $results[1]];
+    if (count(array_filter($writerResults, fn ($result) => ($result['status'] ?? null) === 'created')) !== 1
+        || count(array_filter($writerResults, fn ($result) => ($result['status'] ?? null) === 'reused')) !== 1
+        || ($writerResults[0]['csv_path'] ?? null) !== ($writerResults[1]['csv_path'] ?? null)
+        || ($writerResults[0]['manifest_path'] ?? null) !== ($writerResults[1]['manifest_path'] ?? null)) {
+        throw new RuntimeException('Concurrent package writers did not converge on one deterministic package pair.');
     }
 
     $disk = Storage::disk('local');
