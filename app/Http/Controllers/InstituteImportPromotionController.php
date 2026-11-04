@@ -92,12 +92,10 @@ class InstituteImportPromotionController {
   $audit->record($importRow,$data['decision']==='approved'?'promotion_approved':'promotion_rejected',$request->user()->id,$data['reason'],['decision'=>$data['decision']],'import_promotion',$decision->id);
   return back()->with('status','Enrichment promotion decision recorded.');
  }
- public function resolveConflict(Request $request, ImportRow $importRow): RedirectResponse {
+ public function resolveConflict(Request $request, ImportRow $importRow, ImportConflictLifecycleService $lifecycle): RedirectResponse {
   $data=$request->validate(['conflict_id'=>['required','integer','exists:import_conflicts,id'],'reason'=>['required','string','max:2000']]);
-  $conflict=ImportConflict::query()->whereKey($data['conflict_id'])->where('import_row_id',$importRow->id)->firstOrFail();
-  $conflict->update(['status'=>'resolved','resolved_by_type'=>'user','resolved_by_id'=>$request->user()->id,'resolution_reason'=>$data['reason'],'resolved_at'=>now()]);
-  if(!ImportConflict::where('import_row_id',$importRow->id)->where('status','open')->exists() && $importRow->match_state==='conflict') $importRow->update(['match_state'=>IdentityResolutionDecision::where('import_row_id',$importRow->id)->exists()?'matched':'new_candidate']);
-  return back()->with('status','Import conflict resolved with an explicit operator reason.');
+  $lifecycle->resolve($importRow, (int) $data['conflict_id'], (int) $request->user()->id, $data['reason']);
+  return back()->with('status','Import conflict resolved with an explicit operator reason and immutable history recorded.');
  }
  public function promote(Request $request, ImportRow $importRow, InstituteImportPromoter $promoter, ImportCrossSourceComparisonService $comparison, ImportChangeDetectionService $changes): RedirectResponse {
   try {
