@@ -315,4 +315,100 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
         ]);
     }
 
+
+    public function test_last_run_at_write_failure_rolls_back_policy_state_and_finalization(): void
+    {
+        $source = Source::create([
+            'source_type' => 'official',
+            'name' => 'Last Run Failure Source',
+            'url' => 'https://example.test/last-run-failure',
+            'status' => 'active',
+        ]);
+        $policy = SourceMonitoringPolicy::create([
+            'name' => 'Last Run Failure Policy',
+            'fresh_after_days' => 14,
+            'stale_after_days' => 30,
+            'priority' => 'normal',
+            'status' => 'active',
+            'source_id' => $source->id,
+            'cadence' => 'daily',
+            'consecutive_failures' => 0,
+        ]);
+
+        $pipeline = Mockery::mock(SourceMonitoringPipeline::class);
+        $pipeline->shouldReceive('run')->once()->andReturn([
+            'run' => (object) ['status' => 'completed', 'id' => 901],
+            'observation' => null,
+            'intelligence' => null,
+        ]);
+        $this->app->instance(SourceMonitoringPipeline::class, $pipeline);
+
+        DB::connection()->beforeExecuting(function (string $query): void {
+            if (str_contains(strtolower($query), 'last_run_at')) {
+                throw new RuntimeException('last run persistence unavailable');
+            }
+        });
+
+        try {
+            app(SourceMonitoringBatchService::class)->run($policy->id);
+            $this->fail('A last_run_at persistence failure must abort finalization.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('last run persistence unavailable', $exception->getMessage());
+        }
+
+        $policy = $policy->fresh();
+        $policyRun = DB::table('monitoring_policy_runs')->where('source_monitoring_policy_id', $policy->id)->first();
+        $this->assertSame('running', $policyRun->status);
+        $this->assertNull($policy->last_run_at);
+        $this->assertNull($policy->last_success_at);
+    }
+
+    public function test_policy_run_finalization_write_failure_rolls_back_policy_state(): void
+    {
+        $source = Source::create([
+            'source_type' => 'official',
+            'name' => 'Finalization Failure Source',
+            'url' => 'https://example.test/finalization-failure',
+            'status' => 'active',
+        ]);
+        $policy = SourceMonitoringPolicy::create([
+            'name' => 'Finalization Failure Policy',
+            'fresh_after_days' => 14,
+            'stale_after_days' => 30,
+            'priority' => 'normal',
+            'status' => 'active',
+            'source_id' => $source->id,
+            'cadence' => 'daily',
+            'consecutive_failures' => 0,
+        ]);
+
+        $pipeline = Mockery::mock(SourceMonitoringPipeline::class);
+        $pipeline->shouldReceive('run')->once()->andReturn([
+            'run' => (object) ['status' => 'completed', 'id' => 902],
+            'observation' => null,
+            'intelligence' => null,
+        ]);
+        $this->app->instance(SourceMonitoringPipeline::class, $pipeline);
+
+        DB::connection()->beforeExecuting(function (string $query): void {
+            $sql = strtolower($query);
+            if (str_contains($sql, 'update') && str_contains($sql, 'monitoring_policy_runs') && str_contains($sql, 'summary')) {
+                throw new RuntimeException('policy finalization unavailable');
+            }
+        });
+
+        try {
+            app(SourceMonitoringBatchService::class)->run($policy->id);
+            $this->fail('A policy finalization persistence failure must abort.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('policy finalization unavailable', $exception->getMessage());
+        }
+
+        $policy = $policy->fresh();
+        $policyRun = DB::table('monitoring_policy_runs')->where('source_monitoring_policy_id', $policy->id)->first();
+        $this->assertSame('running', $policyRun->status);
+        $this->assertNull($policy->last_run_at);
+        $this->assertNull($policy->last_success_at);
+    }
+
 }
