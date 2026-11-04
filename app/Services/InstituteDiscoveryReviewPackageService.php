@@ -304,8 +304,7 @@ class InstituteDiscoveryReviewPackageService
         if (! is_string($csv) || ! hash_equals($manifest['checksums']['candidates_csv_sha256'], hash('sha256', $csv))) {
             return null;
         }
-        $csvRows = preg_split('/\\r\\n|\\n|\\r/', trim($csv));
-        if (! is_array($csvRows) || count($csvRows) !== $batch->rows->count() + 1) {
+        if ($this->csvDataRowCount($csv) !== $batch->rows->count()) {
             return null;
         }
         $expectedStatus = $batch->rows->isEmpty() ? 'no_candidates' : 'review_required';
@@ -440,6 +439,41 @@ class InstituteDiscoveryReviewPackageService
     {
         if (is_link($path)) {
             throw new RuntimeException('Symlink detected in review-package storage; refusing access.');
+        }
+    }
+
+
+    private function csvDataRowCount(string $csv): ?int
+    {
+        $stream = fopen('php://temp', 'w+');
+        if ($stream === false) {
+            return null;
+        }
+        try {
+            if (fwrite($stream, $csv) !== strlen($csv)) {
+                return null;
+            }
+            rewind($stream);
+            $headers = fgetcsv($stream);
+            $expected = [
+                'batch_id', 'row_id', 'row_number', 'entity_type', 'institution_id',
+                'candidate_name', 'candidate_slug', 'official_source_url', 'snapshot_id',
+                'evidence_id', 'observed_at', 'confidence', 'extraction_method',
+                'duplicate_state', 'validation_errors', 'review_status',
+            ];
+            if ($headers !== $expected) {
+                return null;
+            }
+            $count = 0;
+            while (($row = fgetcsv($stream)) !== false) {
+                if (count($row) !== count($expected)) {
+                    return null;
+                }
+                $count++;
+            }
+            return $count;
+        } finally {
+            fclose($stream);
         }
     }
 
