@@ -19,12 +19,21 @@ class InstituteImportPromoter
     {
         return DB::transaction(function () use ($row, $decision): Institution {
             $lockedRow = ImportRow::query()->with('batch.source')->whereKey($row->id)->lockForUpdate()->firstOrFail();
+            $providedDecision = IdentityResolutionDecision::query()
+                ->whereKey($decision->id)
+                ->where('import_row_id', $lockedRow->id)
+                ->lockForUpdate()
+                ->first();
+            if (! $providedDecision) {
+                throw new RuntimeException('Resolution decision does not belong to import row.');
+            }
+
             $lockedDecision = IdentityResolutionDecision::query()
                 ->where('import_row_id', $lockedRow->id)
                 ->latest('id')
                 ->lockForUpdate()
                 ->firstOrFail();
-            if ((int) $lockedDecision->id !== (int) $decision->id) {
+            if ((int) $lockedDecision->id !== (int) $providedDecision->id) {
                 throw new RuntimeException('The identity decision changed before promotion; review the latest decision and retry.');
             }
 
