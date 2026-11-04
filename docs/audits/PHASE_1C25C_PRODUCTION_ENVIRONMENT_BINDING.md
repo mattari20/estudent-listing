@@ -19,7 +19,7 @@ No fourth environment is assumed or created. In particular, `production-operatio
 
 ## 2. Production workflow inventory and disposition
 
-The current workflow tree contains 35 workflow files. The 26 production-facing workflows below are classified by capability and protected as follows. Every active read-only diagnostic workflow is manual-only, declares its owner-confirmed environment, checks the exact dispatch SHA/reason/unique confirmation before production access, and validates required environment credentials before attempting SSH/API access. The two public HTTP diagnostics have no production credentials but use the same dispatch guard and environment boundary.
+The current workflow tree contains 35 workflow files. The 26 production-facing workflows below are classified by capability and protected as follows. Every active read-only diagnostic workflow is manual-only, declares its owner-confirmed environment, and checks the exact dispatch SHA/reason/unique confirmation before external production access. Credential-backed SSH/API diagnostics additionally validate required environment-scoped credentials after the guard and before credential use. The public HTTP-only monitors do not use SSH, database credentials, or private API tokens; they require the same manual dispatch guard and protected environment, but correctly have no private credential-validation step.
 
 ### 2.1 Read-only production diagnostics — 17 workflows
 
@@ -42,6 +42,12 @@ The current workflow tree contains 35 workflow files. The 26 production-facing w
 | `public-browser-runtime-diagnostics.yml` | Public Chromium diagnostics against live Institutes pages/API; no SSH/DB/Artisan | `workflow_dispatch` only | `production-readonly-diagnostics` | None | Yes; main-only environment and manual dispatch guard |
 | `hostinger-readonly-offering-gap-audit.yml` | Read-only offering-gap preflight/reconciliation over Hostinger SSH | `workflow_dispatch` only | `offering-gap-readonly-audit` | `OFFERING_GAP_READONLY_HOSTINGER_SSH_HOST`, `_USER`, `_PRIVATE_KEY`, `_PORT`, `_FINGERPRINT` | Yes; add the five SSH environment secrets; existing DB secrets are not substituted for these SSH credentials |
 | `offering-gap-preflight.yml` | Read-only offering-gap database preflight/reconciliation | `workflow_dispatch` only | `offering-gap-readonly-audit` | Existing `OFFERING_GAP_DB_HOST`, `_PORT`, `_DATABASE`, `_USERNAME`, `_PASSWORD` | Yes; owner reports these five DB secrets already exist; step-level validation follows the dispatch guard |
+
+#### Public HTTP-only exception and authorization boundary
+
+`institutes-public-monitor.yml` and `public-browser-runtime-diagnostics.yml` perform public-page/browser HTTP checks only. They do not access Hostinger SSH, the production database, Artisan, or authenticated private diagnostics APIs, and must not reference production credentials. They are therefore classified separately from credential-backed diagnostics by the regression scanner using executable job behavior (SSH actions/production secret references versus public Institutes HTTP targets), not by filename.
+
+Both workflows remain bound to `production-readonly-diagnostics`, expose only `workflow_dispatch`, require `target_sha`, `operation_reason`, and `confirm_production_operation`, and run the shared authorization guard before any public HTTP request. The guard requires the immutable dispatch SHA to be the exact current `main` SHA, a bounded reason, and the workflow-specific confirmation phrase. Push, pull-request, and schedule triggers are rejected. The public HTTP exception removes only the unnecessary private-credential-validation requirement; it does not relax authorization, environment, trigger, or write-operation controls.
 
 Each active read-only job uses the shared dispatch guard before the first production credential or production HTTP access. The guard requires: `workflow_dispatch`, `refs/heads/main`, an exact 40-character target SHA equal to the immutable event SHA and current remote `main`, a bounded operation reason, and an operation-specific confirmation phrase. Credential checks do not print values and fail before the SSH/API action if an environment secret is absent.
 
@@ -145,10 +151,10 @@ Do not delete remaining repository-level `HOSTINGER_SSH_*`, `INSTITUTES_ADMIN_RE
 
 `scripts/ci/test-production-environment-binding.rb` is wired into `.github/workflows/test.yml` and validates:
 
-1. All 35 workflow files are inventoried.
+1. All 34 workflow files are inventoried after retiring the obsolete administrator recovery workflow.
 2. All 17 read-only production workflows are manual-only, have required inputs, and declare the correct owner-confirmed environment.
-3. SSH/API credentials are step-scoped, environment-specific, validated after the guard, and not present at workflow/job scope.
-4. Public HTTP diagnostics are manual-only and guarded.
+3. Credential-backed SSH/API workflows use step-scoped environment-specific credentials validated after the guard and before access; public HTTP-only workflows require no private credentials and reject any production credential reference.
+4. Public HTTP diagnostics are manual-only, protected-environment-bound, exact-SHA/reason/operation-confirmation guarded, and credential-free; positive/negative fixtures distinguish them from credential-backed diagnostics.
 5. The offering-gap DB workflow retains its dedicated environment and validates DB credentials after authorization.
 6. The eight write-capable production workflows are manual-only and explicitly skipped, with no production environment assigned.
 7. The obsolete administrator password-reset workflow is absent; its retirement runbook remains.
