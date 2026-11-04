@@ -9,6 +9,7 @@ use App\Models\SourceMonitoringPolicy;
 use App\Services\SourceMonitoringBatchService;
 use App\Services\SourceMonitoringPipeline;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Mockery;
 use RuntimeException;
 use Tests\TestCase;
@@ -57,6 +58,12 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
         $this->assertNotNull($policy->last_run_at);
         $this->assertNotNull($policy->next_run_at);
 
+        $policyRun = DB::table('monitoring_policy_runs')->where('source_monitoring_policy_id', $policy->id)->first();
+        $this->assertSame('failed', $policyRun->status);
+        $sourceCheckpoint = DB::table('monitoring_policy_run_sources')->where('monitoring_policy_run_id', $policyRun->id)->where('source_id', $source->id)->first();
+        $this->assertSame('failed', $sourceCheckpoint->status);
+        $this->assertSame(RuntimeException::class, $sourceCheckpoint->failure_code);
+
         $this->assertSame(1, MonitoringAlert::where('alert_type', 'retrieval_failure')->count());
         $alert = MonitoringAlert::where('alert_type', 'retrieval_failure')->firstOrFail();
         $this->assertStringContainsString(RuntimeException::class, $alert->message);
@@ -66,4 +73,37 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
         $this->assertStringContainsString(RuntimeException::class, $audit->description);
         $this->assertStringNotContainsString('sensitive response body', $audit->description);
     }
+
+    public function test_new_attempt_marks_abandoned_policy_run_interrupted_and_records_completion(): void
+    {
+        $policy = SourceMonitoringPolicy::create([
+            'name' => 'Interrupted Run Policy',
+            'fresh_after_days' => 14,
+            'stale_after_days' => 30,
+            'priority' => 'normal',
+            'status' => 'active',
+            'cadence' => 'daily',
+            'consecutive_failures' => 0,
+        ]);
+
+        $abandonedId = DB::table('monitoring_policy_runs')->insertGetId([
+            'source_monitoring_policy_id' => $policy->id,
+            'execution_run_id' => null,
+            'status' => 'running',
+            'started_at' => now()->subMinutes(10),
+            'created_at' => now()->subMinutes(10),
+            'updated_at' => now()->subMinutes(10),
+        ]);
+
+        $summary = app(SourceMonitoringBatchService::class)->run($policy->id);
+
+        $this->assertSame(1, $summary['policies']);
+        $this->assertSame('interrupted', DB::table('monitoring_policy_runs')->where('id', $abandonedId)->value('status'));
+        $this->assertSame('superseded_by_new_attempt', DB::table('monitoring_policy_runs')->where('id', $abandonedId)->value('failure_code'));
+        $this->assertDatabaseHas('monitoring_policy_runs', [
+            'source_monitoring_policy_id' => $policy->id,
+            'status' => 'completed',
+        ]);
+    }
+
 }
