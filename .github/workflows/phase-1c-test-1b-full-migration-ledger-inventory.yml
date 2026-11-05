@@ -35,23 +35,28 @@ jobs:
       - name: Checkout exact dispatch revision
         uses: actions/checkout@v4
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           path: .production-dispatch-guard
       - name: Validate protected production dispatch
         env:
-          TARGET_SHA: \${{ inputs.target_sha }}
-          OPERATION_REASON: \${{ inputs.operation_reason }}
-          CONFIRM_PRODUCTION_OPERATION: \${{ inputs.confirm_production_operation }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
           EXPECTED_CONFIRMATION: "AUTHORIZE-PHASE1C-TEST1B-FULL-MIGRATION-INVENTORY-READONLY"
         run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
+      - name: Set up approved PHP for syntax validation
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          tools: none
       - name: Build expected migration manifest and validate diagnostic
         shell: bash
         run: |
           set -euo pipefail
           cd .production-dispatch-guard
           php -l scripts/diagnostics/phase1c-full-migration-ledger-inventory.php
-          find database/migrations -maxdepth 1 -type f -name '*.php' -printf '%f\\n' | sed 's/\\.php$//' | sort -u > "$RUNNER_TEMP/expected-migrations.txt"
+          find database/migrations -maxdepth 1 -type f -name '*.php' -printf '%f\n' | sed 's/\.php$//' | sort -u > "$RUNNER_TEMP/expected-migrations.txt"
           test -s "$RUNNER_TEMP/expected-migrations.txt"
           EXPECTED_MIGRATIONS_B64="$(base64 -w0 "$RUNNER_TEMP/expected-migrations.txt")"
           SCRIPT_B64="$(base64 -w0 scripts/diagnostics/phase1c-full-migration-ledger-inventory.php)"
@@ -60,10 +65,10 @@ jobs:
           echo "expected_migration_count=$(wc -l < "$RUNNER_TEMP/expected-migrations.txt" | tr -d ' ')"
       - name: Validate environment-scoped production credentials
         env:
-          PRODUCTION_READONLY_HOSTINGER_SSH_HOST: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
-          PRODUCTION_READONLY_HOSTINGER_SSH_USER: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
-          PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
-          PRODUCTION_READONLY_HOSTINGER_SSH_PORT: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
         shell: bash
         run: |
           set -euo pipefail
@@ -74,14 +79,14 @@ jobs:
       - name: Run full read-only inventory over SSH stdin
         uses: appleboy/ssh-action@v1.2.0
         env:
-          PROJECT_PATH: \${{ inputs.project_path }}
-          RECONCILIATION_SCRIPT_B64: \${{ env.RECONCILIATION_SCRIPT_B64 }}
-          EXPECTED_MIGRATIONS_B64: \${{ env.EXPECTED_MIGRATIONS_B64 }}
+          PROJECT_PATH: ${{ inputs.project_path }}
+          RECONCILIATION_SCRIPT_B64: ${{ env.RECONCILIATION_SCRIPT_B64 }}
+          EXPECTED_MIGRATIONS_B64: ${{ env.EXPECTED_MIGRATIONS_B64 }}
         with:
-          host: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
-          username: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
-          key: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
-          port: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          host: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
           envs: PROJECT_PATH,RECONCILIATION_SCRIPT_B64,EXPECTED_MIGRATIONS_B64
           command_timeout: 5m
           script: |
@@ -96,7 +101,7 @@ jobs:
             export EXPECTED_MIGRATIONS_B64
             printf '%s' "$RECONCILIATION_SCRIPT_B64" | base64 -d | "$PHP_BIN"
       - name: Confirm read-only execution contract
-        if: \${{ always() }}
+        if: ${{ always() }}
         run: |
           echo "migration_source_manifest=read_from_checked_out_main"
           echo "production_application_rows_read=0"
