@@ -52,12 +52,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for name in
-          "PRODUCTION_READONLY_HOSTINGER_SSH_HOST"
-          "PRODUCTION_READONLY_HOSTINGER_SSH_USER"
-          "PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY"
-          "PRODUCTION_READONLY_HOSTINGER_SSH_PORT"
-          ; do
+          required_credentials=(
+            "PRODUCTION_READONLY_HOSTINGER_SSH_HOST"
+            "PRODUCTION_READONLY_HOSTINGER_SSH_USER"
+            "PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY"
+            "PRODUCTION_READONLY_HOSTINGER_SSH_PORT"
+          )
+          for name in "${required_credentials[@]}"; do
             if [[ -z "${!name:-}" ]]; then
               echo "::error::Missing required environment-scoped credential: $name"
               exit 1
