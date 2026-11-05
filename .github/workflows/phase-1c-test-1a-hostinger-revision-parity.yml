@@ -52,7 +52,7 @@ jobs:
           EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS-HOSTINGER-REVISION-PARITY"
         run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
 
-      - name: Validate environment-scoped Hostinger credentials
+      - name: Validate environment-scoped production credentials (Hostinger)
         env:
           PRODUCTION_READONLY_HOSTINGER_SSH_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
           PRODUCTION_READONLY_HOSTINGER_SSH_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
