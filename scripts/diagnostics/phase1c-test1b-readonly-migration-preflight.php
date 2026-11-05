@@ -83,7 +83,7 @@ try {
         'official_source_refresh_events','import_conflict_events','import_reconciliation_events',
         'governed_execution_run_events','identity_resolution_decisions','import_rows',
         'import_batches','assertions','data_reverification_queue','enrichment_import_rows',
-        'import_conflicts',
+        'import_conflicts','identity_match_candidates',
     ];
     $tableStmt = $pdo->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?');
     $present = [];
