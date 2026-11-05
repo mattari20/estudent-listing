@@ -103,36 +103,65 @@ jobs:
             declare(strict_types=1);
 
             require getcwd().'/vendor/autoload.php';
-            if (!class_exists(\Dotenv\Dotenv::class)) {
-                fwrite(STDERR, "dotenv_library=UNAVAILABLE\n");
-                exit(10);
+
+            // Resolve the same effective database configuration Laravel uses:
+            // cached config wins; otherwise load .env and config/database.php.
+            $configCachePath = getcwd().'/bootstrap/cache/config.php';
+            if (is_file($configCachePath)) {
+                $appConfig = require $configCachePath;
+                if (!is_array($appConfig) || !isset($appConfig['database']) || !is_array($appConfig['database'])) {
+                    fwrite(STDERR, "laravel_config_cache=INVALID\n");
+                    exit(10);
+                }
+                $databaseConfig = $appConfig['database'];
+                $configSource = 'laravel_config_cache';
+            } else {
+                if (!class_exists(\\Dotenv\\Dotenv::class)) {
+                    fwrite(STDERR, "dotenv_library=UNAVAILABLE\n");
+                    exit(10);
+                }
+                \\Dotenv\\Dotenv::createImmutable(getcwd())->safeLoad();
+                $databaseConfig = require getcwd().'/config/database.php';
+                $configSource = 'dotenv_plus_config_database';
             }
-            \Dotenv\Dotenv::createImmutable(getcwd())->safeLoad();
 
-            $env = static function (string $key, ?string $default = null): ?string {
-                $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
-                return ($value === false || $value === null || $value === '') ? $default : (string) $value;
-            };
-
-            $driver = $env('DB_CONNECTION', 'mysql');
-            if ($driver !== 'mysql') {
-                fwrite(STDERR, "database_driver=UNSUPPORTED\n");
+            $connectionName = (string) ($databaseConfig['default'] ?? 'mysql');
+            $connection = $databaseConfig['connections'][$connectionName] ?? null;
+            if (!is_array($connection) || ($connection['driver'] ?? null) !== 'mysql') {
+                fwrite(STDERR, "effective_database_driver=UNSUPPORTED_OR_MISSING\n");
                 exit(11);
             }
-            $host = $env('DB_HOST');
-            $database = $env('DB_DATABASE');
-            $username = $env('DB_USERNAME');
-            $password = $env('DB_PASSWORD', '');
-            $port = $env('DB_PORT', '3306');
-            if (!$host || !$database || !$username || !ctype_digit((string) $port)) {
-                fwrite(STDERR, "database_connection_configuration=INCOMPLETE\n");
-                exit(12);
+
+            // Apply Laravel's own DB_URL parsing rather than silently ignoring DB_URL.
+            if (!empty($connection['url'])) {
+                $parserClass = \\Illuminate\\Database\\ConfigurationUrlParser::class;
+                if (!class_exists($parserClass)) {
+                    fwrite(STDERR, "laravel_database_url_parser=UNAVAILABLE\n");
+                    exit(12);
+                }
+                $connection = (new $parserClass())->parseConfiguration($connection);
             }
+
+            $host = (string) ($connection['host'] ?? '');
+            $database = (string) ($connection['database'] ?? '');
+            $username = (string) ($connection['username'] ?? '');
+            $password = (string) ($connection['password'] ?? '');
+            $port = (string) ($connection['port'] ?? '3306');
+            $socket = (string) ($connection['unix_socket'] ?? '');
+            if ($database === '' || $username === '' || (!$socket && ($host === '' || !ctype_digit($port)))) {
+                fwrite(STDERR, "effective_database_connection=INCOMPLETE\n");
+                exit(13);
+            }
+
+            echo "effective_database_config_source={$configSource}\n";
+            echo "effective_database_connection_name={$connectionName}\n";
 
             $pdo = null;
             $transactionOpen = false;
             try {
-                $dsn = 'mysql:host='.$host.';port='.$port.';dbname='.$database.';charset=utf8mb4';
+                $dsn = $socket !== ''
+                    ? 'mysql:unix_socket='.$socket.';dbname='.$database.';charset=utf8mb4'
+                    : 'mysql:host='.$host.';port='.$port.';dbname='.$database.';charset=utf8mb4';
                 $pdo = new PDO($dsn, $username, $password, [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
