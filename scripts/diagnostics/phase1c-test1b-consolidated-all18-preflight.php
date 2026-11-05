@@ -99,14 +99,14 @@ try {
       ['structured_enrichment_promotion_events','enrichment_import_row_id'],['structured_enrichment_promotion_events','import_batch_id'],['structured_enrichment_promotion_events','occurred_at'],
       ['governed_execution_leases','task_key'],['governed_execution_leases','owner_token'],['governed_execution_leases','run_id'],['governed_execution_leases','expires_at'],
       ['governed_execution_runs','id'],['governed_execution_run_events','run_id'],['governed_execution_run_events','event_type'],['governed_execution_run_events','occurred_at'],
-      ['source_retrieval_runs','source_retrieval_runs_idempotency_key_unique'],['source_snapshots','source_snapshots_capture_key_unique'],['source_change_observations','current_snapshot_id'],
-      ['institute_discovery_run_outcomes','institute_discovery_run_outcomes_idempotency_key_unique'],['change_events','source_change_assertion_link_id'],
-      ['data_reverification_queue_identities','identity_key'],['data_reverification_queue_identities','subject_type'],['data_reverification_queue_identities','subject_id'],['data_reverification_queue_identities','active_queue_id'],['monitoring_alert_identities','dedupe_key'],['monitoring_alert_identities','active_alert_id'],
-      ['security_audit_events','security_audit_events_monitoring_idempotency_key_unique'],['monitoring_policy_runs','heartbeat_at'],
-      ['monitoring_policy_runs','source_monitoring_policy_id'],['monitoring_policy_runs','execution_run_id'],['monitoring_policy_runs','started_at'],['monitoring_policy_run_sources','monitoring_policy_run_id'],['monitoring_policy_run_sources','source_id'],['monitoring_policy_run_sources','retrieval_run_id'],['monitoring_policy_run_sources','observation_id'],['import_batches','discovery_identity_key'],
-      ['evidence','discovery_identity_key'],['import_rows','discovery_identity_key'],['assertions','discovery_identity_key'],
-      ['identity_match_candidates','identity_key'],['identity_resolution_decisions','decision_identity_key'],
-      ['import_conflicts','identity_key'],['import_conflict_events','idempotency_key'],
+      ['source_retrieval_runs','idempotency_key'],['source_snapshots','capture_key'],['source_change_observations','current_snapshot_id'],
+      ['institute_discovery_run_outcomes','idempotency_key'],['change_events','source_change_assertion_link_id'],
+      ['data_reverification_queue_identities','identity_key'],['data_reverification_queue_identities','subject_type'],['data_reverification_queue_identities','subject_id'],['data_reverification_queue_identities','active_queue_id'],
+      ['monitoring_alert_identities','dedupe_key'],['monitoring_alert_identities','active_alert_id'],['security_audit_events','monitoring_idempotency_key'],
+      ['monitoring_policy_runs','heartbeat_at'],['monitoring_policy_runs','source_monitoring_policy_id'],['monitoring_policy_runs','execution_run_id'],['monitoring_policy_runs','started_at'],
+      ['monitoring_policy_run_sources','monitoring_policy_run_id'],['monitoring_policy_run_sources','source_id'],['monitoring_policy_run_sources','retrieval_run_id'],['monitoring_policy_run_sources','observation_id'],
+      ['import_batches','discovery_identity_key'],['evidence','discovery_identity_key'],['import_rows','discovery_identity_key'],['assertions','discovery_identity_key'],
+      ['identity_match_candidates','identity_key'],['identity_resolution_decisions','decision_identity_key'],['import_conflicts','identity_key'],['import_conflict_events','idempotency_key'],
       ['source_snapshot_reconciliation_requests','identity_key'],['source_snapshot_reconciliation_requests','source_id'],['source_snapshot_reconciliation_requests','triggering_snapshot_id'],['source_snapshot_reconciliation_requests','current_snapshot_id'],['source_snapshot_reconciliation_requests','expected_previous_snapshot_id'],['source_snapshot_reconciliation_requests','recorded_previous_snapshot_id']
     ];
     $colMissing=0;
@@ -114,18 +114,22 @@ try {
     echo 'expected_column_checks='.count($expectedColumns).';missing='.$colMissing."\n";
 
     $expectedIndexes=[
-      ['password_reset_tokens','PRIMARY'],['governed_execution_leases','governed_execution_leases_task_key_unique'],['governed_execution_leases','governed_execution_leases_expires_at_index'],
-      ['source_retrieval_runs','idempotency_key'],['source_snapshots','capture_key'],
+      ['password_reset_tokens','PRIMARY'],
+      ['governed_execution_leases','governed_execution_leases_task_key_unique'],['governed_execution_leases','governed_execution_leases_expires_at_index'],
+      ['source_retrieval_runs','source_retrieval_runs_idempotency_key_unique'],['source_snapshots','source_snapshots_capture_key_unique'],
       ['source_change_observations','source_observations_current_snapshot_unique'],
-      ['institute_discovery_run_outcomes','idempotency_key'],['change_events','change_events_source_link_unique'],
+      ['institute_discovery_run_outcomes','institute_discovery_run_outcomes_idempotency_key_unique'],['change_events','change_events_source_link_unique'],
       ['data_reverification_queue_identities','PRIMARY'],['monitoring_alert_identities','PRIMARY'],
-      ['security_audit_events','monitoring_idempotency_key'],['monitoring_policy_run_sources','monitoring_policy_run_source_unique'],
+      ['security_audit_events','security_audit_events_monitoring_idempotency_key_unique'],
+      ['monitoring_policy_run_sources','monitoring_policy_run_source_unique'],
       ['import_batches','import_batches_discovery_identity_unique'],['evidence','evidence_discovery_identity_unique'],
       ['import_rows','import_rows_discovery_identity_unique'],['assertions','assertions_discovery_identity_unique'],
       ['identity_match_candidates','identity_match_candidates_identity_key_unique'],
       ['identity_resolution_decisions','identity_resolution_decisions_identity_key_unique'],
       ['import_conflicts','import_conflicts_identity_key_unique'],['import_conflict_events','import_conflict_events_idempotency_key_unique'],
-      ['source_snapshot_reconciliation_requests','source_snapshot_reconciliation_requests_identity_key_unique'],['source_snapshot_reconciliation_requests','snapshot_reconciliation_source_status_idx'],['source_snapshot_reconciliation_requests','snapshot_reconciliation_current_status_idx']
+      ['source_snapshot_reconciliation_requests','source_snapshot_reconciliation_requests_identity_key_unique'],
+      ['source_snapshot_reconciliation_requests','snapshot_reconciliation_source_status_idx'],
+      ['source_snapshot_reconciliation_requests','snapshot_reconciliation_current_status_idx']
     ];
     $indexMissing=0;
     foreach($expectedIndexes as [$t,$i]){if(!isset($present[$t])){echo "expected_index_{$t}_{$i}=NOT_CHECKED_TABLE_MISSING\n";continue;}$ok=$hasIndex($t,$i);if(!$ok)$indexMissing++;echo "expected_index_{$t}_{$i}=".($ok?'PRESENT':'MISSING')."\n";}
