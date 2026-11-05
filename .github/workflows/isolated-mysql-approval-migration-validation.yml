@@ -6,6 +6,8 @@ on:
       - '.github/workflows/isolated-mysql-approval-migration-validation.yml'
       - '.github/workflows/laravel-ci.yml'
       - 'database/migrations/**'
+      - 'tests/Feature/AppendOnlyAuditRetentionTest.php'
+      - 'tests/Support/verify-append-only-audit-triggers.php'
       - 'tests/Feature/InstitutionFieldApprovalServiceTest.php'
       - 'tests/Feature/ExecutionLeaseServiceTest.php'
       - 'tests/Support/verify-execution-lease-multiprocess.php'
@@ -100,6 +102,7 @@ jobs:
           MYSQL_PASSWORD: ci-user-${{ github.run_id }}-${{ github.run_attempt }}
         ports:
           - 3306:3306
+        command: --log-bin-trust-function-creators=1
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-root-${{ github.run_id }}-${{ github.run_attempt }}"
           --health-interval=5s
@@ -189,3 +192,7 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/MonitoringAlertsTest.php
       - name: Validate monitoring policy recovery and durable checkpoints on MySQL
         run: vendor/bin/phpunit tests/Feature/SourceMonitoringBatchRecoveryTest.php
+      - name: Validate append-only audit retention on MySQL
+        run: vendor/bin/phpunit tests/Feature/AppendOnlyAuditRetentionTest.php
+      - name: Verify MySQL audit trigger naming, rollback and idempotent reinstallation
+        run: php tests/Support/verify-append-only-audit-triggers.php

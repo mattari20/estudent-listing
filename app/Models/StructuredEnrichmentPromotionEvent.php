@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PreventsAuditMutation;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StructuredEnrichmentPromotionEvent extends Model
 {
+    use PreventsAuditMutation;
     protected $fillable = [
         'enrichment_import_row_id',
         'import_batch_id',
