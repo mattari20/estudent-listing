@@ -23,6 +23,7 @@ READ_ONLY = {
   'public-browser-runtime-diagnostics.yml' => 'production-readonly-diagnostics',
   'phase-1c-test-1a-hostinger-revision-parity.yml' => 'production-readonly-diagnostics',
   'phase-1c-test-1b-production-schema-verification.yml' => 'production-readonly-diagnostics',
+  'phase-1c-test-1b-readonly-migration-preflight.yml' => 'production-readonly-diagnostics',
   'phase-1c-test-1c-deployed-migration-file-verification.yml' => 'production-readonly-diagnostics',
   'official-source-refresh-readiness.yml' => 'production-readonly-diagnostics',
   'readonly-reset-inventory.yml' => 'production-readonly-diagnostics',
@@ -53,6 +54,7 @@ CONCURRENCY_GROUPS = {
   'institutes-public-monitor.yml' => ['institutes-public-site-monitor', true],
   'public-browser-runtime-diagnostics.yml' => ['public-browser-runtime-diagnostics', false],
   'phase-1c-test-1b-production-schema-verification.yml' => ['phase-1c-test-1b-production-schema-verification', false],
+  'phase-1c-test-1b-readonly-migration-preflight.yml' => ['phase-1c-test-1b-readonly-migration-preflight', false],
   'phase-1c-test-1c-deployed-migration-file-verification.yml' => ['phase-1c-test-1c-deployed-migration-file-verification', false],
   'step3-candidate-audit.yml' => ['step3-discovery-candidate-audit', false],
   'step3-record-level-remediation-audit.yml' => ['step3-record-level-remediation-audit', false],
@@ -125,7 +127,7 @@ def blocked?(job)
 end
 
 paths = Dir.glob(File.join(WORKFLOWS, '*.{yml,yaml}')).sort
-fail!("expected exactly 38 workflow files after adding Phase 1C Test 1C deployed migration verification; found #{paths.length}") unless paths.length == 38
+fail!("expected exactly 39 workflow files after adding Phase 1C Test 1C deployed migration verification; found #{paths.length}") unless paths.length == 39
 names = paths.map { |path| File.basename(path) }
 
 confirmation_phrases = []
