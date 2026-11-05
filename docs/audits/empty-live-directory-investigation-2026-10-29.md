@@ -41,7 +41,7 @@ Branch: `diagnostics/empty-directory-api-and-live-counts-20261029`
 - Added the runtime PHP executable/version and the expected Hostinger cron command, based on the resolved project path. It does not create or modify a cron job.
 - Added bounded Git history and a migration-source inventory for `import_batches` / `duplicate_rows`.
 - Added `tests/Feature/HostingerDirectoryVisibilityDiagnosticsContractTest.php` to protect the read-only diagnostic contract.
-- PR #898 is open and must pass required CI before any merge: [PR #898](https://github.com/mattari20/estudent-listing/pull/898).
+- PR [#898](https://github.com/mattari20/estudent-listing/pull/898) merged as `a54f728f31ce8ca92854d2adf4ee777150e0a710` after Test [#40827000086](https://github.com/mattari20/estudent-listing/actions/runs/40827000086), Laravel CI [#40827000025](https://github.com/mattari20/estudent-listing/actions/runs/40827000025), and Project Controller [#40827000002](https://github.com/mattari20/estudent-listing/actions/runs/40827000002) all passed.
 
 ## duplicate_rows migration incident
 
@@ -60,4 +60,4 @@ Branch: `diagnostics/empty-directory-api-and-live-counts-20261029`
 
 ## Safety and next gate
 
-No production database write, migration, import, approval, publication, deletion or cron change was performed. Wait for PR #898 required CI, then merge only if green. After merge, collect the fresh Hostinger diagnostic and public API probe. If the probe reports malformed/empty API output, use the exact URL/status/content type/body evidence to fix the request/response path in a focused PR. If it reports valid `total=0`, continue row-level provenance/approval audit and prepare an official-source rebuild plan; do not fabricate data or promote candidates automatically.
+No production database write, migration, import, approval, publication, deletion or cron change was performed. The diagnostic PR is merged and its CI passed. Fresh post-merge Hostinger/API output is still not confirmed: the available GitHub connector can fetch PR-triggered runs but does not expose a list of push/scheduled workflow runs, and direct outbound DNS from the execution environment failed. Next, retrieve the automatic Hostinger Read-only Diagnostics run from GitHub Actions (or manually dispatch that existing read-only workflow). If it reports malformed/empty API output, use exact URL/status/content type/body evidence to fix the request/response path in a focused PR. If it reports valid `total=0`, continue row-level provenance/approval audit and prepare an official-source rebuild plan; do not fabricate data or promote candidates automatically.
