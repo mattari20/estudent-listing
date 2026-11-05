@@ -2451,3 +2451,85 @@ The above merge SHAs were read from live GitHub PR metadata. PR #1015 is this do
 - PHASE 2: do not start until the unified engineering validation and separately authorized production acceptance items are resolved.
 
 Safety: no production SSH/Hostinger/hPanel access, production database query/write, migration, deployment, scheduler/worker operation, live discovery, staging, approval, import, canonical promotion or publishing was performed. GCU rows #348–353 and batches #19–23 remain protected. AI extraction and the additional 20 HEC profiles remain disabled. No dummy production data was created.
+
+
+---
+
+## Phase 1C-39 — final integration, MySQL and production-gate reconciliation (2026-11-05)
+
+**Verified current main:** `fbfe5f9d68b39ee7b8ca060625a0d60f9225ea27`.
+
+### Merge and CI reconciliation
+
+- PR #1019 merged at `8617e3ec64e98411d721668f1e032649b36071d8`.
+- Integrated MySQL workflow #11: [run #41964290632](https://github.com/mattari20/estudent-listing/actions/runs/41964290632), SUCCESS on exact SHA `8617e3ec64e98411d721668f1e032649b36071d8`.
+- PR #1018 merged at current main SHA `fbfe5f9d68b39ee7b8ca060625a0d60f9225ea27). Its documentation-only head `bfe19013dad8c64f1a6db69863bb8c10a92f300e` had two successful exact-head checks: [Test #41949945086](https://github.com/mattari20/estudent-listing/actions/runs/41949945086) and [Laravel CI #41949945102](https://github.com/mattari20/estudent-listing/actions/runs/41949945102).
+- Current-main Test [#41964629000](https://github.com/mattari20/estudent-listing/actions/runs/41964629000): 914 tests / 4,023 assertions PASS.
+- Current-main Laravel CI [#41964628917](https://github.com/mattari20/estudent-listing/actions/runs/41964628917): 914 tests / 4,023 assertions PASS; Pint 69 files PASS.
+- Current-main frontend build [#41964629060](https://github.com/mattari20/estudent-listing/actions/runs/41964629060): PASS.
+- Current-main Command Orchestrator [#41964628866](https://github.com/mattari20/estudent-listing/actions/runs/41964628866): PASS.
+- Application-code revision remains `acad19aaf62f12933a5af05db974fa7b9ebab0af`: compare to current main is 3 commits ahead / 0 behind and contains only workflow, CI contract and documentation/tracker paths. This is the expected revision for a future deployment parity check, not a live deployment finding.
+
+### Integrated MySQL result
+
+The exact run #41964290632 passed every step:
+- Clean MySQL 8.4 isolated service using `approval_migration_test` / `approval_ci`.
+- Migrations 000014 and 000015 each appear exactly once in the test migration ledger.
+- `monitoring_policy_runs.heartbeat_at` present; all seven named monitoring FKs present.
+- Four Phase 1C feature files: 34 tests / 145 assertions PASS.
+- All 24 audit triggers verified; rollback removal, reinstallation and idempotent repeated installation PASS.
+- Multiprocess monitoring checkpoint test PASS: one process acquired/started, the second was rejected, and exactly one run was persisted.
+- Final post-lifecycle assertion confirmed all 24 triggers remain installed.
+
+This completes the integrated isolated-MySQL engineering gate only. It does not prove production schema parity.
+
+### Current public/production evidence boundary
+
+- Direct requests to the public directory and API were attempted, but the web retrieval service reported inaccessible URLs and the execution container failed DNS resolution for `estudent.pk`. This is not evidence of a production outage.
+- Historical public monitor #41820478375 remains HTTP 200 / EMPTY_DATA evidence only. Historical browser run #41770133572 remains a prior search HTTP 404 failure; neither is current verification.
+- No current-main public monitor/browser dispatch was available in this execution context. The two public-only workflows require current SHA `fbfe5f9d68b39ee7b8ca060625a0d60f9225ea27`, a safe operation reason, and their respective exact confirmation phrases:
+  - `AUTHORIZE-READONLY-DIAGNOSTICS-PUBLIC-SITE-MONITOR`
+  - `AUTHORIZE-READONLY-DIAGNOSTICS-PUBLIC-BROWSER`
+- No Hostinger SSH/hPanel or production DB access occurred. The current Hostinger workflow is workflow_dispatch-only, uses `production-readonly-diagnostics`, and requires `AUTHORIZE-READONLY-DIAGNOSTICS-HOSTINGER`.
+- Existing report collision remains: `storage/app/private/diagnostics/phase-5b18-artisan-runtime.json`; historical run #41789553048 refused overwrite. No read/delete/overwrite occurred.
+- Current Hostinger workflow does not inspect migrations 000014/000015, the 24 audit triggers, checkpoint heartbeat/FKs, or legacy NULL identity inventory. It does inspect selected older schema objects, Laravel schedule definitions, user crontab and public HTTP/API contracts.
+- Production revision parity, production schema/ledger, triggers, monitoring checkpoint, legacy identity inventory, hPanel scheduler/worker, backup/recoverability and GCU row/batch reconciliation remain NOT VERIFIED / BLOCKED.
+
+### Open work inventory preserved
+
+Open PRs observed: #1016, #968, #957, #956, #955, #954, #953, #913, #911 and #899. No PR was merged or closed by this reconciliation.
+- #1016 remains owner-disposition only; it is 191 commits ahead / 10 behind current main with a 39-file divergent diff. #1017 already merged the current production workflow isolation baseline. Do not merge #1016 as a catch-all.
+- #953 is an older Phase 5B.29 runtime evidence repair; #911/#913 are older Hostinger parity/diagnostic work; #899 and #954–#957/#968 are older documentation/audit work. Keep their state unchanged pending individual review.
+- Open issues reviewed: #817, #585, #626, #548 and #168. #585 remains relevant to protected GCU historical reconciliation; none was closed or modified.
+
+### Acceptance status
+
+| Requirement | Status |
+|---|---|
+| PR #1018/#1019 merge state | PASS |
+| Current-main Test/Laravel/Pint/build/orchestrator | PASS |
+| Integrated isolated MySQL migrations 000014/000015 | PASS |
+| Heartbeat + seven FKs in isolated MySQL | PASS |
+| 24 triggers + rollback/reinstall/idempotency | PASS |
+| Multiprocess monitoring concurrency | PASS |
+| Current public website/API/search/browser | BLOCKED — no current live result |
+| Hostinger deployed revision parity | BLOCKED — no authorized Hostinger access |
+| Production schema/ledger/triggers/checkpoint | BLOCKED — no production DB query; current workflow lacks new schema checks |
+| Production legacy NULL identity inventory | BLOCKED — command is test-connection restricted |
+| Hostinger hPanel cron/worker and backup/recoverability | BLOCKED — evidence unavailable |
+| GCU rows #348–353 / batches #19–23 | BLOCKED — approved private read-only export not obtained |
+| AI/additional 20 HEC profiles live state | BLOCKED — tracker says disabled; production settings not queried |
+| No dummy data / no production mutations in this mission | PASS |
+
+### Formal disposition and next action
+
+**PHASE 1C: OPEN — NOT FORMALLY ACCEPTED. Engineering and integrated MySQL acceptance PASS; production acceptance remains BLOCKED. Phase 2 remains ON HOLD.**
+
+Next executable actions:
+1. Owner dispatches the public-only monitor and Chromium diagnostics on current main `fbfe5f9d68b39ee7b8ca060625a0d60f9225ea27` with the operation-specific confirmations above.
+2. Owner explicitly authorizes Hostinger read-only access and approves a non-overwriting report strategy. Before dispatch, extend/prepare the schema diagnostic for migrations 000014/000015, 24 triggers, monitoring checkpoint heartbeat/FKs and bounded legacy identity inventory. No DDL/DML or qualification.
+3. Obtain independent hPanel scheduler/worker and backup/recovery evidence.
+4. Obtain the approved private GCU evidence export and complete deterministic read-only row/batch reconciliation.
+5. Reconcile the conflicting Phase 2 numbering in `docs/ROADMAP_AND_ACCEPTANCE_CRITERIA.md` versus `docs/PROJECT_COMPLETION_MASTER_STRATEGY.md` only after Phase 1C acceptance.
+
+No production operation, dummy-data insertion, deployment, migration, discovery, staging, approval, import, promotion or publication was performed. GCU rows #348–353 and batches #19–23 remain protected. AI extraction and additional HEC profiles were not activated.
