@@ -125,7 +125,7 @@ try {
       ['identity_match_candidates','identity_match_candidates_identity_key_unique'],
       ['identity_resolution_decisions','identity_resolution_decisions_identity_key_unique'],
       ['import_conflicts','import_conflicts_identity_key_unique'],['import_conflict_events','import_conflict_events_idempotency_key_unique'],
-      ['source_snapshot_reconciliation_requests','identity_key'],['source_snapshot_reconciliation_requests','source_id'],['source_snapshot_reconciliation_requests','triggering_snapshot_id'],['source_snapshot_reconciliation_requests','current_snapshot_id'],['source_snapshot_reconciliation_requests','expected_previous_snapshot_id'],['source_snapshot_reconciliation_requests','recorded_previous_snapshot_id']
+      ['source_snapshot_reconciliation_requests','source_snapshot_reconciliation_requests_identity_key_unique'],['source_snapshot_reconciliation_requests','snapshot_reconciliation_source_status_idx'],['source_snapshot_reconciliation_requests','snapshot_reconciliation_current_status_idx']
     ];
     $indexMissing=0;
     foreach($expectedIndexes as [$t,$i]){if(!isset($present[$t])){echo "expected_index_{$t}_{$i}=NOT_CHECKED_TABLE_MISSING\n";continue;}$ok=$hasIndex($t,$i);if(!$ok)$indexMissing++;echo "expected_index_{$t}_{$i}=".($ok?'PRESENT':'MISSING')."\n";}
