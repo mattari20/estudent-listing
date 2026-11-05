@@ -21,6 +21,7 @@ READ_ONLY = {
   'institutes-public-monitor.yml' => 'production-readonly-diagnostics',
   'offering-gap-preflight.yml' => 'offering-gap-readonly-audit',
   'public-browser-runtime-diagnostics.yml' => 'production-readonly-diagnostics',
+  'phase-1c-test-1a-hostinger-revision-parity.yml' => 'production-readonly-diagnostics',
   'official-source-refresh-readiness.yml' => 'production-readonly-diagnostics',
   'readonly-reset-inventory.yml' => 'production-readonly-diagnostics',
   'step3-candidate-audit.yml' => 'production-readonly-diagnostics',
@@ -120,7 +121,7 @@ def blocked?(job)
 end
 
 paths = Dir.glob(File.join(WORKFLOWS, '*.{yml,yaml}')).sort
-fail!("expected exactly 35 workflow files after adding isolated Phase 1C MySQL acceptance; found #{paths.length}") unless paths.length == 35
+fail!("expected exactly 36 workflow files after adding Phase 1C Test 1A revision parity; found #{paths.length}") unless paths.length == 36
 names = paths.map { |path| File.basename(path) }
 
 confirmation_phrases = []

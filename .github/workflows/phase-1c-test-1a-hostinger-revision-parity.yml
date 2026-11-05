@@ -1,0 +1,185 @@
+name: Phase 1C Test 1A — Hostinger Revision Parity
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_path:
+        description: "Absolute path to the existing Institutes Laravel project (directory containing artisan)"
+        required: true
+        type: string
+        default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
+      target_sha:
+        description: "Exact 40-character SHA of current main."
+        required: true
+        type: string
+        default: "965885cca07d48bdf5473cf08c7ff0a0f609e725"
+      operation_reason:
+        description: "Reason or ticket reference for this read-only revision check."
+        required: true
+        type: string
+        default: "Phase1C-Test1A-Hostinger-revision-parity"
+      confirm_production_operation:
+        description: "Type the exact operation-specific confirmation phrase."
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase-1c-test-1a-hostinger-revision-parity
+  cancel-in-progress: false
+
+jobs:
+  revision-parity:
+    environment: production-readonly-diagnostics
+    name: Verify deployed application revision without production data access
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact dispatch revision for authorization checks
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          path: .production-dispatch-guard
+
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-READONLY-DIAGNOSTICS-HOSTINGER-REVISION-PARITY"
+        run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
+
+      - name: Validate environment-scoped production credentials (Hostinger)
+        env:
+          PRODUCTION_READONLY_HOSTINGER_SSH_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in PRODUCTION_READONLY_HOSTINGER_SSH_HOST PRODUCTION_READONLY_HOSTINGER_SSH_USER PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY PRODUCTION_READONLY_HOSTINGER_SSH_PORT; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required environment-scoped credential: $name"
+              exit 1
+            fi
+          done
+          echo "environment_scoped_credentials=present"
+
+      - name: Checkout target repository revision for application-code comparison
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha }}
+          fetch-depth: 0
+
+      - name: Resolve expected application-code revision
+        id: app_revision
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git log -1 --format=%H "$TARGET_SHA" -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          if [[ ! "$revision" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Could not determine expected application-code revision."
+            exit 1
+          fi
+          echo "expected_revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "target_main_revision=$TARGET_SHA"
+          echo "expected_application_revision=$revision"
+
+      - name: Compare deployed application files with expected revision
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
+          EXPECTED_REVISION: ${{ steps.app_revision.outputs.expected_revision }}
+        with:
+          host: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,EXPECTED_REVISION
+          command_timeout: 5m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in
+              /*) ;;
+              *) echo "ERROR: project_path must be absolute"; exit 2 ;;
+            esac
+            case "$PROJECT_PATH" in
+              *".."*) echo "ERROR: project_path must not contain .."; exit 2 ;;
+            esac
+            [ -f "$PROJECT_PATH/artisan" ] || { echo "ERROR: artisan not found"; exit 3; }
+            [ -d "$PROJECT_PATH/app" ] || { echo "ERROR: application directory not found"; exit 4; }
+            [ -d "$PROJECT_PATH/vendor" ] || { echo "ERROR: vendor directory not found"; exit 5; }
+            case "$EXPECTED_REVISION" in
+              *[!0-9a-f]*|'') echo "ERROR: invalid expected revision"; exit 6 ;;
+            esac
+            [ "${#EXPECTED_REVISION}" -eq 40 ] || { echo "ERROR: invalid expected revision length"; exit 6; }
+
+            DEPLOYED_REVISION="git_metadata_unavailable"
+            if git -C "$PROJECT_PATH" rev-parse --show-toplevel >/dev/null 2>&1; then
+              DEPLOYED_REVISION="$(git -C "$PROJECT_PATH" rev-parse HEAD 2>/dev/null || printf git_metadata_unavailable)"
+            fi
+            echo "deployed_git_revision=$DEPLOYED_REVISION"
+            echo "expected_application_revision=$EXPECTED_REVISION"
+
+            # Temporary clone is isolated under the remote temp directory and removed on exit.
+            # No fetch, checkout, ref update, or file write occurs inside the live application.
+            PARITY_REPO="$(mktemp -d "${TMPDIR:-/tmp}/estudent-phase1c-1a.XXXXXX")"
+            trap 'rm -rf -- "$PARITY_REPO"' EXIT HUP INT TERM
+            git -C "$PARITY_REPO" init -q
+            git -C "$PARITY_REPO" remote add origin https://github.com/mattari20/estudent-listing.git
+            git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin +refs/heads/main:refs/remotes/origin/main
+            if ! git -C "$PARITY_REPO" cat-file -e "$EXPECTED_REVISION^{commit}" 2>/dev/null; then
+              git -C "$PARITY_REPO" fetch --quiet --no-tags --depth=200 origin "$EXPECTED_REVISION"
+            fi
+            git -C "$PARITY_REPO" merge-base --is-ancestor "$EXPECTED_REVISION" refs/remotes/origin/main
+            git -C "$PARITY_REPO" checkout --quiet --detach "$EXPECTED_REVISION"
+
+            APP_CODE_PATHS="app bootstrap config database resources routes composer.json composer.lock public artisan"
+            EXPECTED_PATH_LIST="$PARITY_REPO/expected-application-paths.txt"
+            git -C "$PARITY_REPO" ls-tree -r --name-only "$EXPECTED_REVISION" -- $APP_CODE_PATHS > "$EXPECTED_PATH_LIST"
+            [ -s "$EXPECTED_PATH_LIST" ] || { echo "application_code_parity=UNVERIFIABLE_EMPTY_REFERENCE"; exit 7; }
+
+            CHECKED=0
+            MISMATCHED=0
+            MISSING=0
+            while IFS= read -r APP_PATH; do
+              [ -n "$APP_PATH" ] || continue
+              CHECKED=$((CHECKED + 1))
+              EXPECTED_ENTRY="$(git -C "$PARITY_REPO" ls-tree "$EXPECTED_REVISION" -- "$APP_PATH")"
+              EXPECTED_MODE="$(printf '%s' "$EXPECTED_ENTRY" | awk '{print $1}')"
+              if [ "$EXPECTED_MODE" = "120000" ]; then
+                EXPECTED_LINK="$(git -C "$PARITY_REPO" show "$EXPECTED_REVISION:$APP_PATH")"
+                DEPLOYED_LINK="$(readlink "$PROJECT_PATH/$APP_PATH" 2>/dev/null || true)"
+                if [ ! -L "$PROJECT_PATH/$APP_PATH" ] || [ "$EXPECTED_LINK" != "$DEPLOYED_LINK" ]; then
+                  MISMATCHED=$((MISMATCHED + 1))
+                fi
+              elif [ ! -f "$PARITY_REPO/$APP_PATH" ] || [ ! -f "$PROJECT_PATH/$APP_PATH" ]; then
+                MISSING=$((MISSING + 1))
+                MISMATCHED=$((MISMATCHED + 1))
+              elif ! cmp -s "$PARITY_REPO/$APP_PATH" "$PROJECT_PATH/$APP_PATH"; then
+                MISMATCHED=$((MISMATCHED + 1))
+              fi
+            done < "$EXPECTED_PATH_LIST"
+
+            echo "application_files_checked=$CHECKED"
+            echo "application_files_mismatched=$MISMATCHED"
+            echo "application_files_missing=$MISSING"
+            echo "production_database_queried=false"
+            echo "production_data_changed=false"
+            echo "production_application_files_changed=false"
+            echo "persistent_report_written=false"
+            echo "temporary_remote_directory_used=true"
+            echo "temporary_remote_directory_cleanup=registered"
+
+            if [ "$MISMATCHED" -eq 0 ] && [ "$MISSING" -eq 0 ]; then
+              echo "deployment_revision_status=PASS_APPLICATION_CODE_MATCH"
+              exit 0
+            fi
+            echo "deployment_revision_status=FAIL_APPLICATION_CODE_DRIFT_OR_MISSING_FILES"
+            exit 8
