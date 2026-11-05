@@ -114,18 +114,14 @@ class SourceRetrievalService
             $capturedAt,
         );
 
-        $run->update([
-            'status' => 'completed',
-            'http_status' => $httpStatus,
-            'content_type' => $contentType,
-            'content_length' => strlen($body),
-            'content_hash' => $snapshot->content_hash,
-            'snapshot_id' => $snapshot->id,
-            'completed_at' => $snapshot->captured_at ?? $capturedAt,
-            'error_message' => null,
-        ]);
-
-        return $run->refresh();
+        return app(SourceRetrievalRunFinalizer::class)->complete(
+            $run,
+            $snapshot,
+            $httpStatus,
+            $contentType,
+            strlen($body),
+            $snapshot->captured_at ?? $capturedAt,
+        );
     }
 
     private function markFailed(
