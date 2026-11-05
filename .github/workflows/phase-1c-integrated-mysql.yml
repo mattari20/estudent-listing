@@ -40,7 +40,7 @@ jobs:
           - 3306:3306
         command: --log-bin-trust-function-creators=1
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-root-${{ github.run_id }}-${{ github.run_attempt }}"
+          --health-cmd="mysql --host=127.0.0.1 --port=3306 --user=approval_ci --password=ci-user-${{ github.run_id }}-${{ github.run_attempt }} --database=approval_migration_test --batch --skip-column-names -e 'SELECT 1' >/dev/null"
           --health-interval=5s
           --health-timeout=5s
           --health-retries=20
