@@ -2388,3 +2388,14 @@ No production access or operation was initiated. GCU rows #348–353 and batches
 - Reconciliation merge commit: `47d69cc7372f6974bbae8115911d26ac5a25bac0`. Follow-up regression implementation commits are in its second-parent ancestry.
 - Exact-head validation on the final reconciled head is pending. Historical runs are not proof of this updated head. PR #1011 remains open and unmerged pending all required checks and review.
 - No production access, migration, deployment, Hostinger, SSH, production database, discovery, staging, approval, import or publishing. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled; no dummy production data.
+
+---
+
+## Phase 1C-36 — PR #1012 monitoring checkpoint integrity reconciliation (2026-11-05)
+
+- Reconciled PR #1012 against main `18ed563ef34c64faab4d9f4b072b55730469cf87`, retaining the merged PR #1011 append-only migration and CI protections.
+- Preserved the main-branch isolated MySQL workflow, including append-only event tests, the 24-trigger lifecycle proof, and isolated MySQL's `--log-bin-trust-function-creators=1` setting. Added PR #1012's monitoring checkpoint multiprocess script to path filters and its isolated MySQL validation step.
+- Retained the monitoring checkpoint migration, heartbeat service changes, direct-caller regression tests, multiprocess proof and dedicated audit.
+- The monitoring migration `2026_11_04_000015` follows append-only migration `2026_11_04_000014` in the repository migration sequence. Exact-head validation is pending; historical CI results are not proof of this reconciled head.
+- PR #1012 remains open and unmerged. Production monitoring, database access, migration, scheduler/worker changes and source retrieval remain out of scope.
+- GCU rows #348–353 and batches #19–23 remain protected; AI extraction and additional 20 HEC profiles remain disabled; no dummy production data.
