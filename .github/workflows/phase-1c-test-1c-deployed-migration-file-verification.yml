@@ -1,0 +1,228 @@
+name: Phase 1C Test 1C — Hostinger Deployed Migration File Verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_path:
+        description: "Absolute path to the existing Institutes Laravel project (directory containing artisan)"
+        required: true
+        type: string
+        default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
+      target_sha:
+        description: "Exact 40-character SHA of current main."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this read-only deployed-file verification."
+        required: true
+        type: string
+        default: "Phase1C-Test1C-Deployed-migration-file-verification"
+      confirm_production_operation:
+        description: "Type the exact operation-specific confirmation phrase."
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase-1c-test-1c-deployed-migration-file-verification
+  cancel-in-progress: false
+
+jobs:
+  deployed-migration-files:
+    environment: production-readonly-diagnostics
+    name: Verify deployed migration files and revision without database access
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact dispatch revision for authorization checks
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          path: .production-dispatch-guard
+
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-PHASE1C-TEST1C-READONLY-DEPLOYED-FILES"
+        run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
+
+      - name: Validate environment-scoped production credentials (Hostinger)
+        env:
+          PRODUCTION_READONLY_HOSTINGER_SSH_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          required_credentials=(
+            "PRODUCTION_READONLY_HOSTINGER_SSH_HOST"
+            "PRODUCTION_READONLY_HOSTINGER_SSH_USER"
+            "PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY"
+            "PRODUCTION_READONLY_HOSTINGER_SSH_PORT"
+          )
+          for name in "${required_credentials[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required environment-scoped credential: $name"
+              exit 1
+            fi
+          done
+          echo "environment_scoped_credentials=present"
+
+      - name: Checkout exact target revision for trusted migration hashes
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha }}
+          fetch-depth: 0
+          path: .target-source
+
+      - name: Calculate expected application revision and migration hashes
+        id: expected
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::target_sha must be an exact 40-character lowercase commit SHA"
+            exit 2
+          fi
+
+          app_revision="$(git -C .target-source log -1 --format=%H "$TARGET_SHA" -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          if [[ ! "$app_revision" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Could not determine expected application-code revision"
+            exit 3
+          fi
+          echo "expected_application_revision=$app_revision" >> "$GITHUB_OUTPUT"
+
+          files=(
+            "database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php"
+            "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+            "database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php"
+          )
+          index=0
+          for file in "${files[@]}"; do
+            if [[ ! -f ".target-source/$file" ]]; then
+              echo "::error::Expected migration is absent from target revision: $file"
+              exit 4
+            fi
+            hash="$(sha256sum ".target-source/$file" | awk '{print $1}')"
+            echo "migration_${index}_path=$file" >> "$GITHUB_OUTPUT"
+            echo "migration_${index}_sha256=$hash" >> "$GITHUB_OUTPUT"
+            echo "expected_migration_${index}_sha256=$hash"
+            index=$((index + 1))
+          done
+          echo "expected_application_revision=$app_revision"
+
+      - name: Compare deployed migration files and inspect deployed Git revision over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
+          EXPECTED_APPLICATION_REVISION: ${{ steps.expected.outputs.expected_application_revision }}
+          MIGRATION_0_PATH: ${{ steps.expected.outputs.migration_0_path }}
+          MIGRATION_0_SHA256: ${{ steps.expected.outputs.migration_0_sha256 }}
+          MIGRATION_1_PATH: ${{ steps.expected.outputs.migration_1_path }}
+          MIGRATION_1_SHA256: ${{ steps.expected.outputs.migration_1_sha256 }}
+          MIGRATION_2_PATH: ${{ steps.expected.outputs.migration_2_path }}
+          MIGRATION_2_SHA256: ${{ steps.expected.outputs.migration_2_sha256 }}
+        with:
+          host: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,EXPECTED_APPLICATION_REVISION,MIGRATION_0_PATH,MIGRATION_0_SHA256,MIGRATION_1_PATH,MIGRATION_1_SHA256,MIGRATION_2_PATH,MIGRATION_2_SHA256
+          command_timeout: 3m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in
+              /*) ;;
+              *) echo "ERROR: project_path must be absolute"; exit 2 ;;
+            esac
+            case "$PROJECT_PATH" in
+              *".."*) echo "ERROR: project_path must not contain .."; exit 2 ;;
+            esac
+            [ -f "$PROJECT_PATH/artisan" ] || { echo "ERROR: artisan not found"; exit 3; }
+            [ -f "$PROJECT_PATH/.env" ] || { echo "ERROR: Laravel environment file not found"; exit 4; }
+            [ -f "$PROJECT_PATH/vendor/autoload.php" ] || { echo "ERROR: Composer autoloader not found"; exit 5; }
+
+            case "$EXPECTED_APPLICATION_REVISION" in
+              *[!0-9a-f]*|'') echo "ERROR: invalid expected application revision"; exit 6 ;;
+            esac
+            [ "${#EXPECTED_APPLICATION_REVISION}" -eq 40 ] || { echo "ERROR: invalid expected application revision length"; exit 6; }
+
+            DEPLOYED_REVISION="git_metadata_unavailable"
+            if git -C "$PROJECT_PATH" rev-parse --show-toplevel >/dev/null 2>&1; then
+              DEPLOYED_REVISION="$(git -C "$PROJECT_PATH" rev-parse HEAD 2>/dev/null || printf git_metadata_unavailable)"
+            fi
+            echo "deployed_git_revision=$DEPLOYED_REVISION"
+            echo "expected_application_revision=$EXPECTED_APPLICATION_REVISION"
+            if [ "$DEPLOYED_REVISION" = "git_metadata_unavailable" ]; then
+              echo "deployed_git_revision_status=UNAVAILABLE_NO_GIT_METADATA"
+            elif [ "$DEPLOYED_REVISION" = "$EXPECTED_APPLICATION_REVISION" ]; then
+              echo "deployed_git_revision_status=PASS_MATCH"
+            else
+              echo "deployed_git_revision_status=DIFFERS_FROM_EXPECTED_APPLICATION_REVISION"
+            fi
+
+            CHECKED=0
+            MATCHED=0
+            MISSING=0
+            MISMATCHED=0
+            check_migration() {
+              label="$1"
+              relative_path="$2"
+              expected_hash="$3"
+              case "$relative_path" in
+                database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php|database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php|database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php) ;;
+                *) echo "ERROR: unexpected migration path"; exit 7 ;;
+              esac
+              CHECKED=$((CHECKED + 1))
+              deployed_file="$PROJECT_PATH/$relative_path"
+              if [ ! -f "$deployed_file" ]; then
+                MISSING=$((MISSING + 1))
+                echo "${label}=MISSING"
+                return
+              fi
+              actual_hash="$(sha256sum "$deployed_file" | awk '{print $1}')"
+              if [ "$actual_hash" = "$expected_hash" ]; then
+                MATCHED=$((MATCHED + 1))
+                echo "${label}=PASS_HASH_MATCH;sha256=$actual_hash"
+              else
+                MISMATCHED=$((MISMATCHED + 1))
+                echo "${label}=FAIL_HASH_MISMATCH;expected=$expected_hash;actual=$actual_hash"
+              fi
+            }
+
+            check_migration "migration_000010" "$MIGRATION_0_PATH" "$MIGRATION_0_SHA256"
+            check_migration "migration_000014" "$MIGRATION_1_PATH" "$MIGRATION_1_SHA256"
+            check_migration "migration_000015" "$MIGRATION_2_PATH" "$MIGRATION_2_SHA256"
+
+            echo "migration_files_checked=$CHECKED"
+            echo "migration_files_hash_matched=$MATCHED"
+            echo "migration_files_missing=$MISSING"
+            echo "migration_files_mismatched=$MISMATCHED"
+            echo "production_database_queried=false"
+            echo "production_database_changed=false"
+            echo "production_application_files_changed=false"
+            echo "persistent_report_written=false"
+            echo "temporary_remote_files_created=false"
+
+            if [ "$MISSING" -eq 0 ] && [ "$MISMATCHED" -eq 0 ]; then
+              echo "phase_1c_test_1c_status=PASS_MIGRATION_FILES_MATCH"
+              exit 0
+            fi
+            echo "phase_1c_test_1c_status=FAIL_DEPLOYED_MIGRATION_FILES_MISSING_OR_DRIFTED"
+            exit 20
+
+      - name: Confirm read-only execution contract
+        if: ${{ always() }}
+        run: |
+          echo "production_database_access=NOT_PERFORMED"
+          echo "production_migrations=NOT_RUN"
+          echo "production_application_file_writes=NOT_PERMITTED"
+          echo "persistent_diagnostic_reports=NOT_WRITTEN"
