@@ -1,0 +1,259 @@
+name: Phase 1C Test 1B — Production Migration Ledger and Schema Verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_path:
+        description: "Absolute path to the existing Institutes Laravel project (directory containing artisan)"
+        required: true
+        type: string
+        default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
+      target_sha:
+        description: "Exact 40-character SHA of current main."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this read-only schema verification."
+        required: true
+        type: string
+        default: "Phase1C-Test1B-Production-schema-verification"
+      confirm_production_operation:
+        description: "Type the exact operation-specific confirmation phrase."
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase-1c-test-1b-production-schema-verification
+  cancel-in-progress: false
+
+jobs:
+  production-schema-verification:
+    environment: production-readonly-diagnostics
+    name: Verify production migration ledger and schema using read-only SQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact dispatch revision for authorization checks
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          path: .production-dispatch-guard
+
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-PHASE1C-TEST1B-READONLY-SCHEMA"
+        run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
+
+      - name: Validate environment-scoped production credentials (Hostinger)
+        env:
+          PRODUCTION_READONLY_HOSTINGER_SSH_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in PRODUCTION_READONLY_HOSTINGER_SSH_HOST PRODUCTION_READONLY_HOSTINGER_SSH_USER PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY PRODUCTION_READONLY_HOSTINGER_SSH_PORT; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required environment-scoped credential: $name"
+              exit 1
+            fi
+          done
+          echo "environment_scoped_credentials=present"
+
+      - name: Run strictly read-only production schema inspection over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
+        with:
+          host: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH
+          command_timeout: 5m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in
+              /*) ;;
+              *) echo "ERROR: project_path must be absolute"; exit 2 ;;
+            esac
+            case "$PROJECT_PATH" in
+              *".."*) echo "ERROR: project_path must not contain .."; exit 2 ;;
+            esac
+            [ -f "$PROJECT_PATH/artisan" ] || { echo "ERROR: artisan not found"; exit 3; }
+            [ -f "$PROJECT_PATH/.env" ] || { echo "ERROR: Laravel environment file not found"; exit 4; }
+            [ -f "$PROJECT_PATH/vendor/autoload.php" ] || { echo "ERROR: Composer autoloader not found"; exit 5; }
+            cd "$PROJECT_PATH"
+
+            # The inline PHP program loads only environment values and opens a direct PDO
+            # connection. It does not bootstrap Laravel, invoke Artisan, or create files.
+            # MySQL enforces a read-only transaction; every statement below is SELECT.
+            php <<'PHP'
+            <?php
+            declare(strict_types=1);
+
+            require getcwd().'/vendor/autoload.php';
+            if (!class_exists(\Dotenv\Dotenv::class)) {
+                fwrite(STDERR, "dotenv_library=UNAVAILABLE\n");
+                exit(10);
+            }
+            \Dotenv\Dotenv::createImmutable(getcwd())->safeLoad();
+
+            $env = static function (string $key, ?string $default = null): ?string {
+                $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+                return ($value === false || $value === null || $value === '') ? $default : (string) $value;
+            };
+
+            $driver = $env('DB_CONNECTION', 'mysql');
+            if ($driver !== 'mysql') {
+                fwrite(STDERR, "database_driver=UNSUPPORTED\n");
+                exit(11);
+            }
+            $host = $env('DB_HOST');
+            $database = $env('DB_DATABASE');
+            $username = $env('DB_USERNAME');
+            $password = $env('DB_PASSWORD', '');
+            $port = $env('DB_PORT', '3306');
+            if (!$host || !$database || !$username || !ctype_digit((string) $port)) {
+                fwrite(STDERR, "database_connection_configuration=INCOMPLETE\n");
+                exit(12);
+            }
+
+            $pdo = null;
+            $transactionOpen = false;
+            try {
+                $dsn = 'mysql:host='.$host.';port='.$port.';dbname='.$database.';charset=utf8mb4';
+                $pdo = new PDO($dsn, $username, $password, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                    PDO::ATTR_TIMEOUT => 10,
+                ]);
+                $pdo->exec('SET TRANSACTION READ ONLY');
+                $pdo->beginTransaction();
+                $transactionOpen = true;
+
+                $expectedMigrations = [
+                    '2026_11_04_000014_enforce_append_only_audit_retention',
+                    '2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat',
+                ];
+                $migrationStmt = $pdo->prepare(
+                    'SELECT migration, COUNT(*) AS row_count FROM migrations WHERE migration = ? GROUP BY migration'
+                );
+                $migrationFailures = 0;
+                foreach ($expectedMigrations as $migration) {
+                    $migrationStmt->execute([$migration]);
+                    $row = $migrationStmt->fetch();
+                    $count = $row ? (int) $row['row_count'] : 0;
+                    $status = $count === 1 ? 'PASS' : 'FAIL';
+                    if ($status === 'FAIL') $migrationFailures++;
+                    echo "migration_ledger_{$migration}={$status};count={$count}\n";
+                }
+
+                $heartbeatStmt = $pdo->prepare(
+                    'SELECT COUNT(*) FROM information_schema.COLUMNS
+                     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
+                );
+                $heartbeatStmt->execute(['monitoring_policy_runs', 'heartbeat_at']);
+                $heartbeatCount = (int) $heartbeatStmt->fetchColumn();
+                echo 'monitoring_policy_runs.heartbeat_at='.($heartbeatCount === 1 ? 'PASS' : 'FAIL')."\n";
+
+                $foreignKeys = [
+                    'mp_run_policy_fk' => ['monitoring_policy_runs', 'source_monitoring_policy_id', 'source_monitoring_policies'],
+                    'mp_run_exec_fk' => ['monitoring_policy_runs', 'execution_run_id', 'governed_execution_runs'],
+                    'mp_source_run_fk' => ['monitoring_policy_run_sources', 'monitoring_policy_run_id', 'monitoring_policy_runs'],
+                    'mp_source_source_fk' => ['monitoring_policy_run_sources', 'source_id', 'sources'],
+                    'mp_source_retrieval_fk' => ['monitoring_policy_run_sources', 'retrieval_run_id', 'source_retrieval_runs'],
+                    'mp_source_observation_fk' => ['monitoring_policy_run_sources', 'observation_id', 'source_change_observations'],
+                    'mai_active_alert_fk' => ['monitoring_alert_identities', 'active_alert_id', 'monitoring_alerts'],
+                ];
+                $fkStmt = $pdo->prepare(
+                    'SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE
+                     WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = ?
+                       AND COLUMN_NAME = ? AND CONSTRAINT_NAME = ? AND REFERENCED_TABLE_NAME = ?'
+                );
+                $foreignKeyFailures = 0;
+                foreach ($foreignKeys as $name => [$table, $column, $referencedTable]) {
+                    $fkStmt->execute([$table, $column, $name, $referencedTable]);
+                    $count = (int) $fkStmt->fetchColumn();
+                    $status = $count === 1 ? 'PASS' : 'FAIL';
+                    if ($status === 'FAIL') $foreignKeyFailures++;
+                    echo "foreign_key_{$name}={$status}\n";
+                }
+
+                $appendOnlyTables = [
+                    'security_audit_events',
+                    'verification_decisions',
+                    'provenance_review_events',
+                    'import_promotion_decisions',
+                    'import_promotion_events',
+                    'reverification_events',
+                    'structured_enrichment_promotion_events',
+                    'official_source_refresh_events',
+                    'import_conflict_events',
+                    'import_reconciliation_events',
+                    'governed_execution_run_events',
+                ];
+                $expectedTriggers = [];
+                foreach ($appendOnlyTables as $table) {
+                    $suffix = substr(hash('sha256', $table), 0, 16);
+                    $expectedTriggers['audit_immut_'.$suffix.'_u'] = [$table, 'UPDATE'];
+                    $expectedTriggers['audit_immut_'.$suffix.'_d'] = [$table, 'DELETE'];
+                }
+                $expectedTriggers['identity_decision_update_guard'] = ['identity_resolution_decisions', 'UPDATE'];
+                $expectedTriggers['identity_decision_delete_guard'] = ['identity_resolution_decisions', 'DELETE'];
+
+                $triggerStmt = $pdo->prepare(
+                    'SELECT COUNT(*) FROM information_schema.TRIGGERS
+                     WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = ?
+                       AND EVENT_OBJECT_TABLE = ? AND EVENT_MANIPULATION = ? AND ACTION_TIMING = ?'
+                );
+                $triggerFailures = 0;
+                foreach ($expectedTriggers as $name => [$table, $event]) {
+                    $triggerStmt->execute([$name, $table, $event, 'BEFORE']);
+                    $count = (int) $triggerStmt->fetchColumn();
+                    $status = $count === 1 ? 'PASS' : 'FAIL';
+                    if ($status === 'FAIL') $triggerFailures++;
+                    echo "audit_trigger_{$name}={$status}\n";
+                }
+
+                $totalFailures = $migrationFailures + ($heartbeatCount === 1 ? 0 : 1)
+                    + $foreignKeyFailures + $triggerFailures;
+                echo 'migration_ledger_checks=2;failures='.$migrationFailures."\n";
+                echo 'heartbeat_column_checks=1;failures='.($heartbeatCount === 1 ? 0 : 1)."\n";
+                echo 'foreign_key_checks='.count($foreignKeys).';failures='.$foreignKeyFailures."\n";
+                echo 'audit_trigger_checks='.count($expectedTriggers).';failures='.$triggerFailures."\n";
+                echo 'production_database_changed=false'."\n";
+                echo 'production_application_files_changed=false'."\n";
+                echo 'persistent_report_written=false'."\n";
+                echo 'temporary_remote_files_created=false'."\n";
+                $pdo->rollBack();
+                $transactionOpen = false;
+                echo 'read_only_transaction=ROLLED_BACK'."\n";
+                echo 'phase_1c_test_1b_status='.($totalFailures === 0 ? 'PASS' : 'FAIL')."\n";
+                exit($totalFailures === 0 ? 0 : 20);
+            } catch (Throwable $error) {
+                if ($transactionOpen && $pdo instanceof PDO && $pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                fwrite(STDERR, 'schema_verification_error='.get_class($error)."\n");
+                fwrite(STDERR, "schema_verification_status=FAIL\n");
+                exit(21);
+            }
+            PHP
+
+      - name: Confirm read-only execution contract
+        if: ${{ always() }}
+        run: |
+          echo "production_database_mutations=NOT_PERMITTED"
+          echo "production_migrations=NOT_RUN"
+          echo "production_application_file_writes=NOT_PERMITTED"
+          echo "persistent_diagnostic_reports=NOT_WRITTEN"
