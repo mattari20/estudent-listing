@@ -295,6 +295,7 @@ jobs:
 
                 $totalFailures = $baselineTableFailures + $migrationFailures + ($heartbeatCount === 1 ? 0 : 1)
                     + $foreignKeyFailures + $triggerFailures;
+                echo 'baseline_table_checks='.count($requiredTables).';failures='.$baselineTableFailures."\n";
                 echo 'migration_ledger_checks=2;failures='.$migrationFailures."\n";
                 echo 'heartbeat_column_checks=1;failures='.($heartbeatCount === 1 ? 0 : 1)."\n";
                 echo 'foreign_key_checks='.count($foreignKeys).';failures='.$foreignKeyFailures."\n";
