@@ -235,6 +235,119 @@ try {
     $heartbeat = (int)$heartbeatStmt->fetchColumn() === 1;
     echo 'monitoring_policy_runs.heartbeat_at='.($heartbeat ? 'PRESENT' : 'MISSING')."\n";
 
+    // Detailed, read-only migration precondition inventory. Every query is
+    // gated by table/column presence so absent prerequisites are NOT_CHECKED.
+    $hasColumn = static function (string $table, string $column) use ($pdo): bool {
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?');
+        $stmt->execute([$table, $column]);
+        return (int)$stmt->fetchColumn() === 1;
+    };
+    $hasIndex = static function (string $table, string $index) use ($pdo): bool {
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND INDEX_NAME=?');
+        $stmt->execute([$table, $index]);
+        return (int)$stmt->fetchColumn() > 0;
+    };
+    $safeCount = static function (string $sql, array $params = []) use ($pdo): ?int {
+        try {
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            return (int)$stmt->fetchColumn();
+        } catch (Throwable $e) {
+            return null;
+        }
+    };
+
+    // 000009: duplicate open-alert keys and rows that its backfill would copy.
+    if (isset($present['monitoring_alerts']) && $hasColumn('monitoring_alerts', 'status') && $hasColumn('monitoring_alerts', 'dedupe_key')) {
+        $openAlerts = $safeCount("SELECT COUNT(*) FROM monitoring_alerts WHERE status='open'");
+        $duplicateOpenKeys = $safeCount("SELECT COUNT(*) FROM (SELECT dedupe_key FROM monitoring_alerts WHERE status='open' GROUP BY dedupe_key HAVING COUNT(*) > 1) duplicate_keys");
+        echo 'migration_000009_open_alerts_to_copy='.($openAlerts === null ? 'NOT_CHECKED_QUERY_FAILED' : $openAlerts)."\n";
+        echo 'migration_000009_duplicate_open_dedupe_keys='.($duplicateOpenKeys === null ? 'NOT_CHECKED_QUERY_FAILED' : $duplicateOpenKeys)."\n";
+    } else {
+        echo "migration_000009_open_alerts_to_copy=NOT_CHECKED_PREREQUISITE_MISSING\n";
+        echo "migration_000009_duplicate_open_dedupe_keys=NOT_CHECKED_PREREQUISITE_MISSING\n";
+    }
+
+    // 000012: report uniqueness/index shape and duplicate non-null key values.
+    $identityKeyChecks = [
+        ['identity_match_candidates', 'identity_key', 'identity_match_candidates_identity_key_unique'],
+        ['identity_resolution_decisions', 'decision_identity_key', 'identity_resolution_decisions_identity_key_unique'],
+        ['import_conflicts', 'identity_key', 'import_conflicts_identity_key_unique'],
+    ];
+    foreach ($identityKeyChecks as [$table, $column, $index]) {
+        if (isset($present[$table]) && $hasColumn($table, $column)) {
+            $duplicates = $safeCount('SELECT COUNT(*) FROM (SELECT '.$column.' FROM '.$table.' WHERE '.$column.' IS NOT NULL GROUP BY '.$column.' HAVING COUNT(*) > 1) duplicate_keys');
+            echo "migration_000012_{$table}_{$column}_duplicate_values=".($duplicates === null ? 'NOT_CHECKED_QUERY_FAILED' : $duplicates)."\n";
+            echo "migration_000012_{$table}_{$column}_unique_index=".($hasIndex($table, $index) ? 'PRESENT' : 'MISSING')."\n";
+        } else {
+            echo "migration_000012_{$table}_{$column}_duplicate_values=NOT_CHECKED_PREREQUISITE_MISSING\n";
+            echo "migration_000012_{$table}_{$column}_unique_index=NOT_CHECKED_PREREQUISITE_MISSING\n";
+        }
+    }
+
+    // 000015: quantify heartbeat backfill exposure without changing any rows.
+    if (isset($present['monitoring_policy_runs']) && $hasColumn('monitoring_policy_runs', 'heartbeat_at') && $hasColumn('monitoring_policy_runs', 'started_at')) {
+        $nullHeartbeats = $safeCount('SELECT COUNT(*) FROM monitoring_policy_runs WHERE heartbeat_at IS NULL');
+        echo 'migration_000015_null_heartbeat_rows='.($nullHeartbeats === null ? 'NOT_CHECKED_QUERY_FAILED' : $nullHeartbeats)."\n";
+        echo 'migration_000015_started_at_column=PRESENT'."\n";
+    } elseif (isset($present['monitoring_policy_runs']) && !$hasColumn('monitoring_policy_runs', 'heartbeat_at') && $hasColumn('monitoring_policy_runs', 'started_at')) {
+        echo "migration_000015_null_heartbeat_rows=NOT_APPLICABLE_HEARTBEAT_COLUMN_ABSENT\n";
+        echo "migration_000015_started_at_column=PRESENT\n";
+    } else {
+        echo "migration_000015_null_heartbeat_rows=NOT_CHECKED_PREREQUISITE_MISSING\n";
+        echo "migration_000015_started_at_column=NOT_CHECKED_PREREQUISITE_MISSING\n";
+    }
+
+    // Report full existing FK metadata for the migration-touched tables.
+    // This is evidence for review; it does not assert equivalence to target FKs.
+    $fkMetadataTables = [
+        'identity_resolution_decisions','verification_decisions','import_reconciliation_events',
+        'import_promotion_decisions','import_promotion_events','reverification_events',
+        'structured_enrichment_promotion_events','import_conflict_events',
+        'governed_execution_run_events','monitoring_policy_runs',
+        'monitoring_policy_run_sources','monitoring_alert_identities',
+    ];
+    foreach ($fkMetadataTables as $table) {
+        if (!isset($present[$table])) {
+            echo "foreign_key_metadata_{$table}=NOT_CHECKED_TABLE_MISSING\n";
+            continue;
+        }
+        $stmt = $pdo->prepare(
+            'SELECT k.CONSTRAINT_NAME, k.COLUMN_NAME, k.REFERENCED_TABLE_NAME, k.REFERENCED_COLUMN_NAME, r.UPDATE_RULE, r.DELETE_RULE '.
+            'FROM information_schema.KEY_COLUMN_USAGE k '.
+            'LEFT JOIN information_schema.REFERENTIAL_CONSTRAINTS r '.
+            'ON r.CONSTRAINT_SCHEMA=k.CONSTRAINT_SCHEMA AND r.CONSTRAINT_NAME=k.CONSTRAINT_NAME AND r.TABLE_NAME=k.TABLE_NAME '.
+            'WHERE k.CONSTRAINT_SCHEMA=DATABASE() AND k.TABLE_NAME=? AND k.REFERENCED_TABLE_NAME IS NOT NULL ORDER BY k.CONSTRAINT_NAME, k.ORDINAL_POSITION'
+        );
+        $stmt->execute([$table]);
+        $rows = $stmt->fetchAll();
+        echo "foreign_key_metadata_{$table}_count=".count($rows)."\n";
+        foreach ($rows as $row) {
+            echo 'foreign_key_definition='.implode('|', array_map(
+                static fn($value): string => (string)($value ?? ''),
+                [$table, $row['CONSTRAINT_NAME'], $row['COLUMN_NAME'], $row['REFERENCED_TABLE_NAME'], $row['REFERENCED_COLUMN_NAME'], $row['UPDATE_RULE'], $row['DELETE_RULE']]
+            ))."\n";
+        }
+    }
+
+    // Trigger body fingerprints make changed definitions visible without
+    // disclosing SQL text or claiming name-only presence proves correctness.
+    $triggerDefinitionStmt = $pdo->prepare(
+        'SELECT EVENT_OBJECT_TABLE, ACTION_TIMING, EVENT_MANIPULATION, ACTION_STATEMENT '.
+        'FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE() AND TRIGGER_NAME=?'
+    );
+    foreach ($triggerNames as $trigger) {
+        $triggerDefinitionStmt->execute([$trigger]);
+        $definition = $triggerDefinitionStmt->fetch();
+        if (!$definition) {
+            echo "trigger_definition_{$trigger}=MISSING\n";
+            continue;
+        }
+        echo "trigger_definition_{$trigger}=".
+            $definition['EVENT_OBJECT_TABLE'].'|'.$definition['ACTION_TIMING'].'|'.$definition['EVENT_MANIPULATION'].'|'.
+            hash('sha256', (string)$definition['ACTION_STATEMENT'])."\n";
+    }
+
     $ledgerCountsValid = count($ledger) === count($migrations)
         && count(array_filter($ledger, static fn(int $n): bool => $n === 1)) === count($migrations);
     $duplicateLedger = count(array_filter($ledger, static fn(int $n): bool => $n > 1)) > 0;
