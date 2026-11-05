@@ -1,0 +1,116 @@
+name: Phase 1C Integrated MySQL Migration Acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/phase-1c-integrated-mysql.yml'
+      - 'database/migrations/**'
+      - 'app/Services/MonitoringPolicyCheckpointService.php'
+      - 'tests/Feature/AppendOnlyAuditRetentionTest.php'
+      - 'tests/Feature/SourceMonitoringBatchRecoveryTest.php'
+      - 'tests/Feature/LegacyIdentityKeyInventoryTest.php'
+      - 'tests/Feature/AuditLegacyIdentityKeysCommandSafetyTest.php'
+      - 'tests/Support/verify-append-only-audit-triggers.php'
+      - 'tests/Support/verify-monitoring-policy-checkpoint-multiprocess.php'
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: "Exact commit SHA to validate; must be current main."
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  integrated-mysql:
+    name: Validate full migration chain and Phase 1C MySQL guarantees
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-${{ github.run_id }}-${{ github.run_attempt }}
+          MYSQL_DATABASE: phase1c_integrated_test
+          MYSQL_USER: phase1c_ci
+          MYSQL_PASSWORD: ci-user-${{ github.run_id }}-${{ github.run_attempt }}
+        ports:
+          - 3306:3306
+        command: --log-bin-trust-function-creators=1
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-root-${{ github.run_id }}-${{ github.run_attempt }}"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: phase1c_integrated_test
+      DB_USERNAME: phase1c_ci
+      DB_PASSWORD: ci-user-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Checkout exact target revision
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.target_sha || github.sha }}
+      - name: Refuse non-main manual targets
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --no-tags origin main
+          test "$TARGET_SHA" = "$(git rev-parse origin/main)"
+          test "$GITHUB_SHA" = "$TARGET_SHA"
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: dom, mbstring, xml, curl, pdo_mysql
+          coverage: none
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Confirm isolated database identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$APP_ENV" = testing
+          test "$DB_HOST" = 127.0.0.1
+          test "$DB_PORT" = 3306
+          test "$DB_DATABASE" = phase1c_integrated_test
+          test "$DB_USERNAME" = phase1c_ci
+          mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e 'SELECT VERSION(), DATABASE();'
+      - name: Run complete migrations on clean isolated MySQL database
+        run: php artisan migrate:fresh --force
+      - name: Verify migrations 000014 and 000015 are recorded exactly once
+        shell: bash
+        run: |
+          set -euo pipefail
+          mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e "SELECT migration, COUNT(*) FROM migrations WHERE migration IN ('2026_11_04_000014_enforce_append_only_audit_retention','2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat') GROUP BY migration ORDER BY migration;" | tee "$RUNNER_TEMP/phase1c-migrations.txt"
+          grep -q '^2026_11_04_000014_enforce_append_only_audit_retention[[:space:]]1$' "$RUNNER_TEMP/phase1c-migrations.txt"
+          grep -q '^2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat[[:space:]]1$' "$RUNNER_TEMP/phase1c-migrations.txt"
+      - name: Verify monitoring heartbeat column and named foreign keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e "SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND ((TABLE_NAME='monitoring_policy_runs' AND COLUMN_NAME='heartbeat_at')) ORDER BY TABLE_NAME,COLUMN_NAME;"
+          mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e "SELECT CONSTRAINT_NAME FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND CONSTRAINT_NAME IN ('mp_run_policy_fk','mp_run_exec_fk','mp_source_run_fk','mp_source_source_fk','mp_source_retrieval_fk','mp_source_observation_fk','mai_active_alert_fk') ORDER BY CONSTRAINT_NAME;" | tee "$RUNNER_TEMP/phase1c-monitoring-fks.txt"
+          test "$(wc -l < "$RUNNER_TEMP/phase1c-monitoring-fks.txt" | tr -d ' ')" = 7
+          mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='monitoring_policy_runs' AND COLUMN_NAME='heartbeat_at';" | grep -qx '1'
+      - name: Validate append-only retention and monitoring checkpoint behavior
+        run: vendor/bin/phpunit tests/Feature/AppendOnlyAuditRetentionTest.php tests/Feature/SourceMonitoringBatchRecoveryTest.php tests/Feature/LegacyIdentityKeyInventoryTest.php tests/Feature/AuditLegacyIdentityKeysCommandSafetyTest.php
+      - name: Prove all 24 MySQL audit triggers and migration rollback/reinstall lifecycle
+        run: php tests/Support/verify-append-only-audit-triggers.php
+      - name: Prove monitoring checkpoint concurrency across independent processes
+        run: php tests/Support/verify-monitoring-policy-checkpoint-multiprocess.php
+      - name: Verify audit triggers remain installed after lifecycle test
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -r 'require "vendor/autoload.php"; $app=require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); $expected=[]; foreach (["security_audit_events","verification_decisions","provenance_review_events","import_promotion_decisions","import_promotion_events","reverification_events","structured_enrichment_promotion_events","official_source_refresh_events","import_conflict_events","import_reconciliation_events","governed_execution_run_events"] as $table) { $s=substr(hash("sha256",$table),0,16); $expected[]="audit_immut_".$s."_u"; $expected[]="audit_immut_".$s."_d"; } $expected[]="identity_decision_update_guard"; $expected[]="identity_decision_delete_guard"; $names=Illuminate\\Support\\Facades\\DB::table("information_schema.TRIGGERS")->where("TRIGGER_SCHEMA",Illuminate\\Support\\Facades\\DB::getDatabaseName())->pluck("TRIGGER_NAME")->all(); $missing=array_values(array_diff($expected,$names)); if ($missing) { fwrite(STDERR,"Missing triggers: ".implode(",",$missing).PHP_EOL); exit(1); } echo "All 24 triggers remain installed.".PHP_EOL;'
