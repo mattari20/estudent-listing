@@ -2353,9 +2353,27 @@ No production access or operation was initiated. GCU rows #348–353 and batches
 
 ---
 
+## Phase 1C-32 — PR #1010 retrieval finalization recovery reconciliation (2026-11-05)
+
+- Verified main baseline before reconciliation: `7cd152e0626082ca112192b529f3148e68d1d960` (PR #1017 merge remains current main).
+- Existing PR #1010 branch before reconciliation: `phase-1c-retrieval-finalization-recovery` at `603ef598768d13f460f3ba8184050bd1a5572835`; PR remained open and unmerged.
+- PR #1010 implementation preserved: extracted retrieval-run completion persistence into `SourceRetrievalRunFinalizer`; `SourceRetrievalService` delegates its existing completion fields/timestamp to the finalizer; added injected failure coverage after snapshot persistence and retry reuse of the same capture-key snapshot/run.
+- Full PR patch included service, finalizer, retrieval feature test, tracker and retrieval recovery audit. The two historical Phase 1C audit/checkpoint files in the branch were blob-identical to current main and were not replaced.
+- No PR #1017 workflow/security files were modified. Current production-facing diagnostics workflow definitions remain `workflow_dispatch` only with protected confirmation and `production-readonly-diagnostics` environment. Retrieval service continues using the existing `SafeSourceHttpRetriever` URL/DNS/redirect guard; this PR adds no route, workflow, environment, credential, or authorization bypass.
+- PR #1009 remains separate and untouched. Its review-package service/test/audit paths do not overlap PR #1010's service/test/audit paths. The project tracker is a shared documentation path; this reconciliation starts from current main's tracker and appends only the PR #1010 retrieval section, retaining all current-main content.
+- Reconciliation method: two-parent merge commit with current main as first parent and the original PR #1010 head as second parent; existing branch advanced with non-force, expected-head-guarded update. No existing commit was discarded or rewritten.
+- Reconciliation commit: `dee687a8388c90e79dff37f9af1b685a6beaa951` (main first parent; previous PR #1010 head second parent). The original branch was advanced non-force with expected-head protection.
+- Exact-head checks passed on the code reconciliation commit `dee687a8388c90e79dff37f9af1b685a6beaa951`: Test #41939778703; Laravel CI/Pint #41939778718; Project Controller #41939778858; isolated MySQL #41939778734. All four completed successfully. The focused MySQL SourceSnapshot/SourceRetrieval suites passed 31 tests / 116 assertions; full Test and Laravel suites each passed 888 tests / 3,937 assertions. A documentation-only tracker/audit update follows this code-head validation and triggers a fresh exact-head CI set, which will be reported separately.
+- Remaining architectural limitation: snapshot persistence and retrieval-run finalization remain separate database writes, not one atomic transaction. Recovery is idempotent for the same run/capture key and same payload; changed content under the same capture key fails closed. This does not provide distributed filesystem/database transactionality.
+- No production systems, Hostinger, SSH, hPanel, production DB, Artisan, deployment, migration, scheduler, live source retrieval/discovery, candidate staging, approval, import or publishing was accessed or initiated. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled; no dummy production data.
+- Exact-head validation passed on the code reconciliation commit above. A subsequent documentation-only commit updates this tracker/audit; fresh checks on that final documentation-inclusive head are required and will be reported separately. MERGED and PRODUCTION VERIFIED are not claimed.
+
+---
+
 ## Phase 1C-34 — PR #1014 command-comment parser reconciliation (2026-11-05)
 
-- Reconciled the existing multiline issue-comment parser PR against main `b8add81c79f40ddf7891c24229cb8835c739e280`, retaining the exact command allow-list, positive ASCII issue-number validation, shell/metacharacter rejection, output serialization protections and default-branch issue-comment checkout behavior.
-- Kept the current-main versions of historical Phase 1C audit/checkpoint documents and tracker history; the stale PR-branch copies were not allowed to replace later main content.
-- Reconciliation commit: pending exact-head verification. PR remains open and unmerged; no merge or close action.
+- Reconciled the existing multiline issue-comment parser PR against main `0e197c760202c628eb5065bc86207b045d1414f8`, retaining the exact command allow-list, positive ASCII issue-number validation, shell/metacharacter rejection, output serialization protections and default-branch issue-comment checkout behavior.
+- Preserved the current-main tracker history, including the merged PR #1010 retrieval recovery record; appended only this PR's Phase 1C-34 record.
+- This tracker update resolves the documented-content conflict with the current main version. Exact-head CI and GitHub mergeability must be checked after this commit.
+- PR #1014 remains open and unmerged; no merge or close action.
 - No production access, dispatch, deployment, migration, discovery, staging, approval, import or publishing. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled.
