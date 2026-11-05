@@ -39,7 +39,15 @@ try{
  echo 'table_metadata_count='.count($found).';expected_scope='.count($tables)."\n";
  $q=$pdo->prepare("SELECT TABLE_NAME,COLUMN_NAME,ORDINAL_POSITION,COLUMN_TYPE,IS_NULLABLE,COLUMN_DEFAULT,EXTRA,CHARACTER_SET_NAME,COLLATION_NAME,GENERATION_EXPRESSION FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ($in) ORDER BY TABLE_NAME,ORDINAL_POSITION");
  $q->execute($tables);$n=0;foreach($q as $r){$n++;echo 'COLUMN '.json_encode($r,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE)."\n";}echo "column_metadata_count={$n}\n";
- $q=$pdo->prepare("SELECT TABLE_NAME,INDEX_NAME,NON_UNIQUE,SEQ_IN_INDEX,COLUMN_NAME,SUB_PART,COLLATION,INDEX_TYPE,IS_VISIBLE,EXPRESSION FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ($in) ORDER BY TABLE_NAME,INDEX_NAME,SEQ_IN_INDEX");
+ // MySQL and MariaDB expose different INFORMATION_SCHEMA.STATISTICS columns.
+ // Detect optional fields instead of failing the entire audit on older/server-specific schemas.
+ $statCols=$pdo->query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='information_schema' AND TABLE_NAME='STATISTICS'")->fetchAll(PDO::FETCH_COLUMN);
+ $statSet=array_fill_keys(array_map('strtoupper',$statCols),true);
+ $visibleExpr=isset($statSet['IS_VISIBLE'])?'IS_VISIBLE':'NULL AS IS_VISIBLE';
+ $expressionExpr=isset($statSet['EXPRESSION'])?'EXPRESSION':'NULL AS EXPRESSION';
+ echo 'index_is_visible_metadata_supported='.(isset($statSet['IS_VISIBLE'])?'true':'false')."\n";
+ echo 'index_expression_metadata_supported='.(isset($statSet['EXPRESSION'])?'true':'false')."\n";
+ $q=$pdo->prepare("SELECT TABLE_NAME,INDEX_NAME,NON_UNIQUE,SEQ_IN_INDEX,COLUMN_NAME,SUB_PART,COLLATION,INDEX_TYPE,$visibleExpr,$expressionExpr FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ($in) ORDER BY TABLE_NAME,INDEX_NAME,SEQ_IN_INDEX");
  $q->execute($tables);$n=0;foreach($q as $r){$n++;echo 'INDEX '.json_encode($r,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE)."\n";}echo "index_metadata_count={$n}\n";
  $q=$pdo->prepare("SELECT TABLE_NAME,CONSTRAINT_NAME,COLUMN_NAME,ORDINAL_POSITION,REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME,POSITION_IN_UNIQUE_CONSTRAINT FROM information_schema.KEY_COLUMN_USAGE WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME IN ($in) AND REFERENCED_TABLE_NAME IS NOT NULL ORDER BY TABLE_NAME,CONSTRAINT_NAME,ORDINAL_POSITION");
  $q->execute($tables);$n=0;foreach($q as $r){$n++;echo 'FK_COLUMN '.json_encode($r,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE)."\n";}echo "foreign_key_column_count={$n}\n";
