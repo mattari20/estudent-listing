@@ -2325,3 +2325,28 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 - Consolidated reconciliation: `docs/audits/PHASE_1C_22_POST_MERGE_RECONCILIATION.md`.
 
 No production access or operation was initiated. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled; no dummy production data.
+
+
+---
+
+## Phase 1C — review-package row-set and evidence integrity (2026-11-04)
+
+- Branch: `phase-1c-review-package-integrity`, based on main `e9feccedbb20078c3af24656e6399d55383b6722`.
+- Remediation adds manifest-v3 row-set and evidence-set SHA-256 digests; reloads batch/source/rows under the package lock; rejects evidence not owned by the exact source/snapshot and matching repository-derived evidence identity key when available; resolves that evidence from the batch key during reuse even when no evidence override or candidate row exists; and rebuilds stale packages instead of silently reusing them.
+- Added regression tests for changed rows, changed evidence, cross-snapshot evidence and legacy schema-v2 manifests.
+- Audit: `docs/audits/PHASE_1C_REVIEW_PACKAGE_INTEGRITY.md`.
+- Status: IMPLEMENTED on branch; exact-head Test/Laravel CI/Project Controller/isolated MySQL validation pending. No merge or production verification is claimed. The existing filesystem/database transaction boundary remains; evidence is validated at batch/source/snapshot scope because the current schema has no per-candidate evidence foreign key.
+- No production operation. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and extra 20 HEC profiles remain disabled; no dummy production data.
+
+---
+
+## Phase 1C-31 — PR #1009 reconciliation with Phase 1C-25C main (2026-11-04)
+
+- Verified current main before reconciliation: `7cd152e0626082ca112192b529f3148e68d1d960` (PR #1017 merge).
+- Existing PR #1009 branch before reconciliation: `0343aa8f134de94892423fe2a94196dd6b118518`; it was open and unmerged.
+- Full PR #1009 patch inventory: `app/Services/InstituteDiscoveryReviewPackageService.php`, `tests/Feature/InstituteDiscoveryReviewPackageRecoveryTest.php`, `docs/PROJECT_MASTER_TRACKER.md`, and `docs/audits/PHASE_1C_REVIEW_PACKAGE_INTEGRITY.md`. The two existing Phase 1C-22 audit/checkpoint files were byte-identical to main.
+- Compared all 35 files changed by merged PR #1017 against the four PR #1009 changed paths: no path overlap. The application service, review-package test, tracker and new review-package audit were retained; all PR #1017 files were retained from main.
+- Reconciled by creating a two-parent merge commit (main first parent; prior PR #1009 head second parent) and advancing the existing branch with a non-force, expected-head-guarded ref update. No branch history was rewritten, no duplicate PR was created, and no PR was merged or closed.
+- Reconciliation commit: `284caecb828b68ea27c81adfab8f475d11689088`. Compare against current main reports `ahead_by=13`, `behind_by=0`; the exact PR diff remains the four intended files.
+- Exact-head validation passed on code head `2f78d26d5358022524816990b0719cda75526cbf`: Test #41873088161; Laravel CI #41873088162 (including changed-file formatting and verification); Project Controller #41873088158 (offline fixture contract and read-only repository inventory); isolated MySQL #41873088208 (review-package filesystem recovery and independent-process writer concurrency). All four runs completed successfully on that exact SHA. Earlier CI on `0343aa8f134de94892423fe2a94196dd6b118518` is historical and was not used as proof.
+- No production systems, Hostinger, SSH, hPanel, production database, Artisan, deployment, migration, scheduler, discovery or candidate lifecycle operation was accessed or initiated. GCU candidate rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled; no dummy production data was created.
