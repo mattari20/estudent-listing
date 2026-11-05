@@ -219,7 +219,7 @@ jobs:
                     $status = $count === 1 ? 'PASS' : 'FAIL';
                     $migrationStatuses[$migration] = $status;
                     if ($status === 'FAIL') $migrationFailures++;
-                    echo "migration_ledger_{$migration}={$status};count={$count}\\n";
+                    echo "migration_ledger_{$migration}={$status};count={$count}\n";
                 }
 
                 $heartbeatStmt = $pdo->prepare(
@@ -234,9 +234,9 @@ jobs:
                     $heartbeatCount = 0;
                     $heartbeatStatus = 'NOT_CHECKED_PREREQUISITE_MISSING';
                 }
-                echo "monitoring_policy_runs.heartbeat_at={$heartbeatStatus}\\n";
+                echo "monitoring_policy_runs.heartbeat_at={$heartbeatStatus}\n";
 
-                $foreignKeys = [                $foreignKeys = [
+                $foreignKeys = [
                     'mp_run_policy_fk' => ['monitoring_policy_runs', 'source_monitoring_policy_id', 'source_monitoring_policies'],
                     'mp_run_exec_fk' => ['monitoring_policy_runs', 'execution_run_id', 'governed_execution_runs'],
                     'mp_source_run_fk' => ['monitoring_policy_run_sources', 'monitoring_policy_run_id', 'monitoring_policy_runs'],
@@ -257,11 +257,11 @@ jobs:
                         $count = (int) $fkStmt->fetchColumn();
                         $status = $count === 1 ? 'PASS' : 'FAIL';
                         if ($status === 'FAIL') $foreignKeyFailures++;
-                        echo "foreign_key_{$name}={$status}\\n";
+                        echo "foreign_key_{$name}={$status}\n";
                     }
                 } else {
                     foreach ($foreignKeys as $name => $_definition) {
-                        echo "foreign_key_{$name}=NOT_CHECKED_PREREQUISITE_MISSING\\n";
+                        echo "foreign_key_{$name}=NOT_CHECKED_PREREQUISITE_MISSING\n";
                     }
                 }
 
@@ -299,11 +299,11 @@ jobs:
                         $count = (int) $triggerStmt->fetchColumn();
                         $status = $count === 1 ? 'PASS' : 'FAIL';
                         if ($status === 'FAIL') $triggerFailures++;
-                        echo "audit_trigger_{$name}={$status}\\n";
+                        echo "audit_trigger_{$name}={$status}\n";
                     }
                 } else {
                     foreach ($expectedTriggers as $name => $_definition) {
-                        echo "audit_trigger_{$name}=NOT_CHECKED_MIGRATION_NOT_RECORDED\\n";
+                        echo "audit_trigger_{$name}=NOT_CHECKED_MIGRATION_NOT_RECORDED\n";
                     }
                 }
 
