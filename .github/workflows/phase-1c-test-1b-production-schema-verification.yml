@@ -203,38 +203,40 @@ jobs:
                 }
 
                 $expectedMigrations = [
+                    '2026_11_04_000010_create_monitoring_policy_run_checkpoints',
                     '2026_11_04_000014_enforce_append_only_audit_retention',
                     '2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat',
                 ];
+                $migrationStatuses = [];
                 $migrationFailures = 0;
-                if ($baselineTableFailures === 0) {
-                    $migrationStmt = $pdo->prepare(
-                        'SELECT migration, COUNT(*) AS row_count FROM migrations WHERE migration = ? GROUP BY migration'
-                    );
-                    foreach ($expectedMigrations as $migration) {
-                        $migrationStmt->execute([$migration]);
-                        $row = $migrationStmt->fetch();
-                        $count = $row ? (int) $row['row_count'] : 0;
-                        $status = $count === 1 ? 'PASS' : 'FAIL';
-                        if ($status === 'FAIL') $migrationFailures++;
-                        echo "migration_ledger_{$migration}={$status};count={$count}\n";
-                    }
-                } else {
-                    $migrationFailures = count($expectedMigrations);
-                    foreach ($expectedMigrations as $migration) {
-                        echo "migration_ledger_{$migration}=NOT_CHECKED_BASELINE_SCHEMA_MISSING;count=0\n";
-                    }
+                $migrationStmt = $pdo->prepare(
+                    'SELECT migration, COUNT(*) AS row_count FROM migrations WHERE migration = ? GROUP BY migration'
+                );
+                foreach ($expectedMigrations as $migration) {
+                    $migrationStmt->execute([$migration]);
+                    $row = $migrationStmt->fetch();
+                    $count = $row ? (int) $row['row_count'] : 0;
+                    $status = $count === 1 ? 'PASS' : 'FAIL';
+                    $migrationStatuses[$migration] = $status;
+                    if ($status === 'FAIL') $migrationFailures++;
+                    echo "migration_ledger_{$migration}={$status};count={$count}\\n";
                 }
 
                 $heartbeatStmt = $pdo->prepare(
                     'SELECT COUNT(*) FROM information_schema.COLUMNS
                      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
                 );
-                $heartbeatStmt->execute(['monitoring_policy_runs', 'heartbeat_at']);
-                $heartbeatCount = (int) $heartbeatStmt->fetchColumn();
-                echo 'monitoring_policy_runs.heartbeat_at='.($heartbeatCount === 1 ? 'PASS' : 'FAIL')."\n";
+                if ($baselineTableFailures === 0 && $migrationStatuses['2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat'] === 'PASS') {
+                    $heartbeatStmt->execute(['monitoring_policy_runs', 'heartbeat_at']);
+                    $heartbeatCount = (int) $heartbeatStmt->fetchColumn();
+                    $heartbeatStatus = $heartbeatCount === 1 ? 'PASS' : 'FAIL';
+                } else {
+                    $heartbeatCount = 0;
+                    $heartbeatStatus = 'NOT_CHECKED_PREREQUISITE_MISSING';
+                }
+                echo "monitoring_policy_runs.heartbeat_at={$heartbeatStatus}\\n";
 
-                $foreignKeys = [
+                $foreignKeys = [                $foreignKeys = [
                     'mp_run_policy_fk' => ['monitoring_policy_runs', 'source_monitoring_policy_id', 'source_monitoring_policies'],
                     'mp_run_exec_fk' => ['monitoring_policy_runs', 'execution_run_id', 'governed_execution_runs'],
                     'mp_source_run_fk' => ['monitoring_policy_run_sources', 'monitoring_policy_run_id', 'monitoring_policy_runs'],
@@ -249,12 +251,18 @@ jobs:
                        AND COLUMN_NAME = ? AND CONSTRAINT_NAME = ? AND REFERENCED_TABLE_NAME = ?'
                 );
                 $foreignKeyFailures = 0;
-                foreach ($foreignKeys as $name => [$table, $column, $referencedTable]) {
-                    $fkStmt->execute([$table, $column, $name, $referencedTable]);
-                    $count = (int) $fkStmt->fetchColumn();
-                    $status = $count === 1 ? 'PASS' : 'FAIL';
-                    if ($status === 'FAIL') $foreignKeyFailures++;
-                    echo "foreign_key_{$name}={$status}\n";
+                if ($baselineTableFailures === 0 && $migrationStatuses['2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat'] === 'PASS') {
+                    foreach ($foreignKeys as $name => [$table, $column, $referencedTable]) {
+                        $fkStmt->execute([$table, $column, $name, $referencedTable]);
+                        $count = (int) $fkStmt->fetchColumn();
+                        $status = $count === 1 ? 'PASS' : 'FAIL';
+                        if ($status === 'FAIL') $foreignKeyFailures++;
+                        echo "foreign_key_{$name}={$status}\\n";
+                    }
+                } else {
+                    foreach ($foreignKeys as $name => $_definition) {
+                        echo "foreign_key_{$name}=NOT_CHECKED_PREREQUISITE_MISSING\\n";
+                    }
                 }
 
                 $appendOnlyTables = [
@@ -285,19 +293,25 @@ jobs:
                        AND EVENT_OBJECT_TABLE = ? AND EVENT_MANIPULATION = ? AND ACTION_TIMING = ?'
                 );
                 $triggerFailures = 0;
-                foreach ($expectedTriggers as $name => [$table, $event]) {
-                    $triggerStmt->execute([$name, $table, $event, 'BEFORE']);
-                    $count = (int) $triggerStmt->fetchColumn();
-                    $status = $count === 1 ? 'PASS' : 'FAIL';
-                    if ($status === 'FAIL') $triggerFailures++;
-                    echo "audit_trigger_{$name}={$status}\n";
+                if ($migrationStatuses['2026_11_04_000014_enforce_append_only_audit_retention'] === 'PASS') {
+                    foreach ($expectedTriggers as $name => [$table, $event]) {
+                        $triggerStmt->execute([$name, $table, $event, 'BEFORE']);
+                        $count = (int) $triggerStmt->fetchColumn();
+                        $status = $count === 1 ? 'PASS' : 'FAIL';
+                        if ($status === 'FAIL') $triggerFailures++;
+                        echo "audit_trigger_{$name}={$status}\\n";
+                    }
+                } else {
+                    foreach ($expectedTriggers as $name => $_definition) {
+                        echo "audit_trigger_{$name}=NOT_CHECKED_MIGRATION_NOT_RECORDED\\n";
+                    }
                 }
 
-                $totalFailures = $baselineTableFailures + $migrationFailures + ($heartbeatCount === 1 ? 0 : 1)
+                $totalFailures = $baselineTableFailures + $migrationFailures + ($heartbeatStatus === 'FAIL' ? 1 : 0)
                     + $foreignKeyFailures + $triggerFailures;
                 echo 'baseline_table_checks='.count($requiredTables).';failures='.$baselineTableFailures."\n";
-                echo 'migration_ledger_checks=2;failures='.$migrationFailures."\n";
-                echo 'heartbeat_column_checks=1;failures='.($heartbeatCount === 1 ? 0 : 1)."\n";
+                echo 'migration_ledger_checks='.count($expectedMigrations).';failures='.$migrationFailures."\n";
+                echo 'heartbeat_column_checks=1;failures='.($heartbeatStatus === 'FAIL' ? 1 : 0)."\n";
                 echo 'foreign_key_checks='.count($foreignKeys).';failures='.$foreignKeyFailures."\n";
                 echo 'audit_trigger_checks='.count($expectedTriggers).';failures='.$triggerFailures."\n";
                 echo 'production_database_changed=false'."\n";
