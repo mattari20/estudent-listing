@@ -141,7 +141,11 @@ try {
     }
 
     $migrations = [
+        '2026_10_25_000001_create_structured_enrichment_promotion_events_table',
+        '2026_11_03_000002_create_governed_execution_runs_table',
+        '2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency',
         '2026_11_04_000010_create_monitoring_policy_run_checkpoints',
+        '2026_11_04_000012_add_identity_conflict_persistence_keys_and_events',
         '2026_11_04_000014_enforce_append_only_audit_retention',
         '2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat',
     ];
@@ -152,14 +156,19 @@ try {
     foreach ($migrations as $migration) {
         if (!($ledgerStmt instanceof PDOStatement)) {
             $ledger[$migration] = -1;
-            echo "migration_ledger_{$migration}=NOT_CHECKED_MIGRATIONS_TABLE_MISSING\n";
+            echo "migration_ledger_{$migration}=NOT_CHECKED_MIGRATIONS_TABLE_MISSING\\n";
             continue;
         }
         $ledgerStmt->execute([$migration]);
         $ledger[$migration] = (int)$ledgerStmt->fetchColumn();
-        echo "migration_ledger_{$migration}={$ledger[$migration]}\n";
+        echo "migration_ledger_{$migration}={$ledger[$migration]}\\n";
     }
 
+    $columnExists = static function (string $table, string $column) use ($pdo): bool {
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?');
+        $stmt->execute([$table, $column]);
+        return (int)$stmt->fetchColumn() === 1;
+    };
     $auditTables = [
         'security_audit_events','verification_decisions','provenance_review_events',
         'import_promotion_decisions','import_promotion_events','reverification_events',
@@ -226,28 +235,63 @@ try {
     $heartbeat = (int)$heartbeatStmt->fetchColumn() === 1;
     echo 'monitoring_policy_runs.heartbeat_at='.($heartbeat ? 'PRESENT' : 'MISSING')."\n";
 
+    $ledgerCountsValid = count($ledger) === count($migrations)
+        && count(array_filter($ledger, static fn(int $n): bool => $n === 1)) === count($migrations);
     $duplicateLedger = count(array_filter($ledger, static fn(int $n): bool => $n > 1)) > 0;
+
+    $hasEnrichmentEvents = isset($present['structured_enrichment_promotion_events']);
+    $partial001 = ($ledger[$migrations[0]] === 0 && $hasEnrichmentEvents)
+        || ($ledger[$migrations[0]] === 1 && !$hasEnrichmentEvents);
+
+    $hasGovernedRuns = isset($present['governed_execution_runs']);
+    $hasGovernedEvents = isset($present['governed_execution_run_events']);
+    $partial002 = ($ledger[$migrations[1]] === 0 && ($hasGovernedRuns || $hasGovernedEvents))
+        || ($ledger[$migrations[1]] === 1 && !($hasGovernedRuns && $hasGovernedEvents));
+
+    $hasAlertIdentities = isset($present['monitoring_alert_identities']);
+    $hasAuditIdempotency = isset($present['security_audit_events'])
+        && $columnExists('security_audit_events', 'monitoring_idempotency_key');
+    $partial009 = ($ledger[$migrations[2]] === 0 && ($hasAlertIdentities || $hasAuditIdempotency))
+        || ($ledger[$migrations[2]] === 1 && !($hasAlertIdentities && $hasAuditIdempotency));
+
     $checkpointTablesPresent = isset($present['monitoring_policy_runs']) && isset($present['monitoring_policy_run_sources']);
     $anyCheckpointTablePresent = isset($present['monitoring_policy_runs']) || isset($present['monitoring_policy_run_sources']);
-    $partial010 = ($ledger[$migrations[0]] === 0 && $anyCheckpointTablePresent)
-        || ($ledger[$migrations[0]] === 1 && !$checkpointTablesPresent);
+    $partial010 = ($ledger[$migrations[3]] === 0 && $anyCheckpointTablePresent)
+        || ($ledger[$migrations[3]] === 1 && !$checkpointTablesPresent);
+
+    $hasConflictEvents = isset($present['import_conflict_events']);
+    $identityKeyColumns = $columnExists('identity_match_candidates', 'identity_key')
+        && $columnExists('identity_resolution_decisions', 'decision_identity_key')
+        && $columnExists('import_conflicts', 'identity_key');
+    $anyIdentityKeyColumn = $columnExists('identity_match_candidates', 'identity_key')
+        || $columnExists('identity_resolution_decisions', 'decision_identity_key')
+        || $columnExists('import_conflicts', 'identity_key');
+    $partial012 = ($ledger[$migrations[4]] === 0 && ($hasConflictEvents || $anyIdentityKeyColumn))
+        || ($ledger[$migrations[4]] === 1 && !($hasConflictEvents && $identityKeyColumns));
+
     $anyAuditObjectPresent = $triggerPresent > 0 || $auditFkPresent > 0;
     $allAuditMigrationObjectsPresent = $triggerPresent === count($triggerNames) && $auditFkPresent === count($auditFkDefs);
-    $partial014 = ($ledger[$migrations[1]] === 0 && $anyAuditObjectPresent)
-        || ($ledger[$migrations[1]] === 1 && !$allAuditMigrationObjectsPresent);
+    $partial014 = ($ledger[$migrations[5]] === 0 && $anyAuditObjectPresent)
+        || ($ledger[$migrations[5]] === 1 && !$allAuditMigrationObjectsPresent);
+
     $anyMonitoringObjectPresent = $fkPresent > 0 || $heartbeat;
     $allMonitoringObjectsPresent = $fkPresent === count($fkDefs) && $heartbeat;
-    $partial015 = ($ledger[$migrations[2]] === 0 && $anyMonitoringObjectPresent)
-        || ($ledger[$migrations[2]] === 1 && !$allMonitoringObjectsPresent);
-    $partial = $duplicateLedger || $partial010 || $partial014 || $partial015;
-    echo 'partial_application_detected='.($partial ? 'true' : 'false')."\n";
+    $partial015 = ($ledger[$migrations[6]] === 0 && $anyMonitoringObjectPresent)
+        || ($ledger[$migrations[6]] === 1 && !$allMonitoringObjectsPresent);
 
-    $allLedger = count(array_filter($ledger, static fn(int $n): bool => $n === 1)) === 3;
+    $partial = $duplicateLedger || $partial001 || $partial002 || $partial009
+        || $partial010 || $partial012 || $partial014 || $partial015;
+    echo 'partial_application_detected='.($partial ? 'true' : 'false')."\\n";
+    echo 'migration_ledger_checks='.count($migrations).';applied='
+        .count(array_filter($ledger, static fn(int $n): bool => $n === 1))
+        .';missing='.count(array_filter($ledger, static fn(int $n): bool => $n === 0))
+        .';duplicate='.count(array_filter($ledger, static fn(int $n): bool => $n > 1))."\\n";
+
     $allObjects = $triggerPresent === count($triggerNames) && $fkPresent === count($fkDefs) && $heartbeat;
     $allAuditObjects = $triggerPresent === count($triggerNames) && $auditFkPresent === count($auditFkDefs);
-    if ($allLedger && $allObjects && $allAuditObjects) $classification = 'ALREADY_APPLIED_VERIFY_CONSISTENCY';
+    if ($ledgerCountsValid && $allObjects && $allAuditObjects) $classification = 'ALREADY_APPLIED_VERIFY_CONSISTENCY';
     elseif ($partial) $classification = 'BLOCKED_PARTIAL_APPLICATION_REQUIRES_RECONCILIATION';
-    elseif (count($missing) > 0 || $orphanFailures > 0) $classification = 'BLOCKED_MISSING_DEPENDENCIES_OR_ORPHANS';
+    elseif (count($missing) > 0 || $orphanFailures > 0 || !$ledgerCountsValid) $classification = 'BLOCKED_MISSING_DEPENDENCIES_OR_ORPHANS';
     else $classification = 'PREFLIGHT_READY_FOR_REVIEW_NOT_MIGRATION_AUTHORIZATION';
 
     echo "preflight_classification={$classification}\n";
