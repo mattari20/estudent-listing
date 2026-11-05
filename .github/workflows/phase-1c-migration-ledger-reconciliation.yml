@@ -61,8 +61,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          php -l scripts/diagnostics/phase1c-migration-ledger-reconciliation.php
-          SCRIPT_B64="$(base64 -w0 scripts/diagnostics/phase1c-migration-ledger-reconciliation.php)"
+          php -l .production-dispatch-guard/scripts/diagnostics/phase1c-migration-ledger-reconciliation.php
+          SCRIPT_B64="$(base64 -w0 .production-dispatch-guard/scripts/diagnostics/phase1c-migration-ledger-reconciliation.php)"
           echo "RECONCILIATION_SCRIPT_B64=$SCRIPT_B64" >> "$GITHUB_ENV"
           echo "diagnostic_transport=base64_over_ssh_stdin"
           echo "remote_temporary_script_file=NOT_CREATED"
