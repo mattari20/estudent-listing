@@ -1,0 +1,104 @@
+name: Phase 1C Test 1B — Structural Metadata Audit (Read-only)
+on:
+  workflow_dispatch:
+    inputs:
+      project_path:
+        description: "Absolute path to the existing Institutes Laravel project"
+        required: true
+        type: string
+        default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
+      target_sha:
+        description: "Exact 40-character SHA of current main."
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason or ticket reference for this read-only metadata audit."
+        required: true
+        type: string
+        default: "Phase1C-Test1B-structural-metadata-readonly"
+      confirm_production_operation:
+        description: "Type the exact operation-specific confirmation phrase."
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: phase-1c-test1b-structural-metadata-audit
+  cancel-in-progress: false
+jobs:
+  structural-metadata-audit:
+    environment: production-readonly-diagnostics
+    name: Capture exact production schema metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact dispatch revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          path: .production-dispatch-guard
+      - name: Validate protected production dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-PHASE1C-TEST1B-STRUCTURAL-METADATA-READONLY"
+        run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
+      - name: Set up approved PHP for syntax validation
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          tools: none
+      - name: Validate diagnostic PHP syntax and encode for SSH stdin
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l .production-dispatch-guard/scripts/diagnostics/phase1c-test1b-structural-metadata-audit.php
+          SCRIPT_B64="$(base64 -w0 .production-dispatch-guard/scripts/diagnostics/phase1c-test1b-structural-metadata-audit.php)"
+          echo "PREFLIGHT_SCRIPT_B64=$SCRIPT_B64" >> "$GITHUB_ENV"
+          echo "remote_temporary_script_file=NOT_CREATED"
+      - name: Validate environment-scoped production credentials
+        env:
+          PRODUCTION_READONLY_HOSTINGER_SSH_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PRODUCTION_READONLY_HOSTINGER_SSH_HOST"
+          test -n "$PRODUCTION_READONLY_HOSTINGER_SSH_USER"
+          test -n "$PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY"
+          test -n "$PRODUCTION_READONLY_HOSTINGER_SSH_PORT"
+          echo "environment_scoped_credentials=present"
+      - name: Run structural metadata audit over SSH stdin
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
+          PREFLIGHT_SCRIPT_B64: ${{ env.PREFLIGHT_SCRIPT_B64 }}
+        with:
+          host: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,PREFLIGHT_SCRIPT_B64
+          command_timeout: 7m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: project_path must be absolute"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: project_path must not contain .."; exit 2 ;; esac
+            [ -f "$PROJECT_PATH/artisan" ] || { echo "ERROR: artisan not found"; exit 3; }
+            [ -f "$PROJECT_PATH/vendor/autoload.php" ] || { echo "ERROR: Composer autoloader not found"; exit 4; }
+            PHP_BIN="/opt/alt/php85/usr/bin/php"
+            [ -x "$PHP_BIN" ] || { echo "ERROR: approved PHP executable unavailable"; exit 5; }
+            cd "$PROJECT_PATH"
+            printf '%s' "$PREFLIGHT_SCRIPT_B64" | base64 -d | "$PHP_BIN"
+      - name: Confirm production safety contract
+        if: ${{ always() }}
+        run: |
+          echo "production_database_mutations=NOT_PERMITTED"
+          echo "production_migrations=NOT_RUN"
+          echo "production_application_file_writes=NOT_PERMITTED"
+          echo "remote_temporary_files=NOT_CREATED"
+          echo "dummy_production_data=NOT_CREATED"
