@@ -118,3 +118,10 @@ PR #1011's advertised MySQL append-only guarantee is not implemented at the data
 - PR #1011 has since been merged into main; its prior open/blocked statements above are historical and superseded by the merge record in the project tracker.
 - PR #1012 is being reconciled on top of the merged append-only audit-retention implementation. Its isolated MySQL workflow must retain #1011's append-only feature suite and 24-trigger lifecycle proof while adding monitoring checkpoint concurrency coverage.
 - PR #1012 exact-head validation and merge remain pending. No production operation or verification is claimed.
+
+## PR #1013 legacy NULL identity inventory reconciliation — 2026-11-05
+
+- PR #1013 has been reconciled against the latest main after the append-only audit-retention and monitoring checkpoint changes.
+- Its isolated MySQL workflow retains the merged #1011 audit/trigger validation and #1012 monitoring checkpoint concurrency proof, then adds the two legacy identity inventory suites.
+- Inventory is restricted to explicitly isolated test databases. No production database query or NULL-key inventory is authorized or claimed.
+- PR #1013 exact-head validation and merge remain pending.

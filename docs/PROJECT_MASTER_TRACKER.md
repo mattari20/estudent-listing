@@ -2399,3 +2399,14 @@ No production access or operation was initiated. GCU rows #348–353 and batches
 - The monitoring migration `2026_11_04_000015` follows append-only migration `2026_11_04_000014` in the repository migration sequence. Exact-head validation is pending; historical CI results are not proof of this reconciled head.
 - PR #1012 remains open and unmerged. Production monitoring, database access, migration, scheduler/worker changes and source retrieval remain out of scope.
 - GCU rows #348–353 and batches #19–23 remain protected; AI extraction and additional 20 HEC profiles remain disabled; no dummy production data.
+
+---
+
+## Phase 1C-37 — PR #1013 legacy NULL identity inventory reconciliation (2026-11-05)
+
+- Reconciled the existing PR #1013 branch against main `dcfe251ae7ef31b658e4c74cfa51632aed56eaad` without rewriting branch history.
+- Preserved the merged PR #1011 append-only audit-retention and PR #1012 monitoring checkpoint implementation, including the isolated MySQL append-only tests, trigger lifecycle proof, monitoring multiprocess proof and MySQL binary-log configuration.
+- Added PR #1013's read-only seven-column legacy NULL identity-key inventory, strict isolated-test-database command guard, command-safety and inventory regression tests to the current-main workflows.
+- Production NULL-key inventory remains NOT AUTHORIZED and NOT VERIFIED; this repository-only package does not query production.
+- PR #1013 remains open and unmerged. Exact-head CI is pending; historical PR checks do not validate this reconciled head.
+- GCU rows #348–353 and batches #19–23 remain protected; AI extraction and additional 20 HEC profiles remain disabled; no dummy production data.

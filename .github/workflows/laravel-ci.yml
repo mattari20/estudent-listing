@@ -51,6 +51,9 @@ jobs:
           tests/Feature/InstitutesDirectoryTest.php
           tests/Feature/InstituteAgentBootstrapTest.php
           app/Console/Commands/DatabaseHealthCheck.php
+          tests/Feature/AuditLegacyIdentityKeysCommandSafetyTest.php
+          tests/Feature/LegacyIdentityKeyInventoryTest.php
+          app/Console/Commands/AuditLegacyIdentityKeys.php
           app/Console/Commands/GeographySeedPreflight.php
           app/Services/InstituteDiscoveryCandidateExtractor.php
           tests/Unit/InstituteDiscoveryCandidateExtractorTest.php

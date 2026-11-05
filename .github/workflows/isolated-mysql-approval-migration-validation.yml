@@ -6,6 +6,9 @@ on:
       - '.github/workflows/isolated-mysql-approval-migration-validation.yml'
       - '.github/workflows/laravel-ci.yml'
       - 'database/migrations/**'
+      - 'docs/audits/PHASE_1C_LEGACY_NULL_IDENTITY_KEY_INVENTORY.md'
+      - 'tests/Feature/AuditLegacyIdentityKeysCommandSafetyTest.php'
+      - 'tests/Feature/LegacyIdentityKeyInventoryTest.php'
       - 'tests/Feature/AppendOnlyAuditRetentionTest.php'
       - 'tests/Support/verify-monitoring-policy-checkpoint-multiprocess.php'
       - 'tests/Support/verify-append-only-audit-triggers.php'
@@ -179,6 +182,10 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/InstituteDiscoveryReviewPackageTest.php tests/Feature/InstituteDiscoveryReviewPackageRecoveryTest.php
       - name: Prove review-package writer concurrency on independent PHP processes
         run: php tests/Support/verify-review-package-multiprocess.php
+      - name: Validate legacy NULL identity-key inventory on MySQL
+        run: vendor/bin/phpunit tests/Feature/LegacyIdentityKeyInventoryTest.php
+      - name: Prove identity inventory command refuses production and ambiguous database configs
+        run: vendor/bin/phpunit tests/Feature/AuditLegacyIdentityKeysCommandSafetyTest.php
       - name: Validate institution identity conflict and decision replay on MySQL
         run: vendor/bin/phpunit tests/Feature/InstituteIdentityPersistenceRecoveryTest.php
       - name: Prove institution identity conflict and decision concurrency on MySQL
