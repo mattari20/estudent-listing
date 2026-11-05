@@ -32,6 +32,9 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Validate consolidated production diagnostic syntax
+        run: php -l scripts/diagnostics/phase1c-test1b-consolidated-all18-preflight.php
+
       - name: Prepare SQLite database
         run: |
           mkdir -p database
@@ -125,6 +128,7 @@ jobs:
           tests/Feature/InstituteDiscoveryReviewPackageTest.php
           tests/Support/verify-review-package-multiprocess.php
           database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php
+          scripts/diagnostics/phase1c-test1b-consolidated-all18-preflight.php
           app/Models/IdentityMatchCandidate.php
           app/Models/IdentityResolutionDecision.php
           app/Models/ImportConflict.php
