@@ -32,7 +32,7 @@ if (!is_array($conn) || ($conn['driver'] ?? null) !== 'mysql') {
     fwrite(STDERR, "effective_database_driver=UNSUPPORTED_OR_MISSING\n"); exit(11);
 }
 if (!empty($conn['url'])) {
-    $parser = \Illuminate\\Database\\ConfigurationUrlParser::class;
+    $parser = \Illuminate\Database\ConfigurationUrlParser::class;
     if (!class_exists($parser)) {
         fwrite(STDERR, "laravel_database_url_parser=UNAVAILABLE\n"); exit(12);
     }
