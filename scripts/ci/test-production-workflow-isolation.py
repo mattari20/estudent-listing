@@ -510,7 +510,7 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
                         self.assertEqual(job.get("runs-on"), "ubuntu-latest")
                         self.assertNotIn("environment", job)
                         self.assertNotIn("secrets.", flatten(job))
-                        workflow_env = document.get("env", {})
+                        workflow_env = job.get("env", {})
                         self.assertEqual(workflow_env.get("APP_ENV"), "testing")
                         self.assertEqual(workflow_env.get("DB_CONNECTION"), "mysql")
                         self.assertEqual(workflow_env.get("DB_HOST"), "127.0.0.1")
