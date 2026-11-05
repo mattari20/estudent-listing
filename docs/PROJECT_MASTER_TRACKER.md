@@ -2325,3 +2325,19 @@ Final PR head \`c182311b749e7c094c7d2c13b00812c220eea5f0\` passed all four requi
 - Consolidated reconciliation: `docs/audits/PHASE_1C_22_POST_MERGE_RECONCILIATION.md`.
 
 No production access or operation was initiated. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled; no dummy production data.
+
+---
+
+## Phase 1C-32 — PR #1010 retrieval finalization recovery reconciliation (2026-11-05)
+
+- Verified main baseline before reconciliation: `7cd152e0626082ca112192b529f3148e68d1d960` (PR #1017 merge remains current main).
+- Existing PR #1010 branch before reconciliation: `phase-1c-retrieval-finalization-recovery` at `603ef598768d13f460f3ba8184050bd1a5572835`; PR remained open and unmerged.
+- PR #1010 implementation preserved: extracted retrieval-run completion persistence into `SourceRetrievalRunFinalizer`; `SourceRetrievalService` delegates its existing completion fields/timestamp to the finalizer; added injected failure coverage after snapshot persistence and retry reuse of the same capture-key snapshot/run.
+- Full PR patch included service, finalizer, retrieval feature test, tracker and retrieval recovery audit. The two historical Phase 1C audit/checkpoint files in the branch were blob-identical to current main and were not replaced.
+- No PR #1017 workflow/security files were modified. Current production-facing diagnostics workflow definitions remain `workflow_dispatch` only with protected confirmation and `production-readonly-diagnostics` environment. Retrieval service continues using the existing `SafeSourceHttpRetriever` URL/DNS/redirect guard; this PR adds no route, workflow, environment, credential, or authorization bypass.
+- PR #1009 remains separate and untouched. Its review-package service/test/audit paths do not overlap PR #1010's service/test/audit paths. The project tracker is a shared documentation path; this reconciliation starts from current main's tracker and appends only the PR #1010 retrieval section, retaining all current-main content.
+- Reconciliation method: two-parent merge commit with current main as first parent and the original PR #1010 head as second parent; existing branch advanced with non-force, expected-head-guarded update. No existing commit was discarded or rewritten.
+- Reconciliation commit and exact resulting PR head: pending GitHub commit creation and exact-head validation.
+- Remaining architectural limitation: snapshot persistence and retrieval-run finalization remain separate database writes, not one atomic transaction. Recovery is idempotent for the same run/capture key and same payload; changed content under the same capture key fails closed. This does not provide distributed filesystem/database transactionality.
+- No production systems, Hostinger, SSH, hPanel, production DB, Artisan, deployment, migration, scheduler, live source retrieval/discovery, candidate staging, approval, import or publishing was accessed or initiated. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled; no dummy production data.
+- Exact-head Test, Laravel CI/Pint, Project Controller and isolated MySQL evidence will be recorded after all checks complete. MERGED and PRODUCTION VERIFIED are not claimed.
