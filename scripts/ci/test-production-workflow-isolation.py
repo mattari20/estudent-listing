@@ -510,9 +510,39 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
                         self.assertEqual(job.get("runs-on"), "ubuntu-latest")
                         self.assertNotIn("environment", job)
                         self.assertNotIn("secrets.", flatten(job))
+                        workflow_env = document.get("env", {})
+                        self.assertEqual(workflow_env.get("APP_ENV"), "testing")
+                        self.assertEqual(workflow_env.get("DB_CONNECTION"), "mysql")
+                        self.assertEqual(workflow_env.get("DB_HOST"), "127.0.0.1")
+                        self.assertEqual(workflow_env.get("DB_PORT"), 3306)
+                        self.assertEqual(workflow_env.get("DB_DATABASE"), "approval_migration_test")
+                        self.assertEqual(workflow_env.get("DB_USERNAME"), "approval_ci")
+                        mysql_service = job.get("services", {}).get("mysql", {})
+                        mysql_env = mysql_service.get("env", {})
+                        self.assertEqual(mysql_env.get("MYSQL_DATABASE"), "approval_migration_test")
+                        self.assertEqual(mysql_env.get("MYSQL_USER"), "approval_ci")
                         self.assertIn("mysql:8.4", flatten(document))
-                        self.assertIn("phase1c_integrated_test", flatten(document))
+                        self.assertNotIn("phase1c_integrated_test", flatten(document))
+                        self.assertNotIn("phase1c_ci", flatten(document))
                         self.assertIn("127.0.0.1", flatten(document))
+                        self.assertIn("github.event.pull_request.head.sha", flatten(job))
+                        self.assertIn("inputs.target_sha", flatten(job))
+                        for validation_step in (
+                            "Run complete migrations on clean isolated MySQL database",
+                            "Verify migrations 000014 and 000015 are recorded exactly once",
+                            "Verify monitoring heartbeat column and named foreign keys",
+                            "Validate append-only retention and monitoring checkpoint behavior",
+                            "Prove all 24 MySQL audit triggers and migration rollback/reinstall lifecycle",
+                            "Prove monitoring checkpoint concurrency across independent processes",
+                            "Verify audit triggers remain installed after lifecycle test",
+                        ):
+                            step = next(
+                                (item for item in job.get("steps", [])
+                                 if item.get("name") == validation_step),
+                                None,
+                            )
+                            self.assertIsNotNone(step, validation_step)
+                            self.assertEqual(step.get("if"), "${{ always() }}", validation_step)
                     else:
                         errors = validate_production_workflow(document, events)
                         self.assertEqual(errors, [], "; ".join(errors))
