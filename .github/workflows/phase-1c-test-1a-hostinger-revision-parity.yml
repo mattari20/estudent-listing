@@ -69,6 +69,12 @@ jobs:
           done
           echo "environment_scoped_credentials=present"
 
+      - name: Checkout target repository revision for application-code comparison
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha }}
+          fetch-depth: 0
+
       - name: Resolve expected application-code revision
         id: app_revision
         env:
