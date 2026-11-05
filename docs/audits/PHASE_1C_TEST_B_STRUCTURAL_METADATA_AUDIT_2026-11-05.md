@@ -34,3 +34,8 @@ A successful metadata audit does not prove backup recoverability. Obtain a dated
 ## Acceptance
 
 Test 1B remains open until structural comparison, all data-safety checks, recovery proof and a separately reviewed controlled remediation proposal are complete. No production migration or manual schema change is authorized by this diagnostic.
+
+
+## Database-engine compatibility note
+
+The index metadata query detects optional `information_schema.STATISTICS` fields before selecting them. `IS_VISIBLE` and functional-index `EXPRESSION` are reported when the server exposes them; otherwise the output explicitly records that the respective metadata capability is unavailable and continues collecting the portable index fields. This supports MySQL/MariaDB schema variants without treating an unsupported metadata column as a missing production index.
