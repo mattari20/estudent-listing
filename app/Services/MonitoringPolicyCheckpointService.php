@@ -11,12 +11,36 @@ class MonitoringPolicyCheckpointService
     public function startPolicyRun(int $policyId, ?string $executionRunId): int
     {
         return (int) DB::transaction(function () use ($policyId, $executionRunId): int {
-            // Retain historical attempts, but only supersede them atomically with
-            // creation of the replacement attempt. An insert failure rolls this
-            // classification back and leaves the old attempt unchanged.
+            SourceMonitoringPolicy::query()->lockForUpdate()->findOrFail($policyId);
+
+            $cutoff = now()->subMinutes(15);
+            $freshRunning = DB::table('monitoring_policy_runs')
+                ->where('source_monitoring_policy_id', $policyId)
+                ->where('status', 'running')
+                ->where(function ($query) use ($cutoff): void {
+                    $query->where('heartbeat_at', '>=', $cutoff)
+                        ->orWhere(function ($fallback) use ($cutoff): void {
+                            $fallback->whereNull('heartbeat_at')->where('started_at', '>=', $cutoff);
+                        });
+                })
+                ->exists();
+
+            if ($freshRunning) {
+                throw new RuntimeException('A monitoring policy run is already active.');
+            }
+
+            // Only attempts with no heartbeat for at least 15 minutes are
+            // classified as interrupted. The policy-row lock serializes direct
+            // callers as well as the scheduled command path.
             DB::table('monitoring_policy_runs')
                 ->where('source_monitoring_policy_id', $policyId)
                 ->where('status', 'running')
+                ->where(function ($query) use ($cutoff): void {
+                    $query->where('heartbeat_at', '<', $cutoff)
+                        ->orWhere(function ($fallback) use ($cutoff): void {
+                            $fallback->whereNull('heartbeat_at')->where('started_at', '<', $cutoff);
+                        });
+                })
                 ->update([
                     'status' => 'interrupted',
                     'failure_code' => 'superseded_by_new_attempt',
@@ -29,10 +53,29 @@ class MonitoringPolicyCheckpointService
                 'execution_run_id' => $executionRunId,
                 'status' => 'running',
                 'started_at' => now(),
+                'heartbeat_at' => now(),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
         });
+    }
+
+    public function heartbeatPolicyRun(int $policyRunId): void
+    {
+        DB::table('monitoring_policy_runs')
+            ->where('id', $policyRunId)
+            ->where('status', 'running')
+            ->update([
+                'heartbeat_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        if (! DB::table('monitoring_policy_runs')
+            ->where('id', $policyRunId)
+            ->where('status', 'running')
+            ->exists()) {
+            throw new RuntimeException('Monitoring policy run heartbeat was not persisted.');
+        }
     }
 
     public function failPolicyRun(int $policyRunId, string $failureCode): void

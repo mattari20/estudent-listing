@@ -7,6 +7,7 @@ on:
       - '.github/workflows/laravel-ci.yml'
       - 'database/migrations/**'
       - 'tests/Feature/AppendOnlyAuditRetentionTest.php'
+      - 'tests/Support/verify-monitoring-policy-checkpoint-multiprocess.php'
       - 'tests/Support/verify-append-only-audit-triggers.php'
       - 'tests/Feature/InstitutionFieldApprovalServiceTest.php'
       - 'tests/Feature/ExecutionLeaseServiceTest.php'
@@ -196,3 +197,5 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/AppendOnlyAuditRetentionTest.php
       - name: Verify MySQL audit trigger naming, rollback and idempotent reinstallation
         run: php tests/Support/verify-append-only-audit-triggers.php
+      - name: Prove direct monitoring policy checkpoint concurrency across independent PHP processes
+        run: php tests/Support/verify-monitoring-policy-checkpoint-multiprocess.php

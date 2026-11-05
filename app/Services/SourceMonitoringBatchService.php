@@ -32,6 +32,10 @@ class SourceMonitoringBatchService
             $summary['policies']++;
 
             $policyRunId = $checkpoints->startPolicyRun((int) $policy->id, $executionRunId);
+            $policyHeartbeat = function () use ($heartbeat, $checkpoints, $policyRunId): void {
+                $heartbeat?->__invoke();
+                $checkpoints->heartbeatPolicyRun($policyRunId);
+            };
 
             try {
                 app(MonitoringPolicyValidationService::class)->validate($policy);
@@ -42,7 +46,7 @@ class SourceMonitoringBatchService
                 throw $exception;
             }
 
-            $heartbeat?->__invoke();
+            $policyHeartbeat();
             $sources = $policy->source_id
                 ? Source::whereKey($policy->source_id)->get()
                 : Source::where('status', 'active')->whereNotNull('url')->get();
@@ -50,7 +54,7 @@ class SourceMonitoringBatchService
             $failed = false;
 
             foreach ($sources as $source) {
-                $heartbeat?->__invoke();
+                $policyHeartbeat();
                 $summary['sources']++;
                 $checkpoints->startSource($policyRunId, (int) $source->id);
 
@@ -59,7 +63,7 @@ class SourceMonitoringBatchService
                 // infrastructure/programming failures and must abort, not be relabeled
                 // as ordinary retrieval failures.
                 $result = app(SourceMonitoringPipeline::class)->run($source);
-                $heartbeat?->__invoke();
+                $policyHeartbeat();
 
                 if (($result['run']->status ?? '') !== 'completed') {
                     $summary['failed']++;
@@ -131,7 +135,7 @@ class SourceMonitoringBatchService
                 }
 
                 // Check ownership again immediately before recording completion.
-                $heartbeat?->__invoke();
+                $policyHeartbeat();
                 $checkpoints->completeSource(
                     $policyRunId,
                     (int) $source->id,
@@ -140,7 +144,7 @@ class SourceMonitoringBatchService
                 );
             }
 
-            $heartbeat?->__invoke();
+            $policyHeartbeat();
             // State changes, last_run_at and final policy checkpoint are one DB
             // transaction. Any persistence exception rolls all three back.
             $checkpoints->finalizePolicy($policy, $policyRunId, $failed, $summary);

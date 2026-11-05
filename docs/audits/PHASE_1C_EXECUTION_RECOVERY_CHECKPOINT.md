@@ -112,3 +112,9 @@ Phase 1C is NOT ENGINEERING COMPLETE: packages are implemented and individually 
 ## Newly identified review blocker (2026-11-04)
 
 PR #1011's advertised MySQL append-only guarantee is not implemented at the database layer: the migration's MySQL branch performs orphan checks and changes selected foreign keys to `RESTRICT`, then returns without creating UPDATE/DELETE triggers. Its model trait protects Eloquent writes only. SQLite does install triggers. This means direct SQL can still mutate/delete audit rows on MySQL, so PR #1011 is TESTED but not fully acceptance-complete. Required remediation: create/drop MySQL triggers for every scoped append-only table, preserve the one-time identity decision key-enrichment exception with a narrow trigger, and add direct-query regression tests exercised by isolated MySQL. Do not merge #1011 until those checks pass.
+
+## PR #1011 / #1012 integration reconciliation — 2026-11-05
+
+- PR #1011 has since been merged into main; its prior open/blocked statements above are historical and superseded by the merge record in the project tracker.
+- PR #1012 is being reconciled on top of the merged append-only audit-retention implementation. Its isolated MySQL workflow must retain #1011's append-only feature suite and 24-trigger lifecycle proof while adding monitoring checkpoint concurrency coverage.
+- PR #1012 exact-head validation and merge remain pending. No production operation or verification is claimed.

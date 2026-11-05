@@ -89,7 +89,7 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
             'source_monitoring_policy_id' => $policy->id,
             'execution_run_id' => null,
             'status' => 'running',
-            'started_at' => now()->subMinutes(10),
+            'started_at' => now()->subMinutes(20),
             'created_at' => now()->subMinutes(10),
             'updated_at' => now()->subMinutes(10),
         ]);
@@ -311,7 +311,7 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
 
         $pipeline = Mockery::mock(SourceMonitoringPipeline::class);
         $pipeline->shouldReceive('run')->once()->andReturn([
-            'run' => (object) ['status' => 'completed', 'id' => 789],
+            'run' => (object) ['status' => 'completed', 'id' => null],
             'observation' => null,
             'intelligence' => null,
         ]);
@@ -361,7 +361,7 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
 
         $pipeline = Mockery::mock(SourceMonitoringPipeline::class);
         $pipeline->shouldReceive('run')->once()->andReturn([
-            'run' => (object) ['status' => 'completed', 'id' => 901],
+            'run' => (object) ['status' => 'completed', 'id' => null],
             'observation' => null,
             'intelligence' => null,
         ]);
@@ -408,7 +408,7 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
 
         $pipeline = Mockery::mock(SourceMonitoringPipeline::class);
         $pipeline->shouldReceive('run')->once()->andReturn([
-            'run' => (object) ['status' => 'completed', 'id' => 902],
+            'run' => (object) ['status' => 'completed', 'id' => null],
             'observation' => null,
             'intelligence' => null,
         ]);
@@ -458,7 +458,7 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
             'source_monitoring_policy_id' => $policy->id,
             'execution_run_id' => null,
             'status' => 'running',
-            'started_at' => now()->subMinutes(5),
+            'started_at' => now()->subMinutes(20),
             'created_at' => now()->subMinutes(5),
             'updated_at' => now()->subMinutes(5),
         ]);
@@ -550,7 +550,7 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
 
         $pipeline = Mockery::mock(SourceMonitoringPipeline::class);
         $pipeline->shouldReceive('run')->once()->andReturn([
-            'run' => (object) ['status' => 'failed', 'id' => 904],
+            'run' => (object) ['status' => 'failed', 'id' => null],
             'observation' => null,
             'intelligence' => null,
         ]);
@@ -573,5 +573,64 @@ class SourceMonitoringBatchRecoveryTest extends TestCase
         $this->assertNull($policy->last_failure_at);
         $this->assertNull($policy->last_run_at);
     }
+
+
+    public function test_direct_checkpoint_caller_rejects_a_fresh_running_policy_attempt(): void
+    {
+        $policy = SourceMonitoringPolicy::create([
+            'name' => 'Direct Active Policy',
+            'fresh_after_days' => 14,
+            'stale_after_days' => 30,
+            'priority' => 'normal',
+            'status' => 'active',
+            'cadence' => 'daily',
+            'consecutive_failures' => 0,
+        ]);
+
+        $service = app(MonitoringPolicyCheckpointService::class);
+        $firstRunId = $service->startPolicyRun($policy->id, null);
+
+        try {
+            $service->startPolicyRun($policy->id, null);
+            $this->fail('A direct caller must not supersede a fresh running policy attempt.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('A monitoring policy run is already active.', $exception->getMessage());
+        }
+
+        $this->assertDatabaseCount('monitoring_policy_runs', 1);
+        $this->assertDatabaseHas('monitoring_policy_runs', [
+            'id' => $firstRunId,
+            'source_monitoring_policy_id' => $policy->id,
+            'status' => 'running',
+        ]);
+    }
+
+    public function test_policy_run_heartbeat_refreshes_the_direct_caller_staleness_window(): void
+    {
+        \Illuminate\Support\Carbon::setTestNow(\Illuminate\Support\Carbon::parse('2026-11-04 11:00:00'));
+        try {
+            $policy = SourceMonitoringPolicy::create([
+                'name' => 'Heartbeat Policy',
+                'fresh_after_days' => 14,
+                'stale_after_days' => 30,
+                'priority' => 'normal',
+                'status' => 'active',
+                'cadence' => 'daily',
+                'consecutive_failures' => 0,
+            ]);
+
+            $service = app(MonitoringPolicyCheckpointService::class);
+            $runId = $service->startPolicyRun($policy->id, null);
+            $startedHeartbeat = DB::table('monitoring_policy_runs')->where('id', $runId)->value('heartbeat_at');
+
+            \Illuminate\Support\Carbon::setTestNow(\Illuminate\Support\Carbon::parse('2026-11-04 11:03:00'));
+            $service->heartbeatPolicyRun($runId);
+
+            $this->assertNotSame($startedHeartbeat, DB::table('monitoring_policy_runs')->where('id', $runId)->value('heartbeat_at'));
+        } finally {
+            \Illuminate\Support\Carbon::setTestNow();
+        }
+    }
+
 
 }
