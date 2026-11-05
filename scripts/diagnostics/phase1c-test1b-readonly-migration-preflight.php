@@ -227,10 +227,18 @@ try {
     echo 'monitoring_policy_runs.heartbeat_at='.($heartbeat ? 'PRESENT' : 'MISSING')."\n";
 
     $duplicateLedger = count(array_filter($ledger, static fn(int $n): bool => $n > 1)) > 0;
-    $partial010 = $ledger[$migrations[0]] === 0
-        && (isset($present['monitoring_policy_runs']) || isset($present['monitoring_policy_run_sources']));
-    $partial014 = $ledger[$migrations[1]] === 0 && ($triggerPresent > 0 || $auditFkPresent > 0);
-    $partial015 = $ledger[$migrations[2]] === 0 && ($fkPresent > 0 || $heartbeat);
+    $checkpointTablesPresent = isset($present['monitoring_policy_runs']) && isset($present['monitoring_policy_run_sources']);
+    $anyCheckpointTablePresent = isset($present['monitoring_policy_runs']) || isset($present['monitoring_policy_run_sources']);
+    $partial010 = ($ledger[$migrations[0]] === 0 && $anyCheckpointTablePresent)
+        || ($ledger[$migrations[0]] === 1 && !$checkpointTablesPresent);
+    $anyAuditObjectPresent = $triggerPresent > 0 || $auditFkPresent > 0;
+    $allAuditMigrationObjectsPresent = $triggerPresent === count($triggerNames) && $auditFkPresent === count($auditFkDefs);
+    $partial014 = ($ledger[$migrations[1]] === 0 && $anyAuditObjectPresent)
+        || ($ledger[$migrations[1]] === 1 && !$allAuditMigrationObjectsPresent);
+    $anyMonitoringObjectPresent = $fkPresent > 0 || $heartbeat;
+    $allMonitoringObjectsPresent = $fkPresent === count($fkDefs) && $heartbeat;
+    $partial015 = ($ledger[$migrations[2]] === 0 && $anyMonitoringObjectPresent)
+        || ($ledger[$migrations[2]] === 1 && !$allMonitoringObjectsPresent);
     $partial = $duplicateLedger || $partial010 || $partial014 || $partial015;
     echo 'partial_application_detected='.($partial ? 'true' : 'false')."\n";
 
