@@ -45,11 +45,13 @@ jobs:
           CONFIRM_PRODUCTION_OPERATION: ${ inputs.confirm_production_operation }
           EXPECTED_CONFIRMATION: "AUTHORIZE-PHASE1C-TEST1B-PREFLIGHT-READONLY"
         run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
-      - name: Validate preflight PHP syntax and encode for one-time SSH stdin
+      - name: Set up PHP for syntax validation
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.5"
           tools: none
+
+      - name: Validate preflight PHP syntax and encode for one-time SSH stdin
         shell: bash
         run: |
           set -euo pipefail
