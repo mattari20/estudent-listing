@@ -150,7 +150,7 @@ try {
         ? $pdo->prepare('SELECT COUNT(*) FROM migrations WHERE migration=?')
         : null;
     foreach ($migrations as $migration) {
-        if (!$ledgerStmt instanceof PDOStatement) {
+        if (!($ledgerStmt instanceof PDOStatement)) {
             $ledger[$migration] = -1;
             echo "migration_ledger_{$migration}=NOT_CHECKED_MIGRATIONS_TABLE_MISSING\n";
             continue;
@@ -182,6 +182,28 @@ try {
     }
     echo 'expected_audit_triggers='.count($triggerNames).";present={$triggerPresent};missing=".(count($triggerNames)-$triggerPresent)."\n";
 
+    // Migration 000014 replaces eleven cascading relationships with RESTRICT rules.
+    $auditFkDefs = [
+        ['identity_resolution_decisions','import_row_id','identity_decision_row_restrict_fk','import_rows'],
+        ['verification_decisions','assertion_id','verification_decision_assertion_restrict_fk','assertions'],
+        ['import_reconciliation_events','import_batch_id','import_reconciliation_batch_restrict_fk','import_batches'],
+        ['import_promotion_decisions','import_row_id','import_promotion_decision_row_restrict_fk','import_rows'],
+        ['import_promotion_events','import_row_id','import_promotion_event_row_restrict_fk','import_rows'],
+        ['import_promotion_events','import_batch_id','import_promotion_event_batch_restrict_fk','import_batches'],
+        ['reverification_events','queue_id','reverification_event_queue_restrict_fk','data_reverification_queue'],
+        ['structured_enrichment_promotion_events','enrichment_import_row_id','structured_enrichment_row_restrict_fk','enrichment_import_rows'],
+        ['structured_enrichment_promotion_events','import_batch_id','structured_enrichment_batch_restrict_fk','import_batches'],
+        ['import_conflict_events','import_conflict_id','import_conflict_event_restrict_fk','import_conflicts'],
+        ['governed_execution_run_events','run_id','governed_run_event_restrict_fk','governed_execution_runs'],
+    ];
+    $auditFkStmt = $pdo->prepare('SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=? AND CONSTRAINT_NAME=? AND REFERENCED_TABLE_NAME=?');
+    $auditFkPresent = 0;
+    foreach ($auditFkDefs as [$table,$column,$fk,$parent]) {
+        $auditFkStmt->execute([$table,$column,$fk,$parent]);
+        if ((int)$auditFkStmt->fetchColumn() === 1) $auditFkPresent++;
+    }
+    echo 'expected_audit_restrict_foreign_keys='.count($auditFkDefs).";present={$auditFkPresent};missing=".(count($auditFkDefs)-$auditFkPresent)."\n";
+
     $fkDefs = [
         ['monitoring_policy_runs','source_monitoring_policy_id','mp_run_policy_fk','source_monitoring_policies'],
         ['monitoring_policy_runs','execution_run_id','mp_run_exec_fk','governed_execution_runs'],
@@ -207,14 +229,15 @@ try {
     $duplicateLedger = count(array_filter($ledger, static fn(int $n): bool => $n > 1)) > 0;
     $partial010 = $ledger[$migrations[0]] === 0
         && (isset($present['monitoring_policy_runs']) || isset($present['monitoring_policy_run_sources']));
-    $partial014 = $ledger[$migrations[1]] === 0 && $triggerPresent > 0;
+    $partial014 = $ledger[$migrations[1]] === 0 && ($triggerPresent > 0 || $auditFkPresent > 0);
     $partial015 = $ledger[$migrations[2]] === 0 && ($fkPresent > 0 || $heartbeat);
     $partial = $duplicateLedger || $partial010 || $partial014 || $partial015;
     echo 'partial_application_detected='.($partial ? 'true' : 'false')."\n";
 
     $allLedger = count(array_filter($ledger, static fn(int $n): bool => $n === 1)) === 3;
     $allObjects = $triggerPresent === count($triggerNames) && $fkPresent === count($fkDefs) && $heartbeat;
-    if ($allLedger && $allObjects) $classification = 'ALREADY_APPLIED_VERIFY_CONSISTENCY';
+    $allAuditObjects = $triggerPresent === count($triggerNames) && $auditFkPresent === count($auditFkDefs);
+    if ($allLedger && $allObjects && $allAuditObjects) $classification = 'ALREADY_APPLIED_VERIFY_CONSISTENCY';
     elseif ($partial) $classification = 'BLOCKED_PARTIAL_APPLICATION_REQUIRES_RECONCILIATION';
     elseif (count($missing) > 0 || $orphanFailures > 0) $classification = 'BLOCKED_MISSING_DEPENDENCIES_OR_ORPHANS';
     else $classification = 'PREFLIGHT_READY_FOR_REVIEW_NOT_MIGRATION_AUTHORIZATION';
