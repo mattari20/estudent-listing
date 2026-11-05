@@ -96,7 +96,9 @@ jobs:
             # The inline PHP program loads only environment values and opens a direct PDO
             # connection. It does not bootstrap Laravel, invoke Artisan, or create files.
             # MySQL enforces a read-only transaction; every statement below is SELECT.
-            php <<'PHP'
+            PHP_BIN="/opt/alt/php85/usr/bin/php"
+            [ -x "$PHP_BIN" ] || { echo "ERROR: approved PHP executable unavailable"; exit 6; }
+            "$PHP_BIN" <<'PHP'
             <?php
             declare(strict_types=1);
 
