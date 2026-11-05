@@ -2,7 +2,8 @@
 
 **Date:** 2026-11-05  
 **Repository:** `mattari20/estudent-listing`  
-**Main revision inspected:** `3288af4d0b39cc2018e9fe9151c7bc1fbb84912a`  
+**Original inventory revision:** `3288af4d0b39cc2018e9fe9151c7bc1fbb84912a`  
+**Latest follow-up preflight revision:** `8b36d244924bc55b90644c4f5bb55ac6a6bc7f8d`  
 **Purpose:** Record the completed read-only migration-ledger inventory and expanded production schema metadata inventory, and define the next safe remediation gates.
 
 ## 1. Executive result
@@ -172,9 +173,97 @@ Only after Gates A–C pass, prepare a migration-by-migration execution plan wit
 **Migration ledger reconciliation:** FAIL / BLOCKED (18 pending)  
 **Expanded schema metadata inventory:** PASS (39 checked; 11 missing)  
 **Migration-by-migration schema reconciliation:** PENDING  
-**Data-safety preflight:** PENDING  
+**Data-safety preflight:** PARTIALLY COMPLETE (run #42049836371; dependent checks remain NOT_CHECKED)  
 **Backup/restore evidence:** PENDING  
 **Production remediation:** NOT AUTHORIZED / NOT RUN  
 **Test 1B acceptance:** OPEN
 
-The next deliverable should be the migration-by-migration reconciliation and read-only preflight, not an immediate production `php artisan migrate`.
+The next deliverable is a consolidated migration-by-migration reconciliation and grouped remediation package, not an immediate production `php artisan migrate`.
+
+
+## 8. Follow-up read-only migration preflight — run #42049836371
+
+**Workflow:** [Phase 1C Test 1B — Read-only Migration Preflight](https://github.com/mattari20/estudent-listing/actions/runs/42049836371)  
+**Run number:** 11  
+**Revision:** `8b36d244924bc55b90644c4f5bb55ac6a6bc7f8d`  
+**Conclusion:** GitHub Actions SUCCESS; preflight classification: `BLOCKED_MISSING_DEPENDENCIES_OR_ORPHANS`.
+
+The workflow used Laravel's uncached configuration path (`dotenv_plus_config_database`) and the MySQL connection. Its effective database fingerprint matched the earlier full migration inventory and expanded metadata inventory: `d06c2a8519877bad90ffeeaa64f7998a6d4bdade1439b1dafd90a46850e6b019`. This is a non-secret fingerprint; no host, database name, username or credential is recorded here.
+
+### 8.1 Confirmed results
+
+| Check | Result |
+|---|---:|
+| Required tables checked by preflight | 30 |
+| Required tables missing | 7 |
+| Selected migration ledger entries | 7 checked; 0 recorded |
+| Expected append-only / identity triggers | 0 of 24 present |
+| Expected 000014 audit RESTRICT foreign keys | 0 of 11 present |
+| Expected 000015 monitoring foreign keys | 0 of 7 present |
+| `monitoring_policy_runs.heartbeat_at` | Missing |
+| Open monitoring alerts eligible for 000009 identity copy | 2 |
+| Duplicate open-alert `dedupe_key` groups | 0 |
+| Selected application row counts | Aggregate counts only |
+
+Missing tables in this preflight:
+- `monitoring_policy_runs`
+- `monitoring_policy_run_sources`
+- `governed_execution_runs`
+- `monitoring_alert_identities`
+- `structured_enrichment_promotion_events`
+- `import_conflict_events`
+- `governed_execution_run_events`
+
+The 7 selected migration ledger entries were all absent:
+- `2026_10_25_000001_create_structured_enrichment_promotion_events_table`
+- `2026_11_03_000002_create_governed_execution_runs_table`
+- `2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency`
+- `2026_11_04_000010_create_monitoring_policy_run_checkpoints`
+- `2026_11_04_000012_add_identity_conflict_persistence_keys_and_events`
+- `2026_11_04_000014_enforce_append_only_audit_retention`
+- `2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat`
+
+### 8.2 Checks that passed and checks not evaluated
+
+Seven available orphan checks for existing relationships returned zero. Four 000014 orphan checks and all seven 000015 orphan checks were `NOT_CHECKED_DEPENDENCY_OR_COLUMN_MISSING`; they are not passes.
+
+The 000012 duplicate-key and unique-index checks could not run because their prerequisite columns/tables were missing. The 000015 heartbeat backfill count was not applicable because the heartbeat column itself was absent. The diagnostic therefore does not establish that the remaining 18 pending migrations are safe to execute.
+
+### 8.3 Safety and execution evidence
+
+The job log confirms:
+- `preflight_classification=BLOCKED_MISSING_DEPENDENCIES_OR_ORPHANS`
+- `production_database_changed=false`
+- `production_application_files_changed=false`
+- `read_only_transaction=ROLLED_BACK`
+- `production_migrations=NOT_RUN`
+- `production_database_mutations=NOT_PERMITTED`
+- `persistent_diagnostic_reports=NOT_WRITTEN`
+
+No production migration, DDL, DML, trigger change, application-file write, or dummy data creation occurred.
+
+## 9. Consolidated next steps — grouped work, not one PR per migration
+
+The 18 pending migration names from Section 2 remain the full ledger scope. The new preflight deeply inspected seven high-impact migrations only. Do not incorrectly extend its seven-migration results to the other eleven.
+
+Proceed in four grouped gates:
+
+1. **Source/schema delta package:** derive exact expected tables, columns, types, indexes, unique constraints, foreign keys, triggers and data backfills for all 18 pending migrations. Reconcile against the existing 39-table metadata capture. Explicitly label metadata not captured as UNKNOWN; do not infer it.
+2. **Read-only data safety package:** run only the missing prerequisite counts that can now be evaluated, including the 000009 two-alert identity mapping, the remaining orphan relationships, duplicate/non-null identity keys, heartbeat backfill exposure and existing legacy FK definitions. Gate each query on the required table and column so missing prerequisites remain NOT_CHECKED.
+3. **Backup and recovery gate:** obtain dated backup inventory, retention policy and evidence of a successful controlled restore/recovery. A backup listing alone is not a restore test.
+4. **Single reviewed remediation proposal:** group migrations by dependency order and impact, state exact DDL/DML and row effects, distinguish reversible from irreversible operations, and include stop conditions and post-change verification. No production execution is included in this proposal.
+
+**Important:** the 000009 migration will copy two existing open alerts into a new identity table. The zero duplicate-key result removes one known precondition blocker only; it does not authorize or prove the safety of the backfill. The 000014 trigger/FK retention changes and 000015 heartbeat/FK/backfill remain high-impact operations.
+
+## 10. Updated Test 1B decision
+
+- Full migration source/deployment/ledger inventory: **DIAGNOSTIC PASS; 18 PENDING**.
+- Expanded schema metadata inventory: **DIAGNOSTIC PASS; 11 of 39 tables missing**.
+- Seven-migration detailed preflight: **DIAGNOSTIC PASS; production reconciliation BLOCKED**.
+- Migration-by-migration reconciliation across all 18: **PENDING**.
+- Remaining data-safety checks: **PARTIALLY CHECKED; dependent checks NOT_CHECKED**.
+- Backup/restore evidence: **PENDING**.
+- Production remediation: **NOT AUTHORIZED / NOT RUN**.
+- Test 1B final acceptance: **OPEN — BLOCKED**.
+
+The fastest safe route is one consolidated review package followed by one separately authorized, controlled remediation window. Do not run `php artisan migrate` against production as a shortcut.
