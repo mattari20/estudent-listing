@@ -33,8 +33,8 @@ jobs:
         image: mysql:8.4
         env:
           MYSQL_ROOT_PASSWORD: ci-root-${{ github.run_id }}-${{ github.run_attempt }}
-          MYSQL_DATABASE: phase1c_integrated_test
-          MYSQL_USER: phase1c_ci
+          MYSQL_DATABASE: approval_migration_test
+          MYSQL_USER: approval_ci
           MYSQL_PASSWORD: ci-user-${{ github.run_id }}-${{ github.run_attempt }}
         ports:
           - 3306:3306
@@ -50,14 +50,14 @@ jobs:
       DB_CONNECTION: mysql
       DB_HOST: 127.0.0.1
       DB_PORT: 3306
-      DB_DATABASE: phase1c_integrated_test
-      DB_USERNAME: phase1c_ci
+      DB_DATABASE: approval_migration_test
+      DB_USERNAME: approval_ci
       DB_PASSWORD: ci-user-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout exact target revision
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.target_sha || github.sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.target_sha || (github.event_name == 'pull_request' && github.event.pull_request.head.sha) || github.sha }}
       - name: Refuse non-main manual targets
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -81,14 +81,17 @@ jobs:
         run: |
           set -euo pipefail
           test "$APP_ENV" = testing
+          test "$GITHUB_ACTIONS" = true
+          test "$DB_CONNECTION" = mysql
           test "$DB_HOST" = 127.0.0.1
           test "$DB_PORT" = 3306
           test "$DB_DATABASE" = phase1c_integrated_test
           test "$DB_USERNAME" = phase1c_ci
-          mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e 'SELECT VERSION(), DATABASE();'
+          mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e 'SELECT VERSION(), DATABASE(), CURRENT_USER();'
       - name: Run complete migrations on clean isolated MySQL database
         run: php artisan migrate:fresh --force
       - name: Verify migrations 000014 and 000015 are recorded exactly once
+        if: ${{ always() }}
         shell: bash
         run: |
           set -euo pipefail
@@ -96,6 +99,7 @@ jobs:
           grep -q '^2026_11_04_000014_enforce_append_only_audit_retention[[:space:]]1$' "$RUNNER_TEMP/phase1c-migrations.txt"
           grep -q '^2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat[[:space:]]1$' "$RUNNER_TEMP/phase1c-migrations.txt"
       - name: Verify monitoring heartbeat column and named foreign keys
+        if: ${{ always() }}
         shell: bash
         run: |
           set -euo pipefail
@@ -104,12 +108,16 @@ jobs:
           test "$(wc -l < "$RUNNER_TEMP/phase1c-monitoring-fks.txt" | tr -d ' ')" = 7
           mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='monitoring_policy_runs' AND COLUMN_NAME='heartbeat_at';" | grep -qx '1'
       - name: Validate append-only retention and monitoring checkpoint behavior
+        if: ${{ always() }}
         run: vendor/bin/phpunit tests/Feature/AppendOnlyAuditRetentionTest.php tests/Feature/SourceMonitoringBatchRecoveryTest.php tests/Feature/LegacyIdentityKeyInventoryTest.php tests/Feature/AuditLegacyIdentityKeysCommandSafetyTest.php
       - name: Prove all 24 MySQL audit triggers and migration rollback/reinstall lifecycle
+        if: ${{ always() }}
         run: php tests/Support/verify-append-only-audit-triggers.php
       - name: Prove monitoring checkpoint concurrency across independent processes
+        if: ${{ always() }}
         run: php tests/Support/verify-monitoring-policy-checkpoint-multiprocess.php
       - name: Verify audit triggers remain installed after lifecycle test
+        if: ${{ always() }}
         shell: bash
         run: |
           set -euo pipefail
