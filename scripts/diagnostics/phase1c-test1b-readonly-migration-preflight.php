@@ -146,8 +146,15 @@ try {
         '2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat',
     ];
     $ledger = [];
-    $ledgerStmt = $pdo->prepare('SELECT COUNT(*) FROM migrations WHERE migration=?');
+    $ledgerStmt = isset($present['migrations'])
+        ? $pdo->prepare('SELECT COUNT(*) FROM migrations WHERE migration=?')
+        : null;
     foreach ($migrations as $migration) {
+        if (!$ledgerStmt instanceof PDOStatement) {
+            $ledger[$migration] = -1;
+            echo "migration_ledger_{$migration}=NOT_CHECKED_MIGRATIONS_TABLE_MISSING\n";
+            continue;
+        }
         $ledgerStmt->execute([$migration]);
         $ledger[$migration] = (int)$ledgerStmt->fetchColumn();
         echo "migration_ledger_{$migration}={$ledger[$migration]}\n";
