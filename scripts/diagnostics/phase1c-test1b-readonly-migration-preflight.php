@@ -237,8 +237,6 @@ try {
 
     $ledgerCountsValid = count($ledger) === count($migrations)
         && count(array_filter($ledger, static fn(int $n): bool => $n === 1)) === count($migrations);
-    $ledgerCountsValid = count($ledger) === count($migrations)
-        && count(array_filter($ledger, static fn(int $n): bool => $n === 1)) === count($migrations);
     $duplicateLedger = count(array_filter($ledger, static fn(int $n): bool => $n > 1)) > 0;
 
     $hasEnrichmentEvents = isset($present['structured_enrichment_promotion_events']);
