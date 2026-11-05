@@ -93,9 +93,8 @@ jobs:
             [ -f "$PROJECT_PATH/vendor/autoload.php" ] || { echo "ERROR: Composer autoloader not found"; exit 5; }
             cd "$PROJECT_PATH"
 
-            # The inline PHP program loads only environment values and opens a direct PDO
-            # connection. It does not bootstrap Laravel, invoke Artisan, or create files.
-            # MySQL enforces a read-only transaction; every statement below is SELECT.
+            # Resolve Laravel's effective cached or uncached database configuration, then
+            # open direct PDO. Do not bootstrap Laravel or invoke Artisan. All SQL is SELECT.
             PHP_BIN="/opt/alt/php85/usr/bin/php"
             [ -x "$PHP_BIN" ] || { echo "ERROR: approved PHP executable unavailable"; exit 6; }
             "$PHP_BIN" <<'PHP'
@@ -172,21 +171,59 @@ jobs:
                 $pdo->beginTransaction();
                 $transactionOpen = true;
 
+                // Non-reversible fingerprint: compare DB target without exposing connection values.
+                $identity = $pdo->query(
+                    'SELECT DATABASE() AS database_name, @@hostname AS server_host, CURRENT_USER() AS database_user'
+                )->fetch();
+                $identityParts = [
+                    strtolower((string) ($identity['server_host'] ?? '')),
+                    strtolower((string) ($identity['database_name'] ?? '')),
+                    strtolower((string) ($identity['database_user'] ?? '')),
+                ];
+                echo 'effective_database_fingerprint='.hash('sha256', implode("\\0", $identityParts))."\\n";
+
+                // Verify the connection is pointed at the expected application schema.
+                $requiredTables = [
+                    'migrations',
+                    'institutions',
+                    'sources',
+                    'source_monitoring_policies',
+                    'monitoring_policy_runs',
+                ];
+                $tableStmt = $pdo->prepare(
+                    'SELECT COUNT(*) FROM information_schema.TABLES
+                     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?'
+                );
+                $baselineTableFailures = 0;
+                foreach ($requiredTables as $tableName) {
+                    $tableStmt->execute([$tableName]);
+                    $exists = (int) $tableStmt->fetchColumn() === 1;
+                    if (!$exists) $baselineTableFailures++;
+                    echo "baseline_table_{$tableName}=".($exists ? 'PASS' : 'FAIL')."\\n";
+                }
+
                 $expectedMigrations = [
                     '2026_11_04_000014_enforce_append_only_audit_retention',
                     '2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat',
                 ];
-                $migrationStmt = $pdo->prepare(
-                    'SELECT migration, COUNT(*) AS row_count FROM migrations WHERE migration = ? GROUP BY migration'
-                );
                 $migrationFailures = 0;
-                foreach ($expectedMigrations as $migration) {
-                    $migrationStmt->execute([$migration]);
-                    $row = $migrationStmt->fetch();
-                    $count = $row ? (int) $row['row_count'] : 0;
-                    $status = $count === 1 ? 'PASS' : 'FAIL';
-                    if ($status === 'FAIL') $migrationFailures++;
-                    echo "migration_ledger_{$migration}={$status};count={$count}\n";
+                if ($baselineTableFailures === 0) {
+                    $migrationStmt = $pdo->prepare(
+                        'SELECT migration, COUNT(*) AS row_count FROM migrations WHERE migration = ? GROUP BY migration'
+                    );
+                    foreach ($expectedMigrations as $migration) {
+                        $migrationStmt->execute([$migration]);
+                        $row = $migrationStmt->fetch();
+                        $count = $row ? (int) $row['row_count'] : 0;
+                        $status = $count === 1 ? 'PASS' : 'FAIL';
+                        if ($status === 'FAIL') $migrationFailures++;
+                        echo "migration_ledger_{$migration}={$status};count={$count}\\n";
+                    }
+                } else {
+                    $migrationFailures = count($expectedMigrations);
+                    foreach ($expectedMigrations as $migration) {
+                        echo "migration_ledger_{$migration}=NOT_CHECKED_BASELINE_SCHEMA_MISSING;count=0\\n";
+                    }
                 }
 
                 $heartbeatStmt = $pdo->prepare(
@@ -256,7 +293,7 @@ jobs:
                     echo "audit_trigger_{$name}={$status}\n";
                 }
 
-                $totalFailures = $migrationFailures + ($heartbeatCount === 1 ? 0 : 1)
+                $totalFailures = $baselineTableFailures + $migrationFailures + ($heartbeatCount === 1 ? 0 : 1)
                     + $foreignKeyFailures + $triggerFailures;
                 echo 'migration_ledger_checks=2;failures='.$migrationFailures."\n";
                 echo 'heartbeat_column_checks=1;failures='.($heartbeatCount === 1 ? 0 : 1)."\n";
