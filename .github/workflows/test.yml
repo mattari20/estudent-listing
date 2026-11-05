@@ -96,5 +96,8 @@ jobs:
       - name: Lint guarded production schema diagnostic
         run: php -l scripts/ops/official-source-refresh-diagnostic.php
 
+      - name: Lint Phase 1C Test 1B structural metadata diagnostic
+        run: php -l scripts/diagnostics/phase1c-test1b-structural-metadata-audit.php
+
       - name: Run tests
         run: composer test

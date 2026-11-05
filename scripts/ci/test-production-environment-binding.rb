@@ -28,6 +28,7 @@ READ_ONLY = {
   'phase-1c-migration-ledger-reconciliation.yml' => 'production-readonly-diagnostics',
   'phase-1c-test-1b-full-migration-ledger-inventory.yml' => 'production-readonly-diagnostics',
   'phase-1c-test-1b-consolidated-all18-preflight.yml' => 'production-readonly-diagnostics',
+  'phase-1c-test-1b-structural-metadata-audit.yml' => 'production-readonly-diagnostics',
   'phase-1c-test-1c-deployed-migration-file-verification.yml' => 'production-readonly-diagnostics',
   'official-source-refresh-readiness.yml' => 'production-readonly-diagnostics',
   'readonly-reset-inventory.yml' => 'production-readonly-diagnostics',
@@ -63,6 +64,7 @@ CONCURRENCY_GROUPS = {
   'phase-1c-migration-ledger-reconciliation.yml' => ['phase-1c-migration-ledger-reconciliation', false],
   'phase-1c-test-1b-full-migration-ledger-inventory.yml' => ['phase-1c-test1b-full-migration-ledger-inventory', false],
   'phase-1c-test-1b-consolidated-all18-preflight.yml' => ['phase-1c-test1b-consolidated-all18-preflight', false],
+  'phase-1c-test-1b-structural-metadata-audit.yml' => ['phase-1c-test1b-structural-metadata-audit', false],
   'phase-1c-test-1c-deployed-migration-file-verification.yml' => ['phase-1c-test-1c-deployed-migration-file-verification', false],
   'step3-candidate-audit.yml' => ['step3-discovery-candidate-audit', false],
   'step3-record-level-remediation-audit.yml' => ['step3-record-level-remediation-audit', false],
@@ -135,7 +137,7 @@ def blocked?(job)
 end
 
 paths = Dir.glob(File.join(WORKFLOWS, '*.{yml,yaml}')).sort
-fail!("expected exactly 43 workflow files after adding the consolidated Phase 1C all-18 migration preflight; found #{paths.length}") unless paths.length == 43
+fail!("undefined") unless paths.length == 44
 names = paths.map { |path| File.basename(path) }
 
 confirmation_phrases = []
