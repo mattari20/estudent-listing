@@ -128,7 +128,7 @@ try {
       ['source_snapshot_reconciliation_requests','identity_key'],['source_snapshot_reconciliation_requests','source_id'],['source_snapshot_reconciliation_requests','triggering_snapshot_id'],['source_snapshot_reconciliation_requests','current_snapshot_id'],['source_snapshot_reconciliation_requests','expected_previous_snapshot_id'],['source_snapshot_reconciliation_requests','recorded_previous_snapshot_id']
     ];
     $indexMissing=0;
-    foreach($expectedIndexes as [$t,$i]){if(!isset($present[$t])){echo "expected_index_{$t}_{$i}=NOT_CHECKED_TABLE_MISSING\\n";continue;}$ok=$hasIndex($t,$i);if(!$ok)$indexMissing++;echo "expected_index_{$t}_{$i}=".($ok?'PRESENT':'MISSING')."\n";}
+    foreach($expectedIndexes as [$t,$i]){if(!isset($present[$t])){echo "expected_index_{$t}_{$i}=NOT_CHECKED_TABLE_MISSING\n";continue;}$ok=$hasIndex($t,$i);if(!$ok)$indexMissing++;echo "expected_index_{$t}_{$i}=".($ok?'PRESENT':'MISSING')."\n";}
     echo 'expected_index_checks='.count($expectedIndexes).';missing='.$indexMissing."\n";
 
     // Read-only duplicate preconditions. A query runs only when all required columns exist.
@@ -213,7 +213,11 @@ try {
       ['structured_enrichment_promotion_events','import_batch_id','structured_enrichment_batch_restrict_fk','import_batches'],
       ['import_conflict_events','import_conflict_id','import_conflict_event_restrict_fk','import_conflicts'],
       ['governed_execution_run_events','run_id','governed_run_event_restrict_fk','governed_execution_runs'],
-      ['source_snapshot_reconciliation_requests','source_id','ssr_source_fk','sources'],\n      ['source_snapshot_reconciliation_requests','triggering_snapshot_id','ssr_triggering_snapshot_fk','source_snapshots'],\n      ['source_snapshot_reconciliation_requests','current_snapshot_id','ssr_current_snapshot_fk','source_snapshots'],\n      ['source_snapshot_reconciliation_requests','expected_previous_snapshot_id','ssr_expected_previous_fk','source_snapshots'],\n      ['source_snapshot_reconciliation_requests','recorded_previous_snapshot_id','ssr_recorded_previous_fk','source_snapshots'],\n      ['monitoring_policy_runs','source_monitoring_policy_id','mp_run_policy_fk','source_monitoring_policies'],
+      ['source_snapshot_reconciliation_requests','source_id','ssr_source_fk','sources'],
+      ['source_snapshot_reconciliation_requests','triggering_snapshot_id','ssr_triggering_snapshot_fk','source_snapshots'],
+      ['source_snapshot_reconciliation_requests','current_snapshot_id','ssr_current_snapshot_fk','source_snapshots'],
+      ['source_snapshot_reconciliation_requests','expected_previous_snapshot_id','ssr_expected_previous_fk','source_snapshots'],
+      ['source_snapshot_reconciliation_requests','recorded_previous_snapshot_id','ssr_recorded_previous_fk','source_snapshots'],\n      ['monitoring_policy_runs','source_monitoring_policy_id','mp_run_policy_fk','source_monitoring_policies'],
       ['monitoring_policy_runs','execution_run_id','mp_run_exec_fk','governed_execution_runs'],
       ['monitoring_policy_run_sources','monitoring_policy_run_id','mp_source_run_fk','monitoring_policy_runs'],
       ['monitoring_policy_run_sources','source_id','mp_source_source_fk','sources'],
