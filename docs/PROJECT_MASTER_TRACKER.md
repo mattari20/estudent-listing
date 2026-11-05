@@ -2410,3 +2410,44 @@ No production access or operation was initiated. GCU rows #348–353 and batches
 - Production NULL-key inventory remains NOT AUTHORIZED and NOT VERIFIED; this repository-only package does not query production.
 - PR #1013 remains open and unmerged. Exact-head CI is pending; historical PR checks do not validate this reconciled head.
 - GCU rows #348–353 and batches #19–23 remain protected; AI extraction and additional 20 HEC profiles remain disabled; no dummy production data.
+
+
+---
+
+## Phase 1C-38 — final integration reconciliation after PRs #1009–#1014 (2026-11-05)
+
+**Verified current main:** acad19aaf62f12933a5af05db974fa7b9ebab0af.
+
+### Final continuation PR merge ledger
+
+| PR | Scope | Merge commit | Status |
+|---|---|---|---|
+| #1009 | Review-package row/evidence integrity | b8add81c79f40ddf7891c24229cb8835c739e280 | MERGED |
+| #1010 | Retrieval finalization recovery | 0e197c760202c628eb5065bc86207b045d1414f8 | MERGED |
+| #1011 | Append-only audit retention and database triggers | 18ed563ef34c64faab4d9f4b072b55730469cf87 | MERGED |
+| #1012 | Monitoring checkpoint foreign keys, heartbeat and concurrency | dcfe251ae7ef31b658e4c74cfa51632aed56eaad | MERGED |
+| #1013 | Read-only legacy NULL identity-key inventory (test-only) | acad19aaf62f12933a5af05db974fa7b9ebab0af | MERGED |
+| #1014 | Fail-closed multiline issue-comment parser | 580cf62c2622f448e202cf261e9ebec8baebc72e | MERGED |
+| #1017 | Production workflow isolation/security baseline | 7cd152e0626082ca112192b529f3148e68d1d960 | MERGED |
+
+The above merge SHAs were read from live GitHub PR metadata. PR #1015 is this documentation-only carrier and remains open pending its own exact-head checks and owner-controlled merge. PR #1016 is superseded by #1017; do not merge it.
+
+### Current engineering state
+
+- The previously pending continuation implementation PRs #1009–#1014 are now integrated into main.
+- Their earlier branch-specific validation evidence remains historical pre-merge evidence; this audit does not represent it as one integrated-main regression run.
+- A fresh, unified post-integration Test/Laravel CI/Pint/Project Controller/isolated MySQL validation on the final integrated main revision is still required before declaring engineering acceptance complete.
+- PR #1013 provides a reproducible read-only inventory against explicitly isolated test databases only. Production legacy NULL-key counts remain unknown; no production query was performed.
+- Hostinger deployed-code revision parity, production schema/migration ledger state, production trigger presence, and runtime/provider behavior remain NOT VERIFIED.
+- The four reviewed production-facing workflows expose workflow_dispatch only on this main revision. Their protected inputs and production environment controls are unchanged by this documentation reconciliation. No workflow was dispatched.
+
+### Phase disposition
+
+- IMPLEMENTED: continuation packages #1009–#1014 are merged.
+- MERGED: verified by the merge ledger above.
+- INTEGRATED-MAIN REGRESSION: pending a unified post-integration validation run.
+- PRODUCTION VERIFIED: NOT VERIFIED.
+- PHASE 1C: NOT YET ACCEPTANCE-COMPLETE.
+- PHASE 2: do not start until the unified engineering validation and separately authorized production acceptance items are resolved.
+
+Safety: no production SSH/Hostinger/hPanel access, production database query/write, migration, deployment, scheduler/worker operation, live discovery, staging, approval, import, canonical promotion or publishing was performed. GCU rows #348–353 and batches #19–23 remain protected. AI extraction and the additional 20 HEC profiles remain disabled. No dummy production data was created.

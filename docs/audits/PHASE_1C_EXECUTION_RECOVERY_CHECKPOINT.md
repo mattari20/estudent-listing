@@ -125,3 +125,18 @@ PR #1011's advertised MySQL append-only guarantee is not implemented at the data
 - Its isolated MySQL workflow retains the merged #1011 audit/trigger validation and #1012 monitoring checkpoint concurrency proof, then adds the two legacy identity inventory suites.
 - Inventory is restricted to explicitly isolated test databases. No production database query or NULL-key inventory is authorized or claimed.
 - PR #1013 exact-head validation and merge remain pending.
+
+
+---
+
+## Phase 1C-38 — final integration reconciliation (2026-11-05)
+
+- Latest verified main: acad19aaf62f12933a5af05db974fa7b9ebab0af.
+- PRs #1009, #1010, #1011, #1012, #1013 and #1014 are all closed/merged. Exact merge SHAs and scopes are recorded in the Phase 1C-38 section of docs/PROJECT_MASTER_TRACKER.md.
+- PR #1015 remains the existing documentation-only acceptance carrier. It is being reconciled with the actual merged main history; exact-head checks must pass before owner merge.
+- PR #1016 remains open but is superseded by merged PR #1017; do not merge.
+- The four production-facing workflows checked on current main expose workflow_dispatch only. No production workflow was dispatched.
+- Engineering integration has progressed, but a single unified post-integration Test/Laravel CI/Pint/Project Controller/isolated MySQL run remains outstanding. Historical per-PR green checks are not a substitute.
+- Production NULL-key inventory, deployed revision parity, production schema/migration ledger and trigger presence remain NOT VERIFIED and require separate explicit authorization.
+- Phase 1C is not yet acceptance-complete; Phase 2 remains on hold pending engineering and production acceptance evidence.
+- No production operation was performed. Protected GCU rows #348–353 and batches #19–23 remain untouched; AI extraction and additional 20 HEC profiles remain disabled; no dummy production data.
