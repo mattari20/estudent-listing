@@ -2377,3 +2377,14 @@ No production access or operation was initiated. GCU rows #348–353 and batches
 - This tracker update resolves the documented-content conflict with the current main version. Exact-head CI and GitHub mergeability must be checked after this commit.
 - PR #1014 remains open and unmerged; no merge or close action.
 - No production access, dispatch, deployment, migration, discovery, staging, approval, import or publishing. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled.
+
+---
+
+## Phase 1C-35 — PR #1011 append-only audit retention reconciliation (2026-11-05)
+
+- Reconciled the existing PR #1011 branch with current main `580cf62c2622f448e202cf261e9ebec8baebc72e` using a two-parent merge commit; current main is the first parent and the prior PR head is the second parent. Existing branch history was preserved with a non-force, expected-head-guarded update.
+- Preserved the current-main tracker and checkpoint history from PRs #1010 and #1014; retained PR #1011's implementation, isolated MySQL workflow, append-only audit-retention audit, and feature/support tests.
+- Added the missing SQLite parent-delete guard for `governed_execution_runs` when retained `governed_execution_run_events` exist, plus a direct database regression test proving parent deletion is rejected and the event remains.
+- Reconciliation merge commit: `47d69cc7372f6974bbae8115911d26ac5a25bac0`. Follow-up regression implementation commits are in its second-parent ancestry.
+- Exact-head validation on the final reconciled head is pending. Historical runs are not proof of this updated head. PR #1011 remains open and unmerged pending all required checks and review.
+- No production access, migration, deployment, Hostinger, SSH, production database, discovery, staging, approval, import or publishing. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled; no dummy production data.
