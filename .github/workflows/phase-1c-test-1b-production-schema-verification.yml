@@ -115,11 +115,11 @@ jobs:
                 $databaseConfig = $appConfig['database'];
                 $configSource = 'laravel_config_cache';
             } else {
-                if (!class_exists(\\Dotenv\\Dotenv::class)) {
+                if (!class_exists(\Dotenv\Dotenv::class)) {
                     fwrite(STDERR, "dotenv_library=UNAVAILABLE\n");
                     exit(10);
                 }
-                \\Dotenv\\Dotenv::createImmutable(getcwd())->safeLoad();
+                \Dotenv\Dotenv::createImmutable(getcwd())->safeLoad();
                 $databaseConfig = require getcwd().'/config/database.php';
                 $configSource = 'dotenv_plus_config_database';
             }
@@ -133,7 +133,7 @@ jobs:
 
             // Apply Laravel's own DB_URL parsing rather than silently ignoring DB_URL.
             if (!empty($connection['url'])) {
-                $parserClass = \\Illuminate\\Database\\ConfigurationUrlParser::class;
+                $parserClass = \Illuminate\Database\ConfigurationUrlParser::class;
                 if (!class_exists($parserClass)) {
                     fwrite(STDERR, "laravel_database_url_parser=UNAVAILABLE\n");
                     exit(12);
@@ -180,7 +180,7 @@ jobs:
                     strtolower((string) ($identity['database_name'] ?? '')),
                     strtolower((string) ($identity['database_user'] ?? '')),
                 ];
-                echo 'effective_database_fingerprint='.hash('sha256', implode("\\0", $identityParts))."\\n";
+                echo 'effective_database_fingerprint='.hash('sha256', implode("\0", $identityParts))."\n";
 
                 // Verify the connection is pointed at the expected application schema.
                 $requiredTables = [
@@ -199,7 +199,7 @@ jobs:
                     $tableStmt->execute([$tableName]);
                     $exists = (int) $tableStmt->fetchColumn() === 1;
                     if (!$exists) $baselineTableFailures++;
-                    echo "baseline_table_{$tableName}=".($exists ? 'PASS' : 'FAIL')."\\n";
+                    echo "baseline_table_{$tableName}=".($exists ? 'PASS' : 'FAIL')."\n";
                 }
 
                 $expectedMigrations = [
@@ -217,12 +217,12 @@ jobs:
                         $count = $row ? (int) $row['row_count'] : 0;
                         $status = $count === 1 ? 'PASS' : 'FAIL';
                         if ($status === 'FAIL') $migrationFailures++;
-                        echo "migration_ledger_{$migration}={$status};count={$count}\\n";
+                        echo "migration_ledger_{$migration}={$status};count={$count}\n";
                     }
                 } else {
                     $migrationFailures = count($expectedMigrations);
                     foreach ($expectedMigrations as $migration) {
-                        echo "migration_ledger_{$migration}=NOT_CHECKED_BASELINE_SCHEMA_MISSING;count=0\\n";
+                        echo "migration_ledger_{$migration}=NOT_CHECKED_BASELINE_SCHEMA_MISSING;count=0\n";
                     }
                 }
 
