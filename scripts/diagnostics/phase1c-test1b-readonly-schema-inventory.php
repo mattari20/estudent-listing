@@ -70,17 +70,21 @@ try {
         strtolower((string)($identity['u'] ?? '')),
     ]));
 
+    // Complete table scope for all 18 migrations classified as pending by
+    // the full ledger inventory, including parent tables touched by FK changes.
     $tables = [
-        'migrations','institutions','sources','source_monitoring_policies',
-        'monitoring_policy_runs','monitoring_policy_run_sources','governed_execution_runs',
-        'source_retrieval_runs','source_change_observations','monitoring_alert_identities',
-        'monitoring_alerts','security_audit_events','verification_decisions',
-        'provenance_review_events','import_promotion_decisions','import_promotion_events',
-        'reverification_events','structured_enrichment_promotion_events',
-        'official_source_refresh_events','import_conflict_events','import_reconciliation_events',
-        'governed_execution_run_events','identity_resolution_decisions','import_rows',
-        'import_batches','assertions','data_reverification_queue','enrichment_import_rows',
-        'import_conflicts','identity_match_candidates',
+        'migrations','users','password_reset_tokens','institutions','sources',
+        'source_monitoring_policies','monitoring_policy_runs','monitoring_policy_run_sources',
+        'governed_execution_leases','governed_execution_runs','governed_execution_run_events',
+        'source_retrieval_runs','source_snapshots','source_change_observations',
+        'institute_discovery_run_outcomes','change_events','data_reverification_queue',
+        'data_reverification_queue_identities','monitoring_alerts','monitoring_alert_identities',
+        'security_audit_events','verification_decisions','provenance_review_events',
+        'import_promotion_decisions','import_promotion_events','reverification_events',
+        'structured_enrichment_promotion_events','official_source_refresh_events',
+        'import_conflict_events','import_reconciliation_events','source_snapshot_reconciliation_requests',
+        'identity_resolution_decisions','import_rows','import_batches','assertions',
+        'evidence','enrichment_import_rows','import_conflicts','identity_match_candidates',
     ];
 
     echo "phase_1c_test_1b_schema_inventory=STARTED\n";
