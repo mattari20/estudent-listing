@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PreventsAuditMutation;
+
 use Illuminate\Database\Eloquent\Model;
 
 class OfficialSourceRefreshEvent extends Model
 {
+    use PreventsAuditMutation;
     protected $fillable = [
         'source_id',
         'source_change_observation_id',

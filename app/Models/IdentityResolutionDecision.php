@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ProtectsIdentityDecisionHistory;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class IdentityResolutionDecision extends Model
 {
+    use ProtectsIdentityDecisionHistory;
     protected $fillable = [
         'import_row_id',
         'institution_id',

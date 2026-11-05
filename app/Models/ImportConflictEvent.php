@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PreventsAuditMutation;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ImportConflictEvent extends Model
 {
+    use PreventsAuditMutation;
     protected $fillable = [
         'import_conflict_id',
         'event_type',

@@ -1,8 +1,11 @@
 <?php
 namespace App\Models;
+
+use App\Models\Concerns\PreventsAuditMutation;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ReverificationEvent extends Model {
+    use PreventsAuditMutation;
  protected $fillable=['queue_id','event_type','actor_type','actor_id','previous_status','new_status','evidence_id','reason','metadata','occurred_at'];
  protected $casts=['metadata'=>'array','occurred_at'=>'datetime'];
  public function queue(): BelongsTo { return $this->belongsTo(DataReverificationQueue::class,'queue_id'); }
