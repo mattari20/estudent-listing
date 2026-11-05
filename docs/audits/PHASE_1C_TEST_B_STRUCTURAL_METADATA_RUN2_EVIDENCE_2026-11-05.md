@@ -30,7 +30,7 @@ The server does not expose `IS_VISIBLE` or `EXPRESSION` in `information_schema.S
 
 ## 2. Missing tables in the exact 38-table diagnostic scope
 
-The diagnostic's source-defined table list contains 38 names. The following 11 names were not returned by `information_schema.TABLES`:
+The diagnostic's source-defined table list contains 38 names, but the earlier read-only schema inventory defined a 39-table scope that also included `institutions`. The 38-table script accidentally omitted `institutions`. The following 11 names were not returned by `information_schema.TABLES` within the 38-name query:
 
 1. `password_reset_tokens`
 2. `structured_enrichment_promotion_events`
@@ -50,7 +50,7 @@ The tables `users`, `migrations`, `import_batches`, `sources`, `source_retrieval
 
 ## 3. Trigger finding
 
-The audit returned `trigger_metadata_count=0` for the 38 scoped tables. The consolidated all-18 plan identifies 24 expected audit/identity triggers for migration `2026_11_04_000014`.
+The audit returned `trigger_metadata_count=0` for the 38 scoped tables queried in run #42059232458; `institutions` was outside that run's scope. The consolidated all-18 plan identifies 24 expected audit/identity triggers for migration `2026_11_04_000014`.
 
 This is a material schema gap requiring exact source-to-production comparison. The query is scoped to the 38 named tables; do not generalize it to every table in the database.
 
@@ -64,9 +64,11 @@ The earlier consolidated all-18 preflight [run #42054629047](https://github.com/
 
 Skipped checks are **unknown**, not clean/zero. No row-level payload was emitted.
 
-## 5. Scope-count discrepancy to reconcile
+## 5. Scope-count discrepancy and correction
 
-The earlier all-18 reconciliation plan refers to a 39-table metadata inventory, while the current structural audit script explicitly declares 38 table names (`expected_scope=38`). The earlier run's inventory and the current 38-table scope must be reconciled before claiming exhaustive structural coverage. This report deliberately preserves the exact 38-name scope used by run #42059232458.
+The earlier read-only schema inventory explicitly included `institutions`, giving a 39-table scope. The structural audit script used for run #42059232458 omitted `institutions` and queried only 38 names (`expected_scope=38`). A separate read-only migration preflight run #42049836371 returned an existing foreign-key definition referencing `institutions.id`, which is evidence that the table existed at that earlier check. The run #42059232458 counts above remain the exact historical 38-table results; they must not be relabelled as 39-table results.
+
+A follow-up code correction adds `institutions` to both the structural metadata audit and consolidated all-18 preflight table scopes. After that correction is merged, rerun both protected read-only workflows against the same current `main` SHA. Only the new run can establish the current 39-table totals and current `institutions` metadata.
 
 ## 6. Safety evidence
 

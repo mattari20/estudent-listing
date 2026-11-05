@@ -7,7 +7,7 @@
 
 ## 1. Decision and safety boundary
 
-The 18 migration files are present in the deployed application directory according to the full source/deployment inventory. The production migration ledger records 79 of 97 expected migration names; 18 remain pending. The earlier metadata inventory found 11 missing tables among 39 checked. Run #42049836371 used the effective Laravel MySQL connection, matched the same non-secret database fingerprint as the earlier inventories, and reported missing prerequisites across the selected high-impact migrations.
+The 18 migration files are present in the deployed application directory according to the full source/deployment inventory. The production migration ledger records 79 of 97 expected migration names; 18 remain pending. The earlier metadata inventory defined a 39-table scope including `institutions` and found 11 missing tables. The structural audit run #42059232458 accidentally queried only 38 names because its script omitted `institutions`; its 27-present/11-missing counts are historical 38-scope counts and must not be treated as a complete 39-table result. Run #42049836371 used the effective Laravel MySQL connection, matched the same non-secret database fingerprint as the earlier inventories, and reported missing prerequisites across the selected high-impact migrations.
 
 This document is a source-derived plan, not a production execution instruction. It does not authorize `php artisan migrate`, DDL, DML, trigger/FK changes, application writes, deployment, or data correction. The database's intentional lack of test/canonical data is not permission to seed it.
 

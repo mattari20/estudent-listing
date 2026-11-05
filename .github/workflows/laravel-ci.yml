@@ -34,6 +34,9 @@ jobs:
 
       - name: Validate consolidated production diagnostic syntax
         run: php -l scripts/diagnostics/phase1c-test1b-consolidated-all18-preflight.php
+        
+      - name: Validate structural metadata diagnostic syntax
+        run: php -l scripts/diagnostics/phase1c-test1b-structural-metadata-audit.php
 
       - name: Prepare SQLite database
         run: |
