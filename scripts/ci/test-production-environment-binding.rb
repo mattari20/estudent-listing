@@ -123,7 +123,7 @@ def blocked?(job)
 end
 
 paths = Dir.glob(File.join(WORKFLOWS, '*.{yml,yaml}')).sort
-fail!("expected exactly 36 workflow files after adding Phase 1C Test 1A revision parity; found #{paths.length}") unless paths.length == 37
+fail!("expected exactly 37 workflow files after adding Phase 1C Test 1B schema verification; found #{paths.length}") unless paths.length == 37
 names = paths.map { |path| File.basename(path) }
 
 confirmation_phrases = []
