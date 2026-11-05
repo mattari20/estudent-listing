@@ -123,6 +123,7 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
         env:
           PROJECT_PATH: ${{ inputs.project_path }}
+          TARGET_REVISION: ${{ inputs.target_sha }}
           EXPECTED_APPLICATION_REVISION: ${{ steps.expected.outputs.expected_application_revision }}
           MIGRATION_0_PATH: ${{ steps.expected.outputs.migration_0_path }}
           MIGRATION_0_SHA256: ${{ steps.expected.outputs.migration_0_sha256 }}
@@ -135,7 +136,7 @@ jobs:
           username: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
           key: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
           port: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
-          envs: PROJECT_PATH,EXPECTED_APPLICATION_REVISION,MIGRATION_0_PATH,MIGRATION_0_SHA256,MIGRATION_1_PATH,MIGRATION_1_SHA256,MIGRATION_2_PATH,MIGRATION_2_SHA256
+          envs: PROJECT_PATH,TARGET_REVISION,EXPECTED_APPLICATION_REVISION,MIGRATION_0_PATH,MIGRATION_0_SHA256,MIGRATION_1_PATH,MIGRATION_1_SHA256,MIGRATION_2_PATH,MIGRATION_2_SHA256
           command_timeout: 3m
           script: |
             set -eu
@@ -150,23 +151,24 @@ jobs:
             [ -f "$PROJECT_PATH/.env" ] || { echo "ERROR: Laravel environment file not found"; exit 4; }
             [ -f "$PROJECT_PATH/vendor/autoload.php" ] || { echo "ERROR: Composer autoloader not found"; exit 5; }
 
-            case "$EXPECTED_APPLICATION_REVISION" in
-              *[!0-9a-f]*|'') echo "ERROR: invalid expected application revision"; exit 6 ;;
+            case "$TARGET_REVISION" in
+              *[!0-9a-f]*|'') echo "ERROR: invalid target revision"; exit 6 ;;
             esac
-            [ "${#EXPECTED_APPLICATION_REVISION}" -eq 40 ] || { echo "ERROR: invalid expected application revision length"; exit 6; }
+            [ "${#TARGET_REVISION}" -eq 40 ] || { echo "ERROR: invalid target revision length"; exit 6; }
 
             DEPLOYED_REVISION="git_metadata_unavailable"
             if git -C "$PROJECT_PATH" rev-parse --show-toplevel >/dev/null 2>&1; then
               DEPLOYED_REVISION="$(git -C "$PROJECT_PATH" rev-parse HEAD 2>/dev/null || printf git_metadata_unavailable)"
             fi
             echo "deployed_git_revision=$DEPLOYED_REVISION"
-            echo "expected_application_revision=$EXPECTED_APPLICATION_REVISION"
+            echo "target_revision=$TARGET_REVISION"
+            echo "latest_application_code_commit=$EXPECTED_APPLICATION_REVISION"
             if [ "$DEPLOYED_REVISION" = "git_metadata_unavailable" ]; then
               echo "deployed_git_revision_status=UNAVAILABLE_NO_GIT_METADATA"
-            elif [ "$DEPLOYED_REVISION" = "$EXPECTED_APPLICATION_REVISION" ]; then
-              echo "deployed_git_revision_status=PASS_MATCH"
+            elif [ "$DEPLOYED_REVISION" = "$TARGET_REVISION" ]; then
+              echo "deployed_git_revision_status=PASS_TARGET_SHA_MATCH"
             else
-              echo "deployed_git_revision_status=DIFFERS_FROM_EXPECTED_APPLICATION_REVISION"
+              echo "deployed_git_revision_status=DIFFERS_FROM_TARGET_SHA"
             fi
 
             CHECKED=0
