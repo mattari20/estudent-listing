@@ -96,14 +96,14 @@ try {
     $expectedColumns=[
       ['password_reset_tokens','email'],['password_reset_tokens','token'],['password_reset_tokens','created_at'],
       ['users','must_change_password'],['import_batches','duplicate_rows'],
-      ['structured_enrichment_promotion_events','enrichment_import_row_id'],['structured_enrichment_promotion_events','import_batch_id'],
+      ['structured_enrichment_promotion_events','enrichment_import_row_id'],['structured_enrichment_promotion_events','import_batch_id'],['structured_enrichment_promotion_events','occurred_at'],
       ['governed_execution_leases','task_key'],['governed_execution_leases','owner_token'],['governed_execution_leases','run_id'],['governed_execution_leases','expires_at'],
-      ['governed_execution_runs','id'],['governed_execution_run_events','run_id'],
+      ['governed_execution_runs','id'],['governed_execution_run_events','run_id'],['governed_execution_run_events','event_type'],['governed_execution_run_events','occurred_at'],
       ['source_retrieval_runs','source_retrieval_runs_idempotency_key_unique'],['source_snapshots','source_snapshots_capture_key_unique'],['source_change_observations','current_snapshot_id'],
       ['institute_discovery_run_outcomes','institute_discovery_run_outcomes_idempotency_key_unique'],['change_events','source_change_assertion_link_id'],
-      ['data_reverification_queue_identities','identity_key'],['monitoring_alert_identities','dedupe_key'],
+      ['data_reverification_queue_identities','identity_key'],['data_reverification_queue_identities','subject_type'],['data_reverification_queue_identities','subject_id'],['data_reverification_queue_identities','active_queue_id'],['monitoring_alert_identities','dedupe_key'],['monitoring_alert_identities','active_alert_id'],
       ['security_audit_events','security_audit_events_monitoring_idempotency_key_unique'],['monitoring_policy_runs','heartbeat_at'],
-      ['monitoring_policy_run_sources','monitoring_policy_run_id'],['import_batches','discovery_identity_key'],
+      ['monitoring_policy_runs','source_monitoring_policy_id'],['monitoring_policy_runs','execution_run_id'],['monitoring_policy_runs','started_at'],['monitoring_policy_run_sources','monitoring_policy_run_id'],['monitoring_policy_run_sources','source_id'],['monitoring_policy_run_sources','retrieval_run_id'],['monitoring_policy_run_sources','observation_id'],['import_batches','discovery_identity_key'],
       ['evidence','discovery_identity_key'],['import_rows','discovery_identity_key'],['assertions','discovery_identity_key'],
       ['identity_match_candidates','identity_key'],['identity_resolution_decisions','decision_identity_key'],
       ['import_conflicts','identity_key'],['import_conflict_events','idempotency_key'],
@@ -125,7 +125,7 @@ try {
       ['identity_match_candidates','identity_match_candidates_identity_key_unique'],
       ['identity_resolution_decisions','identity_resolution_decisions_identity_key_unique'],
       ['import_conflicts','import_conflicts_identity_key_unique'],['import_conflict_events','import_conflict_events_idempotency_key_unique'],
-      ['source_snapshot_reconciliation_requests','identity_key']
+      ['source_snapshot_reconciliation_requests','identity_key'],['source_snapshot_reconciliation_requests','source_id'],['source_snapshot_reconciliation_requests','triggering_snapshot_id'],['source_snapshot_reconciliation_requests','current_snapshot_id'],['source_snapshot_reconciliation_requests','expected_previous_snapshot_id'],['source_snapshot_reconciliation_requests','recorded_previous_snapshot_id']
     ];
     $indexMissing=0;
     foreach($expectedIndexes as [$t,$i]){if(!isset($present[$t])){echo "expected_index_{$t}_{$i}=NOT_CHECKED_TABLE_MISSING\\n";continue;}$ok=$hasIndex($t,$i);if(!$ok)$indexMissing++;echo "expected_index_{$t}_{$i}=".($ok?'PRESENT':'MISSING')."\n";}
@@ -133,10 +133,10 @@ try {
 
     // Read-only duplicate preconditions. A query runs only when all required columns exist.
     $duplicateChecks=[
-      '000004_duplicate_current_snapshot_id'=>['source_change_observations',['current_snapshot_id'],"SELECT COUNT(*) FROM (SELECT current_snapshot_id FROM source_change_observations GROUP BY current_snapshot_id HAVING COUNT(*)>1) x"],
-      '000007_duplicate_open_reverification_identity'=>['data_reverification_queue',['status','subject_type','subject_id','attribute'],"SELECT COUNT(*) FROM (SELECT subject_type,subject_id,attribute FROM data_reverification_queue WHERE status='open' GROUP BY subject_type,subject_id,attribute HAVING COUNT(*)>1) x"],
+      '000003_duplicate_existing_retrieval_idempotency_key'=>['source_retrieval_runs',['idempotency_key'] ,"SELECT COUNT(*) FROM (SELECT idempotency_key FROM source_retrieval_runs WHERE idempotency_key IS NOT NULL GROUP BY idempotency_key HAVING COUNT(*)>1) x"],\n      '000004_duplicate_current_snapshot_id'=>['source_change_observations',['current_snapshot_id'],"SELECT COUNT(*) FROM (SELECT current_snapshot_id FROM source_change_observations GROUP BY current_snapshot_id HAVING COUNT(*)>1) x"],
+      '000005_duplicate_existing_discovery_outcome_idempotency_key'=>['institute_discovery_run_outcomes',['idempotency_key'],"SELECT COUNT(*) FROM (SELECT idempotency_key FROM institute_discovery_run_outcomes WHERE idempotency_key IS NOT NULL GROUP BY idempotency_key HAVING COUNT(*)>1) x"],\n      '000006_duplicate_existing_change_event_source_link'=>['change_events',['source_change_assertion_link_id'],"SELECT COUNT(*) FROM (SELECT source_change_assertion_link_id FROM change_events WHERE source_change_assertion_link_id IS NOT NULL GROUP BY source_change_assertion_link_id HAVING COUNT(*)>1) x"],\n      '000007_duplicate_open_reverification_identity'=>['data_reverification_queue',['status','subject_type','subject_id','attribute'],"SELECT COUNT(*) FROM (SELECT subject_type,subject_id,attribute FROM data_reverification_queue WHERE status='open' GROUP BY subject_type,subject_id,attribute HAVING COUNT(*)>1) x"],
       '000009_duplicate_open_monitoring_dedupe_key'=>['monitoring_alerts',['status','dedupe_key'],"SELECT COUNT(*) FROM (SELECT dedupe_key FROM monitoring_alerts WHERE status='open' GROUP BY dedupe_key HAVING COUNT(*)>1) x"],
-      '000012_duplicate_identity_match_key'=>['identity_match_candidates',['identity_key'],"SELECT COUNT(*) FROM (SELECT identity_key FROM identity_match_candidates WHERE identity_key IS NOT NULL GROUP BY identity_key HAVING COUNT(*)>1) x"],
+      '000012_duplicate_conflict_event_idempotency_key'=>['import_conflict_events',['idempotency_key'],"SELECT COUNT(*) FROM (SELECT idempotency_key FROM import_conflict_events WHERE idempotency_key IS NOT NULL GROUP BY idempotency_key HAVING COUNT(*)>1) x"],\n      '000012_duplicate_identity_match_key'=>['identity_match_candidates',['identity_key'],"SELECT COUNT(*) FROM (SELECT identity_key FROM identity_match_candidates WHERE identity_key IS NOT NULL GROUP BY identity_key HAVING COUNT(*)>1) x"],
       '000012_duplicate_decision_identity_key'=>['identity_resolution_decisions',['decision_identity_key'],"SELECT COUNT(*) FROM (SELECT decision_identity_key FROM identity_resolution_decisions WHERE decision_identity_key IS NOT NULL GROUP BY decision_identity_key HAVING COUNT(*)>1) x"],
       '000012_duplicate_import_conflict_identity_key'=>['import_conflicts',['identity_key'],"SELECT COUNT(*) FROM (SELECT identity_key FROM import_conflicts WHERE identity_key IS NOT NULL GROUP BY identity_key HAVING COUNT(*)>1) x"],
       '000011_duplicate_import_batch_discovery_key'=>['import_batches',['discovery_identity_key'],"SELECT COUNT(*) FROM (SELECT discovery_identity_key FROM import_batches WHERE discovery_identity_key IS NOT NULL GROUP BY discovery_identity_key HAVING COUNT(*)>1) x"],
