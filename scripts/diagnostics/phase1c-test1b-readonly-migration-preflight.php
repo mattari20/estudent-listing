@@ -156,12 +156,12 @@ try {
     foreach ($migrations as $migration) {
         if (!($ledgerStmt instanceof PDOStatement)) {
             $ledger[$migration] = -1;
-            echo "migration_ledger_{$migration}=NOT_CHECKED_MIGRATIONS_TABLE_MISSING\\n";
+            echo "migration_ledger_{$migration}=NOT_CHECKED_MIGRATIONS_TABLE_MISSING\n";
             continue;
         }
         $ledgerStmt->execute([$migration]);
         $ledger[$migration] = (int)$ledgerStmt->fetchColumn();
-        echo "migration_ledger_{$migration}={$ledger[$migration]}\\n";
+        echo "migration_ledger_{$migration}={$ledger[$migration]}\n";
     }
 
     $columnExists = static function (string $table, string $column) use ($pdo): bool {
@@ -237,6 +237,8 @@ try {
 
     $ledgerCountsValid = count($ledger) === count($migrations)
         && count(array_filter($ledger, static fn(int $n): bool => $n === 1)) === count($migrations);
+    $ledgerCountsValid = count($ledger) === count($migrations)
+        && count(array_filter($ledger, static fn(int $n): bool => $n === 1)) === count($migrations);
     $duplicateLedger = count(array_filter($ledger, static fn(int $n): bool => $n > 1)) > 0;
 
     $hasEnrichmentEvents = isset($present['structured_enrichment_promotion_events']);
@@ -281,11 +283,11 @@ try {
 
     $partial = $duplicateLedger || $partial001 || $partial002 || $partial009
         || $partial010 || $partial012 || $partial014 || $partial015;
-    echo 'partial_application_detected='.($partial ? 'true' : 'false')."\\n";
+    echo 'partial_application_detected='.($partial ? 'true' : 'false')."\n";
     echo 'migration_ledger_checks='.count($migrations).';applied='
         .count(array_filter($ledger, static fn(int $n): bool => $n === 1))
         .';missing='.count(array_filter($ledger, static fn(int $n): bool => $n === 0))
-        .';duplicate='.count(array_filter($ledger, static fn(int $n): bool => $n > 1))."\\n";
+        .';duplicate='.count(array_filter($ledger, static fn(int $n): bool => $n > 1))."\n";
 
     $allObjects = $triggerPresent === count($triggerNames) && $fkPresent === count($fkDefs) && $heartbeat;
     $allAuditObjects = $triggerPresent === count($triggerNames) && $auditFkPresent === count($auditFkDefs);
