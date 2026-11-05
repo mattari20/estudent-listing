@@ -1,5 +1,4 @@
 name: Phase 1C Test 1B — Read-only Migration Preflight
-
 on:
   workflow_dispatch:
     inputs:
@@ -21,14 +20,11 @@ on:
         description: "Type the exact operation-specific confirmation phrase."
         required: true
         type: string
-
 permissions:
   contents: read
-
 concurrency:
   group: phase-1c-test-1b-readonly-migration-preflight
   cancel-in-progress: false
-
 jobs:
   production-migration-preflight:
     environment: production-readonly-diagnostics
@@ -36,49 +32,57 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout exact dispatch revision for authorization checks
+      - name: Checkout exact dispatch revision for authorization checks and preflight source
         uses: actions/checkout@v4
         with:
-          ref: \${{ github.sha }}
+          ref: ${ github.sha }
           fetch-depth: 0
           path: .production-dispatch-guard
-
       - name: Validate protected production dispatch
         env:
-          TARGET_SHA: \${{ inputs.target_sha }}
-          OPERATION_REASON: \${{ inputs.operation_reason }}
-          CONFIRM_PRODUCTION_OPERATION: \${{ inputs.confirm_production_operation }}
+          TARGET_SHA: ${ inputs.target_sha }
+          OPERATION_REASON: ${ inputs.operation_reason }
+          CONFIRM_PRODUCTION_OPERATION: ${ inputs.confirm_production_operation }
           EXPECTED_CONFIRMATION: "AUTHORIZE-PHASE1C-TEST1B-PREFLIGHT-READONLY"
         run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
-
-      - name: Validate environment-scoped production credentials (Hostinger)
-        env:
-          PRODUCTION_READONLY_HOSTINGER_SSH_HOST: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
-          PRODUCTION_READONLY_HOSTINGER_SSH_USER: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
-          PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
-          PRODUCTION_READONLY_HOSTINGER_SSH_PORT: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+      - name: Validate preflight PHP syntax and encode for one-time SSH stdin
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          tools: none
         shell: bash
         run: |
           set -euo pipefail
-          for name in PRODUCTION_READONLY_HOSTINGER_SSH_HOST PRODUCTION_READONLY_HOSTINGER_SSH_USER PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY PRODUCTION_READONLY_HOSTINGER_SSH_PORT; do
-            if [[ -z "\${!name:-}" ]]; then
-              echo "::error::Missing required environment-scoped credential: $name"
-              exit 1
-            fi
-          done
+          php -l .production-dispatch-guard/scripts/diagnostics/phase1c-test1b-readonly-migration-preflight.php
+          SCRIPT_B64="$(base64 -w0 .production-dispatch-guard/scripts/diagnostics/phase1c-test1b-readonly-migration-preflight.php)"
+          echo "PREFLIGHT_SCRIPT_B64=$SCRIPT_B64" >> "$GITHUB_ENV"
+          echo "preflight_script_transport=base64_over_ssh_stdin"
+          echo "remote_temporary_script_file=NOT_CREATED"
+      - name: Validate environment-scoped production credentials (Hostinger)
+        env:
+          PRODUCTION_READONLY_HOSTINGER_SSH_HOST: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }
+          PRODUCTION_READONLY_HOSTINGER_SSH_USER: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }
+          PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }
+          PRODUCTION_READONLY_HOSTINGER_SSH_PORT: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PRODUCTION_READONLY_HOSTINGER_SSH_HOST"
+          test -n "$PRODUCTION_READONLY_HOSTINGER_SSH_USER"
+          test -n "$PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY"
+          test -n "$PRODUCTION_READONLY_HOSTINGER_SSH_PORT"
           echo "environment_scoped_credentials=present"
-
-      - name: Run read-only migration preflight over SSH
+      - name: Run read-only migration preflight over SSH stdin
         uses: appleboy/ssh-action@v1.2.0
         env:
-          PROJECT_PATH: \${{ inputs.project_path }}
-          TARGET_SHA: \${{ inputs.target_sha }}
+          PROJECT_PATH: ${ inputs.project_path }
+          PREFLIGHT_SCRIPT_B64: ${ env.PREFLIGHT_SCRIPT_B64 }
         with:
-          host: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
-          username: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
-          key: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
-          port: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
-          envs: PROJECT_PATH,TARGET_SHA
+          host: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }
+          username: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }
+          key: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }
+          port: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }
+          envs: PROJECT_PATH,PREFLIGHT_SCRIPT_B64
           command_timeout: 5m
           script: |
             set -eu
@@ -91,23 +95,12 @@ jobs:
             esac
             [ -f "$PROJECT_PATH/artisan" ] || { echo "ERROR: artisan not found"; exit 3; }
             [ -f "$PROJECT_PATH/vendor/autoload.php" ] || { echo "ERROR: Composer autoloader not found"; exit 4; }
-            [ -f "$PROJECT_PATH/scripts/diagnostics/phase1c-test1b-readonly-migration-preflight.php" ] || { echo "ERROR: preflight script not found in deployed revision"; exit 5; }
-            DEPLOYED_SHA="$(git -C "$PROJECT_PATH" rev-parse HEAD 2>/dev/null || true)"
-            echo "deployed_git_revision=$DEPLOYED_SHA"
-            echo "requested_target_revision=$TARGET_SHA"
-            if [ "$DEPLOYED_SHA" != "$TARGET_SHA" ]; then
-              echo "preflight_source_revision_match=false"
-              echo "ERROR: deployed application revision does not match approved target; refusing to run."
-              exit 6
-            fi
-            cd "$PROJECT_PATH"
             PHP_BIN="/opt/alt/php85/usr/bin/php"
-            [ -x "$PHP_BIN" ] || { echo "ERROR: approved PHP executable unavailable"; exit 7; }
-            "$PHP_BIN" -l scripts/diagnostics/phase1c-test1b-readonly-migration-preflight.php
-            "$PHP_BIN" scripts/diagnostics/phase1c-test1b-readonly-migration-preflight.php
-
+            [ -x "$PHP_BIN" ] || { echo "ERROR: approved PHP executable unavailable"; exit 5; }
+            cd "$PROJECT_PATH"
+            printf '%s' "$PREFLIGHT_SCRIPT_B64" | base64 -d | "$PHP_BIN"
       - name: Confirm read-only execution contract
-        if: \${{ always() }}
+        if: ${ always() }
         run: |
           echo "production_database_mutations=NOT_PERMITTED"
           echo "production_migrations=NOT_RUN"
