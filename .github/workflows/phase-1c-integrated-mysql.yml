@@ -85,10 +85,11 @@ jobs:
           test "$DB_CONNECTION" = mysql
           test "$DB_HOST" = 127.0.0.1
           test "$DB_PORT" = 3306
-          test "$DB_DATABASE" = phase1c_integrated_test
-          test "$DB_USERNAME" = phase1c_ci
+          test "$DB_DATABASE" = approval_migration_test
+          test "$DB_USERNAME" = approval_ci
           mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e 'SELECT VERSION(), DATABASE(), CURRENT_USER();'
       - name: Run complete migrations on clean isolated MySQL database
+        if: ${{ always() }}
         run: php artisan migrate:fresh --force
       - name: Verify migrations 000014 and 000015 are recorded exactly once
         if: ${{ always() }}
@@ -120,5 +121,5 @@ jobs:
         if: ${{ always() }}
         shell: bash
         run: |
-          set -euo pipefail
+          php -r 'require "vendor/autoload.php"; $app=require "bootstrap/app.php"; $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap(); $expected=[]; foreach (["security_audit_events","verification_decisions","provenance_review_events","import_promotion_decisions","import_promotion_events","reverification_events","structured_enrichment_promotion_events","official_source_refresh_events","import_conflict_events","import_reconciliation_events","governed_execution_run_events"] as $table) { $s=substr(hash("sha256",$table),0,16); $expected[]="audit_immut_".$s."_u"; $expected[]="audit_immut_".$s."_d"; } $expected[]="identity_decision_update_guard"; $expected[]="identity_decision_delete_guard"; $names=\Illuminate\Support\Facades\DB::table("information_schema.TRIGGERS")->where("TRIGGER_SCHEMA",\Illuminate\Support\Facades\DB::getDatabaseName())->pluck("TRIGGER_NAME")->all(); $missing=array_values(array_diff($expected,$names)); if ($missing) { fwrite(STDERR,"Missing triggers: ".implode(",",$missing).PHP_EOL); exit(1); } echo "All 24 triggers remain installed.".PHP_EOL;'
           php -r 'require "vendor/autoload.php"; $app=require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); $expected=[]; foreach (["security_audit_events","verification_decisions","provenance_review_events","import_promotion_decisions","import_promotion_events","reverification_events","structured_enrichment_promotion_events","official_source_refresh_events","import_conflict_events","import_reconciliation_events","governed_execution_run_events"] as $table) { $s=substr(hash("sha256",$table),0,16); $expected[]="audit_immut_".$s."_u"; $expected[]="audit_immut_".$s."_d"; } $expected[]="identity_decision_update_guard"; $expected[]="identity_decision_delete_guard"; $names=Illuminate\\Support\\Facades\\DB::table("information_schema.TRIGGERS")->where("TRIGGER_SCHEMA",Illuminate\\Support\\Facades\\DB::getDatabaseName())->pluck("TRIGGER_NAME")->all(); $missing=array_values(array_diff($expected,$names)); if ($missing) { fwrite(STDERR,"Missing triggers: ".implode(",",$missing).PHP_EOL); exit(1); } echo "All 24 triggers remain installed.".PHP_EOL;'
