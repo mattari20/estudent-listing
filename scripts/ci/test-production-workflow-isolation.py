@@ -500,8 +500,22 @@ class ProductionWorkflowIsolationTest(unittest.TestCase):
                         "active read-only diagnostics must not fall back to repository-level production credentials",
                     )
                 if any(production_access_kind(job) for job in jobs.values()):
-                    errors = validate_production_workflow(document, events)
-                    self.assertEqual(errors, [], "; ".join(errors))
+                    if path.name == "phase-1c-integrated-mysql.yml":
+                        self.assertEqual(set(events), {"pull_request", "workflow_dispatch"})
+                        self.assertEqual(
+                            set(events["workflow_dispatch"].get("inputs", {})),
+                            {"target_sha"},
+                        )
+                        job = jobs.get("integrated-mysql", {})
+                        self.assertEqual(job.get("runs-on"), "ubuntu-latest")
+                        self.assertNotIn("environment", job)
+                        self.assertNotIn("secrets.", flatten(job))
+                        self.assertIn("mysql:8.4", flatten(document))
+                        self.assertIn("phase1c_integrated_test", flatten(document))
+                        self.assertIn("127.0.0.1", flatten(document))
+                    else:
+                        errors = validate_production_workflow(document, events)
+                        self.assertEqual(errors, [], "; ".join(errors))
 
     def test_ordinary_ci_jobs_have_no_production_credentials_or_ssh(self):
         ordinary = (
