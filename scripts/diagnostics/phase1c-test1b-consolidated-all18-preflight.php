@@ -107,7 +107,7 @@ try {
       ['evidence','discovery_identity_key'],['import_rows','discovery_identity_key'],['assertions','discovery_identity_key'],
       ['identity_match_candidates','identity_key'],['identity_resolution_decisions','decision_identity_key'],
       ['import_conflicts','identity_key'],['import_conflict_events','idempotency_key'],
-      ['source_snapshot_reconciliation_requests','source_snapshot_reconciliation_requests_identity_key_unique']
+      ['source_snapshot_reconciliation_requests','identity_key'],['source_snapshot_reconciliation_requests','source_id'],['source_snapshot_reconciliation_requests','triggering_snapshot_id'],['source_snapshot_reconciliation_requests','current_snapshot_id'],['source_snapshot_reconciliation_requests','expected_previous_snapshot_id'],['source_snapshot_reconciliation_requests','recorded_previous_snapshot_id']
     ];
     $colMissing=0;
     foreach($expectedColumns as [$t,$c]){if(!isset($present[$t])){echo "expected_column_{$t}_{$c}=NOT_CHECKED_TABLE_MISSING\n";continue;}$ok=$hasColumn($t,$c);if(!$ok)$colMissing++;echo "expected_column_{$t}_{$c}=".($ok?'PRESENT':'MISSING')."\n";}
