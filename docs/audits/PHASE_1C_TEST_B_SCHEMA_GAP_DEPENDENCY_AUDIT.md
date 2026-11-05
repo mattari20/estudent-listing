@@ -298,7 +298,8 @@ The follow-up ran against the same effective database fingerprint as the earlier
 
 | Measure | Run #10 result |
 |---|---:|
-| Required tables inventoried | 30 checked / 7 missing |\n| Selected migration ledger entries | 0 applied / 7 missing / 0 duplicate |
+| Required tables inventoried | 30 checked / 7 missing |
+| Selected migration ledger entries | 0 applied / 7 missing / 0 duplicate |
 | Expected audit triggers | 0 of 24 present |
 | Expected audit-retention restrictive FKs | 0 of 11 present |
 | Monitoring checkpoint FKs | 0 of 7 present |
