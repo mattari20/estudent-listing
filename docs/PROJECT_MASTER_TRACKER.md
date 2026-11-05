@@ -2367,3 +2367,13 @@ No production access or operation was initiated. GCU rows #348–353 and batches
 - Remaining architectural limitation: snapshot persistence and retrieval-run finalization remain separate database writes, not one atomic transaction. Recovery is idempotent for the same run/capture key and same payload; changed content under the same capture key fails closed. This does not provide distributed filesystem/database transactionality.
 - No production systems, Hostinger, SSH, hPanel, production DB, Artisan, deployment, migration, scheduler, live source retrieval/discovery, candidate staging, approval, import or publishing was accessed or initiated. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled; no dummy production data.
 - Exact-head validation passed on the code reconciliation commit above. A subsequent documentation-only commit updates this tracker/audit; fresh checks on that final documentation-inclusive head are required and will be reported separately. MERGED and PRODUCTION VERIFIED are not claimed.
+
+---
+
+## Phase 1C-34 — PR #1014 command-comment parser reconciliation (2026-11-05)
+
+- Reconciled the existing multiline issue-comment parser PR against main `0e197c760202c628eb5065bc86207b045d1414f8`, retaining the exact command allow-list, positive ASCII issue-number validation, shell/metacharacter rejection, output serialization protections and default-branch issue-comment checkout behavior.
+- Preserved the current-main tracker history, including the merged PR #1010 retrieval recovery record; appended only this PR's Phase 1C-34 record.
+- This tracker update resolves the documented-content conflict with the current main version. Exact-head CI and GitHub mergeability must be checked after this commit.
+- PR #1014 remains open and unmerged; no merge or close action.
+- No production access, dispatch, deployment, migration, discovery, staging, approval, import or publishing. GCU rows #348–353 and batches #19–23 remain protected; AI extraction and the additional 20 HEC profiles remain disabled.
