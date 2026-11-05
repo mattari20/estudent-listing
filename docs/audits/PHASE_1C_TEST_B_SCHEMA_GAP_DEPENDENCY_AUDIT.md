@@ -282,3 +282,78 @@ The previous Test B evidence also referenced two existing open monitoring alerts
 7. Keep Phase 1C open until production acceptance evidence is complete. Phase 2 remains on hold.
 
 **Final audit conclusion:** The diagnostic implementation is now functioning and has exposed a substantial production schema gap. The source-code dependency audit is complete at this revision, but Test B is not passed and production remediation has not been performed or authorized.
+
+## 8. Follow-up production preflight — run #42026380355
+
+**Follow-up date:** 2026-11-05  
+**Workflow:** [Phase 1C Test 1B — Read-only Migration Preflight](https://github.com/mattari20/estudent-listing/actions/runs/42026380355)  
+**Run number:** 10  
+**Source revision:** `531053172b9979eb378fa45f7f6d1ddc5afa441c`  
+**Job:** Inspect migration prerequisites and partial application using read-only SQL  
+**Job conclusion:** SUCCESS (diagnostic execution only)
+
+The follow-up ran against the same effective database fingerprint as the earlier preflight: `d06c2a8519877bad90ffeeaa64f7998a6d4bdade1439b1dafd90a46850e6b019`. This supports that the corrected diagnostic continued to inspect the same effective Laravel database target; the fingerprint is a comparison token, not a database name or credential.
+
+### 8.1 Confirmed current results
+
+| Measure | Run #10 result |
+|---|---:|
+| Selected migration ledger entries | 0 applied / 7 missing / 0 duplicate |
+| Expected audit triggers | 0 of 24 present |
+| Expected audit-retention restrictive FKs | 0 of 11 present |
+| Monitoring checkpoint FKs | 0 of 7 present |
+| `monitoring_policy_runs.heartbeat_at` | Missing |
+| Partial migration application detected | No |
+| Open alerts that migration 000009 would copy | 2 |
+| Duplicate open-alert dedupe keys | 0 |
+
+All seven selected migration ledger entries remained absent:
+- `2026_10_25_000001_create_structured_enrichment_promotion_events_table`
+- `2026_11_03_000002_create_governed_execution_runs_table`
+- `2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency`
+- `2026_11_04_000010_create_monitoring_policy_run_checkpoints`
+- `2026_11_04_000012_add_identity_conflict_persistence_keys_and_events`
+- `2026_11_04_000014_enforce_append_only_audit_retention`
+- `2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat`
+
+### 8.2 Orphan-check coverage now observed
+
+The current diagnostic attempted all 18 relationship checks (11 for migration 000014 and 7 for migration 000015), rather than omitting them entirely.
+
+- Seven 000014 checks returned zero: identity decisions → import rows; verification decisions → assertions; reconciliation events → batches; promotion decisions → import rows; promotion events → import rows; promotion events → batches; reverification events → queue rows.
+- Four 000014 checks could not run because their required table or column was missing: enrichment events → enrichment rows; enrichment events → batches; conflict events → conflicts; governed events → governed runs.
+- All seven 000015 checks were not checkable because their required monitoring/checkpoint tables or dependencies were missing.
+
+A zero result is evidence only for the specific query that executed. `NOT_CHECKED_DEPENDENCY_OR_COLUMN_MISSING` is not a pass and must not be interpreted as zero or clean.
+
+### 8.3 Additional migration-specific evidence
+
+- Migration 000009: two open alerts would be copied by its identity backfill; duplicate open `dedupe_key` groups: zero. The alert records themselves were not emitted.
+- Migration 000012: duplicate-key and unique-index checks were not possible because the three required identity-key columns were absent.
+- Migration 000015: heartbeat NULL/backfill impact was not checkable because the heartbeat prerequisite was absent.
+- All 24 expected trigger definitions were individually reported missing.
+- Existing restrictive-FK metadata was returned for tables that existed; metadata for seven missing tables was not checkable.
+
+### 8.4 Corrected interpretation of earlier gate table
+
+The earlier table's entries saying the 11 audit checks and seven monitoring checks were “NOT RUN” should be read as the status at the time of the original audit run. Run #10 has now attempted these checks and provides the partial coverage above. The remaining coverage is blocked by absent schema dependencies.
+
+The preflight classification was:
+
+`BLOCKED_MISSING_DEPENDENCIES_OR_ORPHANS`
+
+This classification does not establish that any orphan rows exist: seven checked relationships returned zero, while the remaining eleven relationships could not be evaluated.
+
+### 8.5 Safety and execution boundary
+
+The job completed successfully and explicitly reported:
+- `read_only_transaction=ROLLED_BACK`
+- `production_database_mutations=NOT_PERMITTED`
+- `production_migrations=NOT_RUN`
+- `production_application_file_writes=NOT_PERMITTED`
+- `persistent_diagnostic_reports=NOT_WRITTEN`
+
+No production schema remediation was performed or authorized. The two open alerts must be preserved. The next engineering step is to validate the diagnostic against isolated MySQL fixtures and complete missing dependency inventory; production migrations remain blocked pending a separately approved backup/restore and execution plan.
+
+**Updated conclusion:** Test B diagnostic execution is passing. Production schema acceptance remains blocked: 0/7 selected migrations recorded, 0/24 triggers, 0/11 audit restrictive FKs, 0/7 monitoring FKs, and heartbeat missing. Phase 1C remains open; Phase 2 remains on hold.
+
