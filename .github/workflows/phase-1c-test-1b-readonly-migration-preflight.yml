@@ -35,14 +35,14 @@ jobs:
       - name: Checkout exact dispatch revision for authorization checks and preflight source
         uses: actions/checkout@v4
         with:
-          ref: ${ github.sha }
+          ref: ${{ github.sha }}
           fetch-depth: 0
           path: .production-dispatch-guard
       - name: Validate protected production dispatch
         env:
-          TARGET_SHA: ${ inputs.target_sha }
-          OPERATION_REASON: ${ inputs.operation_reason }
-          CONFIRM_PRODUCTION_OPERATION: ${ inputs.confirm_production_operation }
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
           EXPECTED_CONFIRMATION: "AUTHORIZE-PHASE1C-TEST1B-PREFLIGHT-READONLY"
         run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
       - name: Set up PHP for syntax validation
@@ -62,10 +62,10 @@ jobs:
           echo "remote_temporary_script_file=NOT_CREATED"
       - name: Validate environment-scoped production credentials (Hostinger)
         env:
-          PRODUCTION_READONLY_HOSTINGER_SSH_HOST: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }
-          PRODUCTION_READONLY_HOSTINGER_SSH_USER: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }
-          PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }
-          PRODUCTION_READONLY_HOSTINGER_SSH_PORT: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }
+          PRODUCTION_READONLY_HOSTINGER_SSH_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          PRODUCTION_READONLY_HOSTINGER_SSH_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
         shell: bash
         run: |
           set -euo pipefail
@@ -77,13 +77,13 @@ jobs:
       - name: Run read-only migration preflight over SSH stdin
         uses: appleboy/ssh-action@v1.2.0
         env:
-          PROJECT_PATH: ${ inputs.project_path }
-          PREFLIGHT_SCRIPT_B64: ${ env.PREFLIGHT_SCRIPT_B64 }
+          PROJECT_PATH: ${{ inputs.project_path }}
+          PREFLIGHT_SCRIPT_B64: ${{ env.PREFLIGHT_SCRIPT_B64 }}
         with:
-          host: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }
-          username: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }
-          key: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }
-          port: ${ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }
+          host: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
           envs: PROJECT_PATH,PREFLIGHT_SCRIPT_B64
           command_timeout: 5m
           script: |
@@ -102,7 +102,7 @@ jobs:
             cd "$PROJECT_PATH"
             printf '%s' "$PREFLIGHT_SCRIPT_B64" | base64 -d | "$PHP_BIN"
       - name: Confirm read-only execution contract
-        if: ${ always() }
+        if: ${{ always() }}
         run: |
           echo "production_database_mutations=NOT_PERMITTED"
           echo "production_migrations=NOT_RUN"
