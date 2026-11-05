@@ -207,3 +207,124 @@ Limits:
 **PHASE 2: ON HOLD.**
 
 The next closure gate is a current integrated MySQL proof plus authorized, current production verification of deployment parity, schema/migration ledger, triggers and public browser behavior. The existing Hostinger report collision must be resolved without overwriting or deleting the existing report.
+
+
+---
+
+## Phase 1C-39 — post-#1018/#1019 live-state reconciliation (2026-11-05)
+
+**This addendum supersedes the earlier final disposition and remaining-work statements above wherever they conflict with evidence below.** Earlier run IDs and observations remain historical evidence, not current results.
+
+### 1. Current repository and merge state
+
+- Current `main`: `fbfe5f9d68b39ee7b8ca060625a0d60f9225ea27`.
+- PR #1019 is MERGED at `8617e3ec64e98411d721668f1e032649b36071d8`.
+- PR #1018 is MERGED at current `main` SHA `fbfe5f9d68b39ee7b8ca060625a0d60f9225ea27`.
+- PR #1018's documentation-only head `bfe19013dad8c64f1a6db69863bb8c10a92f300e` had two successful exact-head checks: Test [#41949945086](https://github.com/mattari20/estudent-listing/actions/runs/41949945086) and Laravel CI [#41949945102](https://github.com/mattari20/estudent-listing/actions/runs/41949945102).
+- The compare from application-code revision `acad19aaf62f12933a5af05db974fa7b9ebab0af` to current `main` is 3 commits ahead / 0 behind. The changed paths are the Phase 1C MySQL workflow, CI contract tests and documentation/tracker files; no application-code paths changed. The current expected application-code revision therefore remains `acad19aaf62f12933a5af05db974fa7b9ebab0af`. This is a repository-derived expected revision, **not** evidence of the deployed Hostinger revision.
+
+### 2. Integrated MySQL acceptance — now PASS
+
+Manual-dispatch run [#41964290632](https://github.com/mattari20/estudent-listing/actions/runs/41964290632) completed SUCCESS on exact main revision `8617e3ec64e98411d721668f1e032649b36071d8` (workflow run #11). Every job step passed.
+
+Evidence from the exact run:
+- Clean isolated MySQL 8.4 database: `approval_migration_test`, user `approval_ci`, localhost:3306.
+- Migrations `2026_11_04_000014_enforce_append_only_audit_retention` and `2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat` each recorded exactly once.
+- `monitoring_policy_runs.heartbeat_at` present.
+- All seven required foreign keys present: `mp_run_policy_fk`, `mp_run_exec_fk`, `mp_source_run_fk`, `mp_source_source_fk`, `mp_source_retrieval_fk`, `mp_source_observation_fk`, `mai_active_alert_fk`.
+- Four Phase 1C feature files: 34 tests / 145 assertions passed.
+- All 24 named MySQL audit triggers verified; rollback removed them, reinstall restored them, and repeated installation was idempotent.
+- Independent PHP processes contended on one monitoring policy checkpoint: one started, the second was rejected, exactly one run persisted.
+- Final post-lifecycle assertion confirmed all 24 triggers remained installed.
+
+This closes the **integrated isolated-MySQL engineering gate**. It does not establish that production has these migrations, constraints, heartbeat column or triggers.
+
+### 3. Current-main CI
+
+All four latest main checks are successful on `fbfe5f9d68b39ee7b8ca060625a0d60f9225ea27`:
+- Test [#41964629000](https://github.com/mattari20/estudent-listing/actions/runs/41964629000): 914 tests / 4,023 assertions.
+- Laravel CI [#41964628917](https://github.com/mattari20/estudent-listing/actions/runs/41964628917): 914 tests / 4,023 assertions; Pint passed on 69 files.
+- Frontend build [#41964629060](https://github.com/mattari20/estudent-listing/actions/runs/41964629060): success.
+- Command Orchestrator [#41964628866](https://github.com/mattari20/estudent-listing/actions/runs/41964628866): success.
+
+### 4. Current public website/API/browser verification
+
+Current direct public verification was attempted against:
+- `https://estudent.pk/institutes/`
+- `https://estudent.pk/institutes/api/v1/institutions`
+- `https://estudent.pk/api/v1/institutions`
+
+The web retrieval service reported the URLs inaccessible, and the execution container could not resolve `estudent.pk` (DNS resolution failure). This is an **access/tooling limitation**, not evidence that the website is down or that any endpoint failed.
+
+No current-main public monitor or Chromium diagnostic run was available in the recent Actions run inventory. Historical run [#41820478375](https://github.com/mattari20/estudent-listing/actions/runs/41820478375) remains historical HTTP 200 / `EMPTY_DATA` evidence. Historical browser run [#41770133572](https://github.com/mattari20/estudent-listing/actions/runs/41770133572) remains a historical failure because search returned HTTP 404. Current main source registers the search route, but live routing and browser behavior remain unverified.
+
+The public-only workflows are:
+- `.github/workflows/institutes-public-monitor.yml`, expected confirmation `AUTHORIZE-READONLY-DIAGNOSTICS-PUBLIC-SITE-MONITOR`.
+- `.github/workflows/public-browser-runtime-diagnostics.yml`, expected confirmation `AUTHORIZE-READONLY-DIAGNOSTICS-PUBLIC-BROWSER`.
+
+Both require `target_sha=fbfe5f9d68b39ee7b8ca060625a0d60f9225ea27`, a non-empty safe `operation_reason`, and their exact confirmation. They use the `production-readonly-diagnostics` environment but do not contain Hostinger SSH steps. No dispatch was performed: the available GitHub integration in this execution context exposes no workflow-dispatch action. The owner can run these two public-only workflows from the Actions UI using the inputs above. No production data is created or changed by these diagnostics.
+
+### 5. Hostinger diagnostic review and authorization boundary
+
+Current workflow: `.github/workflows/hostinger-readonly-diagnostics.yml`.
+
+- Trigger: `workflow_dispatch` only; environment: `production-readonly-diagnostics`.
+- Required inputs: `target_sha`, `operation_reason`, `confirm_production_operation`.
+- Exact confirmation: `AUTHORIZE-READONLY-DIAGNOSTICS-HOSTINGER`.
+- For the current dispatch, target SHA must be `fbfe5f9d68b39ee7b8ca060625a0d60f9225ea27`; expected application-code revision is `acad19aaf62f12933a5af05db974fa7b9ebab0af`.
+- The workflow runs Artisan schedule inspection, a user-crontab probe, deployed application-file parity, selected schema/ledger checks and public HTTP/API probes. It does not establish hPanel job history or persistent worker/Supervisor state.
+- Existing schema coverage is limited to older objects including `import_batches.duplicate_rows`, `institute_discovery_run_outcomes`, `institution_field_approvals` and `official_source_refresh_events`.
+- Static inspection confirms **no** checks for migrations 000014/000015, `monitoring_policy_runs`, `heartbeat_at`, the seven checkpoint FKs, the 24 audit triggers, or production legacy NULL identity-key inventory. It also has no backup-retention or restore-recoverability verification.
+- The workflow's Phase 5B.18 step writes a private JSON report to `storage/app/private/diagnostics/phase-5b18-artisan-runtime.json`, in addition to temporary filesystem operations. It is not a zero-filesystem-write operation.
+- Historical run [#41789553048](https://github.com/mattari20/estudent-listing/actions/runs/41789553048) stopped at `EXISTS_REFUSED_TO_OVERWRITE` for that fixed destination. The existing report was not read, removed, overwritten or modified.
+
+**No Hostinger dispatch, SSH, hPanel or production DB access was performed.** The mission explicitly requires separate owner authorization before any Hostinger-accessing workflow is dispatched. The fixed report collision also means the existing workflow cannot be expected to complete at its current destination. Do not dispatch it until (1) Hostinger access is explicitly authorized and (2) a non-overwriting report strategy is approved. The current workflow alone is insufficient for full Phase 1C production schema acceptance even after those approvals.
+
+### 6. Open PRs/issues reviewed; no unrelated state changed
+
+Open PRs observed: #1016, #968, #957, #956, #955, #954, #953, #913, #911 and #899. No PR was merged, closed or rewritten as part of this reconciliation.
+
+- #1016 remains open and is not safe to merge: its branch is 191 commits ahead and 10 behind current main, with a 39-file divergent diff. PR #1017 already merged the current production workflow isolation baseline. Keep #1016 for owner disposition; do not merge it as a catch-all.
+- #953 is an older Phase 5B.29 runtime-evidence repair PR; #911/#913 are older Hostinger parity/diagnostic follow-ups; #899 is an older empty-directory diagnostic report. They are not substitutes for current Phase 1C production verification.
+- #954–#957 and #968 are older audit/documentation PRs. Their open state is preserved pending owner review; they are not silently treated as merged.
+- Open issues reviewed include #817 (controlled test-data reset/rebuild), #585 (GCU candidate and offering reconciliation), #626 (offering-gap preflight), #548 (scheduled discovery review packages) and #168 (promotion classification / empty campus/offering audit). #585 remains relevant to the protected GCU history gate. These issues were not closed or acted on.
+- No open issue title was returned by the repository search for `Phase 1C`; the GCU work remains represented by #585 and the operational readiness documents.
+
+### 7. Final acceptance matrix
+
+| Requirement | Status | Evidence / remaining limitation |
+|---|---|---|
+| PR #1019/#1018 merge state | PASS | Both merged; live PR metadata verified |
+| Current-main Test/Laravel/Pint/build/orchestrator | PASS | Four successful checks on `fbfe5f9` |
+| Integrated isolated MySQL | PASS | Run #41964290632 on `8617e3e`; all acceptance steps passed |
+| Migrations 000014/000015 in isolated MySQL | PASS | Each exactly once |
+| Heartbeat + seven FKs in isolated MySQL | PASS | Exact MySQL run evidence |
+| 24 triggers + rollback/reinstall/idempotency | PASS | Exact MySQL run evidence |
+| Multiprocess monitoring concurrency | PASS | One start, one rejection, one persisted run |
+| Current public directory/API/search/browser | BLOCKED | Direct network unavailable; no current public workflow dispatch performed |
+| Current Hostinger deployed app revision | BLOCKED | No authorized Hostinger access; expected app revision is `acad19a` only |
+| Production migration ledger and schema | BLOCKED | No production DB query; existing workflow lacks migrations 000014/000015 |
+| Production audit triggers and monitoring checkpoint | BLOCKED | No production DB query; existing workflow lacks these checks |
+| Production legacy NULL identity inventory | BLOCKED | Merged command is restricted to isolated testing DBs |
+| Hostinger cron / hPanel / persistent worker ownership | BLOCKED | Workflow probes user crontab and Laravel schedule definitions only; no hPanel/worker evidence |
+| Backup retention and recoverability | BLOCKED | No current backup inventory or authorized restore test |
+| GCU rows #348–353 / batches #19–23 reconciliation | BLOCKED | No authorized private read-only export or row-to-batch evidence reconciliation |
+| Security workflow contracts | PASS | Current-main Test passed; actual environment reviewers/secrets not independently inspectable |
+| AI/additional HEC profiles live disabled state | BLOCKED | Tracker records disabled; production settings were not queried |
+| No dummy data / no production mutations in this mission | PASS | No production access or write operation occurred |
+
+### 8. Formal decision and next executable actions
+
+**PHASE 1C: OPEN — CONDITIONAL ACCEPTANCE ONLY; NOT FORMALLY CLOSED.**  
+**ENGINEERING / ISOLATED MYSQL ACCEPTANCE: PASS.**  
+**PRODUCTION VERIFIED: NOT VERIFIED.**  
+**PHASE 2: ON HOLD.**
+
+Next actions, in order:
+1. Run the two public-only workflows on current main SHA `fbfe5f9d68b39ee7b8ca060625a0d60f9225ea27` using their exact confirmations above; inspect artifacts and browser network/console output. This execution context cannot dispatch workflows, so an owner must start them in GitHub Actions.
+2. Obtain explicit owner authorization for Hostinger read-only SSH diagnostics and separately approve a non-overwriting private report strategy. Do not use the existing colliding report destination.
+3. Before that dispatch, prepare/approve a diagnostic that checks migration ledger entries 000014/000015, the 24 expected trigger names, checkpoint table/heartbeat/seven FKs, relevant parent-retention relationships and a bounded aggregate legacy NULL identity inventory. It must not run DDL/DML or source qualification. Confirm whether its report is runner-only or a uniquely named private file and obtain explicit approval for any production filesystem write.
+4. Obtain separate evidence for hPanel cron/worker ownership, backup retention and recoverability; do not infer these from `crontab -l`.
+5. Obtain the approved private read-only evidence export for GCU rows #348–353 and batches #19–23; preserve all records and do not stage, approve, promote or publish them.
+
+Phase 2 remains blocked. The legacy roadmap `docs/ROADMAP_AND_ACCEPTANCE_CRITERIA.md` defines Phase 2 as reliable import and publication; `docs/PROJECT_COMPLETION_MASTER_STRATEGY.md` uses Phase 2 for security/data-integrity remediation. Reconcile this phase-numbering conflict after Phase 1C acceptance and before authorizing any Phase 2 implementation. The immediate future workstream in the completion strategy is its Phase 1 operational-readiness gate, not a production data rollout.
