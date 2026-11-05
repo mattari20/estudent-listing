@@ -215,4 +215,64 @@ class SourceRetrievalTest extends TestCase {
         $this->assertDatabaseCount('source_change_observations', 1);
     }
 
+
+    public function test_snapshot_persisted_before_run_finalization_failure_is_reused_on_retry(): void
+    {
+        \Illuminate\Support\Carbon::setTestNow(\Illuminate\Support\Carbon::parse('2026-11-04 10:00:00'));
+        Http::fakeSequence()
+            ->push('same official payload', 200, ['Content-Type' => 'text/html'])
+            ->push('same official payload', 200, ['Content-Type' => 'text/html']);
+
+        $source = Source::create([
+            'source_type' => 'web',
+            'name' => 'Run Finalization Failure Source',
+            'url' => 'https://example.test/finalization-failure',
+            'status' => 'active',
+        ]);
+
+        $finalizer = \Mockery::mock(\App\Services\SourceRetrievalRunFinalizer::class);
+        $finalizer->shouldReceive('complete')
+            ->once()
+            ->andThrow(new \RuntimeException('injected run finalization failure'));
+        $this->app->instance(\App\Services\SourceRetrievalRunFinalizer::class, $finalizer);
+
+        try {
+            app(\App\Services\SourceRetrievalService::class)->retrieve($source, 'finalization-failure-key');
+            $this->fail('The injected finalization failure must propagate.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('injected run finalization failure', $exception->getMessage());
+        }
+
+        $run = \App\Models\SourceRetrievalRun::query()
+            ->where('idempotency_key', 'finalization-failure-key')
+            ->firstOrFail();
+        $this->assertSame('started', $run->status);
+        $this->assertNull($run->snapshot_id);
+        $this->assertDatabaseCount('source_snapshots', 1);
+        $snapshot = \App\Models\SourceSnapshot::query()->firstOrFail();
+        $originalSnapshotId = $snapshot->id;
+        $originalCapturedAt = $snapshot->captured_at->toISOString();
+
+        \Illuminate\Support\Carbon::setTestNow(\Illuminate\Support\Carbon::parse('2026-11-04 10:16:00'));
+        $this->app->instance(
+            \App\Services\SourceRetrievalRunFinalizer::class,
+            new \App\Services\SourceRetrievalRunFinalizer()
+        );
+
+        try {
+            $retried = app(\App\Services\SourceRetrievalService::class)->retrieve($source, 'finalization-failure-key');
+
+            $this->assertSame($run->id, $retried->id);
+            $this->assertSame('completed', $retried->status);
+            $this->assertSame($originalSnapshotId, $retried->snapshot_id);
+            $this->assertSame($originalCapturedAt, $retried->completed_at->toISOString());
+            $this->assertDatabaseCount('source_retrieval_runs', 1);
+            $this->assertDatabaseCount('source_snapshots', 1);
+            Http::assertSentCount(2);
+        } finally {
+            \Illuminate\Support\Carbon::setTestNow();
+        }
+    }
+
+
 }
