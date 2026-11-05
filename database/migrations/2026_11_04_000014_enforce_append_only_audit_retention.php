@@ -62,6 +62,9 @@ return new class extends Migration
         'import_conflicts' => [
             'EXISTS (SELECT 1 FROM import_conflict_events WHERE import_conflict_id = OLD.id)',
         ],
+        'governed_execution_runs' => [
+            'EXISTS (SELECT 1 FROM governed_execution_run_events WHERE run_id = OLD.id)',
+        ],
     ];
 
     public function up(): void
