@@ -334,4 +334,61 @@ class AppendOnlyAuditRetentionTest extends TestCase
     }
 
 
+
+    public function test_governed_execution_run_cannot_be_deleted_while_retained_events_exist(): void
+    {
+        $runId = sprintf(
+            '%s-%s-%s-%s-%s',
+            bin2hex(random_bytes(4)),
+            bin2hex(random_bytes(2)),
+            bin2hex(random_bytes(2)),
+            bin2hex(random_bytes(2)),
+            bin2hex(random_bytes(6)),
+        );
+        $now = now();
+
+        DB::table('governed_execution_runs')->insert([
+            'id' => $runId,
+            'task_key' => 'audit-retention-parent-delete-test',
+            'owner_token' => sprintf(
+                '%s-%s-%s-%s-%s',
+                bin2hex(random_bytes(4)),
+                bin2hex(random_bytes(2)),
+                bin2hex(random_bytes(2)),
+                bin2hex(random_bytes(2)),
+                bin2hex(random_bytes(6)),
+            ),
+            'runner' => 'phpunit',
+            'application_revision' => null,
+            'status' => 'completed',
+            'started_at' => $now,
+            'heartbeat_at' => $now,
+            'finished_at' => $now,
+            'failure_code' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $eventId = DB::table('governed_execution_run_events')->insertGetId([
+            'run_id' => $runId,
+            'event_type' => 'completed',
+            'occurred_at' => $now,
+            'failure_code' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        try {
+            DB::table('governed_execution_runs')->where('id', $runId)->delete();
+            $this->fail('Deleting a governed run must not cascade-delete retained audit events.');
+        } catch (QueryException) {
+            $this->assertDatabaseHas('governed_execution_runs', ['id' => $runId]);
+            $this->assertDatabaseHas('governed_execution_run_events', [
+                'id' => $eventId,
+                'run_id' => $runId,
+                'event_type' => 'completed',
+            ]);
+        }
+    }
+
 }
