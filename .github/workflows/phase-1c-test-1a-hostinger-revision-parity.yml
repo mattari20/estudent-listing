@@ -115,7 +115,10 @@ jobs:
             [ -f "$PROJECT_PATH/artisan" ] || { echo "ERROR: artisan not found"; exit 3; }
             [ -d "$PROJECT_PATH/app" ] || { echo "ERROR: application directory not found"; exit 4; }
             [ -d "$PROJECT_PATH/vendor" ] || { echo "ERROR: vendor directory not found"; exit 5; }
-            [[ "$EXPECTED_REVISION" =~ ^[0-9a-f]{40}$ ]] || { echo "ERROR: invalid expected revision"; exit 6; }
+            case "$EXPECTED_REVISION" in
+              *[!0-9a-f]*|'') echo "ERROR: invalid expected revision"; exit 6 ;;
+            esac
+            [ "${#EXPECTED_REVISION}" -eq 40 ] || { echo "ERROR: invalid expected revision length"; exit 6; }
 
             DEPLOYED_REVISION="git_metadata_unavailable"
             if git -C "$PROJECT_PATH" rev-parse --show-toplevel >/dev/null 2>&1; then
