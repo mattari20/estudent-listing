@@ -47,7 +47,7 @@ try {
     echo "inspection_scope=aggregate_counts_and_information_schema_only\n";
 
     $tables=[
-      'migrations','users','password_reset_tokens','import_batches','source_retrieval_runs','source_snapshots','source_change_observations',
+      'migrations','users','password_reset_tokens','institutions','import_batches','source_retrieval_runs','source_snapshots','source_change_observations',
       'institute_discovery_run_outcomes','change_events','data_reverification_queue','data_reverification_queue_identities',
       'monitoring_alerts','monitoring_alert_identities','security_audit_events','source_monitoring_policies','monitoring_policy_runs',
       'monitoring_policy_run_sources','governed_execution_leases','governed_execution_runs','governed_execution_run_events',
