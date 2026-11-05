@@ -111,7 +111,7 @@ try {
     ];
     $colMissing=0;
     foreach($expectedColumns as [$t,$c]){if(!isset($present[$t])){echo "expected_column_{$t}_{$c}=NOT_CHECKED_TABLE_MISSING\n";continue;}$ok=$hasColumn($t,$c);if(!$ok)$colMissing++;echo "expected_column_{$t}_{$c}=".($ok?'PRESENT':'MISSING')."\n";}
-    echo 'expected_column_checks='.count($expectedColumns).';missing='.$colMissing."\\n";
+    echo 'expected_column_checks='.count($expectedColumns).';missing='.$colMissing."\n";
 
     $expectedIndexes=[
       ['governed_execution_leases','task_key'],['governed_execution_leases','expires_at'],
@@ -128,8 +128,8 @@ try {
       ['source_snapshot_reconciliation_requests','identity_key']
     ];
     $indexMissing=0;
-    foreach($expectedIndexes as [$t,$i]){if(!isset($present[$t])){echo "expected_index_{$t}_{$i}=NOT_CHECKED_TABLE_MISSING\\n";continue;}$ok=$hasIndex($t,$i);if(!$ok)$indexMissing++;echo "expected_index_{$t}_{$i}=".($ok?'PRESENT':'MISSING')."\\n";}
-    echo 'expected_index_checks='.count($expectedIndexes).';missing='.$indexMissing."\\n";
+    foreach($expectedIndexes as [$t,$i]){if(!isset($present[$t])){echo "expected_index_{$t}_{$i}=NOT_CHECKED_TABLE_MISSING\\n";continue;}$ok=$hasIndex($t,$i);if(!$ok)$indexMissing++;echo "expected_index_{$t}_{$i}=".($ok?'PRESENT':'MISSING')."\n";}
+    echo 'expected_index_checks='.count($expectedIndexes).';missing='.$indexMissing."\n";
 
     // Read-only duplicate preconditions. A query runs only when all required columns exist.
     $duplicateChecks=[
