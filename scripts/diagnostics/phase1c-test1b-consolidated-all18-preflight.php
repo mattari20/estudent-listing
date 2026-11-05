@@ -111,7 +111,25 @@ try {
     ];
     $colMissing=0;
     foreach($expectedColumns as [$t,$c]){if(!isset($present[$t])){echo "expected_column_{$t}_{$c}=NOT_CHECKED_TABLE_MISSING\n";continue;}$ok=$hasColumn($t,$c);if(!$ok)$colMissing++;echo "expected_column_{$t}_{$c}=".($ok?'PRESENT':'MISSING')."\n";}
-    echo 'expected_column_checks='.count($expectedColumns).';missing='.$colMissing."\n";
+    echo 'expected_column_checks='.count($expectedColumns).';missing='.$colMissing."\\n";
+
+    $expectedIndexes=[
+      ['governed_execution_leases','task_key'],['governed_execution_leases','expires_at'],
+      ['source_retrieval_runs','idempotency_key'],['source_snapshots','capture_key'],
+      ['source_change_observations','source_observations_current_snapshot_unique'],
+      ['institute_discovery_run_outcomes','idempotency_key'],['change_events','change_events_source_link_unique'],
+      ['data_reverification_queue_identities','PRIMARY'],['monitoring_alert_identities','PRIMARY'],
+      ['security_audit_events','monitoring_idempotency_key'],['monitoring_policy_run_sources','monitoring_policy_run_source_unique'],
+      ['import_batches','import_batches_discovery_identity_unique'],['evidence','evidence_discovery_identity_unique'],
+      ['import_rows','import_rows_discovery_identity_unique'],['assertions','assertions_discovery_identity_unique'],
+      ['identity_match_candidates','identity_match_candidates_identity_key_unique'],
+      ['identity_resolution_decisions','identity_resolution_decisions_identity_key_unique'],
+      ['import_conflicts','import_conflicts_identity_key_unique'],['import_conflict_events','idempotency_key'],
+      ['source_snapshot_reconciliation_requests','identity_key']
+    ];
+    $indexMissing=0;
+    foreach($expectedIndexes as [$t,$i]){if(!isset($present[$t])){echo "expected_index_{$t}_{$i}=NOT_CHECKED_TABLE_MISSING\\n";continue;}$ok=$hasIndex($t,$i);if(!$ok)$indexMissing++;echo "expected_index_{$t}_{$i}=".($ok?'PRESENT':'MISSING')."\\n";}
+    echo 'expected_index_checks='.count($expectedIndexes).';missing='.$indexMissing."\\n";
 
     // Read-only duplicate preconditions. A query runs only when all required columns exist.
     $duplicateChecks=[
@@ -191,7 +209,7 @@ try {
       ['structured_enrichment_promotion_events','import_batch_id','structured_enrichment_batch_restrict_fk','import_batches'],
       ['import_conflict_events','import_conflict_id','import_conflict_event_restrict_fk','import_conflicts'],
       ['governed_execution_run_events','run_id','governed_run_event_restrict_fk','governed_execution_runs'],
-      ['monitoring_policy_runs','source_monitoring_policy_id','mp_run_policy_fk','source_monitoring_policies'],
+      ['source_snapshot_reconciliation_requests','source_id','ssr_source_fk','sources'],\n      ['source_snapshot_reconciliation_requests','triggering_snapshot_id','ssr_triggering_snapshot_fk','source_snapshots'],\n      ['source_snapshot_reconciliation_requests','current_snapshot_id','ssr_current_snapshot_fk','source_snapshots'],\n      ['source_snapshot_reconciliation_requests','expected_previous_snapshot_id','ssr_expected_previous_fk','source_snapshots'],\n      ['source_snapshot_reconciliation_requests','recorded_previous_snapshot_id','ssr_recorded_previous_fk','source_snapshots'],\n      ['monitoring_policy_runs','source_monitoring_policy_id','mp_run_policy_fk','source_monitoring_policies'],
       ['monitoring_policy_runs','execution_run_id','mp_run_exec_fk','governed_execution_runs'],
       ['monitoring_policy_run_sources','monitoring_policy_run_id','mp_source_run_fk','monitoring_policy_runs'],
       ['monitoring_policy_run_sources','source_id','mp_source_source_fk','sources'],
