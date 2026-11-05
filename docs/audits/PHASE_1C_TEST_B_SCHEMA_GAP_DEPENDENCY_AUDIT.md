@@ -55,7 +55,7 @@ Specific missing objects reported include:
 - All 24 expected append-only / identity-decision triggers
 - `monitoring_policy_runs.heartbeat_at` and all seven named monitoring foreign keys
 
-The workflow read only the seven selected rows from Laravel's `migrations` ledger and metadata from MySQL `information_schema`. It did not read application-table rows. No application data values or counts were inspected by this workflow.
+The workflow read aggregate row counts from selected tables, including two monitoring alerts and six security audit events, but did not retrieve or emit application-row payloads. It read the selected migration ledger rows and metadata from MySQL `information_schema`.
 
 ## 3. Migration dependency and data-impact audit
 
@@ -298,13 +298,13 @@ The follow-up ran against the same effective database fingerprint as the earlier
 
 | Measure | Run #10 result |
 |---|---:|
-| Selected migration ledger entries | 0 applied / 7 missing / 0 duplicate |
+| Required tables inventoried | 30 checked / 7 missing |\n| Selected migration ledger entries | 0 applied / 7 missing / 0 duplicate |
 | Expected audit triggers | 0 of 24 present |
 | Expected audit-retention restrictive FKs | 0 of 11 present |
 | Monitoring checkpoint FKs | 0 of 7 present |
 | `monitoring_policy_runs.heartbeat_at` | Missing |
 | Partial migration application detected | No |
-| Open alerts that migration 000009 would copy | 2 |
+| Open alerts that migration 000009 would copy | 2 |\n| Existing security audit events (aggregate count) | 6 |
 | Duplicate open-alert dedupe keys | 0 |
 
 All seven selected migration ledger entries remained absent:
