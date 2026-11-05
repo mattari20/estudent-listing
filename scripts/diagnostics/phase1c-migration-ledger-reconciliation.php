@@ -18,10 +18,10 @@ if (is_file($cache)) {
     $dbConfig = $app['database'];
     $configSource = 'laravel_config_cache';
 } else {
-    if (!class_exists(\\Dotenv\\Dotenv::class)) {
+    if (!class_exists(\Dotenv\Dotenv::class)) {
         fwrite(STDERR, "dotenv_library=UNAVAILABLE\n"); exit(10);
     }
-    \\Dotenv\\Dotenv::createImmutable(getcwd())->safeLoad();
+    \Dotenv\Dotenv::createImmutable(getcwd())->safeLoad();
     $dbConfig = require getcwd().'/config/database.php';
     $configSource = 'dotenv_plus_config_database';
 }
@@ -32,7 +32,7 @@ if (!is_array($conn) || ($conn['driver'] ?? null) !== 'mysql') {
     fwrite(STDERR, "effective_database_driver=UNSUPPORTED_OR_MISSING\n"); exit(11);
 }
 if (!empty($conn['url'])) {
-    $parser = \\Illuminate\\Database\\ConfigurationUrlParser::class;
+    $parser = \Illuminate\\Database\\ConfigurationUrlParser::class;
     if (!class_exists($parser)) {
         fwrite(STDERR, "laravel_database_url_parser=UNAVAILABLE\n"); exit(12);
     }
