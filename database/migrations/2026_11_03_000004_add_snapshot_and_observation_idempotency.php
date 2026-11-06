@@ -31,6 +31,24 @@ return new class extends Migration
             'source_snapshots_capture_key_unique'
         );
 
+        if (DB::getDriverName() === 'mysql') {
+            $currentSnapshotColumn = DB::table('information_schema.COLUMNS')
+                ->where('TABLE_SCHEMA', DB::getDatabaseName())
+                ->where('TABLE_NAME', 'source_change_observations')
+                ->where('COLUMN_NAME', 'current_snapshot_id')
+                ->first();
+
+            if (
+                $currentSnapshotColumn === null
+                || ! MigrationSchemaGuard::mysqlColumnTypeMatches((string) $currentSnapshotColumn->COLUMN_TYPE, 'bigint unsigned')
+                || $currentSnapshotColumn->IS_NULLABLE !== 'NO'
+            ) {
+                throw new RuntimeException(
+                    'Existing source_change_observations.current_snapshot_id has an incompatible definition; expected NOT NULL BIGINT UNSIGNED.'
+                );
+            }
+        }
+
         $observationIndex = DB::getDriverName() === 'mysql'
             ? DB::table('information_schema.STATISTICS')
                 ->selectRaw('MIN(NON_UNIQUE) AS NON_UNIQUE, COUNT(*) AS COLUMN_COUNT, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns, MAX(SUB_PART) AS PREFIX_LENGTH, MIN(INDEX_TYPE) AS INDEX_TYPE')
