@@ -359,24 +359,21 @@ final class Phase1CReadOnlyDiagnostic
 function phase1cDiagnosticPdo(string $root): PDO
 {
     require_once $root.'/vendor/autoload.php';
-    $cache=$root.'/bootstrap/cache/config.php';
-    if(is_file($cache)) {$config=require $cache;$db=$config['database']??[];}
-    else {
-        if(class_exists(Dotenv\Dotenv::class)) Dotenv\Dotenv::createImmutable($root)->safeLoad();
-        $db=require $root.'/config/database.php';
-    }
-    $name=(string)($db['default']??'mysql'); $c=$db['connections'][$name]??null;
-    if(!is_array($c)||($c['driver']??null)!=='mysql') throw new RuntimeException('Unsupported configured database driver.');
-    if(!empty($c['url'])) {$parser=Illuminate\Database\ConfigurationUrlParser::class;$c=(new $parser())->parseConfiguration($c);}
-    $database=(string)($c['database']??'');$charset=(string)($c['charset']??'utf8mb4');
-    $dsn=!empty($c['unix_socket'])?'mysql:unix_socket='.$c['unix_socket'].';dbname='.$database.';charset='.$charset:'mysql:host='.$c['host'].';port='.($c['port']??3306).';dbname='.$database.';charset='.$charset;
-    $options=is_array($c['options']??null)?$c['options']:[];
-    $options[PDO::ATTR_ERRMODE]=PDO::ERRMODE_EXCEPTION;
-    $options[PDO::ATTR_DEFAULT_FETCH_MODE]=PDO::FETCH_ASSOC;
-    $options[PDO::ATTR_TIMEOUT]=10;
-    $options[PDO::ATTR_EMULATE_PREPARES]=false;
-    $options[PDO::ATTR_PERSISTENT]=false;
-    return new PDO($dsn,(string)$c['username'],(string)$c['password'],$options);
+    $app=require $root.'/bootstrap/app.php';
+    $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+    $kernel->bootstrap();
+
+    // Reuse Laravel's configured connection; do not construct a second DSN,
+    // choose another host, or read a different credential source.
+    $connection=Illuminate\Support\Facades\DB::connection();
+    if($connection->getDriverName()!=='mysql') throw new RuntimeException('Unsupported configured database driver.');
+    $pdo=$connection->getPdo();
+    if(!$pdo instanceof PDO || $pdo->inTransaction()) throw new RuntimeException('Configured Laravel PDO connection is unavailable or already in a transaction.');
+
+    $pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE,PDO::FETCH_ASSOC);
+    $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES,false);
+    return $pdo;
 }
 
 if(PHP_SAPI==='cli' && realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__) {
