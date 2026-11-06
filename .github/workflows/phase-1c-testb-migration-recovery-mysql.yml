@@ -110,3 +110,97 @@ jobs:
         run: vendor/bin/phpunit tests/Feature/AppendOnlyAuditRetentionTest.php tests/Feature/SourceMonitoringBatchRecoveryTest.php
       - name: Verify audit trigger lifecycle and idempotent reinstall
         run: php tests/Support/verify-append-only-audit-triggers.php
+
+
+  migration-recovery-mariadb:
+    name: MariaDB 11.8.9 clean install, rerun, partial recovery and schema assertions
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      mariadb:
+        image: mariadb:11.8.9
+        env:
+          MARIADB_ROOT_PASSWORD: ci-root-${{ github.run_id }}-${{ github.run_attempt }}
+          MARIADB_DATABASE: phase1c_testb_recovery
+          MARIADB_USER: phase1c_ci
+          MARIADB_PASSWORD: ci-user-${{ github.run_id }}-${{ github.run_attempt }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: phase1c_testb_recovery
+      DB_USERNAME: phase1c_ci
+      DB_PASSWORD: ci-user-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: dom, mbstring, xml, curl, pdo_mysql
+          coverage: none
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Verify isolated MariaDB identity and exact server version
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$APP_ENV" = testing
+          test "$DB_HOST" = 127.0.0.1
+          test "$DB_DATABASE" = phase1c_testb_recovery
+          test "$DB_USERNAME" = phase1c_ci
+          mysql --host=127.0.0.1 --port="$DB_PORT" --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e 'SELECT VERSION(), DATABASE(), CURRENT_USER();' | tee mariadb-identity.txt
+          grep -E '^11\.8\.[0-9]+-MariaDB' mariadb-identity.txt
+      - name: Execute complete 18-migration chain on clean MariaDB
+        run: php artisan migrate:fresh --force
+      - name: Re-run Laravel migrator and verify exactly-once ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          php artisan migrate --force
+          php -r '
+          require "vendor/autoload.php";
+          $app=require "bootstrap/app.php";
+          $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+          $names=[
+            "2026_10_17_000001_create_password_reset_tokens_table",
+            "2026_10_17_000002_add_must_change_password_to_users_table",
+            "2026_10_23_000001_add_duplicate_rows_to_import_batches_table",
+            "2026_10_25_000001_create_structured_enrichment_promotion_events_table",
+            "2026_11_03_000001_create_governed_execution_leases_table",
+            "2026_11_03_000002_create_governed_execution_runs_table",
+            "2026_11_03_000003_add_source_retrieval_idempotency_key",
+            "2026_11_03_000004_add_snapshot_and_observation_idempotency",
+            "2026_11_03_000005_add_discovery_outcome_idempotency_key",
+            "2026_11_03_000006_add_change_event_source_link_identity",
+            "2026_11_03_000007_create_data_reverification_queue_identities_table",
+            "2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency",
+            "2026_11_04_000010_create_monitoring_policy_run_checkpoints",
+            "2026_11_04_000011_add_discovery_candidate_persistence_identity_keys",
+            "2026_11_04_000012_add_identity_conflict_persistence_keys_and_events",
+            "2026_11_04_000013_create_source_snapshot_reconciliation_requests_table",
+            "2026_11_04_000014_enforce_append_only_audit_retention",
+            "2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat",
+          ];
+          foreach($names as $name){
+            $count=Illuminate\\Support\\Facades\\DB::table("migrations")->where("migration",$name)->count();
+            if($count!==1){fwrite(STDERR,"migration_ledger_".$name."_count=".$count.PHP_EOL);exit(1);}
+          }
+          echo "All 18 pending migration ledger entries exist exactly once after clean install and rerun.".PHP_EOL;
+          '
+      - name: Verify exact migration schema objects
+        run: php tests/Support/verify-phase1c-testb-migration-objects.php
+      - name: Test migration guard and resumable data backfills
+        run: vendor/bin/phpunit tests/Feature/MigrationSchemaGuardTest.php tests/Feature/PendingMigrationBackfillRecoveryTest.php
+      - name: Test audit retention and monitoring recovery
+        run: vendor/bin/phpunit tests/Feature/AppendOnlyAuditRetentionTest.php tests/Feature/SourceMonitoringBatchRecoveryTest.php
+      - name: Verify audit trigger lifecycle and idempotent reinstall
+        run: php tests/Support/verify-append-only-audit-triggers.php
