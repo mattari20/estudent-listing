@@ -1,0 +1,228 @@
+name: Phase 1C Test B — Protected Production Backup
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/phase-1c-testb-protected-production-backup.yml'
+  workflow_dispatch:
+    inputs:
+      project_path:
+        description: "Absolute path to the existing Institutes Laravel project"
+        required: true
+        type: string
+        default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
+      target_sha:
+        description: "Exact 40-character main SHA whose migration source was verified"
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason for creating the protected pre-migration backup"
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Type the exact backup authorization phrase"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase-1c-testb-protected-production-backup
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate workflow structure and safety markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path(".github/workflows/phase-1c-testb-protected-production-backup.yml")
+          s=p.read_text()
+          required=[
+            "environment: production-backup",
+            "AUTHORIZE-PHASE1C-TESTB-PRODUCTION-BACKUP",
+            "mysqldump",
+            "gzip -t",
+            "sha256sum",
+            ".private-backups/estudent.pk/phase1c",
+            "backup_destination_outside_project=PASS",
+            "backup_overwrite=REFUSED",
+            "production_migrations=NOT_RUN",
+          ]
+          missing=[x for x in required if x not in s]
+          if missing:
+            raise SystemExit("Missing safety markers: "+", ".join(missing))
+          print("backup_workflow_static_safety_markers=PASS")
+          PY
+
+  backup:
+    if: github.event_name == 'workflow_dispatch'
+    environment: production-backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact dispatch revision for guard
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          path: .production-dispatch-guard
+
+      - name: Validate operation-specific authorization
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-PHASE1C-TESTB-PRODUCTION-BACKUP"
+        run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
+
+      - name: Validate protected backup credentials
+        env:
+          HOST: ${{ secrets.PRODUCTION_BACKUP_HOSTINGER_SSH_HOST }}
+          USER: ${{ secrets.PRODUCTION_BACKUP_HOSTINGER_SSH_USER }}
+          KEY: ${{ secrets.PRODUCTION_BACKUP_HOSTINGER_SSH_PRIVATE_KEY }}
+          PORT: ${{ secrets.PRODUCTION_BACKUP_HOSTINGER_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          test -n "$HOST" && test -n "$USER" && test -n "$KEY" && test -n "$PORT"
+          echo "dedicated_backup_credentials=present"
+
+      - name: Create private, integrity-checked database backup
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+        with:
+          host: ${{ secrets.PRODUCTION_BACKUP_HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_BACKUP_HOSTINGER_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_BACKUP_HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PRODUCTION_BACKUP_HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,TARGET_SHA
+          command_timeout: 20m
+          script: |
+            set -Eeuo pipefail
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: project_path must be absolute"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: project_path contains traversal"; exit 2 ;; esac
+            [ -f "$PROJECT_PATH/artisan" ] || { echo "ERROR: Laravel artisan missing"; exit 3; }
+            [ -f "$PROJECT_PATH/vendor/autoload.php" ] || { echo "ERROR: Composer autoloader missing"; exit 4; }
+            PHP_BIN="/opt/alt/php85/usr/bin/php"
+            [ -x "$PHP_BIN" ] || { echo "ERROR: approved PHP 8.5 unavailable"; exit 5; }
+            command -v mysqldump >/dev/null 2>&1 || { echo "ERROR: mysqldump unavailable"; exit 6; }
+            command -v gzip >/dev/null 2>&1 || { echo "ERROR: gzip unavailable"; exit 7; }
+            command -v sha256sum >/dev/null 2>&1 || { echo "ERROR: sha256sum unavailable"; exit 8; }
+
+            PROJECT_REAL="$(realpath "$PROJECT_PATH")"
+            BACKUP_DIR="$HOME/.private-backups/estudent.pk/phase1c"
+            mkdir -p "$BACKUP_DIR"
+            chmod 700 "$HOME/.private-backups" "$HOME/.private-backups/estudent.pk" "$BACKUP_DIR"
+            BACKUP_REAL="$(realpath "$BACKUP_DIR")"
+            case "$BACKUP_REAL/" in "$PROJECT_REAL/"*) echo "ERROR: backup directory is inside project"; exit 9 ;; esac
+            case "$PROJECT_REAL/" in "$BACKUP_REAL/"*) echo "ERROR: project is inside backup directory"; exit 9 ;; esac
+            echo "backup_destination_outside_project=PASS"
+
+            umask 077
+            STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+            FINAL="$BACKUP_DIR/estudent-institutes-pre-phase1c-$STAMP.sql.gz"
+            MANIFEST="$FINAL.sha256"
+            META="$FINAL.metadata.txt"
+            [ ! -e "$FINAL" ] && [ ! -e "$MANIFEST" ] && [ ! -e "$META" ] || { echo "backup_overwrite=REFUSED"; exit 10; }
+            TMP="$(mktemp "$BACKUP_DIR/.phase1c-backup.XXXXXX")"
+            CNF="$(mktemp "$BACKUP_DIR/.phase1c-client.XXXXXX")"
+            cleanup(){ rm -f "$TMP" "$CNF"; }
+            trap cleanup EXIT
+
+            export PROJECT_PATH CNF
+            cd "$PROJECT_PATH"
+            "$PHP_BIN" <<'PHP'
+            <?php
+            declare(strict_types=1);
+            $root=getenv('PROJECT_PATH');
+            require $root.'/vendor/autoload.php';
+            $cache=$root.'/bootstrap/cache/config.php';
+            if(is_file($cache)){
+              $all=require $cache;
+              if(!is_array($all)||!is_array($all['database']??null)) throw new RuntimeException('Laravel database config cache invalid');
+              $cfg=$all['database'];
+            }else{
+              if(!class_exists(\Dotenv\Dotenv::class)) throw new RuntimeException('Dotenv unavailable');
+              \Dotenv\Dotenv::createImmutable($root)->safeLoad();
+              $cfg=require $root.'/config/database.php';
+            }
+            $name=(string)($cfg['default']??'mysql');
+            $c=$cfg['connections'][$name]??null;
+            if(!is_array($c)||($c['driver']??null)!=='mysql') throw new RuntimeException('Expected effective MySQL connection');
+            if(!empty($c['url'])) $c=(new \Illuminate\Database\ConfigurationUrlParser())->parseConfiguration($c);
+            $q=static fn(string $v): string => '"'.str_replace(["\\","\"","\n","\r"],["\\\\","\\\"","\\n","\\r"],$v).'"';
+            $lines=['[client]'];
+            foreach(['host'=>'host','user'=>'username','password'=>'password','port'=>'port','socket'=>'unix_socket'] as $key=>$source){
+              $value=$c[$source]??null;
+              if($value!==null && $value!=='') $lines[]=$key.'='.$q((string)$value);
+            }
+            $lines[]='default-character-set=utf8mb4';
+            $path=getenv('CNF');
+            if(file_put_contents($path,implode("\n",$lines)."\n",LOCK_EX)===false) throw new RuntimeException('Could not create private MySQL option file');
+            chmod($path,0600);
+            if(!is_file($path)||(fileperms($path)&0777)!==0600) throw new RuntimeException('Private MySQL option file permissions invalid');
+            echo "database_connection_configured=YES\n";
+            PHP
+
+            DB_NAME="$("$PHP_BIN" -r '
+            $root=getenv("PROJECT_PATH"); require $root."/vendor/autoload.php";
+            $cache=$root."/bootstrap/cache/config.php";
+            if(is_file($cache)){$a=require $cache;$cfg=$a["database"]??[];}
+            else{\Dotenv\Dotenv::createImmutable($root)->safeLoad();$cfg=require $root."/config/database.php";}
+            $n=(string)($cfg["default"]??"mysql");$c=$cfg["connections"][$n]??[];
+            if(!empty($c["url"]))$c=(new \Illuminate\Database\ConfigurationUrlParser())->parseConfiguration($c);
+            echo (string)($c["database"]??"");
+            ')"
+            [ -n "$DB_NAME" ] || { echo "ERROR: database name unavailable"; exit 11; }
+            AVAILABLE_KB="$(df -Pk "$BACKUP_DIR" | tail -n 1 | awk '{print $4}')"
+            DB_BYTES="$("$PHP_BIN" -r '
+            $root=getenv("PROJECT_PATH"); require $root."/vendor/autoload.php";
+            $cache=$root."/bootstrap/cache/config.php";
+            if(is_file($cache)){$a=require $cache;$cfg=$a["database"]??[];}
+            else{\Dotenv\Dotenv::createImmutable($root)->safeLoad();$cfg=require $root."/config/database.php";}
+            $n=(string)($cfg["default"]??"mysql");$c=$cfg["connections"][$n]??[];
+            if(!empty($c["url"]))$c=(new \Illuminate\Database\ConfigurationUrlParser())->parseConfiguration($c);
+            $dsn=!empty($c["unix_socket"])?"mysql:unix_socket=".$c["unix_socket"].";dbname=".$c["database"]:"mysql:host=".$c["host"].";port=".($c["port"]??3306).";dbname=".$c["database"];
+            $pdo=new PDO($dsn,(string)$c["username"],(string)$c["password"],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_TIMEOUT=>10]);
+            $q=$pdo->query("SELECT COALESCE(SUM(DATA_LENGTH+INDEX_LENGTH),0) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE()");
+            echo (string)$q->fetchColumn();
+            ')"
+            REQUIRED_KB="$(( (DB_BYTES * 2 / 1024) + 102400 ))"
+            [ "$AVAILABLE_KB" -gt "$REQUIRED_KB" ] || { echo "ERROR: insufficient backup filesystem headroom"; exit 12; }
+
+            mysqldump --defaults-extra-file="$CNF" --single-transaction --quick --skip-lock-tables --routines --triggers --events --hex-blob --no-tablespaces "$DB_NAME" | gzip -1 > "$TMP"
+            gzip -t "$TMP"
+            mv "$TMP" "$FINAL"
+            chmod 600 "$FINAL"
+            HASH="$(sha256sum "$FINAL" | awk '{print $1}')"
+            printf '%s  %s\n' "$HASH" "$(basename "$FINAL")" > "$MANIFEST"
+            chmod 600 "$MANIFEST"
+            cat > "$META" <<EOF
+            backup_created_utc=$STAMP
+            backup_file=$(basename "$FINAL")
+            compressed_bytes=$(wc -c < "$FINAL" | tr -d ' ')
+            sha256=$HASH
+            gzip_integrity=PASS
+            private_permissions=600
+            destination_outside_project=PASS
+            restore_test=NOT_YET_PERFORMED
+            production_migrations=NOT_RUN
+            EOF
+            chmod 600 "$META"
+            sha256sum -c "$MANIFEST"
+            gzip -t "$FINAL"
+            echo "backup_created=YES"
+            echo "backup_integrity=PASS"
+            echo "backup_restore_test=NOT_YET_PERFORMED"
+            echo "production_migrations=NOT_RUN"
+            echo "backup_location=$FINAL"
