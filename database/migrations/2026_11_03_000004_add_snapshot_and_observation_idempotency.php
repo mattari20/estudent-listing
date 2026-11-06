@@ -1,5 +1,6 @@
 <?php
 
+use App\\Support\\Database\\MigrationSchemaGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -23,63 +24,16 @@ return new class extends Migration
             );
         }
 
-        if (! Schema::hasColumn('source_snapshots', 'capture_key')) {
-            Schema::table('source_snapshots', function (Blueprint $table): void {
-                $table->string('capture_key', 64)->nullable();
-            });
-        } else {
-            if (DB::getDriverName() === 'mysql') {
-                $column = DB::table('information_schema.COLUMNS')
-                    ->where('TABLE_SCHEMA', DB::getDatabaseName())
-                    ->where('TABLE_NAME', 'source_snapshots')
-                    ->where('COLUMN_NAME', 'capture_key')
-                    ->first();
-
-                if ($column === null || strtolower((string) $column->COLUMN_TYPE) !== 'varchar(64)' || $column->IS_NULLABLE !== 'YES') {
-                    throw new RuntimeException(
-                        'Existing source_snapshots.capture_key has an incompatible definition; expected nullable VARCHAR(64).'
-                    );
-                }
-            }
-        }
-
-        $duplicateCaptureKeys = DB::table('source_snapshots')
-            ->select('capture_key')
-            ->whereNotNull('capture_key')
-            ->groupBy('capture_key')
-            ->havingRaw('COUNT(*) > 1')
-            ->limit(1)
-            ->exists();
-
-        if ($duplicateCaptureKeys) {
-            throw new RuntimeException(
-                'Duplicate non-NULL source snapshot capture keys exist; reconcile explicitly before adding the unique index.'
-            );
-        }
-
-        $captureIndex = DB::getDriverName() === 'mysql'
-            ? DB::table('information_schema.STATISTICS')
-                ->selectRaw('MIN(NON_UNIQUE) AS NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
-                ->where('TABLE_SCHEMA', DB::getDatabaseName())
-                ->where('TABLE_NAME', 'source_snapshots')
-                ->where('INDEX_NAME', 'source_snapshots_capture_key_unique')
-                ->groupBy('INDEX_NAME')
-                ->first()
-            : (Schema::hasIndex('source_snapshots', 'source_snapshots_capture_key_unique') ? (object) ['NON_UNIQUE' => 0, 'indexed_columns' => 'capture_key'] : null);
-
-        if ($captureIndex !== null) {
-            if ((int) $captureIndex->NON_UNIQUE !== 0 || $captureIndex->indexed_columns !== 'capture_key') {
-                throw new RuntimeException('Existing source snapshot capture-key index has an incompatible definition.');
-            }
-        } else {
-            Schema::table('source_snapshots', function (Blueprint $table): void {
-                $table->unique('capture_key', 'source_snapshots_capture_key_unique');
-            });
-        }
+        MigrationSchemaGuard::ensureNullableUniqueString(
+            'source_snapshots',
+            'capture_key',
+            64,
+            'source_snapshots_capture_key_unique'
+        );
 
         $observationIndex = DB::getDriverName() === 'mysql'
             ? DB::table('information_schema.STATISTICS')
-                ->selectRaw('MIN(NON_UNIQUE) AS NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
+                ->selectRaw('MIN(NON_UNIQUE) AS NON_UNIQUE, COUNT(*) AS COLUMN_COUNT, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns, MAX(SUB_PART) AS PREFIX_LENGTH, MIN(INDEX_TYPE) AS INDEX_TYPE')
                 ->where('TABLE_SCHEMA', DB::getDatabaseName())
                 ->where('TABLE_NAME', 'source_change_observations')
                 ->where('INDEX_NAME', 'source_observations_current_snapshot_unique')
@@ -88,17 +42,22 @@ return new class extends Migration
             : (Schema::hasIndex('source_change_observations', 'source_observations_current_snapshot_unique') ? (object) ['NON_UNIQUE' => 0, 'indexed_columns' => 'current_snapshot_id'] : null);
 
         if ($observationIndex !== null) {
-            if ((int) $observationIndex->NON_UNIQUE !== 0 || $observationIndex->indexed_columns !== 'current_snapshot_id') {
+            if ((int) $observationIndex->NON_UNIQUE !== 0 || (int) $observationIndex->COLUMN_COUNT !== 1 || $observationIndex->indexed_columns !== 'current_snapshot_id' || $observationIndex->PREFIX_LENGTH !== null || strtoupper((string) $observationIndex->INDEX_TYPE) !== 'BTREE') {
                 throw new RuntimeException('Existing source observation snapshot index has an incompatible definition.');
             }
         } else {
             $existingUnique = DB::getDriverName() === 'mysql'
                 ? DB::table('information_schema.STATISTICS')
+                    ->select('INDEX_NAME')
                     ->where('TABLE_SCHEMA', DB::getDatabaseName())
                     ->where('TABLE_NAME', 'source_change_observations')
                     ->where('NON_UNIQUE', 0)
-                    ->where('COLUMN_NAME', 'current_snapshot_id')
-                    ->where('SEQ_IN_INDEX', 1)
+                    ->groupBy('INDEX_NAME')
+                    ->havingRaw('COUNT(*) = 1')
+                    ->havingRaw(
+                        'SUM(CASE WHEN COLUMN_NAME = ? AND SEQ_IN_INDEX = 1 AND SUB_PART IS NULL AND INDEX_TYPE = ? THEN 1 ELSE 0 END) = 1',
+                        ['current_snapshot_id', 'BTREE']
+                    )
                     ->exists()
                 : Schema::hasIndex('source_change_observations', ['current_snapshot_id'], 'unique');
 
