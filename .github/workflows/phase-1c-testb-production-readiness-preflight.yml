@@ -230,12 +230,12 @@ jobs:
                 foreach ([(string) ($c['host'] ?? ''), (string) ($c['database'] ?? ''), (string) ($c['username'] ?? ''), (string) ($c['password'] ?? '')] as $sensitive) {
                     if ($sensitive !== '') $message = str_replace($sensitive, '[REDACTED]', $message);
                 }
-                $message = preg_replace('/(password|passwd|pwd)\\s*=\\s*[^\\s;]+/i', '$1=[REDACTED]', $message) ?? '[message sanitization failed]';
-                echo "database_metadata=FAILED\\n";
-                echo 'database_metadata_exception_class=' . get_class($e) . "\\n";
-                echo 'database_metadata_sqlstate=' . $sqlState . "\\n";
-                echo 'database_metadata_vendor_code=' . $vendorCode . "\\n";
-                echo 'database_metadata_sanitized_message=' . $message . "\\n";
+                $message = preg_replace('/(password|passwd|pwd)\s*=\s*[^\s;]+/i', '$1=[REDACTED]', $message) ?? '[message sanitization failed]';
+                echo "database_metadata=FAILED\n";
+                echo 'database_metadata_exception_class=' . get_class($e) . "\n";
+                echo 'database_metadata_sqlstate=' . $sqlState . "\n";
+                echo 'database_metadata_vendor_code=' . $vendorCode . "\n";
+                echo 'database_metadata_sanitized_message=' . $message . "\n";
                 exit(20);
             }
             PHP
