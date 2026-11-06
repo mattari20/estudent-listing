@@ -89,6 +89,7 @@ final class Phase1CReadOnlyDiagnostic
     private PDO $pdo;
     private array $tables=[];
     private array $columns=[];
+    private bool $absenceProof=false;
 
     public function __construct(PDO $pdo) { $this->pdo=$pdo; }
 
@@ -102,6 +103,7 @@ final class Phase1CReadOnlyDiagnostic
             $result=[
                 'schema_version'=>'phase1c-readonly-diagnostic/v1',
                 'database'=>['engine'=>stripos($version,'mariadb')!==false?'mariadb':'mysql','server_version'=>$version],
+                'metadata_visibility'=>['complete'=>$this->absenceProof],
                 'tables'=>$this->tableMetadata(),
                 'columns'=>$this->columnMetadata(),
                 'indexes'=>$this->indexMetadata(),
@@ -127,6 +129,7 @@ final class Phase1CReadOnlyDiagnostic
     private function inventory(): void
     {
         foreach($this->pdo->query("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE'")->fetchAll(PDO::FETCH_COLUMN) as $t) $this->tables[(string)$t]=true;
+        $this->absenceProof=$this->hasDatabaseWideSelect();
         foreach(self::TABLES as $t) {
             $this->columns[$t]=[];
             if(!isset($this->tables[$t])) continue;
@@ -140,7 +143,7 @@ final class Phase1CReadOnlyDiagnostic
     {
         $out=[];
         foreach(self::TABLES as $t) {
-            if(!isset($this->tables[$t])) {$out[]=['table'=>$t,'state'=>'MISSING'];continue;}
+            if(!isset($this->tables[$t])) {$out[]=['table'=>$t,'state'=>$this->absenceProof?'MISSING':'UNKNOWN','reason'=>$this->absenceProof?'TABLE_ABSENT':'METADATA_VISIBILITY_NOT_PROVEN'];continue;}
             try {
                 $q=$this->pdo->prepare("SELECT ENGINE,ROW_FORMAT,TABLE_COLLATION,CREATE_OPTIONS FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND TABLE_TYPE='BASE TABLE'");
                 $q->execute([$t]); $options=$q->fetch()?:[];
@@ -265,6 +268,22 @@ final class Phase1CReadOnlyDiagnostic
             } catch(Throwable $e) {$out[]=['id'=>$id,'state'=>'UNKNOWN','error'=>$this->safeError($e)];}
         }
         return $out;
+    }
+
+    private function hasDatabaseWideSelect(): bool
+    {
+        try {
+            $database=(string)$this->pdo->query('SELECT DATABASE()')->fetchColumn();
+            $grants=$this->pdo->query('SHOW GRANTS FOR CURRENT_USER')->fetchAll(PDO::FETCH_COLUMN);
+            foreach($grants as $grant) {
+                $grant=(string)$grant;
+                if(preg_match('/^GRANT\\s+ALL PRIVILEGES\\s+ON\\s+(?:\\*|'.preg_quote(chr(96).$database.chr(96),'/').')\\.\\*/i',$grant)) return true;
+                if(preg_match('/^GRANT\\s+[^;]*\\bSELECT\\b[^;]*\\s+ON\\s+(?:\\*|'.preg_quote(chr(96).$database.chr(96),'/').')\\.\\*/i',$grant)) return true;
+            }
+        } catch(Throwable $e) {
+            return false;
+        }
+        return false;
     }
 
     private function has(string $table,array $columns): bool
