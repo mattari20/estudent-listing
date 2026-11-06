@@ -94,6 +94,25 @@ assertDiagnostic(count($one['tables'])===39 && count($one['expected_index_reconc
 assertDiagnostic(count($one['orphan_checks'])===18 && count($one['duplicate_checks'])===14,'individual check reporting');
 assertDiagnostic($one['queue_mapping']['state']==='PASS' && count($one['queue_mapping']['records'])===5,'five sanitized queue mappings');
 assertDiagnostic($one['alert_mapping']['state']==='PASS' && count($one['alert_mapping']['records'])===2,'two sanitized alert mappings');
+
+// Regression: source rows may exist while their identity-mapping tables are absent.
+// Laravel converts PHP warnings (including undefined variables) into ErrorException;
+// emulate that behavior so this path cannot silently pass in disposable CI.
+$pdo->exec('DROP TABLE data_reverification_queue_identities');
+$pdo->exec('DROP TABLE monitoring_alert_identities');
+set_error_handler(static function(int $severity,string $message,string $file,int $line): bool {
+    if (!(error_reporting() & $severity)) return false;
+    throw new ErrorException('PHP warning converted to exception',0,$severity,$file,$line);
+});
+try {
+    $unmapped=collectDiagnostic($pdo);
+} finally {
+    restore_error_handler();
+}
+assertDiagnostic($unmapped['queue_mapping']['state']==='NOT_CHECKED','missing queue identity table is safely NOT_CHECKED');
+assertDiagnostic($unmapped['alert_mapping']['state']==='NOT_CHECKED','missing alert identity table is safely NOT_CHECKED');
+foreach($unmapped['queue_mapping']['records'] as $record) assertDiagnostic($record['state']==='NOT_CHECKED','queue mapping record remains safely NOT_CHECKED');
+foreach($unmapped['alert_mapping']['records'] as $record) assertDiagnostic($record['state']==='NOT_CHECKED','alert mapping record remains safely NOT_CHECKED');
 assertDiagnostic($one['orphan_checks'][1]['state']==='FAIL','orphan failure');
 $badIndexes=array_values(array_filter($one['expected_index_reconciliation'],fn($r)=>$r['state']!=='PASS'));
 assertDiagnostic($badIndexes===[],'index definition mismatch: '.implode(',',array_map(fn($r)=>$r['name'].':'.$r['state'], $badIndexes)));
