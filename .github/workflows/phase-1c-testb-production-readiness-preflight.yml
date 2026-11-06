@@ -126,6 +126,8 @@ jobs:
             [ -f "$PROJECT_PATH/artisan" ] || { echo "ERROR: artisan missing"; exit 3; }
             [ -f "$PROJECT_PATH/vendor/autoload.php" ] || { echo "ERROR: Composer autoloader missing"; exit 4; }
             cd "$PROJECT_PATH"
+            PHP_BIN="/opt/alt/php85/usr/bin/php"
+            [ -x "$PHP_BIN" ] || { echo "approved_php_available=no"; exit 22; }
             "$PHP_BIN" -r '
             $rows=json_decode(base64_decode(getenv("MANIFEST_B64"), true), true, 512, JSON_THROW_ON_ERROR);
             $failures=0;
