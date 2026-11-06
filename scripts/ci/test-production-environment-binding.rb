@@ -99,7 +99,7 @@ end
 # Classify executable behavior, not workflow filenames.
 def access_kind(job)
   serialized = YAML.dump(job)
-  credential_reference = serialized.match?(/secrets[.](?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/)
+  credential_reference = serialized.match?(/secrets[.](?:PRODUCTION_READONLY_|PRODUCTION_BACKUP_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/)
   return :credential_backed if serialized.include?('appleboy/ssh-action') || credential_reference
   return :public_http if serialized.include?('https://estudent.pk/institutes')
   :none
@@ -117,8 +117,8 @@ def first_access_index(steps)
   steps.index do |step|
     serialized = YAML.dump(step)
     name = step.is_a?(Hash) ? step.fetch('name', '').to_s : ''
-    credential_validation = name.match?(/Validate environment-scoped production credentials|Validate requested revision and read-only credentials/)
-    !credential_validation && (serialized.include?('appleboy/ssh-action') || serialized.match?(/secrets[.](?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/) || serialized.include?('https://estudent.pk/institutes'))
+    credential_validation = name.match?(/Validate environment-scoped production credentials|Validate requested revision and read-only credentials|Validate protected backup credentials/)
+    !credential_validation && (serialized.include?('appleboy/ssh-action') || serialized.match?(/secrets[.](?:PRODUCTION_READONLY_|PRODUCTION_BACKUP_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/) || serialized.include?('https://estudent.pk/institutes'))
   end
 end
 
@@ -139,7 +139,7 @@ def blocked?(job)
 end
 
 paths = Dir.glob(File.join(WORKFLOWS, '*.{yml,yaml}')).sort
-fail!("unexpected workflow inventory count: #{paths.length}; expected 46 after adding isolated MySQL recovery and production readiness preflight") unless paths.length == 46
+fail!("unexpected workflow inventory count: #{paths.length}; expected 47 after adding isolated MySQL recovery, production readiness preflight and protected backup workflow") unless paths.length == 47
 names = paths.map { |path| File.basename(path) }
 
 confirmation_phrases = []
@@ -167,7 +167,7 @@ READ_ONLY.each do |filename, expected_environment|
     gidx = guard_index(steps)
     aidx = first_access_index(steps)
     credential_idx = steps.index do |step|
-      step.is_a?(Hash) && step.fetch('name', '').to_s.match?(/Validate environment-scoped production credentials|Validate requested revision and read-only credentials/)
+      step.is_a?(Hash) && step.fetch('name', '').to_s.match?(/Validate environment-scoped production credentials|Validate requested revision and read-only credentials|Validate protected backup credentials/)
     end
     fail!("#{filename}:#{job_name} is missing executable dispatch guard") unless gidx
     fail!("#{filename}:#{job_name} guard must precede every production credential/access step") if aidx && gidx >= aidx
@@ -177,7 +177,7 @@ READ_ONLY.each do |filename, expected_environment|
       fail!("#{filename}:#{job_name} is missing environment-scoped credential validation") unless credential_idx
       fail!("#{filename}:#{job_name} must validate environment-scoped credentials after the guard and before SSH/API access") if gidx >= credential_idx || (aidx && credential_idx >= aidx)
     when :public_http
-      fail!("#{filename}:#{job_name} public HTTP-only diagnostics must not reference production credentials") if YAML.dump(job).match?(/secrets[.](?:PRODUCTION_READONLY_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/)
+      fail!("#{filename}:#{job_name} public HTTP-only diagnostics must not reference production credentials") if YAML.dump(job).match?(/secrets[.](?:PRODUCTION_READONLY_|PRODUCTION_BACKUP_|OFFERING_GAP_|HOSTINGER_SSH_|INSTITUTES_)/)
       fail!("#{filename}:#{job_name} public HTTP-only diagnostics must not use SSH actions") if YAML.dump(job).include?('appleboy/ssh-action')
     else
       fail!("#{filename}:#{job_name} has no recognized production access behavior")
@@ -236,7 +236,7 @@ pass('workflow-specific concurrency groups and cancellation semantics are preser
 # names allowed. A fourth environment must never be silently introduced.
 all_yaml = paths.map { |path| File.read(path) }.join("\n")
 fail!('production-operations must not be declared in workflow YAML') if all_yaml.match?(/^\s*environment:\s*production-operations\s*$/)
-fail!('unknown production environment declaration found') if all_yaml.scan(/^\s*environment:\s*([^\s#]+)/).flatten.any? { |name| !%w[production-readonly-diagnostics offering-gap-readonly-audit production-reset].include?(name) }
+fail!('unknown production environment declaration found') if all_yaml.scan(/^\s*environment:\s*([^\s#]+)/).flatten.any? { |name| !%w[production-readonly-diagnostics production-backup offering-gap-readonly-audit production-reset].include?(name) }
 pass('only the three owner-confirmed environment names are declared')
 
 # Environment-scoped SSH/API secret names are deliberately distinct from the
@@ -251,6 +251,27 @@ READ_ONLY.each do |filename, environment|
   end
 end
 pass('read-only production workflows use environment-specific secret identifiers')
+
+# The protected Phase 1C backup workflow must authorize before production SSH access.
+backup_path = File.join(WORKFLOWS, 'phase-1c-testb-protected-production-backup.yml')
+fail!('missing protected Phase 1C production backup workflow') unless File.file?(backup_path)
+backup_workflow = parse_workflow(backup_path)
+backup_events = events_for(backup_workflow)
+fail!('backup workflow must expose pull_request validation and manual production dispatch') unless backup_events.keys.map(&:to_s) == %w[workflow_dispatch]
+backup_job = backup_workflow.fetch('jobs').fetch('backup')
+fail!('backup job must use production-backup environment') unless backup_job['environment'] == 'production-backup'
+backup_steps = backup_job.fetch('steps', [])
+backup_guard = guard_index(backup_steps)
+backup_credentials = backup_steps.index { |step| step.is_a?(Hash) && step.fetch('name', '').to_s.match?(/Validate protected backup credentials/) }
+backup_access = first_access_index(backup_steps)
+fail!('backup job is missing executable dispatch guard') unless backup_guard
+fail!('backup job is missing dedicated backup credential validation') unless backup_credentials
+fail!('backup job guard must precede credentials and SSH access') unless backup_guard < backup_credentials && backup_credentials < backup_access
+backup_guard_env = backup_steps[backup_guard].fetch('env', {})
+fail!('backup guard must use operation-specific confirmation') unless backup_guard_env['EXPECTED_CONFIRMATION'] == 'AUTHORIZE-PHASE1C-TESTB-PRODUCTION-BACKUP'
+fail!('backup job must not run production migrations') unless File.read(backup_path).include?('production_migrations=NOT_RUN')
+fail!('backup must be private and checksum-verified') unless File.read(backup_path).include?('.private-backups/estudent.pk/phase1c') && File.read(backup_path).include?('sha256sum -c')
+pass('Phase 1C backup is manual-only, separately protected, guarded before SSH, private and checksum-verified')
 
 # The offering-gap runner must not inject database secrets at job scope.
 offering = parse_workflow(File.join(WORKFLOWS, 'offering-gap-preflight.yml'))
