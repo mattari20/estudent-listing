@@ -134,6 +134,7 @@ foreach ($expectedForeignKeys as $name => [$table, $parent, $parentColumn, $dele
             'KEY_COLUMN_USAGE.REFERENCED_TABLE_NAME',
             'KEY_COLUMN_USAGE.REFERENCED_COLUMN_NAME',
             'REFERENTIAL_CONSTRAINTS.DELETE_RULE',
+            'REFERENTIAL_CONSTRAINTS.UPDATE_RULE',
         ])
         ->where('KEY_COLUMN_USAGE.CONSTRAINT_SCHEMA', DB::getDatabaseName())
         ->where('KEY_COLUMN_USAGE.CONSTRAINT_NAME', $name)
@@ -144,7 +145,8 @@ foreach ($expectedForeignKeys as $name => [$table, $parent, $parentColumn, $dele
         && $row->TABLE_NAME === $table
         && $row->REFERENCED_TABLE_NAME === $parent
         && $row->REFERENCED_COLUMN_NAME === $parentColumn
-        && strtoupper((string) $row->DELETE_RULE) === $deleteRule,
+        && strtoupper((string) $row->DELETE_RULE) === $deleteRule
+        && strtoupper((string) $row->UPDATE_RULE) === 'RESTRICT',
         'foreign key '.$name.' has missing or incompatible definition'
     );
 }
