@@ -165,7 +165,7 @@ A separate MariaDB portability issue was found while reviewing migration rerun g
 
 ### MySQL 8.4.13 isolated recovery
 
-Latest exact-head run [#42248358275](https://github.com/mattari20/estudent-listing/actions/runs/42248358275) passed against disposable MySQL 8.4.
+Latest exact-head run [#42248847440](https://github.com/mattari20/estudent-listing/actions/runs/42248847440) passed against disposable MySQL 8.4.
 
 - Clean full 18-migration install and Laravel rerun: PASS.
 - All 18 migration-ledger entries present exactly once: PASS.
@@ -179,7 +179,7 @@ The paired MariaDB 11.8.9 job passed the same test counts and acceptance checks 
 
 ### MariaDB 11.8.9
 
-PR [#1057](https://github.com/mattari20/estudent-listing/pull/1057) adds a disposable `mariadb:11.8.9` CI service and runs the recovery acceptance flow using `phase1c_testb_recovery` / `phase1c_ci`. The latest exact-head workflow [#42247680217](https://github.com/mattari20/estudent-listing/actions/runs/42247680217) passed both MariaDB 11.8.9 and MySQL 8.4 jobs. On MariaDB it passed the clean 18-migration install, Laravel migrator rerun, exactly-once verification for all 18 ledger entries, manual reapplication of all 18 migration `up()` methods, exact schema-object verification, 20 tests / 48 assertions, 24 audit-retention/monitoring tests / 104 assertions, and all 24 trigger lifecycle checks. The MySQL job passed the same acceptance set. Earlier MariaDB failures are superseded by this exact-head result. The original PHP parse error was corrected in commit 31a73de; subsequent identity-default and exact-FK issues were separately diagnosed and corrected as documented in sections 11–13.
+PR [#1057](https://github.com/mattari20/estudent-listing/pull/1057) adds a disposable `mariadb:11.8.9` CI service and runs the recovery acceptance flow using `phase1c_testb_recovery` / `phase1c_ci`. The latest exact-head workflow [#42248847440](https://github.com/mattari20/estudent-listing/actions/runs/42248847440) passed both MariaDB 11.8.9 and MySQL 8.4 jobs. On MariaDB it passed the clean 18-migration install, Laravel migrator rerun, exactly-once verification for all 18 ledger entries, manual reapplication of all 18 migration `up()` methods, exact schema-object verification, 20 tests / 48 assertions, 24 audit-retention/monitoring tests / 104 assertions, and all 24 trigger lifecycle checks. The MySQL job passed the same acceptance set. Earlier MariaDB failures are superseded by this exact-head result. The original PHP parse error was corrected in commit 31a73de; subsequent identity-default and exact-FK issues were separately diagnosed and corrected as documented in sections 11–13.
 
 ## 8. Migration source and guard review findings
 
@@ -197,7 +197,7 @@ This source review identifies hardening targets; it does not imply repository im
 ### Session 1 — Definitive production schema reconciliation
 
 - S1.1 Current PR head and repository revision: PASS — PR #1057 is open/unmerged; application/workflow code head `1a91cbc2a51427f6a2776db8fa55ce2a724415a1` is based on main `cfe25b49d2014a6008e72a1276b76f69603fce93`. Subsequent branch commits changed only this authoritative report. Latest exact-head run #42248358275 on the report-only branch head `0f939142114af89fef887fba40f655c230578c78` passed both engines.
-- S1.2 Existing work and prior workflow evidence: PASS — prior commits, PR branch, run #42243449408, later exact-head failures and corrected runs reviewed.
+- S1.2 Existing work and prior workflow evidence: PASS — existing PR branch history and corrected paired-engine workflow evidence reviewed; latest exact-head run #42248847440 supersedes earlier failed/superseded attempts.
 - S1.3 All 18 migration sources reviewed: PASS.
 - S1.4 Expected tables individually reconciled: PARTIAL — 39 expected table checks; 11 MISSING and 28 PRESENT. Full per-table definition equivalence for all 28 present tables remains UNKNOWN.
 - S1.5 Expected columns individually reconciled: PARTIAL — 50 checks; 13 MISSING and 37 PRESENT. `import_batches.duplicate_rows` is MATCH; full type/nullability/default/auto-increment comparison for all remaining present columns is UNKNOWN.
@@ -218,7 +218,7 @@ This source review identifies hardening targets; it does not imply repository im
 - S1.20 MySQL 8.4 acceptance workflow passed: PASS — run #42247680217, same acceptance scope and test counts.
 - S1.21 Existing authoritative report updated: PASS — this file is the existing report; no duplicate report created.
 - S1.22 Remaining UNKNOWN and INCOMPATIBLE objects documented: PASS — exact matrix and explicit NOT_CHECKED states are recorded in sections 11–13 below.
-- S1.23 Changes committed and evidence recorded: PASS — latest branch head and exact-head workflow links recorded; PR remains open and unmerged.
+- S1.23 Changes committed and evidence recorded: PASS — branch head `e7687c178be2487f797545b2605313d7d08e06ac` was compared with `main` (76 ahead, 0 behind); paired-engine run #42248847440 and other associated checks passed. A subsequent report/workflow evidence refresh is recorded in Section 14.
 - S1.24 No production modifications made: PASS — no production schema/data/ledger/deployment/Hostinger/GCU changes; all database compatibility tests used disposable CI services.
 
 ### Session 2 — Migration hardening
@@ -360,3 +360,56 @@ All are MISSING in production. The names below are the exact expected trigger na
 Two additional expected triggers on `identity_resolution_decisions` are `identity_decision_update_guard` (BEFORE UPDATE) and `identity_decision_delete_guard` (BEFORE DELETE).
 
 The production database remains **NOT_READY**. CI proves the migration chain and verifier behavior on clean disposable MySQL/MariaDB services; it does not repair or prove production schema conformity. Session 1 is **PARTIALLY_COMPLETE** because the remaining full structural definitions for 28 present tables and 36 other present columns are UNKNOWN, ten index checks depend on missing tables, and the five queue rows/two alerts cannot be mapped while their identity tables are absent. No production recovery is authorized by this report.
+
+
+## 14. Session 1 execution refresh — verified 2026-11-06
+
+This addendum supersedes stale PR-description and workflow references in earlier sections where they conflict with the live GitHub evidence below. It does not change any production classification or authorize production recovery.
+
+### 14.1 Live repository baseline
+
+- Repository: `mattari20/estudent-listing`.
+- Existing PR: [#1057](https://github.com/mattari20/estudent-listing/pull/1057), branch `phase1c/sessions-1-4-mariadb-metadata-diagnostics-2026-11-06`.
+- Verified branch head before this report refresh: `e7687c178be2487f797545b2605313d7d08e06ac`.
+- Verified base/main SHA: `cfe25b49d2014a6008e72a1276b76f69603fce93`.
+- GitHub compare: 76 commits ahead, 0 behind; no merge-base divergence.
+- The report-only commit `e7687c1` corrected the earlier stale S1.1 SHA reference. The application/workflow code head remains `1a91cbc2a51427f6a2776db8fa55ce2a724415a1`; no application code changed after that tested code head.
+- The PR description was stale at the time of inspection: it still listed the older code head as the PR head and linked older run IDs. It is being refreshed to point to the verified current report and evidence.
+
+### 14.2 Latest exact-head paired-engine acceptance
+
+[Run #42248847440](https://github.com/mattari20/estudent-listing/actions/runs/42248847440) is associated with the verified branch head `e7687c178be2487f797545b2605313d7d08e06ac`. Both jobs completed successfully:
+
+| Engine | Job result | Verified checks |
+|---|---|---|
+| MariaDB 11.8.9 | PASS | Clean 18-migration install; Laravel rerun; all 18 ledger entries exactly once; manual reapplication of all 18 migration `up()` methods; 11 critical tables, 34 columns, 19 indexes, 23 exact FKs, 24 trigger definitions; 20 tests / 48 assertions; 24 tests / 104 assertions; all 24 trigger lifecycle checks |
+| MySQL 8.4.13 | PASS | Same acceptance set; all 23 FK mappings/actions printed; MySQL `UPDATE_RULE=NO ACTION` accepted as equivalent to `RESTRICT` only for the update action |
+
+Other successful workflows associated with the same branch commit:
+- [Test #42248847644](https://github.com/mattari20/estudent-listing/actions/runs/42248847644) — PASS.
+- [Isolated MySQL Approval Migration Validation #42248847557](https://github.com/mattari20/estudent-listing/actions/runs/42248847557) — PASS.
+- [Phase 1C Integrated MySQL Migration Acceptance #42248847533](https://github.com/mattari20/estudent-listing/actions/runs/42248847533) — PASS.
+- [Laravel CI #42248847464](https://github.com/mattari20/estudent-listing/actions/runs/42248847464) — PASS.
+
+The paired-engine job logs independently show MariaDB server `11.8.9-MariaDB-ubu2404` and MySQL server `8.4.13`, all 23 FK rows, both PHPUnit summaries, and the 24-trigger lifecycle result. This is isolated engineering acceptance only; it does not prove production equivalence.
+
+### 14.3 Structural production reconciliation still outstanding
+
+The live production evidence currently available in this report remains the prior read-only snapshot. The production-readiness workflow source was inspected: it validates deployed migration/helper hashes and reports server version, table count, table size and storage engines, but it does not emit the full per-table `SHOW CREATE TABLE` / `information_schema.COLUMNS` / `STATISTICS` comparison required by Tasks A–C. No fresh full structural production snapshot was available during this execution, and no production SQL was issued.
+
+Therefore these classifications remain unchanged and must not be promoted:
+- 28 present target tables: table-definition equivalence UNKNOWN.
+- 36 present expected columns: exact definitions UNKNOWN (only `import_batches.duplicate_rows` is MATCH).
+- 13 missing named indexes: production absence is established; the previous report did not preserve a complete 23-row definition matrix. The expected migration sources were inspected, but the 10 absent-parent checks remain NOT_CHECKED in production.
+- Five open queue rows and two alerts: counts and duplicate-open checks remain known from the prior read-only snapshot; record-by-record source/evidence/identity mapping remains NOT_CHECKED. No row payloads were retrieved in this execution.
+- 11 orphan checks and 11 duplicate checks remain NOT_CHECKED because prerequisites are missing.
+
+A fresh production structural diagnostic requires the protected `production-readonly-diagnostics` workflow-dispatch environment and its authorized read-only Hostinger connection. That dispatch was not available through the connected GitHub actions controls in this execution. The missing metadata must be collected by that approved read-only route; do not use ad-hoc SQL credentials or production writes.
+
+### 14.4 Production decision and Session 1 outcome
+
+- Production readiness: **NOT_READY**.
+- Session 1: **SESSION_1_PARTIALLY_COMPLETE**.
+- No production migration, DDL, DML, data modification, identity backfill, deployment, Hostinger configuration change, backup creation, database restart or recreation was performed.
+- PR #1057 remains the sole PR in scope; it must remain open and unmerged.
+- Sessions 2–4 were not started as separate execution work.
