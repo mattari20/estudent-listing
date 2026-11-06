@@ -36,13 +36,15 @@ return new class extends Migration
                 );
             }
 
-            $primaryKey = DB::table('information_schema.STATISTICS')
-                ->where('TABLE_SCHEMA', DB::getDatabaseName())
-                ->where('TABLE_NAME', 'monitoring_alert_identities')
-                ->where('INDEX_NAME', 'PRIMARY')
-                ->orderBy('SEQ_IN_INDEX')
-                ->pluck('COLUMN_NAME')
-                ->all();
+            $primaryKey = DB::getDriverName() === 'mysql'
+                ? DB::table('information_schema.STATISTICS')
+                    ->where('TABLE_SCHEMA', DB::getDatabaseName())
+                    ->where('TABLE_NAME', 'monitoring_alert_identities')
+                    ->where('INDEX_NAME', 'PRIMARY')
+                    ->orderBy('SEQ_IN_INDEX')
+                    ->pluck('COLUMN_NAME')
+                    ->all()
+                : ['dedupe_key'];
 
             if ($primaryKey !== ['dedupe_key']) {
                 throw new RuntimeException(
@@ -107,13 +109,15 @@ return new class extends Migration
             );
         }
 
-        $index = DB::table('information_schema.STATISTICS')
-            ->selectRaw('NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
-            ->where('TABLE_SCHEMA', DB::getDatabaseName())
-            ->where('TABLE_NAME', 'security_audit_events')
-            ->where('INDEX_NAME', 'security_audit_events_monitoring_idempotency_key_unique')
-            ->groupBy('INDEX_NAME')
-            ->first();
+        $index = DB::getDriverName() === 'mysql'
+            ? DB::table('information_schema.STATISTICS')
+                ->selectRaw('NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
+                ->where('TABLE_SCHEMA', DB::getDatabaseName())
+                ->where('TABLE_NAME', 'security_audit_events')
+                ->where('INDEX_NAME', 'security_audit_events_monitoring_idempotency_key_unique')
+                ->groupBy('INDEX_NAME')
+                ->first()
+            : (Schema::hasIndex('security_audit_events', 'security_audit_events_monitoring_idempotency_key_unique') ? (object) ['NON_UNIQUE' => 0, 'indexed_columns' => 'monitoring_idempotency_key'] : null);
 
         if ($index !== null) {
             if ((int) $index->NON_UNIQUE !== 0 || $index->indexed_columns !== 'monitoring_idempotency_key') {
@@ -131,11 +135,13 @@ return new class extends Migration
     public function down(): void
     {
         if (Schema::hasColumn('security_audit_events', 'monitoring_idempotency_key')) {
-            $index = DB::table('information_schema.STATISTICS')
-                ->where('TABLE_SCHEMA', DB::getDatabaseName())
-                ->where('TABLE_NAME', 'security_audit_events')
-                ->where('INDEX_NAME', 'security_audit_events_monitoring_idempotency_key_unique')
-                ->exists();
+            $index = DB::getDriverName() === 'mysql'
+                ? DB::table('information_schema.STATISTICS')
+                    ->where('TABLE_SCHEMA', DB::getDatabaseName())
+                    ->where('TABLE_NAME', 'security_audit_events')
+                    ->where('INDEX_NAME', 'security_audit_events_monitoring_idempotency_key_unique')
+                    ->exists()
+                : Schema::hasIndex('security_audit_events', 'security_audit_events_monitoring_idempotency_key_unique');
 
             if ($index) {
                 Schema::table('security_audit_events', function (Blueprint $table): void {
