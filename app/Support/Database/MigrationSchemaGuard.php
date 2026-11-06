@@ -100,7 +100,7 @@ final class MigrationSchemaGuard
 
                 if (! $defaultMatches) {
                     throw new RuntimeException(
-                        'Existing '.$table.'.'.$column.' has an incompatible default value.'
+                        'Existing '.$table.'.'.$column.' has an incompatible default value (metadata='.var_export($actual->COLUMN_DEFAULT, true).'; metadata_is_sql_null='.($actualDefaultIsNull ? 'true' : 'false').'; nullable='.($actualNullable ? 'true' : 'false').').'
                     );
                 }
             }
