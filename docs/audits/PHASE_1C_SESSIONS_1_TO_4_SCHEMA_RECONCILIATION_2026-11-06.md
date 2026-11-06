@@ -157,7 +157,7 @@ The production readiness workflow's earlier implementation caught metadata excep
 
 The latest readiness run [#42207248782](https://github.com/mattari20/estudent-listing/actions/runs/42207248782) did not reproduce that failure: it successfully reported MariaDB 11.8.9, 52 tables and 52 InnoDB tables. Earlier visible runs #2 and #1 failed before the metadata query (checkout/repository-context failure and git-repository path failure respectively). The historical exception that prompted the `FAILED_SAFE` message is therefore not recoverable from the available logs; its exact root cause remains **UNKNOWN**, and no cause is guessed.
 
-The repository-only change in PR #1057 replaces the swallowed success path with sanitized exception class, SQLSTATE, vendor code and sanitized message, and a non-zero exit. If a future approved read-only diagnostic encounters the error, the actual exception will be visible without exposing connection credentials.
+The repository-only change in PR #1057 now routes the read-only workflow catch block through `App\\Support\\Database\\DatabaseMetadataExceptionSanitizer`. The helper returns exception class, SQLSTATE, vendor code and a sanitized message; it redacts configured host/database/user/password values and password-like assignments. Its behavior is covered by `tests/Feature/DatabaseMetadataExceptionSanitizerTest.php` on both MySQL and MariaDB. The workflow exits non-zero on metadata failure. The helper is included in the deployed-file SHA-256 manifest, so the workflow refuses to use an unverified deployed copy. No diagnostic failure was forced against production.
 
 A separate MariaDB portability issue was found while reviewing migration rerun guards: migration `2026_10_23_000001_add_duplicate_rows_to_import_batches_table` expected `int unsigned` literally, while MariaDB 11.8 reports `int(10) unsigned`. The shared type matcher now normalizes integer display widths, and both that migration and the schema-object verifier use it. The isolated MariaDB rerun job is being extended to execute all 18 migration `up()` methods against an already-completed disposable schema so this path is tested rather than inferred.
 
@@ -165,21 +165,21 @@ A separate MariaDB portability issue was found while reviewing migration rerun g
 
 ### MySQL 8.4.13 isolated recovery
 
-Run [#42202674014](https://github.com/mattari20/estudent-listing/actions/runs/42202674014) completed successfully against disposable MySQL 8.4.13.
+Latest exact-head run [#42247680217](https://github.com/mattari20/estudent-listing/actions/runs/42247680217) passed against disposable MySQL 8.4.
 
-- Clean full migration-chain install and rerun: passed.
-- Exactly-once ledger verification for all 18: passed.
-- Object verifier: 11 critical tables, 34 columns, 19 indexes, 23 exact FKs and 24 trigger definitions verified.
-- Migration guard/backfill suite: 6 tests, 11 assertions passed.
-- Audit-retention/monitoring suite: 24 tests, 104 assertions passed.
-- Trigger lifecycle verifier: passed.
-- Combined PHPUnit count across those two invocations: 30 tests, 115 assertions.
+- Clean full 18-migration install and Laravel rerun: PASS.
+- All 18 migration-ledger entries present exactly once: PASS.
+- Manual reapplication of all 18 migration `up()` methods: PASS.
+- Object verifier: 11 critical tables, 34 columns, 19 indexes, 23 exact FKs and 24 trigger definitions: PASS.
+- Migration guard, identity-conflict/backfill and sanitizer suite: 20 tests, 48 assertions: PASS.
+- Audit-retention/monitoring suite: 24 tests, 104 assertions: PASS.
+- Trigger lifecycle verifier: all 24 triggers verified through removal, reinstall and idempotent repeated guard installation: PASS.
 
-This does not prove MariaDB compatibility.
+The paired MariaDB 11.8.9 job passed the same test counts and acceptance checks in the same exact-head run.
 
 ### MariaDB 11.8.9
 
-PR [#1057](https://github.com/mattari20/estudent-listing/pull/1057) adds a disposable `mariadb:11.8.9` CI service and runs the same recovery acceptance flow using `phase1c_testb_recovery` / `phase1c_ci`. Its status and test counts must be updated only after the final exact-head workflow result is available. Initial MariaDB run [#42235535943](https://github.com/mattari20/estudent-listing/actions/runs/42235535943) provisioned MariaDB 11.8.9, verified the exact server/database/user, completed the clean 18-migration install, reran the migrator, and verified all 18 ledger entries exactly once. It then failed in the object-verifier step because the verifier expected `int unsigned` while MariaDB reports `int(10) unsigned` for `import_batches.duplicate_rows`. The migration itself succeeded; this was a verifier portability defect. Integer display-width normalization was added to the migration guard and schema-object verifier, with regression coverage. The subsequent MariaDB run [#42236169585](https://github.com/mattari20/estudent-listing/actions/runs/42236169585) completed successfully on MariaDB 11.8.9: clean install, rerun, all 18 ledger entries exactly once, object verifier, 14 tests / 26 assertions, 24 audit-retention/monitoring tests / 104 assertions, and all 24 trigger lifecycle checks passed. Further hardening was then added: explicit existing-column contracts, manual reapplication of all 18 migration `up()` methods, and exact FK update/delete-action verification. The later exact-head run [#42238193425](https://github.com/mattari20/estudent-listing/actions/runs/42238193425) completed with both MySQL 8.4 and MariaDB 11.8.9 jobs failing at the manual migration-reapplication step. Both jobs passed clean installation, Laravel migrator rerun and exactly-once verification for all 18 ledger entries; both then stopped because tests/Support/verify-phase1c-create-table-guard-rerun.php contained malformed doubled namespace separators, causing a PHP parse error at line 5. The test script imports were corrected on the PR branch in commit 31a73de143216c1a9e6c7b85dfcfd3dd3b66d68f. No post-fix exact-head workflow result is available yet; therefore the manual all-18 reapplication, exact FK action checks and final MariaDB acceptance remain NOT_VERIFIED.
+PR [#1057](https://github.com/mattari20/estudent-listing/pull/1057) adds a disposable `mariadb:11.8.9` CI service and runs the recovery acceptance flow using `phase1c_testb_recovery` / `phase1c_ci`. The latest exact-head workflow [#42247680217](https://github.com/mattari20/estudent-listing/actions/runs/42247680217) passed both MariaDB 11.8.9 and MySQL 8.4 jobs. On MariaDB it passed the clean 18-migration install, Laravel migrator rerun, exactly-once verification for all 18 ledger entries, manual reapplication of all 18 migration `up()` methods, exact schema-object verification, 20 tests / 48 assertions, 24 audit-retention/monitoring tests / 104 assertions, and all 24 trigger lifecycle checks. The MySQL job passed the same acceptance set. Earlier MariaDB failures are superseded by this exact-head result. The original PHP parse error was corrected in commit 31a73de; subsequent identity-default and exact-FK issues were separately diagnosed and corrected as documented in sections 11–13.
 
 ## 8. Migration source and guard review findings
 
@@ -194,26 +194,32 @@ This source review identifies hardening targets; it does not imply repository im
 
 ## 9. Session 1–4 status at report creation
 
-### Session 1 — Schema reconciliation
+### Session 1 — Definitive production schema reconciliation
 
-- S1.1 Repository/current revision: PASS.
-- S1.2 All 18 migration files inspected: PASS.
-- S1.3 Table inventory: PARTIAL — 39 target tables checked; 11 missing.
-- S1.4 Column inventory: PARTIAL — 50 expected columns checked; 13 missing; exact full-definition comparison not complete for every expected column.
-- S1.5 Index inventory: PARTIAL — 23 named indexes checked; 13 missing; full exact-definition comparison not complete for every expected index.
-- S1.6 FK inventory: PARTIAL — 23 expected names absent; actual FK metadata captured, but complete per-definition source comparison is not complete.
-- S1.7 Trigger inventory: PARTIAL — all 24 expected triggers absent; actual trigger metadata count 0.
-- S1.8 Ledger: PASS — all 18 exact counts observed as zero.
-- S1.9 Five reverification rows: PARTIAL — count and duplicate precheck verified; identity mappings NOT_CHECKED because target table missing.
-- S1.10 Two monitoring alerts: PARTIAL — count and duplicate precheck verified; identity mappings NOT_CHECKED because target table missing.
-- S1.11 Duplicate/orphan checks: PARTIAL — 3 duplicate checks and 7 orphan checks evaluated; remaining checks NOT_CHECKED.
-- S1.12 Historical suppressed metadata exception: BLOCKED — current diagnostic succeeds; historical exception detail unavailable. New sanitized error reporting is in PR #1057.
-- S1.13 Definitive report: PARTIAL — this report records current evidence and explicit unknowns; complete exact object-by-object structural comparison remains open.
-- S1.14 Diagnostic improvement: PARTIAL — PR #1057 adds sanitized exception class, SQLSTATE, vendor code and message reporting with non-zero failure; post-change production execution is not authorized or evidenced, and historical exception root cause remains UNKNOWN.
-- S1.15 Object-level exactness: BLOCKED — the structural snapshot records 349 columns, 173 indexes, 32 FK-column rows and 32 FK-rule rows across production; it does not by itself prove every expected object's complete definition against all 18 migration sources. Missing tables/columns/indexes/constraints are evidenced, but remaining present objects need per-object type/default/attributes and exact index/FK/trigger definition reconciliation.
-- S1.16 Latest recovery-suite state: BLOCKED — run #42238193425 failed on both isolated database engines due to the test-script parse error described above. Commit 31a73de corrects the namespace imports; a new exact-head passing run is not yet available.
-- S1.17 Production execution boundary: PASS — the reviewed readiness, structural and all-18 preflight runs are read-only; their logs explicitly report production_database_changed=false and production_database_mutations=NOT_PERMITTED. No production migration, DDL/DML, deployment or Hostinger change was performed.
-
+- S1.1 Current PR head and repository revision: PASS — PR #1057 is open/unmerged; exact branch head is `1a91cbc2a51427f6a2776db8fa55ce2a724415a1`, based on main `cfe25b49d2014a6008e72a1276b76f69603fce93`.
+- S1.2 Existing work and prior workflow evidence: PASS — prior commits, PR branch, run #42243449408, later exact-head failures and corrected runs reviewed.
+- S1.3 All 18 migration sources reviewed: PASS.
+- S1.4 Expected tables individually reconciled: PARTIAL — 39 expected table checks; 11 MISSING and 28 PRESENT. Full per-table definition equivalence for all 28 present tables remains UNKNOWN.
+- S1.5 Expected columns individually reconciled: PARTIAL — 50 checks; 13 MISSING and 37 PRESENT. `import_batches.duplicate_rows` is MATCH; full type/nullability/default/auto-increment comparison for all remaining present columns is UNKNOWN.
+- S1.6 Expected indexes individually reconciled: PARTIAL — 23 named checks; 13 MISSING and 10 NOT_CHECKED because their owning tables are absent. Exact definitions for the 13 missing names are conclusive; absent-table indexes remain NOT_CHECKED.
+- S1.7 Expected foreign keys individually reconciled: PASS — all 23 expected names are MISSING in production; source/target columns and delete/update semantics were independently verified on isolated MySQL 8.4 and MariaDB 11.8.9.
+- S1.8 Expected triggers individually reconciled: PASS — all 24 expected triggers are MISSING in production; isolated lifecycle verification confirms the 24 expected definitions and reinstall behavior.
+- S1.9 All 18 migration-ledger entries reconciled: PASS — each production count is exactly zero; both isolated engines record each migration exactly once after install/rerun.
+- S1.10 Five open reverification records assessed: PARTIAL — count and duplicate-open-identity checks verified; target mapping remains NOT_CHECKED because the identity table is absent.
+- S1.11 Two open monitoring alerts assessed: PARTIAL — count and duplicate-open-dedupe-key checks verified; target mapping remains NOT_CHECKED because the identity table is absent.
+- S1.12 Duplicate identity checks assessed: PARTIAL — three checks evaluated with zero duplicates; eleven checks NOT_CHECKED because prerequisites are absent.
+- S1.13 All orphan checks classified: PASS — seven evaluated with zero orphans; eleven NOT_CHECKED because prerequisites are absent.
+- S1.14 All skipped checks have documented reasons: PASS — missing table/column prerequisites are recorded; NOT_CHECKED is not relabeled as MISSING or PASS.
+- S1.15 Historical metadata exception accurately classified: PASS — exact historical cause remains UNKNOWN; no cause invented.
+- S1.16 Current sanitized diagnostic behavior tested: PASS — sanitizer unit tests cover PDO and non-PDO exception paths, SQLSTATE/vendor fallback and credential redaction; latest read-only diagnostic run #42207248782 succeeded. Historical exception reproduction remains unavailable.
+- S1.17 MariaDB identity-conflict regression failures corrected: PASS — MariaDB 11.8.9 exact-head run #42247680217 passed the identity-conflict suite.
+- S1.18 MySQL foreign-key verification failures corrected: PASS — MySQL 8.4 exact-head run #42247680217 verified all 23 exact source/target mappings and referential actions.
+- S1.19 MariaDB 11.8.9 acceptance workflow passed: PASS — run #42247680217, clean install, rerun, all-18 manual reapplication, object verifier, 20/48 and 24/104 PHPUnit suites, 24 trigger lifecycle checks.
+- S1.20 MySQL 8.4 acceptance workflow passed: PASS — run #42247680217, same acceptance scope and test counts.
+- S1.21 Existing authoritative report updated: PASS — this file is the existing report; no duplicate report created.
+- S1.22 Remaining UNKNOWN and INCOMPATIBLE objects documented: PASS — exact matrix and explicit NOT_CHECKED states are recorded in sections 11–13 below.
+- S1.23 Changes committed and evidence recorded: PASS — latest branch head and exact-head workflow links recorded; PR remains open and unmerged.
+- S1.24 No production modifications made: PASS — no production schema/data/ledger/deployment/Hostinger/GCU changes; all database compatibility tests used disposable CI services.
 
 ### Session 2 — Migration hardening
 
@@ -264,3 +270,67 @@ This source review identifies hardening targets; it does not imply repository im
 Production has confirmed missing tables, columns, indexes, all 24 expected triggers and all 23 named foreign keys. Eleven orphan checks and multiple duplicate/backfill checks could not be evaluated because prerequisite objects are absent. The five open queue rows and two open alerts require preserved, deterministic reconciliation.
 
 A separate controlled recovery session is not ready to proceed. Sessions 5–8 remain outside this assignment. This report authorizes no production migration, DDL/DML, deployment, data repair or Hostinger configuration change.
+
+
+## 11. Confirmed root causes and corrections from latest CI
+
+### MariaDB 11.8.9 — nullable implicit SQL NULL metadata
+
+**Confirmed root cause:** MariaDB 11.8.9 returned the unquoted string `NULL` in `information_schema.COLUMNS.COLUMN_DEFAULT` for nullable columns whose effective default is SQL NULL. For those rows, `COLUMN_DEFAULT IS NULL` was false while `IS_NULLABLE=YES`. The old guard therefore rejected valid definitions for `data_reverification_queue_identities.attribute` and `monitoring_alert_identities.active_alert_id` before the intended identity-conflict assertions could run. The same metadata representation affected `password_reset_tokens.created_at` during migration reapplication.
+
+**Classification:** fixture definitions were correct; migration contracts were correct; conflict assertion precedence was correct; the metadata interpretation in the guard was defective.
+
+**Correction:** the guard recognizes MariaDB's nullable unquoted NULL sentinel, then inspects `SHOW CREATE TABLE` to distinguish an implicit SQL NULL default from the literal string default `'NULL'`. The regression suite proves SQL NULL is accepted and literal string NULL is not. Both original identity-conflict assertions now execute and pass on MariaDB.
+
+### MySQL 8.4 — foreign-key UPDATE_RULE metadata
+
+**Confirmed root cause:** all 23 MySQL 8.4 foreign keys had the expected source and target columns and the expected DELETE_RULE, but MySQL reported `UPDATE_RULE=NO ACTION` because the migrations do not specify an ON UPDATE clause. The migration guard and verifier required the label `RESTRICT` literally. MySQL's `NO ACTION` is equivalent to `RESTRICT` for these InnoDB constraints, so the strict string comparison falsely classified every key as incompatible. The 23 keys were not missing and their source/target column mappings were not wrong.
+
+**Correction:** a shared action matcher normalizes only `NO ACTION` to `RESTRICT`; it keeps `CASCADE` and `SET NULL` distinct. The exact verifier now checks exactly one row per named constraint, source table/column, referenced schema/table/column, ordinal position, DELETE_RULE and UPDATE_RULE. CI logs show all 23 mappings and actions on both engines. MariaDB reports UPDATE_RULE=RESTRICT; MySQL reports UPDATE_RULE=NO ACTION; both are accepted with unchanged delete actions.
+
+## 12. Exact expected foreign-key matrix
+
+All rows below are **MISSING in production** (the production preflight found zero of the 23 expected named constraints). The same definitions were verified on isolated MySQL 8.4 and MariaDB 11.8.9.
+
+| Constraint | Source column | Referenced column | Delete | Update | Production |
+|---|---|---|---|---|---|
+| identity_decision_row_restrict_fk | identity_resolution_decisions.import_row_id | import_rows.id | RESTRICT | RESTRICT / NO ACTION | MISSING |
+| verification_decision_assertion_restrict_fk | verification_decisions.assertion_id | assertions.id | RESTRICT | RESTRICT / NO ACTION | MISSING |
+| import_reconciliation_batch_restrict_fk | import_reconciliation_events.import_batch_id | import_batches.id | RESTRICT | RESTRICT / NO ACTION | MISSING |
+| import_promotion_decision_row_restrict_fk | import_promotion_decisions.import_row_id | import_rows.id | RESTRICT | RESTRICT / NO ACTION | MISSING |
+| import_promotion_event_row_restrict_fk | import_promotion_events.import_row_id | import_rows.id | RESTRICT | RESTRICT / NO ACTION | MISSING |
+| import_promotion_event_batch_restrict_fk | import_promotion_events.import_batch_id | import_batches.id | RESTRICT | RESTRICT / NO ACTION | MISSING |
+| reverification_event_queue_restrict_fk | reverification_events.queue_id | data_reverification_queue.id | RESTRICT | RESTRICT / NO ACTION | MISSING |
+| structured_enrichment_row_restrict_fk | structured_enrichment_promotion_events.enrichment_import_row_id | enrichment_import_rows.id | RESTRICT | RESTRICT / NO ACTION | MISSING |
+| structured_enrichment_batch_restrict_fk | structured_enrichment_promotion_events.import_batch_id | import_batches.id | RESTRICT | RESTRICT / NO ACTION | MISSING |
+| import_conflict_event_restrict_fk | import_conflict_events.import_conflict_id | import_conflicts.id | RESTRICT | RESTRICT / NO ACTION | MISSING |
+| governed_run_event_restrict_fk | governed_execution_run_events.run_id | governed_execution_runs.id | RESTRICT | RESTRICT / NO ACTION | MISSING |
+| ssr_source_fk | source_snapshot_reconciliation_requests.source_id | sources.id | CASCADE | RESTRICT / NO ACTION | MISSING |
+| ssr_triggering_snapshot_fk | source_snapshot_reconciliation_requests.triggering_snapshot_id | source_snapshots.id | CASCADE | RESTRICT / NO ACTION | MISSING |
+| ssr_current_snapshot_fk | source_snapshot_reconciliation_requests.current_snapshot_id | source_snapshots.id | CASCADE | RESTRICT / NO ACTION | MISSING |
+| ssr_expected_previous_fk | source_snapshot_reconciliation_requests.expected_previous_snapshot_id | source_snapshots.id | SET NULL | RESTRICT / NO ACTION | MISSING |
+| ssr_recorded_previous_fk | source_snapshot_reconciliation_requests.recorded_previous_snapshot_id | source_snapshots.id | SET NULL | RESTRICT / NO ACTION | MISSING |
+| mp_run_policy_fk | monitoring_policy_runs.source_monitoring_policy_id | source_monitoring_policies.id | RESTRICT | RESTRICT / NO ACTION | MISSING |
+| mp_run_exec_fk | monitoring_policy_runs.execution_run_id | governed_execution_runs.id | SET NULL | RESTRICT / NO ACTION | MISSING |
+| mp_source_run_fk | monitoring_policy_run_sources.monitoring_policy_run_id | monitoring_policy_runs.id | RESTRICT | RESTRICT / NO ACTION | MISSING |
+| mp_source_source_fk | monitoring_policy_run_sources.source_id | sources.id | RESTRICT | RESTRICT / NO ACTION | MISSING |
+| mp_source_retrieval_fk | monitoring_policy_run_sources.retrieval_run_id | source_retrieval_runs.id | SET NULL | RESTRICT / NO ACTION | MISSING |
+| mp_source_observation_fk | monitoring_policy_run_sources.observation_id | source_change_observations.id | SET NULL | RESTRICT / NO ACTION | MISSING |
+| mai_active_alert_fk | monitoring_alert_identities.active_alert_id | monitoring_alerts.id | SET NULL | RESTRICT / NO ACTION | MISSING |
+
+## 13. Final object classification matrix and Session 1 decision
+
+| Object group | Expected | Production result | Classification / limitation |
+|---|---:|---|---|
+| Target tables | 39 | 28 present, 11 absent | 11 MISSING; 28 UNKNOWN for full table-definition equivalence |
+| Checked columns | 50 | 37 present, 13 absent | 13 MISSING; 1 MATCH (`import_batches.duplicate_rows`); remaining present definitions UNKNOWN |
+| Named indexes | 23 | 13 absent; 10 depend on absent tables | 13 MISSING; 10 NOT_CHECKED |
+| Named foreign keys | 23 | 0 present | 23 MISSING; exact expected definitions verified in isolated CI |
+| Audit triggers | 24 | 0 present | 24 MISSING; event/timing/table/body verified in isolated CI |
+| Migration ledger entries | 18 | 0 recorded | 18 MISSING in production; exactly once in both isolated engines |
+| Reverification identity mappings | 5 open rows | target identity table absent | NOT_CHECKED; rows preserved |
+| Monitoring alert identity mappings | 2 open alerts | target identity table absent | NOT_CHECKED; alerts preserved |
+| Orphan checks | 18 | 7 zero; 11 skipped | 7 MATCH (zero orphans); 11 NOT_CHECKED |
+| Duplicate checks | 14 | 3 zero; 11 skipped | 3 MATCH (zero duplicates); 11 NOT_CHECKED |
+
+The production database remains **NOT_READY**. CI proves the migration chain and verifier behavior on clean disposable MySQL/MariaDB services; it does not repair or prove production schema conformity. Session 1 is **PARTIALLY_COMPLETE** because the remaining full structural definitions for 28 present tables and 36 other present columns are UNKNOWN, ten index checks depend on missing tables, and the five queue rows/two alerts cannot be mapped while their identity tables are absent. No production recovery is authorized by this report.
