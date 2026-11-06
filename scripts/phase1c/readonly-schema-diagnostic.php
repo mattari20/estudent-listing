@@ -43,7 +43,7 @@ final class Phase1CReadOnlyDiagnostic
         ['data_reverification_queue_identities','data_reverification_queue_identities_active_queue_id_index',['active_queue_id'],false],
         ['monitoring_alert_identities','monitoring_alert_identities_active_alert_id_index',['active_alert_id'],false],
         ['import_conflict_events','import_conflict_events_import_conflict_id_occurred_at_index',['import_conflict_id','occurred_at'],false],
-        ['monitoring_policy_run_sources','monitoring_policy_run_sources_retrieval_run_id_index',['retrieval_run_id'],false],
+        ['monitoring_policy_run_sources','monitoring_policy_source_status_idx',['retrieval_run_id'],false],
     ];
 
     /** @var list<array{id:string,tables:list<string>,columns:array<string,list<string>>,sql:string}> */
@@ -299,7 +299,7 @@ final class Phase1CReadOnlyDiagnostic
         // Comments are non-structural and may contain operator-supplied text.
         $sql=preg_replace("/\\s+COMMENT\\s+'(?:''|[^'])*'/i",'',$sql)??$sql;
         // Do not export literal defaults for credential-like columns.
-        $sql=preg_replace_callback('/(^\\s*([A-Za-z0-9_]+)\\s+[^,\\n]*?\\bDEFAULT\\s+)(?:\\x27(?:\\x27\\x27|[^\\x27])*\\x27|[^\\s,]+)/mi',function($m){
+        $sql=preg_replace_callback('/(^\\s*\\x60?([A-Za-z0-9_]+)\\x60?\\s+[^,\\n]*?\\bDEFAULT\\s+)(?:\\x27(?:\\x27\\x27|[^\\x27])*\\x27|[^\\s,]+)/mi',function($m){
             return preg_match('/password|secret|token|credential|private.?key|api.?key/i',$m[2])?$m[1]."'[REDACTED]'":$m[0];
         },$sql)??$sql;
         return preg_replace('/\\bAUTO_INCREMENT=\\d+/i','AUTO_INCREMENT=[OMITTED]',$sql)??$sql;
