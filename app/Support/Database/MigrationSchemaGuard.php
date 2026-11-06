@@ -56,6 +56,8 @@ final class MigrationSchemaGuard
         }
 
         $actualColumns = DB::table('information_schema.COLUMNS')
+            ->select('*')
+            ->selectRaw('COLUMN_DEFAULT IS NULL AS COLUMN_DEFAULT_IS_NULL')
             ->where('TABLE_SCHEMA', DB::getDatabaseName())
             ->where('TABLE_NAME', $table)
             ->get()
@@ -84,10 +86,23 @@ final class MigrationSchemaGuard
                 );
             }
 
-            if (array_key_exists('default', $contract) && self::normalizeMysqlColumnDefault($actual->COLUMN_DEFAULT) !== self::normalizeMysqlColumnDefault($contract['default'])) {
-                throw new RuntimeException(
-                    'Existing '.$table.'.'.$column.' has an incompatible default value.'
-                );
+            if (array_key_exists('default', $contract)) {
+                // MariaDB and MySQL expose SQL NULL defaults through metadata
+                // differently on some server/driver combinations. Use the
+                // metadata NULL predicate so SQL NULL is never confused with
+                // the literal string "NULL".
+                $actualDefaultIsNull = (bool) $actual->COLUMN_DEFAULT_IS_NULL;
+                $expectedDefault = $contract['default'];
+                $defaultMatches = $expectedDefault === null
+                    ? $actualDefaultIsNull
+                    : (! $actualDefaultIsNull
+                        && self::normalizeMysqlColumnDefault($actual->COLUMN_DEFAULT) === self::normalizeMysqlColumnDefault($expectedDefault));
+
+                if (! $defaultMatches) {
+                    throw new RuntimeException(
+                        'Existing '.$table.'.'.$column.' has an incompatible default value.'
+                    );
+                }
             }
 
             if (array_key_exists('auto_increment', $contract)) {
@@ -161,6 +176,22 @@ final class MigrationSchemaGuard
     public static function mysqlColumnTypeMatches(string $actual, string $expected): bool
     {
         return self::normalizeMysqlColumnType($actual) === self::normalizeMysqlColumnType($expected);
+    }
+
+    /**
+     * MySQL and MariaDB report NO ACTION for some constraints whose
+     * effective InnoDB behavior is RESTRICT. Treat those two metadata labels
+     * as equivalent while preserving CASCADE and SET NULL as distinct rules.
+     */
+    public static function mysqlReferentialActionMatches(string $actual, string $expected): bool
+    {
+        $normalize = static function (string $action): string {
+            $action = strtoupper(trim($action));
+
+            return $action === 'NO ACTION' ? 'RESTRICT' : $action;
+        };
+
+        return $normalize($actual) === $normalize($expected);
     }
 
     private static function normalizeMysqlColumnType(string $type): string
