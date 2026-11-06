@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Database\MigrationSchemaGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -52,6 +53,18 @@ return new class extends Migration
                 throw new RuntimeException(
                     'Existing data_reverification_queue_identities table is partially applied; missing columns: '.implode(', ', $missingColumns).'. Reconcile the exact schema before retrying.'
                 );
+            }
+
+            if (DB::getDriverName() === 'mysql') {
+                MigrationSchemaGuard::assertExistingColumnDefinitions('data_reverification_queue_identities', [
+                    'identity_key' => ['type' => 'varchar(64)', 'nullable' => false],
+                    'subject_type' => ['type' => 'varchar(255)', 'nullable' => false],
+                    'subject_id' => ['type' => 'bigint unsigned', 'nullable' => false],
+                    'attribute' => ['type' => 'varchar(255)', 'nullable' => true, 'default' => null],
+                    'active_queue_id' => ['type' => 'bigint unsigned', 'nullable' => true, 'default' => null],
+                    'created_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+                    'updated_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+                ]);
             }
 
             $primaryKey = DB::getDriverName() === 'mysql'
