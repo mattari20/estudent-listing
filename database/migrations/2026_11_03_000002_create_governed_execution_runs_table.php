@@ -21,7 +21,20 @@ return new class extends Migration
             $table->timestamp('finished_at')->nullable();
             $table->string('failure_code', 160)->nullable();
             $table->timestamps();
-        }, ['id', 'task_key', 'owner_token', 'runner', 'application_revision', 'status', 'started_at', 'heartbeat_at', 'finished_at', 'failure_code', 'created_at', 'updated_at']);
+        }, ['id', 'task_key', 'owner_token', 'runner', 'application_revision', 'status', 'started_at', 'heartbeat_at', 'finished_at', 'failure_code', 'created_at', 'updated_at'], [
+            'id' => ['type' => 'char(36)', 'nullable' => false],
+            'task_key' => ['type' => 'varchar(120)', 'nullable' => false],
+            'owner_token' => ['type' => 'char(36)', 'nullable' => false],
+            'runner' => ['type' => 'varchar(80)', 'nullable' => false],
+            'application_revision' => ['type' => 'varchar(40)', 'nullable' => true, 'default' => null],
+            'status' => ['type' => 'varchar(20)', 'nullable' => false],
+            'started_at' => ['type' => 'timestamp', 'nullable' => false],
+            'heartbeat_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+            'finished_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+            'failure_code' => ['type' => 'varchar(160)', 'nullable' => true, 'default' => null],
+            'created_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+            'updated_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+        ]);
 
         MigrationSchemaGuard::createTableIfMissing('governed_execution_run_events', function (Blueprint $table): void {
             $table->id();
