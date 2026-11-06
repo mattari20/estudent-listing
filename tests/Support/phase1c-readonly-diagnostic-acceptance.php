@@ -80,7 +80,14 @@ $pdo->exec('INSERT INTO verification_decisions(assertion_id) VALUES(999999)');
 $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
 
 $rowCounts=function() use($pdo,$tables): array {$r=[];foreach($tables as $t)$r[$t]=(int)$pdo->query('SELECT COUNT(*) FROM '.$t)->fetchColumn();return $r;};
-$before=$rowCounts();$one=collectDiagnostic($pdo);$two=collectDiagnostic($pdo);
+$schemaCounts=function() use($pdo): array { return [
+    'tables'=>(int)$pdo->query("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE'")->fetchColumn(),
+    'columns'=>(int)$pdo->query('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE()')->fetchColumn(),
+    'indexes'=>(int)$pdo->query('SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE()')->fetchColumn(),
+    'foreign_keys'=>(int)$pdo->query('SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE CONSTRAINT_SCHEMA=DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL')->fetchColumn(),
+    'triggers'=>(int)$pdo->query('SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE()')->fetchColumn(),
+]; };
+$before=$rowCounts();$beforeSchema=$schemaCounts();$one=collectDiagnostic($pdo);$two=collectDiagnostic($pdo);
 assertDiagnostic(json_encode($one,JSON_UNESCAPED_SLASHES)===json_encode($two,JSON_UNESCAPED_SLASHES),'deterministic evidence');
 assertDiagnostic($one['registry_counts']['tables']===39 && $one['registry_counts']['expected_indexes']===23 && $one['registry_counts']['orphan_checks']===18 && $one['registry_counts']['duplicate_checks']===14,'registry sizes');
 assertDiagnostic(count($one['tables'])===39 && count($one['expected_index_reconciliation'])===23,'complete table/index metadata');
@@ -93,6 +100,7 @@ assertDiagnostic($badIndexes===[],'index definition mismatch: '.implode(',',arra
 if(getenv('EVIDENCE_OUTPUT')) file_put_contents(getenv('EVIDENCE_OUTPUT'),json_encode($one,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR).PHP_EOL);
 assertDiagnostic($one['transaction']['outcome']==='ROLLED_BACK','success rollback');
 assertDiagnostic($before===$rowCounts(),'collector caused no row changes');
+assertDiagnostic($beforeSchema===$schemaCounts(),'collector caused no schema-object changes');
 foreach($one['queue_mapping']['records'] as $r) assertDiagnostic(array_diff(array_keys($r),['record_ordinal','state','mapping_match_count'])===[],'queue privacy');
 foreach($one['alert_mapping']['records'] as $r) assertDiagnostic(array_diff(array_keys($r),['record_ordinal','state','mapping_match_count'])===[],'alert privacy');
 
