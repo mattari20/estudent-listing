@@ -71,6 +71,7 @@ jobs:
           git fetch --no-tags origin "$TARGET_SHA"
           git checkout --detach "$TARGET_SHA"
           APP_REVISION="$(git log -1 --format=%H "$TARGET_SHA" -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          export APP_REVISION
           python3 - <<'PY'
           import base64, hashlib, json, os, subprocess
           files = [
@@ -125,25 +126,24 @@ jobs:
             [ -f "$PROJECT_PATH/artisan" ] || { echo "ERROR: artisan missing"; exit 3; }
             [ -f "$PROJECT_PATH/vendor/autoload.php" ] || { echo "ERROR: Composer autoloader missing"; exit 4; }
             cd "$PROJECT_PATH"
-            printf '%s' "$MANIFEST_B64" | base64 -d | python3 -c '
-            import hashlib,json,os,sys
-            rows=json.load(sys.stdin); failures=0
-            for row in rows:
-              path=row["path"]; expected=row["sha256"]
-              if path=="__application_revision__":
-                print("expected_application_revision="+expected)
-                continue
-              if not (path.startswith("database/migrations/") or path=="app/Support/Database/MigrationSchemaGuard.php"):
-                print("manifest_path_rejected"); failures+=1; continue
-              full=os.path.join(os.getcwd(),path)
-              if not os.path.isfile(full):
-                print("deployed_file_"+path+"=MISSING"); failures+=1; continue
-              with open(full,"rb") as f: actual=hashlib.sha256(f.read()).hexdigest()
-              status="MATCH" if actual==expected else "MISMATCH"
-              print("deployed_file_"+path+"="+status)
-              if status!="MATCH": failures+=1
-            print("deployed_file_failures="+str(failures))
-            sys.exit(20 if failures else 0)
+            "$PHP_BIN" -r '
+            $rows=json_decode(base64_decode(getenv("MANIFEST_B64"), true), true, 512, JSON_THROW_ON_ERROR);
+            $failures=0;
+            foreach($rows as $row){
+              $path=(string)$row["path"]; $expected=(string)$row["sha256"];
+              if($path==="__application_revision__"){echo "expected_application_revision=".$expected.PHP_EOL;continue;}
+              if(!(str_starts_with($path,"database/migrations/") || $path==="app/Support/Database/MigrationSchemaGuard.php")){
+                echo "manifest_path_rejected".PHP_EOL; $failures++; continue;
+              }
+              $full=getcwd()."/".$path;
+              if(!is_file($full)){echo "deployed_file_".$path."=MISSING".PHP_EOL;$failures++;continue;}
+              $actual=hash_file("sha256",$full);
+              $status=hash_equals($expected,$actual)?"MATCH":"MISMATCH";
+              echo "deployed_file_".$path."=".$status.PHP_EOL;
+              if($status!=="MATCH")$failures++;
+            }
+            echo "deployed_file_failures=".$failures.PHP_EOL;
+            exit($failures===0?0:20);
             '
 
             echo "=== Backup capability inspection; no files created ==="
