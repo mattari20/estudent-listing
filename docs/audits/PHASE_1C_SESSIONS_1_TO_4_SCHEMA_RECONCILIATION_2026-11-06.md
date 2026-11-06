@@ -157,7 +157,7 @@ The production readiness workflow's earlier implementation caught metadata excep
 
 The latest readiness run [#42207248782](https://github.com/mattari20/estudent-listing/actions/runs/42207248782) did not reproduce that failure: it successfully reported MariaDB 11.8.9, 52 tables and 52 InnoDB tables. Earlier visible runs #2 and #1 failed before the metadata query (checkout/repository-context failure and git-repository path failure respectively). The historical exception that prompted the `FAILED_SAFE` message is therefore not recoverable from the available logs; its exact root cause remains **UNKNOWN**, and no cause is guessed.
 
-The repository-only change in PR #1057 now routes the read-only workflow catch block through `App\\Support\\Database\\DatabaseMetadataExceptionSanitizer`. The helper returns exception class, SQLSTATE, vendor code and a sanitized message; it redacts configured host/database/user/password values and password-like assignments. Its behavior is covered by `tests/Feature/DatabaseMetadataExceptionSanitizerTest.php` on both MySQL and MariaDB. The workflow exits non-zero on metadata failure. The helper is included in the deployed-file SHA-256 manifest, so the workflow refuses to use an unverified deployed copy. No diagnostic failure was forced against production.
+The repository-only change in PR #1057 now routes the read-only workflow catch block through `App\Support\Database\DatabaseMetadataExceptionSanitizer`. The helper returns exception class, SQLSTATE, vendor code and a sanitized message; it redacts configured host/database/user/password values and password-like assignments. Its behavior is covered by `tests/Feature/DatabaseMetadataExceptionSanitizerTest.php` on both MySQL and MariaDB. The workflow exits non-zero on metadata failure. The helper is included in the deployed-file SHA-256 manifest, so the workflow refuses to use an unverified deployed copy. No diagnostic failure was forced against production.
 
 A separate MariaDB portability issue was found while reviewing migration rerun guards: migration `2026_10_23_000001_add_duplicate_rows_to_import_batches_table` expected `int unsigned` literally, while MariaDB 11.8 reports `int(10) unsigned`. The shared type matcher now normalizes integer display widths, and both that migration and the schema-object verifier use it. The isolated MariaDB rerun job is being extended to execute all 18 migration `up()` methods against an already-completed disposable schema so this path is tested rather than inferred.
 
@@ -332,5 +332,31 @@ All rows below are **MISSING in production** (the production preflight found zer
 | Monitoring alert identity mappings | 2 open alerts | target identity table absent | NOT_CHECKED; alerts preserved |
 | Orphan checks | 18 | 7 zero; 11 skipped | 7 MATCH (zero orphans); 11 NOT_CHECKED |
 | Duplicate checks | 14 | 3 zero; 11 skipped | 3 MATCH (zero duplicates); 11 NOT_CHECKED |
+
+### The 28 target tables observed present
+
+`assertions`, `change_events`, `data_reverification_queue`, `enrichment_import_rows`, `evidence`, `identity_match_candidates`, `identity_resolution_decisions`, `import_batches`, `import_conflicts`, `import_promotion_decisions`, `import_promotion_events`, `import_reconciliation_events`, `import_rows`, `institute_discovery_run_outcomes`, `institutions`, `migrations`, `monitoring_alerts`, `official_source_refresh_events`, `provenance_review_events`, `reverification_events`, `security_audit_events`, `sources`, `source_change_observations`, `source_monitoring_policies`, `source_retrieval_runs`, `source_snapshots`, `users`, `verification_decisions`.
+
+All 28 were observed as InnoDB. Their complete table-level definition equivalence (including all options and full column/index definitions) was not established for every table, so their full-definition status remains UNKNOWN.
+
+### The 24 expected production audit triggers
+
+All are MISSING in production. The names below are the exact expected trigger names derived from migration 0014; each pair is BEFORE UPDATE / BEFORE DELETE respectively:
+
+| Table | UPDATE trigger | DELETE trigger |
+|---|---|---|
+| security_audit_events | audit_immut_5e1df25372fff553_u | audit_immut_5e1df25372fff553_d |
+| verification_decisions | audit_immut_493307493f91dfc1_u | audit_immut_493307493f91dfc1_d |
+| provenance_review_events | audit_immut_b04f820f0d4b68b3_u | audit_immut_b04f820f0d4b68b3_d |
+| import_promotion_decisions | audit_immut_f9de606bfd4c935d_u | audit_immut_f9de606bfd4c935d_d |
+| import_promotion_events | audit_immut_f8fe18d3e78fdef2_u | audit_immut_f8fe18d3e78fdef2_d |
+| reverification_events | audit_immut_72992154e9e26525_u | audit_immut_72992154e9e26525_d |
+| structured_enrichment_promotion_events | audit_immut_3ba3ddd28550296d_u | audit_immut_3ba3ddd28550296d_d |
+| official_source_refresh_events | audit_immut_67d791570898e61c_u | audit_immut_67d791570898e61c_d |
+| import_conflict_events | audit_immut_e6d938d7ffee7729_u | audit_immut_e6d938d7ffee7729_d |
+| import_reconciliation_events | audit_immut_17f41e0249a768b1_u | audit_immut_17f41e0249a768b1_d |
+| governed_execution_run_events | audit_immut_0c11b0a7b877443d_u | audit_immut_0c11b0a7b877443d_d |
+
+Two additional expected triggers on `identity_resolution_decisions` are `identity_decision_update_guard` (BEFORE UPDATE) and `identity_decision_delete_guard` (BEFORE DELETE).
 
 The production database remains **NOT_READY**. CI proves the migration chain and verifier behavior on clean disposable MySQL/MariaDB services; it does not repair or prove production schema conformity. Session 1 is **PARTIALLY_COMPLETE** because the remaining full structural definitions for 28 present tables and 36 other present columns are UNKNOWN, ten index checks depend on missing tables, and the five queue rows/two alerts cannot be mapped while their identity tables are absent. No production recovery is authorized by this report.
