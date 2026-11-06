@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Illuminate\Contracts\\Console\Kernel;
-use Illuminate\Support\\Facades\DB;
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\DB;
 
 $root = dirname(__DIR__, 2);
 require $root.'/vendor/autoload.php';
