@@ -9,6 +9,7 @@ on:
       - 'app/Support/Database/MigrationSchemaGuard.php'
       - 'database/migrations/**'
       - 'tests/Feature/MigrationSchemaGuardTest.php'
+      - 'tests/Feature/DatabaseMetadataExceptionSanitizerTest.php'
       - 'tests/Feature/PendingMigrationBackfillRecoveryTest.php'
       - 'tests/Feature/AppendOnlyAuditRetentionTest.php'
       - 'tests/Feature/SourceMonitoringBatchRecoveryTest.php'
@@ -107,7 +108,7 @@ jobs:
       - name: Verify exact migration schema objects
         run: php tests/Support/verify-phase1c-testb-migration-objects.php
       - name: Test migration guard and resumable data backfills
-        run: vendor/bin/phpunit tests/Feature/MigrationSchemaGuardTest.php tests/Feature/PendingMigrationBackfillRecoveryTest.php
+        run: vendor/bin/phpunit tests/Feature/MigrationSchemaGuardTest.php tests/Feature/DatabaseMetadataExceptionSanitizerTest.php tests/Feature/PendingMigrationBackfillRecoveryTest.php
       - name: Test audit retention and monitoring recovery on MySQL
         run: vendor/bin/phpunit tests/Feature/AppendOnlyAuditRetentionTest.php tests/Feature/SourceMonitoringBatchRecoveryTest.php
       - name: Verify audit trigger lifecycle and idempotent reinstall
@@ -203,7 +204,7 @@ jobs:
       - name: Verify exact migration schema objects
         run: php tests/Support/verify-phase1c-testb-migration-objects.php
       - name: Test migration guard and resumable data backfills
-        run: vendor/bin/phpunit tests/Feature/MigrationSchemaGuardTest.php tests/Feature/PendingMigrationBackfillRecoveryTest.php
+        run: vendor/bin/phpunit tests/Feature/MigrationSchemaGuardTest.php tests/Feature/DatabaseMetadataExceptionSanitizerTest.php tests/Feature/PendingMigrationBackfillRecoveryTest.php
       - name: Test audit retention and monitoring recovery
         run: vendor/bin/phpunit tests/Feature/AppendOnlyAuditRetentionTest.php tests/Feature/SourceMonitoringBatchRecoveryTest.php
       - name: Verify audit trigger lifecycle and idempotent reinstall
