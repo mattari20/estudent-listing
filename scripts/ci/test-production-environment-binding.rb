@@ -31,6 +31,7 @@ READ_ONLY = {
   'phase-1c-test-1b-structural-metadata-audit.yml' => 'production-readonly-diagnostics',
   'phase-1c-test-1c-deployed-migration-file-verification.yml' => 'production-readonly-diagnostics',
   'phase-1c-testb-production-readiness-preflight.yml' => 'production-readonly-diagnostics',
+  'phase1c-readonly-schema-diagnostic.yml' => 'production-readonly-diagnostics',
   'official-source-refresh-readiness.yml' => 'production-readonly-diagnostics',
   'readonly-reset-inventory.yml' => 'production-readonly-diagnostics',
   'step3-candidate-audit.yml' => 'production-readonly-diagnostics',
@@ -139,7 +140,7 @@ def blocked?(job)
 end
 
 paths = Dir.glob(File.join(WORKFLOWS, '*.{yml,yaml}')).sort
-fail!("unexpected workflow inventory count: #{paths.length}; expected 47 after adding isolated MySQL recovery, production readiness preflight and protected backup workflow") unless paths.length == 47
+fail!("unexpected workflow inventory count: #{paths.length}; expected 49 after adding isolated MySQL recovery, production readiness preflight, protected backup workflow and the paired read-only diagnostic workflows") unless paths.length == 47
 names = paths.map { |path| File.basename(path) }
 
 confirmation_phrases = []
