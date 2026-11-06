@@ -51,6 +51,19 @@ final class MigrationSchemaGuard
         }, 'varchar('.$length.')');
     }
 
+    public static function ensureNullableUniqueChar(
+        string $table,
+        string $column,
+        int $length,
+        string $indexName
+    ): void {
+        self::ensureNullableUniqueColumn($table, $column, $indexName, function () use ($table, $column, $length): void {
+            Schema::table($table, function (Blueprint $blueprint) use ($column, $length): void {
+                $blueprint->char($column, $length)->nullable();
+            });
+        }, 'char('.$length.')');
+    }
+
     public static function ensureNullableUniqueUnsignedBigInteger(
         string $table,
         string $column,
