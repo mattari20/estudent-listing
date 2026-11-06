@@ -111,6 +111,7 @@ final class Phase1CReadOnlyDiagnostic
                 'alert_mapping'=>$this->alertMapping(),
                 'orphan_checks'=>$this->orphanChecks(),
                 'duplicate_checks'=>$this->duplicateChecks(),
+                'registry_counts'=>['tables'=>count(self::TABLES),'expected_indexes'=>count(self::INDEXES),'orphan_checks'=>count(self::ORPHANS),'duplicate_checks'=>count(self::DUPLICATES)],
                 'transaction'=>['mode'=>'READ ONLY','outcome'=>'ROLLED_BACK'],
             ];
             $this->pdo->rollBack();
@@ -141,10 +142,10 @@ final class Phase1CReadOnlyDiagnostic
         foreach(self::TABLES as $t) {
             if(!isset($this->tables[$t])) {$out[]=['table'=>$t,'state'=>'MISSING'];continue;}
             try {
-                $q=$this->pdo->prepare("SELECT ENGINE,ROW_FORMAT,TABLE_ROWS,AVG_ROW_LENGTH,DATA_LENGTH,MAX_DATA_LENGTH,INDEX_LENGTH,DATA_FREE,AUTO_INCREMENT,CREATE_TIME,UPDATE_TIME,TABLE_COLLATION,CHECKSUM,CREATE_OPTIONS,TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND TABLE_TYPE='BASE TABLE'");
+                $q=$this->pdo->prepare("SELECT ENGINE,ROW_FORMAT,TABLE_COLLATION,CREATE_OPTIONS FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND TABLE_TYPE='BASE TABLE'");
                 $q->execute([$t]); $options=$q->fetch()?:[];
                 $create=$this->pdo->query('SHOW CREATE TABLE '.$this->identifier($t))->fetch(PDO::FETCH_NUM);
-                $out[]=['table'=>$t,'state'=>'PASS','options'=>$options,'create_table_sql'=>(string)($create[1]??'')];
+                $out[]=['table'=>$t,'state'=>'PASS','options'=>$options,'create_table_sql'=>$this->sanitizeCreateSql((string)($create[1]??''))];
             } catch(Throwable $e) {$out[]=['table'=>$t,'state'=>'UNKNOWN','error'=>$this->safeError($e)];}
         }
         return $out;
@@ -158,7 +159,7 @@ final class Phase1CReadOnlyDiagnostic
             try {
                 $q=$this->pdo->prepare('SELECT COLUMN_NAME,ORDINAL_POSITION,COLUMN_DEFAULT,IS_NULLABLE,DATA_TYPE,COLUMN_TYPE,CHARACTER_MAXIMUM_LENGTH,CHARACTER_OCTET_LENGTH,NUMERIC_PRECISION,NUMERIC_SCALE,DATETIME_PRECISION,CHARACTER_SET_NAME,COLLATION_NAME,COLUMN_KEY,EXTRA,PRIVILEGES,COLUMN_COMMENT,GENERATION_EXPRESSION FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? ORDER BY ORDINAL_POSITION');
                 $q->execute([$t]);
-                foreach($q->fetchAll() as $r) $out[]=['table'=>$t]+$r;
+                foreach($q->fetchAll() as $r) { $r['COLUMN_DEFAULT']=$this->safeDefault((string)$r['COLUMN_NAME'],$r['COLUMN_DEFAULT']); unset($r['PRIVILEGES'],$r['COLUMN_COMMENT']); $out[]=['table'=>$t]+$r; }
             } catch(Throwable $e) {$out[]=['table'=>$t,'state'=>'UNKNOWN','error'=>$this->safeError($e)];}
         }
         return $out;
@@ -170,7 +171,7 @@ final class Phase1CReadOnlyDiagnostic
         foreach(self::TABLES as $t) {
             if(!isset($this->tables[$t])) continue;
             try {
-                $q=$this->pdo->prepare('SELECT INDEX_NAME,NON_UNIQUE,SEQ_IN_INDEX,COLUMN_NAME,COLLATION,CARDINALITY,SUB_PART,NULLABLE,INDEX_TYPE,COMMENT,INDEX_COMMENT,IS_VISIBLE FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? ORDER BY INDEX_NAME,SEQ_IN_INDEX');
+                $q=$this->pdo->prepare('SELECT INDEX_NAME,NON_UNIQUE,SEQ_IN_INDEX,COLUMN_NAME,COLLATION,SUB_PART,NULLABLE,INDEX_TYPE FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? ORDER BY INDEX_NAME,SEQ_IN_INDEX');
                 $q->execute([$t]);
                 foreach($q->fetchAll() as $r) $out[]=['table'=>$t]+$r;
             } catch(Throwable $e) {$out[]=['table'=>$t,'state'=>'UNKNOWN','error'=>$this->safeError($e)];}
@@ -219,7 +220,7 @@ final class Phase1CReadOnlyDiagnostic
             $q->execute([$key,$r['subject_type'],$r['subject_id'],$r['attribute'],$r['id']]); $n=(int)$q->fetchColumn();
             $records[]=['record_ordinal'=>$i+1,'state'=>$n===1?'PASS':'FAIL','mapping_match_count'=>$n];
         }
-        return ['state'=>$count===5&&count($rows)===5?'PASS':'FAIL','open_record_count'=>$count,'records'=>$records];
+        return ['state'=>!$ready?'NOT_CHECKED':($count===5&&count($rows)===5?'PASS':'FAIL'),'open_record_count'=>$count,'records'=>$records];
     }
 
     private function alertMapping(): array
@@ -235,7 +236,7 @@ final class Phase1CReadOnlyDiagnostic
             $q->execute([$r['dedupe_key'],$r['id']]); $n=(int)$q->fetchColumn();
             $records[]=['record_ordinal'=>$i+1,'state'=>$n===1?'PASS':'FAIL','mapping_match_count'=>$n];
         }
-        return ['state'=>$count===2&&count($rows)===2?'PASS':'FAIL','open_record_count'=>$count,'records'=>$records];
+        return ['state'=>!$ready?'NOT_CHECKED':($count===2&&count($rows)===2?'PASS':'FAIL'),'open_record_count'=>$count,'records'=>$records];
     }
 
     private function orphanChecks(): array
@@ -285,6 +286,23 @@ final class Phase1CReadOnlyDiagnostic
     {
         if(!preg_match('/^[A-Za-z0-9_]+$/',$name)) throw new RuntimeException('Diagnostic identifier rejected.');
         return chr(96).$name.chr(96);
+    }
+
+    private function safeDefault(string $column, mixed $value): mixed
+    {
+        if ($value !== null && preg_match('/password|secret|token|credential|private.?key|api.?key/i', $column)) return '[REDACTED]';
+        return $value;
+    }
+
+    private function sanitizeCreateSql(string $sql): string
+    {
+        // Comments are non-structural and may contain operator-supplied text.
+        $sql=preg_replace("/\\s+COMMENT\\s+'(?:''|[^'])*'/i",'',$sql)??$sql;
+        // Do not export literal defaults for credential-like columns.
+        $sql=preg_replace_callback('/(^\\s*([A-Za-z0-9_]+)\\s+[^,\\n]*?\\bDEFAULT\\s+)(?:\\x27(?:\\x27\\x27|[^\\x27])*\\x27|[^\\s,]+)/mi',function($m){
+            return preg_match('/password|secret|token|credential|private.?key|api.?key/i',$m[2])?$m[1]."'[REDACTED]'":$m[0];
+        },$sql)??$sql;
+        return preg_replace('/\\bAUTO_INCREMENT=\\d+/i','AUTO_INCREMENT=[OMITTED]',$sql)??$sql;
     }
 
     private function safeError(Throwable $e): array
