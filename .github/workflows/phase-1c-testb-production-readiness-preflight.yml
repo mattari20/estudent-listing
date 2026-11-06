@@ -49,7 +49,7 @@ jobs:
           EXPECTED_CONFIRMATION: "AUTHORIZE-PHASE1C-TESTB-PRODUCTION-READINESS-READONLY"
         run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
 
-      - name: Validate Hostinger SSH credentials
+      - name: Validate environment-scoped production credentials (Hostinger)
         env:
           HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
           USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
@@ -148,6 +148,11 @@ jobs:
             exit($failures===0?0:20);
             '
 
+            if git -C "$PROJECT_PATH" rev-parse --show-toplevel >/dev/null 2>&1; then
+              echo "deployed_git_revision=$(git -C "$PROJECT_PATH" rev-parse HEAD)"
+            else
+              echo "deployed_git_revision=UNAVAILABLE_FILE_HASHES_USED"
+            fi
             echo "=== Backup capability inspection; no files created ==="
             echo "backup_destination_candidate=$HOME/.private-backups/estudent.pk/phase1c"
             case "$HOME/.private-backups/estudent.pk/phase1c/" in
