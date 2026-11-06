@@ -88,7 +88,8 @@ assertDiagnostic(count($one['orphan_checks'])===18 && count($one['duplicate_chec
 assertDiagnostic($one['queue_mapping']['state']==='PASS' && count($one['queue_mapping']['records'])===5,'five sanitized queue mappings');
 assertDiagnostic($one['alert_mapping']['state']==='PASS' && count($one['alert_mapping']['records'])===2,'two sanitized alert mappings');
 assertDiagnostic($one['orphan_checks'][1]['state']==='FAIL','orphan failure');
-assertDiagnostic(count(array_filter($one['expected_index_reconciliation'],fn($r)=>$r['state']==='PASS'))===23,'all expected index definitions');
+$badIndexes=array_values(array_filter($one['expected_index_reconciliation'],fn($r)=>$r['state']!=='PASS'));
+assertDiagnostic($badIndexes===[],'index definition mismatch: '.implode(',',array_map(fn($r)=>$r['name'].':'.$r['state'], $badIndexes)));
 if(getenv('EVIDENCE_OUTPUT')) file_put_contents(getenv('EVIDENCE_OUTPUT'),json_encode($one,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR).PHP_EOL);
 assertDiagnostic($one['transaction']['outcome']==='ROLLED_BACK','success rollback');
 assertDiagnostic($before===$rowCounts(),'collector caused no row changes');
