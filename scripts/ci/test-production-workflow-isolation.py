@@ -150,6 +150,7 @@ def validate_production_workflow(document, events):
     jobs = document.get("jobs", {})
     allowed_environments = {
         "production-readonly-diagnostics",
+        "production-backup",
         "offering-gap-readonly-audit",
         "production-reset",
     }
@@ -199,6 +200,7 @@ def validate_production_workflow(document, events):
             errors.append(f"job {name} exposes production credentials at job scope before its guard")
         if job.get("environment") not in {
             "production-readonly-diagnostics",
+                        "production-backup",
                         "offering-gap-readonly-audit",
         }:
             errors.append(f"job {name} missing approved production environment")
