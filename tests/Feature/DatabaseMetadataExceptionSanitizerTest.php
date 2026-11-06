@@ -15,7 +15,7 @@ class DatabaseMetadataExceptionSanitizerTest extends TestCase
     {
         $exception = new PDOException(
             'Connection failed for db.internal user ci_user password=inline-secret with token-secret',
-            '23000'
+            0
         );
         $exception->errorInfo = ['23000', 1062, 'duplicate key'];
 
