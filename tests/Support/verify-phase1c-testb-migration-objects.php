@@ -97,33 +97,33 @@ foreach ($requiredIndexes as [$table, $index]) {
 }
 
 $expectedForeignKeys = [
-    'identity_decision_row_restrict_fk' => ['identity_resolution_decisions', 'import_rows', 'id', 'RESTRICT'],
-    'verification_decision_assertion_restrict_fk' => ['verification_decisions', 'assertions', 'id', 'RESTRICT'],
-    'import_reconciliation_batch_restrict_fk' => ['import_reconciliation_events', 'import_batches', 'id', 'RESTRICT'],
-    'import_promotion_decision_row_restrict_fk' => ['import_promotion_decisions', 'import_rows', 'id', 'RESTRICT'],
-    'import_promotion_event_row_restrict_fk' => ['import_promotion_events', 'import_rows', 'id', 'RESTRICT'],
-    'import_promotion_event_batch_restrict_fk' => ['import_promotion_events', 'import_batches', 'id', 'RESTRICT'],
-    'reverification_event_queue_restrict_fk' => ['reverification_events', 'data_reverification_queue', 'id', 'RESTRICT'],
-    'structured_enrichment_row_restrict_fk' => ['structured_enrichment_promotion_events', 'enrichment_import_rows', 'id', 'RESTRICT'],
-    'structured_enrichment_batch_restrict_fk' => ['structured_enrichment_promotion_events', 'import_batches', 'id', 'RESTRICT'],
-    'import_conflict_event_restrict_fk' => ['import_conflict_events', 'import_conflicts', 'id', 'RESTRICT'],
-    'governed_run_event_restrict_fk' => ['governed_execution_run_events', 'governed_execution_runs', 'id', 'RESTRICT'],
-    'ssr_source_fk' => ['source_snapshot_reconciliation_requests', 'sources', 'id', 'CASCADE'],
-    'ssr_triggering_snapshot_fk' => ['source_snapshot_reconciliation_requests', 'source_snapshots', 'id', 'CASCADE'],
-    'ssr_current_snapshot_fk' => ['source_snapshot_reconciliation_requests', 'source_snapshots', 'id', 'CASCADE'],
-    'ssr_expected_previous_fk' => ['source_snapshot_reconciliation_requests', 'source_snapshots', 'id', 'SET NULL'],
-    'ssr_recorded_previous_fk' => ['source_snapshot_reconciliation_requests', 'source_snapshots', 'id', 'SET NULL'],
-    'mp_run_policy_fk' => ['monitoring_policy_runs', 'source_monitoring_policies', 'id', 'RESTRICT'],
-    'mp_run_exec_fk' => ['monitoring_policy_runs', 'governed_execution_runs', 'id', 'SET NULL'],
-    'mp_source_run_fk' => ['monitoring_policy_run_sources', 'monitoring_policy_runs', 'id', 'RESTRICT'],
-    'mp_source_source_fk' => ['monitoring_policy_run_sources', 'sources', 'id', 'RESTRICT'],
-    'mp_source_retrieval_fk' => ['monitoring_policy_run_sources', 'source_retrieval_runs', 'id', 'SET NULL'],
-    'mp_source_observation_fk' => ['monitoring_policy_run_sources', 'source_change_observations', 'id', 'SET NULL'],
-    'mai_active_alert_fk' => ['monitoring_alert_identities', 'monitoring_alerts', 'id', 'SET NULL'],
+    'identity_decision_row_restrict_fk' => ['identity_resolution_decisions', 'import_row_id', 'import_rows', 'id', 'RESTRICT'],
+    'verification_decision_assertion_restrict_fk' => ['verification_decisions', 'assertion_id', 'assertions', 'id', 'RESTRICT'],
+    'import_reconciliation_batch_restrict_fk' => ['import_reconciliation_events', 'import_batch_id', 'import_batches', 'id', 'RESTRICT'],
+    'import_promotion_decision_row_restrict_fk' => ['import_promotion_decisions', 'import_row_id', 'import_rows', 'id', 'RESTRICT'],
+    'import_promotion_event_row_restrict_fk' => ['import_promotion_events', 'import_row_id', 'import_rows', 'id', 'RESTRICT'],
+    'import_promotion_event_batch_restrict_fk' => ['import_promotion_events', 'import_batch_id', 'import_batches', 'id', 'RESTRICT'],
+    'reverification_event_queue_restrict_fk' => ['reverification_events', 'queue_id', 'data_reverification_queue', 'id', 'RESTRICT'],
+    'structured_enrichment_row_restrict_fk' => ['structured_enrichment_promotion_events', 'enrichment_import_row_id', 'enrichment_import_rows', 'id', 'RESTRICT'],
+    'structured_enrichment_batch_restrict_fk' => ['structured_enrichment_promotion_events', 'import_batch_id', 'import_batches', 'id', 'RESTRICT'],
+    'import_conflict_event_restrict_fk' => ['import_conflict_events', 'import_conflict_id', 'import_conflicts', 'id', 'RESTRICT'],
+    'governed_run_event_restrict_fk' => ['governed_execution_run_events', 'run_id', 'governed_execution_runs', 'id', 'RESTRICT'],
+    'ssr_source_fk' => ['source_snapshot_reconciliation_requests', 'source_id', 'sources', 'id', 'CASCADE'],
+    'ssr_triggering_snapshot_fk' => ['source_snapshot_reconciliation_requests', 'triggering_snapshot_id', 'source_snapshots', 'id', 'CASCADE'],
+    'ssr_current_snapshot_fk' => ['source_snapshot_reconciliation_requests', 'current_snapshot_id', 'source_snapshots', 'id', 'CASCADE'],
+    'ssr_expected_previous_fk' => ['source_snapshot_reconciliation_requests', 'expected_previous_snapshot_id', 'source_snapshots', 'id', 'SET NULL'],
+    'ssr_recorded_previous_fk' => ['source_snapshot_reconciliation_requests', 'recorded_previous_snapshot_id', 'source_snapshots', 'id', 'SET NULL'],
+    'mp_run_policy_fk' => ['monitoring_policy_runs', 'source_monitoring_policy_id', 'source_monitoring_policies', 'id', 'RESTRICT'],
+    'mp_run_exec_fk' => ['monitoring_policy_runs', 'execution_run_id', 'governed_execution_runs', 'id', 'SET NULL'],
+    'mp_source_run_fk' => ['monitoring_policy_run_sources', 'monitoring_policy_run_id', 'monitoring_policy_runs', 'id', 'RESTRICT'],
+    'mp_source_source_fk' => ['monitoring_policy_run_sources', 'source_id', 'sources', 'id', 'RESTRICT'],
+    'mp_source_retrieval_fk' => ['monitoring_policy_run_sources', 'retrieval_run_id', 'source_retrieval_runs', 'id', 'SET NULL'],
+    'mp_source_observation_fk' => ['monitoring_policy_run_sources', 'observation_id', 'source_change_observations', 'id', 'SET NULL'],
+    'mai_active_alert_fk' => ['monitoring_alert_identities', 'active_alert_id', 'monitoring_alerts', 'id', 'SET NULL'],
 ];
 
-foreach ($expectedForeignKeys as $name => [$table, $parent, $parentColumn, $deleteRule]) {
-    $row = DB::table('information_schema.KEY_COLUMN_USAGE')
+foreach ($expectedForeignKeys as $name => [$table, $column, $parent, $parentColumn, $deleteRule]) {
+    $rows = DB::table('information_schema.KEY_COLUMN_USAGE')
         ->join('information_schema.REFERENTIAL_CONSTRAINTS', function ($join): void {
             $join->on('REFERENTIAL_CONSTRAINTS.CONSTRAINT_SCHEMA', '=', 'KEY_COLUMN_USAGE.CONSTRAINT_SCHEMA')
                 ->on('REFERENTIAL_CONSTRAINTS.CONSTRAINT_NAME', '=', 'KEY_COLUMN_USAGE.CONSTRAINT_NAME')
@@ -131,23 +131,31 @@ foreach ($expectedForeignKeys as $name => [$table, $parent, $parentColumn, $dele
         })
         ->select([
             'KEY_COLUMN_USAGE.TABLE_NAME',
+            'KEY_COLUMN_USAGE.COLUMN_NAME',
+            'KEY_COLUMN_USAGE.REFERENCED_TABLE_SCHEMA',
             'KEY_COLUMN_USAGE.REFERENCED_TABLE_NAME',
             'KEY_COLUMN_USAGE.REFERENCED_COLUMN_NAME',
+            'KEY_COLUMN_USAGE.ORDINAL_POSITION',
             'REFERENTIAL_CONSTRAINTS.DELETE_RULE',
             'REFERENTIAL_CONSTRAINTS.UPDATE_RULE',
         ])
         ->where('KEY_COLUMN_USAGE.CONSTRAINT_SCHEMA', DB::getDatabaseName())
         ->where('KEY_COLUMN_USAGE.CONSTRAINT_NAME', $name)
-        ->first();
+        ->get();
+    $row = $rows->first();
 
     $assert(
-        $row !== null
+        $rows->count() === 1
+        && $row !== null
         && $row->TABLE_NAME === $table
+        && $row->COLUMN_NAME === $column
+        && $row->REFERENCED_TABLE_SCHEMA === DB::getDatabaseName()
         && $row->REFERENCED_TABLE_NAME === $parent
         && $row->REFERENCED_COLUMN_NAME === $parentColumn
-        && strtoupper((string) $row->DELETE_RULE) === $deleteRule
-        && strtoupper((string) $row->UPDATE_RULE) === 'RESTRICT',
-        'foreign key '.$name.' has missing or incompatible definition'
+        && (int) $row->ORDINAL_POSITION === 1
+        && \App\Support\Database\MigrationSchemaGuard::mysqlReferentialActionMatches((string) $row->DELETE_RULE, $deleteRule)
+        && \App\Support\Database\MigrationSchemaGuard::mysqlReferentialActionMatches((string) $row->UPDATE_RULE, 'RESTRICT'),
+        'foreign key '.$name.' has missing or incompatible source/target columns or referential actions'
     );
 }
 
