@@ -98,7 +98,10 @@ final class MigrationSchemaGuard
                 $mariaDbNullSentinel = $actualNullable
                     && is_string($rawDefault)
                     && strtoupper(trim($rawDefault)) === 'NULL';
-                $actualDefaultIsNull = (bool) $actual->COLUMN_DEFAULT_IS_NULL || $mariaDbNullSentinel;
+                $literalNullStringDefault = $mariaDbNullSentinel
+                    && self::mysqlColumnHasLiteralNullStringDefault($table, $column);
+                $actualDefaultIsNull = (bool) $actual->COLUMN_DEFAULT_IS_NULL
+                    || ($mariaDbNullSentinel && ! $literalNullStringDefault);
                 $expectedDefault = $contract['default'];
                 $defaultMatches = $expectedDefault === null
                     ? $actualDefaultIsNull
@@ -178,6 +181,22 @@ final class MigrationSchemaGuard
         }
 
         return $value;
+    }
+
+    /**
+     * MariaDB can return the unquoted metadata sentinel NULL for both an
+     * implicit nullable default and a literal string default. SHOW CREATE
+     * TABLE preserves the SQL quoting and disambiguates the literal string.
+     */
+    private static function mysqlColumnHasLiteralNullStringDefault(string $table, string $column): bool
+    {
+        $wrappedTable = DB::getQueryGrammar()->wrapTable($table);
+        $definition = DB::select('SHOW CREATE TABLE '.$wrappedTable)[0] ?? null;
+        $definitionValues = $definition === null ? [] : array_values((array) $definition);
+        $createSql = (string) (($definition->{'Create Table'} ?? null) ?? ($definitionValues[1] ?? ''));
+        $wrappedColumn = preg_quote(DB::getQueryGrammar()->wrap($column), '/');
+
+        return preg_match('/^\\s*'.$wrappedColumn.'\\s+.*?\\bDEFAULT\\s+\\'NULL\\'(?:\\s|,|$)/im', $createSql) === 1;
     }
 
     public static function mysqlColumnTypeMatches(string $actual, string $expected): bool
