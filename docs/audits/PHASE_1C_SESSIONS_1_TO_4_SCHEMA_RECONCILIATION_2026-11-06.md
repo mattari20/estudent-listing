@@ -159,6 +159,8 @@ The latest readiness run [#42207248782](https://github.com/mattari20/estudent-li
 
 The repository-only change in PR #1057 replaces the swallowed success path with sanitized exception class, SQLSTATE, vendor code and sanitized message, and a non-zero exit. If a future approved read-only diagnostic encounters the error, the actual exception will be visible without exposing connection credentials.
 
+A separate MariaDB portability issue was found while reviewing migration rerun guards: migration `2026_10_23_000001_add_duplicate_rows_to_import_batches_table` expected `int unsigned` literally, while MariaDB 11.8 reports `int(10) unsigned`. The shared type matcher now normalizes integer display widths, and both that migration and the schema-object verifier use it. The isolated MariaDB rerun job is being extended to execute all 18 migration `up()` methods against an already-completed disposable schema so this path is tested rather than inferred.
+
 ## 7. Engineering test evidence
 
 ### MySQL 8.4.13 isolated recovery
@@ -211,13 +213,13 @@ This source review identifies hardening targets; it does not imply repository im
 ### Session 2 — Migration hardening
 
 - S2.1 MigrationSchemaGuard reviewed: PASS (source review).
-- S2.2 Table/column structural checks hardened: PARTIAL — integer display-width normalization added for MySQL 8/MariaDB 11 metadata; full table/column contract enforcement remains open.
+- S2.2 Table/column structural checks hardened: PARTIAL — exact existing-column contracts added to six guarded table migrations; integer display-width normalization shared with migrations 0002/00023; other migration-specific structural checks remain open.
 - S2.3 Index definitions verified/hardened: PARTIAL — exact single-column BTREE uniqueness, prefix length and composite-index equivalence are now checked by MigrationSchemaGuard.
 - S2.4 FK definitions verified/hardened: NOT_CHECKED.
 - S2.5 Trigger definitions verified/hardened: PARTIAL — migration source contains definition checks; helper/tests need expanded MariaDB validation.
 - S2.6 Backfills deterministic/idempotent: PARTIAL — source and MySQL tests reviewed; production backfills not run.
 - S2.7 Identity conflicts handled safely: PARTIAL — migration code checks conflicts; production mapping reconciliation NOT_CHECKED.
-- S2.8 Partial/interrupted DDL recovery: NOT_CHECKED.
+- S2.8 Partial/interrupted DDL recovery: PARTIAL — missing/partial table and incompatible-column guards are tested; full interrupted DDL recovery across every migration is not yet proven.
 - S2.9 Ledger completion behavior: PASS in isolated MySQL; production ledger entries remain zero.
 - S2.10 Regression tests added for every required scenario: PARTIAL — added composite-index, prefixed-index, incompatible-column-type and unsigned-BIGINT metadata coverage; remaining requested failure modes are not all covered.
 - S2.11 Relevant test suites: PARTIAL — existing MySQL tests pass; MariaDB pending.
