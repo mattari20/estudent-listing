@@ -123,7 +123,7 @@ final class MigrationSchemaGuard
 
         if (DB::getDriverName() === 'mysql') {
             $existing = DB::table('information_schema.STATISTICS')
-                ->selectRaw('NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
+                ->selectRaw('MIN(NON_UNIQUE) AS NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
                 ->where('TABLE_SCHEMA', DB::getDatabaseName())
                 ->where('TABLE_NAME', $table)
                 ->where('INDEX_NAME', $indexName)
