@@ -133,8 +133,13 @@ return new class extends Migration
                 $actualRule = strtoupper((string) $foreignKey->DELETE_RULE);
                 $expectedRule = $deleteRule === 'null' ? 'SET NULL' : 'RESTRICT';
 
-                if ($actualRule !== $expectedRule || strtoupper((string) $foreignKey->UPDATE_RULE) !== 'RESTRICT') {
-                    throw new RuntimeException('Existing foreign key '.$constraintName.' has an incompatible delete rule.');
+                if (
+                    ! \App\Support\Database\MigrationSchemaGuard::mysqlReferentialActionMatches($actualRule, $expectedRule)
+                    || ! \App\Support\Database\MigrationSchemaGuard::mysqlReferentialActionMatches((string) $foreignKey->UPDATE_RULE, 'RESTRICT')
+                ) {
+                    throw new RuntimeException(
+                        'Existing foreign key '.$constraintName.' has incompatible actions (delete='.$actualRule.', update='.(string) $foreignKey->UPDATE_RULE.').'
+                    );
                 }
 
                 return;
