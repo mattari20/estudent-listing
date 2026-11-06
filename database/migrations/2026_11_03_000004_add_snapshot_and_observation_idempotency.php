@@ -55,13 +55,15 @@ return new class extends Migration
             );
         }
 
-        $captureIndex = DB::table('information_schema.STATISTICS')
-            ->selectRaw('NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
-            ->where('TABLE_SCHEMA', DB::getDatabaseName())
-            ->where('TABLE_NAME', 'source_snapshots')
-            ->where('INDEX_NAME', 'source_snapshots_capture_key_unique')
-            ->groupBy('INDEX_NAME')
-            ->first();
+        $captureIndex = DB::getDriverName() === 'mysql'
+            ? DB::table('information_schema.STATISTICS')
+                ->selectRaw('NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
+                ->where('TABLE_SCHEMA', DB::getDatabaseName())
+                ->where('TABLE_NAME', 'source_snapshots')
+                ->where('INDEX_NAME', 'source_snapshots_capture_key_unique')
+                ->groupBy('INDEX_NAME')
+                ->first()
+            : (Schema::hasIndex('source_snapshots', 'source_snapshots_capture_key_unique') ? (object) ['NON_UNIQUE' => 0, 'indexed_columns' => 'capture_key'] : null);
 
         if ($captureIndex !== null) {
             if ((int) $captureIndex->NON_UNIQUE !== 0 || $captureIndex->indexed_columns !== 'capture_key') {
@@ -73,26 +75,30 @@ return new class extends Migration
             });
         }
 
-        $observationIndex = DB::table('information_schema.STATISTICS')
-            ->selectRaw('NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
-            ->where('TABLE_SCHEMA', DB::getDatabaseName())
-            ->where('TABLE_NAME', 'source_change_observations')
-            ->where('INDEX_NAME', 'source_observations_current_snapshot_unique')
-            ->groupBy('INDEX_NAME')
-            ->first();
+        $observationIndex = DB::getDriverName() === 'mysql'
+            ? DB::table('information_schema.STATISTICS')
+                ->selectRaw('NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
+                ->where('TABLE_SCHEMA', DB::getDatabaseName())
+                ->where('TABLE_NAME', 'source_change_observations')
+                ->where('INDEX_NAME', 'source_observations_current_snapshot_unique')
+                ->groupBy('INDEX_NAME')
+                ->first()
+            : (Schema::hasIndex('source_change_observations', 'source_observations_current_snapshot_unique') ? (object) ['NON_UNIQUE' => 0, 'indexed_columns' => 'current_snapshot_id'] : null);
 
         if ($observationIndex !== null) {
             if ((int) $observationIndex->NON_UNIQUE !== 0 || $observationIndex->indexed_columns !== 'current_snapshot_id') {
                 throw new RuntimeException('Existing source observation snapshot index has an incompatible definition.');
             }
         } else {
-            $existingUnique = DB::table('information_schema.STATISTICS')
-                ->where('TABLE_SCHEMA', DB::getDatabaseName())
-                ->where('TABLE_NAME', 'source_change_observations')
-                ->where('NON_UNIQUE', 0)
-                ->where('COLUMN_NAME', 'current_snapshot_id')
-                ->where('SEQ_IN_INDEX', 1)
-                ->exists();
+            $existingUnique = DB::getDriverName() === 'mysql'
+                ? DB::table('information_schema.STATISTICS')
+                    ->where('TABLE_SCHEMA', DB::getDatabaseName())
+                    ->where('TABLE_NAME', 'source_change_observations')
+                    ->where('NON_UNIQUE', 0)
+                    ->where('COLUMN_NAME', 'current_snapshot_id')
+                    ->where('SEQ_IN_INDEX', 1)
+                    ->exists()
+                : Schema::hasIndex('source_change_observations', ['current_snapshot_id'], 'unique');
 
             if ($existingUnique) {
                 throw new RuntimeException(
@@ -108,11 +114,13 @@ return new class extends Migration
 
     public function down(): void
     {
-        $observationIndex = DB::table('information_schema.STATISTICS')
-            ->where('TABLE_SCHEMA', DB::getDatabaseName())
-            ->where('TABLE_NAME', 'source_change_observations')
-            ->where('INDEX_NAME', 'source_observations_current_snapshot_unique')
-            ->exists();
+        $observationIndex = DB::getDriverName() === 'mysql'
+            ? DB::table('information_schema.STATISTICS')
+                ->where('TABLE_SCHEMA', DB::getDatabaseName())
+                ->where('TABLE_NAME', 'source_change_observations')
+                ->where('INDEX_NAME', 'source_observations_current_snapshot_unique')
+                ->exists()
+            : Schema::hasIndex('source_change_observations', 'source_observations_current_snapshot_unique');
 
         if ($observationIndex) {
             Schema::table('source_change_observations', function (Blueprint $table): void {
@@ -121,11 +129,13 @@ return new class extends Migration
         }
 
         if (Schema::hasColumn('source_snapshots', 'capture_key')) {
-            $captureIndex = DB::table('information_schema.STATISTICS')
-                ->where('TABLE_SCHEMA', DB::getDatabaseName())
-                ->where('TABLE_NAME', 'source_snapshots')
-                ->where('INDEX_NAME', 'source_snapshots_capture_key_unique')
-                ->exists();
+            $captureIndex = DB::getDriverName() === 'mysql'
+                ? DB::table('information_schema.STATISTICS')
+                    ->where('TABLE_SCHEMA', DB::getDatabaseName())
+                    ->where('TABLE_NAME', 'source_snapshots')
+                    ->where('INDEX_NAME', 'source_snapshots_capture_key_unique')
+                    ->exists()
+                : Schema::hasIndex('source_snapshots', 'source_snapshots_capture_key_unique');
 
             if ($captureIndex) {
                 Schema::table('source_snapshots', function (Blueprint $table): void {
