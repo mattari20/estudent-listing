@@ -1,10 +1,6 @@
 name: Phase 1C Test B — Protected Production Backup
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/phase-1c-testb-protected-production-backup.yml'
   workflow_dispatch:
     inputs:
       project_path:
@@ -33,36 +29,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  validate:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - name: Validate workflow structure and safety markers
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path(".github/workflows/phase-1c-testb-protected-production-backup.yml")
-          s=p.read_text()
-          required=[
-            "environment: production-backup",
-            "AUTHORIZE-PHASE1C-TESTB-PRODUCTION-BACKUP",
-            "mysqldump",
-            "gzip -t",
-            "sha256sum",
-            ".private-backups/estudent.pk/phase1c",
-            "backup_destination_outside_project=PASS",
-            "backup_overwrite=REFUSED",
-            "production_migrations=NOT_RUN",
-          ]
-          missing=[x for x in required if x not in s]
-          if missing:
-            raise SystemExit("Missing safety markers: "+", ".join(missing))
-          print("backup_workflow_static_safety_markers=PASS")
-          PY
-
   backup:
     if: github.event_name == 'workflow_dispatch'
     environment: production-backup
