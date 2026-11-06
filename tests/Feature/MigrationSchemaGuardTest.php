@@ -78,6 +78,70 @@ class MigrationSchemaGuardTest extends TestCase
         $this->assertTrue(Schema::hasIndex('migration_guard_test', 'migration_guard_test_identity_unique'));
     }
 
+    public function test_nullable_unique_string_guard_does_not_accept_composite_unique_index_as_equivalent(): void
+    {
+        Schema::create('migration_guard_test', function (Blueprint $table): void {
+            $table->id();
+            $table->string('identity_key', 64)->nullable();
+            $table->string('scope');
+            $table->unique(['identity_key', 'scope'], 'migration_guard_composite_unique');
+        });
+
+        MigrationSchemaGuard::ensureNullableUniqueString(
+            'migration_guard_test',
+            'identity_key',
+            64,
+            'migration_guard_test_identity_unique'
+        );
+
+        $this->assertTrue(Schema::hasIndex('migration_guard_test', 'migration_guard_test_identity_unique'));
+        $this->assertTrue(Schema::hasIndex('migration_guard_test', 'migration_guard_composite_unique'));
+    }
+
+    public function test_nullable_unique_string_guard_rejects_a_prefixed_named_unique_index_on_mysql(): void
+    {
+        if (DB::getDriverName() !== 'mysql') {
+            $this->markTestSkipped('Prefix-index metadata is specific to MySQL/MariaDB.');
+        }
+
+        Schema::create('migration_guard_test', function (Blueprint $table): void {
+            $table->id();
+            $table->string('identity_key', 64)->nullable();
+        });
+
+        DB::statement('CREATE UNIQUE INDEX migration_guard_test_identity_unique ON migration_guard_test (identity_key(32))');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('incompatible definition');
+        MigrationSchemaGuard::ensureNullableUniqueString(
+            'migration_guard_test',
+            'identity_key',
+            64,
+            'migration_guard_test_identity_unique'
+        );
+    }
+
+    public function test_nullable_unique_string_guard_rejects_incompatible_existing_column_type_on_mysql(): void
+    {
+        if (DB::getDriverName() !== 'mysql') {
+            $this->markTestSkipped('Column metadata assertion is specific to MySQL/MariaDB.');
+        }
+
+        Schema::create('migration_guard_test', function (Blueprint $table): void {
+            $table->id();
+            $table->string('identity_key', 32)->nullable();
+        });
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('incompatible metadata');
+        MigrationSchemaGuard::ensureNullableUniqueString(
+            'migration_guard_test',
+            'identity_key',
+            64,
+            'migration_guard_test_identity_unique'
+        );
+    }
+
     public function test_nullable_unique_string_guard_rejects_existing_duplicate_values(): void
     {
         Schema::create('migration_guard_test', function (Blueprint $table): void {
