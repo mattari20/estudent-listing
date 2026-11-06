@@ -44,7 +44,15 @@ return new class extends Migration
             $table->string('failure_code', 160)->nullable();
             $table->timestamps();
             $table->foreign('run_id')->references('id')->on('governed_execution_runs')->cascadeOnDelete();
-        }, ['id', 'run_id', 'event_type', 'occurred_at', 'failure_code', 'created_at', 'updated_at']);
+        }, ['id', 'run_id', 'event_type', 'occurred_at', 'failure_code', 'created_at', 'updated_at'], [
+            'id' => ['type' => 'bigint unsigned', 'nullable' => false, 'auto_increment' => true],
+            'run_id' => ['type' => 'char(36)', 'nullable' => false],
+            'event_type' => ['type' => 'varchar(30)', 'nullable' => false],
+            'occurred_at' => ['type' => 'timestamp', 'nullable' => false],
+            'failure_code' => ['type' => 'varchar(160)', 'nullable' => true, 'default' => null],
+            'created_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+            'updated_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+        ]);
     }
 
     public function down(): void
