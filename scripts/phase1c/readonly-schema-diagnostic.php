@@ -231,7 +231,7 @@ final class Phase1CReadOnlyDiagnostic
         $ready=$this->has('data_reverification_queue_identities',['identity_key','subject_type','subject_id','attribute','active_queue_id']);
         $records=[];
         foreach(array_slice($rows,0,5) as $i=>$r) {
-            if(!$ready) {$records[]=['record_ordinal'=>$i+1,'state'=>isset($this->columnErrors[$target])?'UNKNOWN':'NOT_CHECKED'];continue;}
+            if(!$ready) {$targetState=isset($this->columnErrors[$target])?'UNKNOWN':(!isset($this->tables[$target])&&!$this->absenceProof?'UNKNOWN':'NOT_CHECKED');$records[]=['record_ordinal'=>$i+1,'state'=>$targetState];continue;}
             $key=hash('sha256',json_encode([(string)$r['subject_type'],(int)$r['subject_id'],$r['attribute']],JSON_THROW_ON_ERROR));
             $q=$this->pdo->prepare('SELECT COUNT(*) FROM data_reverification_queue_identities WHERE identity_key=? AND subject_type=? AND subject_id=? AND (attribute <=> ?) AND active_queue_id=?');
             $q->execute([$key,$r['subject_type'],$r['subject_id'],$r['attribute'],$r['id']]); $n=(int)$q->fetchColumn();
@@ -275,7 +275,7 @@ final class Phase1CReadOnlyDiagnostic
         $out=[];
         foreach(self::DUPLICATES as [$id,$table,$columns,$where]) {
             $missing=$this->missing([$table],[$table=>$columns]);
-            if($missing) {$out[]=['id'=>$id,'state'=>'NOT_CHECKED','missing_prerequisites'=>$missing];continue;}
+            if($missing) {$unknown=(bool)array_filter($missing,fn($x)=>str_starts_with($x,'metadata:'));$out[]=['id'=>$id,'state'=>$unknown?'UNKNOWN':'NOT_CHECKED','missing_prerequisites'=>$missing];continue;}
             try {
                 $group=implode(',',array_map([$this,'identifier'],$columns));
                 $sql='SELECT EXISTS(SELECT 1 FROM '.$this->identifier($table).' WHERE '.$where.' GROUP BY '.$group.' HAVING COUNT(*)>1 LIMIT 1)';
