@@ -75,7 +75,7 @@ jobs:
 
       - name: Run standalone read-only collector over existing protected SSH route
         id: collect
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@v1.2.1
         env:
           PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
           COLLECTOR_B64: ${{ steps.collector.outputs.collector_b64 }}
@@ -86,7 +86,6 @@ jobs:
           port: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
           envs: PROJECT_PATH,COLLECTOR_B64
           command_timeout: 5m
-          script_stop: true
           capture_stdout: true
           script: |
             set -eu
