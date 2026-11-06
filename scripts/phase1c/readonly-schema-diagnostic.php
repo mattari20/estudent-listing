@@ -370,7 +370,13 @@ function phase1cDiagnosticPdo(string $root): PDO
     if(!empty($c['url'])) {$parser=Illuminate\Database\ConfigurationUrlParser::class;$c=(new $parser())->parseConfiguration($c);}
     $database=(string)($c['database']??'');$charset=(string)($c['charset']??'utf8mb4');
     $dsn=!empty($c['unix_socket'])?'mysql:unix_socket='.$c['unix_socket'].';dbname='.$database.';charset='.$charset:'mysql:host='.$c['host'].';port='.($c['port']??3306).';dbname='.$database.';charset='.$charset;
-    return new PDO($dsn,(string)$c['username'],(string)$c['password'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>10,PDO::ATTR_EMULATE_PREPARES=>false]);
+    $options=is_array($c['options']??null)?$c['options']:[];
+    $options[PDO::ATTR_ERRMODE]=PDO::ERRMODE_EXCEPTION;
+    $options[PDO::ATTR_DEFAULT_FETCH_MODE]=PDO::FETCH_ASSOC;
+    $options[PDO::ATTR_TIMEOUT]=10;
+    $options[PDO::ATTR_EMULATE_PREPARES]=false;
+    $options[PDO::ATTR_PERSISTENT]=false;
+    return new PDO($dsn,(string)$c['username'],(string)$c['password'],$options);
 }
 
 if(PHP_SAPI==='cli' && realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__) {
