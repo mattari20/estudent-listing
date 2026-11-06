@@ -60,8 +60,16 @@ jobs:
           test -n "$HOST" && test -n "$USER" && test -n "$KEY" && test -n "$PORT"
           echo "hostinger_readonly_credentials=present"
 
+      - name: Checkout target source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha }}
+          fetch-depth: 0
+          path: .target-source
+
       - name: Checkout target source and build file-integrity manifest
         id: manifest
+        working-directory: .target-source
         env:
           TARGET_SHA: ${{ inputs.target_sha }}
         shell: bash
