@@ -1,0 +1,227 @@
+name: Phase 1C Test B — Production Readiness Preflight (Read-only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_path:
+        description: "Absolute path to the Institutes Laravel project"
+        required: true
+        type: string
+        default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
+      target_sha:
+        description: "Exact main SHA to verify"
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason for deployed-code and backup-capability preflight"
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Exact operation-specific read-only confirmation"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase-1c-testb-production-readiness-preflight
+  cancel-in-progress: false
+
+jobs:
+  readiness:
+    environment: production-readonly-diagnostics
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact dispatch revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          path: .production-dispatch-guard
+
+      - name: Validate protected dispatch
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-PHASE1C-TESTB-PRODUCTION-READINESS-READONLY"
+        run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
+
+      - name: Validate environment-scoped production credentials (Hostinger)
+        env:
+          HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          KEY: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          test -n "$HOST" && test -n "$USER" && test -n "$KEY" && test -n "$PORT"
+          echo "hostinger_readonly_credentials=present"
+
+      - name: Checkout target source and build file-integrity manifest
+        id: manifest
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --no-tags origin "$TARGET_SHA"
+          git checkout --detach "$TARGET_SHA"
+          APP_REVISION="$(git log -1 --format=%H "$TARGET_SHA" -- app bootstrap config database resources routes composer.json composer.lock public artisan)"
+          export APP_REVISION
+          python3 - <<'PY'
+          import base64, hashlib, json, os, subprocess
+          files = [
+            "app/Support/Database/MigrationSchemaGuard.php",
+            "database/migrations/2026_10_17_000001_create_password_reset_tokens_table.php",
+            "database/migrations/2026_10_17_000002_add_must_change_password_to_users_table.php",
+            "database/migrations/2026_10_23_000001_add_duplicate_rows_to_import_batches_table.php",
+            "database/migrations/2026_10_25_000001_create_structured_enrichment_promotion_events_table.php",
+            "database/migrations/2026_11_03_000001_create_governed_execution_leases_table.php",
+            "database/migrations/2026_11_03_000002_create_governed_execution_runs_table.php",
+            "database/migrations/2026_11_03_000003_add_source_retrieval_idempotency_key.php",
+            "database/migrations/2026_11_03_000004_add_snapshot_and_observation_idempotency.php",
+            "database/migrations/2026_11_03_000005_add_discovery_outcome_idempotency_key.php",
+            "database/migrations/2026_11_03_000006_add_change_event_source_link_identity.php",
+            "database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php",
+            "database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php",
+            "database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php",
+            "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php",
+            "database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php",
+            "database/migrations/2026_11_04_000013_create_source_snapshot_reconciliation_requests_table.php",
+            "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+            "database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php",
+          ]
+          rows=[]
+          for path in files:
+            with open(path,"rb") as f: digest=hashlib.sha256(f.read()).hexdigest()
+            rows.append({"path":path,"sha256":digest})
+          rows.append({"path":"__application_revision__","sha256":os.environ["APP_REVISION"]})
+          encoded=base64.b64encode(json.dumps(rows,separators=(",",":")).encode()).decode()
+          with open(os.environ["GITHUB_OUTPUT"],"a") as out: out.write("manifest_b64="+encoded+"\n")
+          print("expected_deployed_files="+str(len(files)))
+          print("expected_migrations=18")
+          PY
+          echo "application_revision=$APP_REVISION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify deployed migration/helper hashes and backup capabilities (read-only)
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
+          MANIFEST_B64: ${{ steps.manifest.outputs.manifest_b64 }}
+        with:
+          host: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,MANIFEST_B64
+          command_timeout: 3m
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo "ERROR: project_path must be absolute"; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo "ERROR: invalid project_path"; exit 2 ;; esac
+            [ -f "$PROJECT_PATH/artisan" ] || { echo "ERROR: artisan missing"; exit 3; }
+            [ -f "$PROJECT_PATH/vendor/autoload.php" ] || { echo "ERROR: Composer autoloader missing"; exit 4; }
+            cd "$PROJECT_PATH"
+            PHP_BIN="/opt/alt/php85/usr/bin/php"
+            [ -x "$PHP_BIN" ] || { echo "approved_php_available=no"; exit 22; }
+            "$PHP_BIN" -r '
+            $rows=json_decode(base64_decode(getenv("MANIFEST_B64"), true), true, 512, JSON_THROW_ON_ERROR);
+            $failures=0;
+            foreach($rows as $row){
+              $path=(string)$row["path"]; $expected=(string)$row["sha256"];
+              if($path==="__application_revision__"){echo "expected_application_revision=".$expected.PHP_EOL;continue;}
+              if(!(str_starts_with($path,"database/migrations/") || $path==="app/Support/Database/MigrationSchemaGuard.php")){
+                echo "manifest_path_rejected".PHP_EOL; $failures++; continue;
+              }
+              $full=getcwd()."/".$path;
+              if(!is_file($full)){echo "deployed_file_".$path."=MISSING".PHP_EOL;$failures++;continue;}
+              $actual=hash_file("sha256",$full);
+              $status=hash_equals($expected,$actual)?"MATCH":"MISMATCH";
+              echo "deployed_file_".$path."=".$status.PHP_EOL;
+              if($status!=="MATCH")$failures++;
+            }
+            echo "deployed_file_failures=".$failures.PHP_EOL;
+            exit($failures===0?0:20);
+            '
+
+            if git -C "$PROJECT_PATH" rev-parse --show-toplevel >/dev/null 2>&1; then
+              echo "deployed_git_revision=$(git -C "$PROJECT_PATH" rev-parse HEAD)"
+            else
+              echo "deployed_git_revision=UNAVAILABLE_FILE_HASHES_USED"
+            fi
+            echo "=== Backup capability inspection; no files created ==="
+            echo "backup_destination_candidate=$HOME/.private-backups/estudent.pk/phase1c"
+            case "$HOME/.private-backups/estudent.pk/phase1c/" in
+              "$PROJECT_PATH/"*) echo "backup_destination_outside_project=FAIL"; exit 21 ;;
+              *) echo "backup_destination_outside_project=CHECKED_CANDIDATE" ;;
+            esac
+            if [ -w "$HOME" ]; then echo "home_parent_writable=yes"; else echo "home_parent_writable=no"; fi
+            if [ -x "$HOME" ]; then echo "home_parent_traversable=yes"; else echo "home_parent_traversable=no"; fi
+            df -Pk "$HOME" | tail -n 1 | awk '{print "home_filesystem_available_kb="$4}'
+            if command -v mysqldump >/dev/null 2>&1; then
+              echo "mysqldump_available=yes"
+              mysqldump --version | head -n 1
+            elif command -v mariadb-dump >/dev/null 2>&1; then
+              echo "mariadb_dump_available=yes"
+              mariadb-dump --version | head -n 1
+            else
+              echo "database_dump_client_available=no"
+            fi
+
+            PHP_BIN="/opt/alt/php85/usr/bin/php"
+            [ -x "$PHP_BIN" ] || { echo "approved_php_available=no"; exit 22; }
+            "$PHP_BIN" <<'PHP'
+            <?php
+            declare(strict_types=1);
+            require getcwd().'/vendor/autoload.php';
+            $cache=getcwd().'/bootstrap/cache/config.php';
+            if (is_file($cache)) {
+                $app=require $cache;
+                $db=$app['database']??null;
+            } else {
+                if (!class_exists(\Dotenv\Dotenv::class)) { echo "database_metadata=NOT_CHECKED_DOTENV_UNAVAILABLE\n"; exit(0); }
+                \Dotenv\Dotenv::createImmutable(getcwd())->safeLoad();
+                $db=require getcwd().'/config/database.php';
+            }
+            $name=(string)($db['default']??'mysql');
+            $c=$db['connections'][$name]??null;
+            if (!is_array($c)||($c['driver']??null)!=='mysql') { echo "database_metadata=NOT_CHECKED_UNSUPPORTED_DRIVER\n"; exit(0); }
+            if (!empty($c['url'])) {
+                $parser=\Illuminate\Database\ConfigurationUrlParser::class;
+                $c=(new $parser())->parseConfiguration($c);
+            }
+            $dsn=!empty($c['unix_socket'])
+                ? 'mysql:unix_socket='.$c['unix_socket'].';dbname='.$c['database'].';charset=utf8mb4'
+                : 'mysql:host='.$c['host'].';port='.($c['port']??3306).';dbname='.$c['database'].';charset=utf8mb4';
+            try {
+                $pdo=new PDO($dsn,(string)$c['username'],(string)$c['password'],[
+                    PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,
+                    PDO::ATTR_TIMEOUT=>10,
+                ]);
+                $pdo->exec('SET TRANSACTION READ ONLY');
+                $pdo->beginTransaction();
+                $v=$pdo->query('SELECT VERSION() AS version')->fetch();
+                $s=$pdo->query("SELECT COUNT(*) AS tables_count, COALESCE(SUM(DATA_LENGTH+INDEX_LENGTH),0) AS bytes FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE()")->fetch();
+                $e=$pdo->query("SELECT ENGINE, COUNT(*) AS count FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' GROUP BY ENGINE")->fetchAll();
+                echo 'database_server_version='.$v['version']."\n";
+                echo 'database_table_count='.$s['tables_count']."\n";
+                echo 'database_size_bytes='.$s['bytes']."\n";
+                foreach($e as $row) echo 'database_engine_'.$row['ENGINE'].'='.$row['count']."\n";
+                $pdo->rollBack();
+                echo "database_metadata_transaction=ROLLED_BACK\n";
+            } catch (Throwable $e) {
+                echo "database_metadata=FAILED_SAFE\n";
+                exit(0);
+            }
+            PHP
+            echo "production_database_changed=false"
+            echo "production_application_files_changed=false"
+            echo "production_migrations=NOT_RUN"
+            echo "backup_file_created=false"
+            echo "backup_directory_created=false"
+            echo "persistent_report_written=false"
