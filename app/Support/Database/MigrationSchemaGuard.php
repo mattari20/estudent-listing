@@ -18,7 +18,7 @@ final class MigrationSchemaGuard
      *
      * @param list<string> $requiredColumns
      */
-    public static function createTableIfMissing(string $table, Closure $definition, array $requiredColumns): void
+    public static function createTableIfMissing(string $table, Closure $definition, array $requiredColumns, array $expectedColumnDefinitions = []): void
     {
         if (! Schema::hasTable($table)) {
             Schema::create($table, $definition);
@@ -34,6 +34,69 @@ final class MigrationSchemaGuard
             throw new RuntimeException(
                 'Existing '.$table.' table is partially applied; missing columns: '.implode(', ', $missingColumns).'. Reconcile the exact schema before retrying.'
             );
+        }
+
+        self::assertExistingColumnDefinitions($table, $expectedColumnDefinitions);
+    }
+
+    /**
+     * @param array<string, array{type: string|list<string>, nullable: bool, default?: mixed, auto_increment?: bool}> $expected
+     */
+    private static function assertExistingColumnDefinitions(string $table, array $expected): void
+    {
+        if ($expected === []) {
+            return;
+        }
+
+        if (DB::getDriverName() !== 'mysql') {
+            throw new RuntimeException(
+                'Cannot verify exact existing '.$table.' column definitions on the unsupported migration driver.'
+            );
+        }
+
+        $actualColumns = DB::table('information_schema.COLUMNS')
+            ->where('TABLE_SCHEMA', DB::getDatabaseName())
+            ->where('TABLE_NAME', $table)
+            ->get()
+            ->keyBy('COLUMN_NAME');
+
+        foreach ($expected as $column => $contract) {
+            $actual = $actualColumns->get($column);
+            if ($actual === null) {
+                throw new RuntimeException('Existing '.$table.'.'.$column.' is missing; expected column metadata was declared.');
+            }
+
+            $expectedTypes = is_array($contract['type']) ? $contract['type'] : [$contract['type']];
+            $expectedTypes = array_map(self::normalizeMysqlColumnType(...), $expectedTypes);
+            $actualType = self::normalizeMysqlColumnType((string) $actual->COLUMN_TYPE);
+
+            if (! in_array($actualType, $expectedTypes, true)) {
+                throw new RuntimeException(
+                    'Existing '.$table.'.'.$column.' has incompatible type '.$actual->COLUMN_TYPE.'; expected '.implode(' or ', $expectedTypes).'.'
+                );
+            }
+
+            $actualNullable = $actual->IS_NULLABLE === 'YES';
+            if ($actualNullable !== $contract['nullable']) {
+                throw new RuntimeException(
+                    'Existing '.$table.'.'.$column.' has incompatible nullability; expected '.($contract['nullable'] ? 'nullable' : 'NOT NULL').'.'
+                );
+            }
+
+            if (array_key_exists('default', $contract) && $actual->COLUMN_DEFAULT != $contract['default']) {
+                throw new RuntimeException(
+                    'Existing '.$table.'.'.$column.' has an incompatible default value.'
+                );
+            }
+
+            if (array_key_exists('auto_increment', $contract)) {
+                $actualAutoIncrement = str_contains(strtolower((string) $actual->EXTRA), 'auto_increment');
+                if ($actualAutoIncrement !== $contract['auto_increment']) {
+                    throw new RuntimeException(
+                        'Existing '.$table.'.'.$column.' has an incompatible auto-increment definition.'
+                    );
+                }
+            }
         }
     }
 
