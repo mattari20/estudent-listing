@@ -102,7 +102,7 @@ jobs:
           }
           echo "All 18 pending migration ledger entries exist exactly once after clean install and rerun.".PHP_EOL;
           '
-      - name: Verify exact existing column contracts on migration rerun
+      - name: Reapply all 18 migrations against the completed schema
         run: php tests/Support/verify-phase1c-create-table-guard-rerun.php
       - name: Verify exact migration schema objects
         run: php tests/Support/verify-phase1c-testb-migration-objects.php
@@ -198,7 +198,7 @@ jobs:
           }
           echo "All 18 pending migration ledger entries exist exactly once after clean install and rerun.".PHP_EOL;
           '
-      - name: Verify exact existing column contracts on migration rerun
+      - name: Reapply all 18 migrations against the completed schema
         run: php tests/Support/verify-phase1c-create-table-guard-rerun.php
       - name: Verify exact migration schema objects
         run: php tests/Support/verify-phase1c-testb-migration-objects.php
