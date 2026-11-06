@@ -196,7 +196,7 @@ This source review identifies hardening targets; it does not imply repository im
 
 ### Session 1 — Definitive production schema reconciliation
 
-- S1.1 Current PR head and repository revision: PASS — PR #1057 is open/unmerged; current report-evidence head is `0f939142114af89fef887fba40f655c230578c78`; the tested application/workflow code head is `1a91cbc2a51427f6a2776db8fa55ce2a724415a1` (later commits updated only this report), based on main `cfe25b49d2014a6008e72a1276b76f69603fce93`.
+- S1.1 Current PR head and repository revision: PASS — PR #1057 is open/unmerged; application/workflow code head `1a91cbc2a51427f6a2776db8fa55ce2a724415a1` is based on main `cfe25b49d2014a6008e72a1276b76f69603fce93`. Subsequent branch commits changed only this authoritative report. Latest exact-head run #42248358275 on the report-only branch head `0f939142114af89fef887fba40f655c230578c78` passed both engines.
 - S1.2 Existing work and prior workflow evidence: PASS — prior commits, PR branch, run #42243449408, later exact-head failures and corrected runs reviewed.
 - S1.3 All 18 migration sources reviewed: PASS.
 - S1.4 Expected tables individually reconciled: PARTIAL — 39 expected table checks; 11 MISSING and 28 PRESENT. Full per-table definition equivalence for all 28 present tables remains UNKNOWN.
