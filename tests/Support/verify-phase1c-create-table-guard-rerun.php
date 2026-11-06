@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Illuminate\\Contracts\\Console\\Kernel;
-use Illuminate\\Support\\Facades\\DB;
+use Illuminate\Contracts\\Console\\Kernel;
+use Illuminate\Support\\Facades\\DB;
 
 $root = dirname(__DIR__, 2);
 require $root.'/vendor/autoload.php';
@@ -11,7 +11,7 @@ $app = require $root.'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
 if (DB::getDriverName() !== 'mysql') {
-    fwrite(STDERR, "This migration rerun proof requires the isolated MySQL/MariaDB service.\\n");
+    fwrite(STDERR, "This migration rerun proof requires the isolated MySQL/MariaDB service.\n");
     exit(2);
 }
 
@@ -30,4 +30,4 @@ foreach ($migrations as $file) {
     fwrite(STDOUT, 'rerun_definition_check='.$file.':PASS'.PHP_EOL);
 }
 
-fwrite(STDOUT, "Verified exact existing column contracts for six guarded table migrations on the isolated database.\\n");
+fwrite(STDOUT, "Verified exact existing column contracts for six guarded table migrations on the isolated database.\n");
