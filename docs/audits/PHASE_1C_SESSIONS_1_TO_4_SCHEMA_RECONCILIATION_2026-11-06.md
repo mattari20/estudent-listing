@@ -413,3 +413,113 @@ A fresh production structural diagnostic requires the protected `production-read
 - No production migration, DDL, DML, data modification, identity backfill, deployment, Hostinger configuration change, backup creation, database restart or recreation was performed.
 - PR #1057 remains the sole PR in scope; it must remain open and unmerged.
 - Sessions 2–4 were not started as separate execution work.
+
+
+## 15. Protected read-only production evidence collection — execution boundary (2026-11-06)
+
+### 15.1 Existing protected diagnostic inspected
+
+The only confirmed protected production-readiness workflow present on this branch is:
+
+`.github/workflows/phase-1c-testb-production-readiness-preflight.yml`
+
+Its configured controls are preserved:
+- Trigger: `workflow_dispatch` only.
+- Job environment: `production-readonly-diagnostics`.
+- Workflow permissions: `contents: read`.
+- Dispatch must target `refs/heads/main`.
+- `target_sha` must equal the immutable dispatch event SHA and the current remote `main` SHA.
+- An operation reason must match the validator's safe ASCII format.
+- An exact operation-specific confirmation phrase is required:
+  `AUTHORIZE-PHASE1C-TESTB-PRODUCTION-READINESS-READONLY`.
+- Hostinger SSH credentials are read only from the protected environment secrets:
+  `PRODUCTION_READONLY_HOSTINGER_SSH_HOST`,
+  `PRODUCTION_READONLY_HOSTINGER_SSH_USER`,
+  `PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY`,
+  `PRODUCTION_READONLY_HOSTINGER_SSH_PORT`.
+- The remote check uses the existing project path default:
+  `/home/u537436044/domains/estudent.pk/public_html/institutes`.
+- The PHP diagnostic sets a read-only transaction and rolls it back. Existing error handling uses `DatabaseMetadataExceptionSanitizer`.
+
+The validator `scripts/ci/validate-production-dispatch.sh` was inspected. It rejects pull-request refs and any target SHA that is not the current `main` SHA. This is an intentional authorization boundary and was not modified or bypassed.
+
+### 15.2 Existing workflow is insufficient for the requested evidence
+
+The current workflow only:
+- checks deployed file hashes and application revision;
+- checks backup-tool/candidate-directory capabilities without creating a backup;
+- reads database server version, total table count, total database size and storage-engine counts;
+- rolls back the read-only metadata transaction;
+- explicitly reports that no persistent report was written.
+
+It does **not** query or emit:
+- per-table `SHOW CREATE TABLE` definitions or table options;
+- the requested per-column `information_schema.COLUMNS` fields;
+- the complete 23-index `information_schema.STATISTICS` matrix;
+- per-constraint foreign-key metadata for all present tables;
+- record-by-record sanitized queue/alert relationship metadata;
+- the 18 orphan and 14 duplicate check results as a complete current matrix;
+- a durable sanitized evidence artifact.
+
+No other production-inventory workflow path or separate protected full-inventory workflow was confirmed in the accessible branch sources. Candidate workflow paths guessed during inspection returned NOT_FOUND and were not treated as evidence.
+
+### 15.3 Prior approved preflight evidence
+
+Existing run [#42207248782](https://github.com/mattari20/estudent-listing/actions/runs/42207248782) was inspected. Its job completed successfully and its logs show:
+- protected dispatch validator passed for main SHA `cfe25b49d2014a6008e72a1276b76f69603fce93`;
+- protected Hostinger credentials were present (values were not retrieved or printed);
+- deployed file hashes had zero mismatches;
+- MariaDB reported `11.8.9-MariaDB-log`;
+- 52 base tables were observed, all InnoDB;
+- the read-only metadata transaction was rolled back;
+- no backup, production data/schema change, or persistent report was created.
+
+This prior run confirms that the existing preflight path has previously completed under its protected authorization. It does not supply the missing structural or row-mapping evidence.
+
+### 15.4 Exact reason the requested full diagnostic was not dispatched
+
+The connected GitHub Actions controls available to this execution expose workflow-run/job/artifact inspection and rerun operations, but do not expose the `workflow_dispatch` action. No SSH credential values or direct Hostinger access are available through this execution.
+
+More importantly, the existing workflow validator requires the workflow to run from current `main`. The requested expanded diagnostic code does not exist on `main`; the current PR branch is 78 commits ahead and must remain unmerged under this task's explicit restriction. A workflow changed only on PR #1057 cannot pass the existing main-only dispatch guard. Dispatching the current main workflow would only repeat the limited preflight described in Section 15.2 and would not satisfy this task.
+
+Therefore:
+- no new protected production workflow was dispatched;
+- no production database connection was opened by this execution;
+- no production metadata or application-row query was issued;
+- no ad-hoc SSH, credentials, secrets, alternate environment or bypass was attempted;
+- no production diagnostic result is inferred from the prior aggregate inventory.
+
+This is an authorization/availability boundary, not a production query failure. The required full evidence remains NOT_CHECKED.
+
+### 15.5 Manual protected dispatch procedure — only after the full diagnostic is approved and present on main
+
+Do **not** dispatch the currently deployed preflight expecting it to collect the missing structural evidence. Once a separately approved full read-only diagnostic implementation is present on current `main`, an authorized operator must:
+
+1. Open GitHub repository `mattari20/estudent-listing` → **Actions**.
+2. Select **Phase 1C Test B — Production Readiness Preflight (Read-only)** (or its explicitly approved replacement name, if changed in the reviewed implementation).
+3. Select **Run workflow** with branch `main`.
+4. Set `project_path` to the existing approved project path:
+   `/home/u537436044/domains/estudent.pk/public_html/institutes`.
+5. Set `target_sha` to the exact current `main` SHA displayed by GitHub at dispatch time. At this report's baseline it is `cfe25b49d2014a6008e72a1276b76f69603fce93`; re-read it at dispatch and do not reuse a stale SHA.
+6. Supply a safe operation reason, for example:
+   `Phase1C-TestB-structural-metadata-readonly-2026-11-06`.
+7. Enter the exact confirmation phrase:
+   `AUTHORIZE-PHASE1C-TESTB-PRODUCTION-READINESS-READONLY`.
+8. If GitHub pauses at the `production-readonly-diagnostics` environment gate, only the configured authorized environment reviewer may approve it. Do not bypass or weaken that gate.
+9. Confirm the run's exact SHA and sanitized artifact. The diagnostic must verify its production database identity and read-only transaction before collecting any metadata. Stop if any prerequisite, environment approval, database identity check or read-only assertion fails.
+
+The procedure above is a handoff instruction, not evidence that a dispatch or approval occurred in this execution. This task's no-merge restriction means the expanded workflow cannot be dispatched from PR #1057 until its separately authorized integration onto `main`.
+
+### 15.6 Session 1 outcome after this inspection
+
+- Structural table definitions: 28 present tables remain UNKNOWN for exact equivalence.
+- Column definitions: 36 present expected columns remain UNKNOWN; only the previously verified `import_batches.duplicate_rows` is MATCH.
+- Indexes: 13 remain confirmed MISSING; ten checks remain NOT_CHECKED because their parent tables are absent. The complete requested definition matrix has not been collected.
+- Five queue records: aggregate count and duplicate-open result remain known; individual mapping remains NOT_CHECKED.
+- Two alerts: aggregate count and duplicate-open result remain known; individual mapping remains NOT_CHECKED.
+- Orphan checks: seven previously evaluated at zero; eleven NOT_CHECKED.
+- Duplicate checks: three previously evaluated at zero; eleven NOT_CHECKED.
+- No disposable-database test was added for a new structural collector because no collector was implemented or executed. The existing MySQL 8.4 and MariaDB 11.8.9 acceptance remains valid for the prior code and is not represented as testing this unimplemented collector.
+- No code, production configuration, database object or production record was changed by this evidence-collection attempt.
+
+**Decision remains: `SESSION_1_PARTIALLY_COMPLETE`; production `NOT_READY`.** The exact blocker is the absence of an authorized, main-resident full structural diagnostic plus the lack of a workflow-dispatch capability in the connected GitHub controls. PR #1057 remains open and unmerged.
