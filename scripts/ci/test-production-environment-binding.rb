@@ -140,7 +140,7 @@ def blocked?(job)
 end
 
 paths = Dir.glob(File.join(WORKFLOWS, '*.{yml,yaml}')).sort
-fail!("unexpected workflow inventory count: #{paths.length}; expected 49 after adding isolated MySQL recovery, production readiness preflight, protected backup workflow and the paired read-only diagnostic workflows") unless paths.length == 47
+fail!("unexpected workflow inventory count: #{paths.length}; expected 49 after adding isolated MySQL recovery, production readiness preflight, protected backup workflow and the paired read-only diagnostic workflows") unless paths.length == 49
 names = paths.map { |path| File.basename(path) }
 
 confirmation_phrases = []
