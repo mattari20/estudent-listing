@@ -73,7 +73,7 @@ jobs:
           echo "collector_b64=$(cat collector.b64)" >> "$GITHUB_OUTPUT"
           rm -f collector.b64
 
-      - name: Run standalone read-only collector over existing protected SSH route
+      - name: Run standalone read-only collector and return bounded compressed evidence
         id: collect
         uses: appleboy/ssh-action@v1.2.1
         env:
@@ -96,19 +96,31 @@ jobs:
             PHP_BIN="/opt/alt/php85/usr/bin/php"
             [ -x "$PHP_BIN" ] || { echo '{"diagnostic_state":"FAILED_SAFE","reason":"APPROVED_PHP_UNAVAILABLE"}'; exit 5; }
             umask 077
-            tmp="$(mktemp /tmp/phase1c-readonly-diagnostic.XXXXXX.php)"
-            trap 'rm -f "$tmp"' EXIT HUP INT TERM
-            printf '%s' "$COLLECTOR_B64" | base64 -d > "$tmp"
-            chmod 600 "$tmp"
-            "$PHP_BIN" "$tmp" "$PROJECT_PATH"
+            collector_tmp="$(mktemp /tmp/phase1c-readonly-diagnostic.XXXXXX.php)"
+            evidence_tmp="$(mktemp /tmp/phase1c-readonly-evidence.XXXXXX.json)"
+            compressed_tmp="$(mktemp /tmp/phase1c-readonly-evidence.XXXXXX.gz)"
+            trap 'rm -f "$collector_tmp" "$evidence_tmp" "$compressed_tmp"' EXIT HUP INT TERM
+            printf '%s' "$COLLECTOR_B64" | base64 -d > "$collector_tmp"
+            chmod 600 "$collector_tmp" "$evidence_tmp" "$compressed_tmp"
+            "$PHP_BIN" "$collector_tmp" "$PROJECT_PATH" > "$evidence_tmp"
+            gzip -c "$evidence_tmp" > "$compressed_tmp"
+            compressed_bytes="$(wc -c < "$compressed_tmp" | tr -d ' ')"
+            if [ "$compressed_bytes" -gt 70000 ]; then
+              echo '{"diagnostic_state":"FAILED_SAFE","reason":"COMPRESSED_EVIDENCE_EXCEEDS_SAFE_TRANSFER_LIMIT"}'
+              exit 6
+            fi
+            base64 -w0 "$compressed_tmp"
+            printf '\n'
 
-      - name: Materialize sanitized evidence without printing it
+      - name: Materialize and validate sanitized evidence
         env:
-          EVIDENCE_JSON: ${{ steps.collect.outputs.stdout }}
+          EVIDENCE_GZIP_B64: ${{ steps.collect.outputs.stdout }}
         run: |
           set -euo pipefail
-          test -n "$EVIDENCE_JSON"
-          printf '%s\n' "$EVIDENCE_JSON" > phase1c-readonly-evidence.json
+          test -n "$EVIDENCE_GZIP_B64"
+          test "${#EVIDENCE_GZIP_B64}" -le 100000 || { echo "compressed evidence transfer exceeded the safe environment limit" >&2; exit 1; }
+          printf '%s' "$EVIDENCE_GZIP_B64" | base64 --decode | gzip --decompress > phase1c-readonly-evidence.json
+          test -s phase1c-readonly-evidence.json
           python3 -m pip install --disable-pip-version-check jsonschema==4.23.0
           python3 .target-source/scripts/phase1c/validate-readonly-evidence.py .target-source/scripts/phase1c/readonly-diagnostic.schema.json phase1c-readonly-evidence.json
           sha256sum phase1c-readonly-evidence.json | awk '{print $1}' > evidence.sha256
