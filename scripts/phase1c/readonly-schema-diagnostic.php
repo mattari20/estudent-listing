@@ -280,7 +280,7 @@ final class Phase1CReadOnlyDiagnostic
     {
         try {
             $database=(string)$this->pdo->query('SELECT DATABASE()')->fetchColumn();
-            $grants=$this->pdo->query('SHOW GRANTS FOR CURRENT_USER')->fetchAll(PDO::FETCH_COLUMN);
+            $grants=$this->pdo->query('SHOW GRANTS')->fetchAll(PDO::FETCH_COLUMN);
             foreach($grants as $grant) {
                 $grant=(string)$grant;
                 if(preg_match('/^GRANT\\s+ALL PRIVILEGES\\s+ON\\s+(?:\\*|'.preg_quote(chr(96).$database.chr(96),'/').')\\.\\*/i',$grant)) return true;
