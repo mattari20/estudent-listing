@@ -189,6 +189,13 @@ foreach ($expectedTriggers as $name => [$table, $event]) {
     );
 }
 
+$normalizeMysqlType = static function (string $type): string {
+    $type = strtolower(trim($type));
+
+    // MariaDB retains integer display widths; MySQL 8 omits them.
+    return preg_replace('/^(tinyint|smallint|mediumint|int|integer|bigint)\\(\\d+\\)/', '$1', $type) ?? $type;
+};
+
 $criticalColumns = [
     ['source_snapshots', 'capture_key', 'varchar(64)', 'YES'],
     ['monitoring_policy_runs', 'heartbeat_at', 'timestamp', 'YES'],
@@ -205,7 +212,7 @@ foreach ($criticalColumns as [$table, $column, $type, $nullable]) {
 
     $assert(
         $definition !== null
-        && strtolower((string) $definition->COLUMN_TYPE) === $type
+        && $normalizeMysqlType((string) $definition->COLUMN_TYPE) === $normalizeMysqlType($type)
         && $definition->IS_NULLABLE === $nullable,
         'column '.$table.'.'.$column.' has incompatible type or nullability'
     );
