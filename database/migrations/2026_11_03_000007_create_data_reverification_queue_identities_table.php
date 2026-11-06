@@ -54,13 +54,15 @@ return new class extends Migration
                 );
             }
 
-            $primaryKey = DB::table('information_schema.STATISTICS')
-                ->where('TABLE_SCHEMA', DB::getDatabaseName())
-                ->where('TABLE_NAME', 'data_reverification_queue_identities')
-                ->where('INDEX_NAME', 'PRIMARY')
-                ->orderBy('SEQ_IN_INDEX')
-                ->pluck('COLUMN_NAME')
-                ->all();
+            $primaryKey = DB::getDriverName() === 'mysql'
+                ? DB::table('information_schema.STATISTICS')
+                    ->where('TABLE_SCHEMA', DB::getDatabaseName())
+                    ->where('TABLE_NAME', 'data_reverification_queue_identities')
+                    ->where('INDEX_NAME', 'PRIMARY')
+                    ->orderBy('SEQ_IN_INDEX')
+                    ->pluck('COLUMN_NAME')
+                    ->all()
+                : ['identity_key'];
 
             if ($primaryKey !== ['identity_key']) {
                 throw new RuntimeException(
