@@ -157,6 +157,11 @@ final class MigrationSchemaGuard
         return $value;
     }
 
+    public static function mysqlColumnTypeMatches(string $actual, string $expected): bool
+    {
+        return self::normalizeMysqlColumnType($actual) === self::normalizeMysqlColumnType($expected);
+    }
+
     private static function normalizeMysqlColumnType(string $type): string
     {
         $type = strtolower(trim($type));
