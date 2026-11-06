@@ -228,7 +228,8 @@ final class Phase1CReadOnlyDiagnostic
         if(!$this->has('data_reverification_queue',['id','subject_type','subject_id','attribute','status'])) return ['state'=>'NOT_CHECKED','reason'=>'SOURCE_COLUMNS_MISSING','records'=>[]];
         $count=(int)$this->pdo->query("SELECT COUNT(*) FROM data_reverification_queue WHERE status='open'")->fetchColumn();
         $rows=$this->pdo->query("SELECT id,subject_type,subject_id,attribute FROM data_reverification_queue WHERE status='open' ORDER BY id LIMIT 6")->fetchAll();
-        $ready=$this->has('data_reverification_queue_identities',['identity_key','subject_type','subject_id','attribute','active_queue_id']);
+        $target='data_reverification_queue_identities';
+        $ready=$this->has($target,['identity_key','subject_type','subject_id','attribute','active_queue_id']);
         $records=[];
         foreach(array_slice($rows,0,5) as $i=>$r) {
             if(!$ready) {$targetState=isset($this->columnErrors[$target])?'UNKNOWN':(!isset($this->tables[$target])&&!$this->absenceProof?'UNKNOWN':'NOT_CHECKED');$records[]=['record_ordinal'=>$i+1,'state'=>$targetState];continue;}
@@ -247,7 +248,8 @@ final class Phase1CReadOnlyDiagnostic
         if(!$this->has('monitoring_alerts',['id','dedupe_key','status'])) return ['state'=>'NOT_CHECKED','reason'=>'SOURCE_COLUMNS_MISSING','records'=>[]];
         $count=(int)$this->pdo->query("SELECT COUNT(*) FROM monitoring_alerts WHERE status='open'")->fetchColumn();
         $rows=$this->pdo->query("SELECT id,dedupe_key FROM monitoring_alerts WHERE status='open' ORDER BY id LIMIT 3")->fetchAll();
-        $ready=$this->has('monitoring_alert_identities',['dedupe_key','active_alert_id']);
+        $target='monitoring_alert_identities';
+        $ready=$this->has($target,['dedupe_key','active_alert_id']);
         $records=[];
         foreach(array_slice($rows,0,2) as $i=>$r) {
             if(!$ready) {$targetState=isset($this->columnErrors[$target])?'UNKNOWN':(!isset($this->tables[$target])&&!$this->absenceProof?'UNKNOWN':'NOT_CHECKED');$records[]=['record_ordinal'=>$i+1,'state'=>$targetState];continue;}
