@@ -38,6 +38,29 @@ class MigrationSchemaGuardTest extends TestCase
         $this->assertTrue(Schema::hasColumn('migration_guard_test', 'name'));
     }
 
+    public function test_create_table_guard_rejects_existing_column_with_incompatible_type(): void
+    {
+        if (DB::getDriverName() !== 'mysql') {
+            $this->markTestSkipped('Exact column metadata assertion is specific to MySQL/MariaDB.');
+        }
+
+        Schema::create('migration_guard_partial_test', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name', 32);
+        });
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('incompatible type');
+        MigrationSchemaGuard::createTableIfMissing(
+            'migration_guard_partial_test',
+            function (Blueprint $table): void {
+                $table->string('name', 255);
+            },
+            ['id', 'name'],
+            ['name' => ['type' => 'varchar(255)', 'nullable' => false]]
+        );
+    }
+
     public function test_create_table_guard_fails_closed_for_partially_created_table(): void
     {
         Schema::create('migration_guard_partial_test', function (Blueprint $table): void {
