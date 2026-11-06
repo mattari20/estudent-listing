@@ -38,6 +38,18 @@ return new class extends Migration
             'id', 'source_id', 'triggering_snapshot_id', 'current_snapshot_id',
             'expected_previous_snapshot_id', 'recorded_previous_snapshot_id',
             'identity_key', 'status', 'details', 'created_at', 'updated_at',
+        ], [
+            'id' => ['type' => 'bigint unsigned', 'nullable' => false, 'auto_increment' => true],
+            'source_id' => ['type' => 'bigint unsigned', 'nullable' => false],
+            'triggering_snapshot_id' => ['type' => 'bigint unsigned', 'nullable' => false],
+            'current_snapshot_id' => ['type' => 'bigint unsigned', 'nullable' => false],
+            'expected_previous_snapshot_id' => ['type' => 'bigint unsigned', 'nullable' => true, 'default' => null],
+            'recorded_previous_snapshot_id' => ['type' => 'bigint unsigned', 'nullable' => true, 'default' => null],
+            'identity_key' => ['type' => 'varchar(64)', 'nullable' => false],
+            'status' => ['type' => 'varchar(32)', 'nullable' => false, 'default' => 'pending_review'],
+            'details' => ['type' => ['json', 'longtext'], 'nullable' => true, 'default' => null],
+            'created_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+            'updated_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
         ]);
     }
 

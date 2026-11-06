@@ -17,7 +17,16 @@ return new class extends Migration
             $table->timestamp('acquired_at');
             $table->timestamp('expires_at')->index();
             $table->timestamps();
-        }, ['id', 'task_key', 'owner_token', 'run_id', 'acquired_at', 'expires_at', 'created_at', 'updated_at']);
+        }, ['id', 'task_key', 'owner_token', 'run_id', 'acquired_at', 'expires_at', 'created_at', 'updated_at'], [
+            'id' => ['type' => 'bigint unsigned', 'nullable' => false, 'auto_increment' => true],
+            'task_key' => ['type' => 'varchar(120)', 'nullable' => false],
+            'owner_token' => ['type' => 'char(36)', 'nullable' => false],
+            'run_id' => ['type' => 'char(36)', 'nullable' => false],
+            'acquired_at' => ['type' => 'timestamp', 'nullable' => false],
+            'expires_at' => ['type' => 'timestamp', 'nullable' => false],
+            'created_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+            'updated_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+        ]);
     }
 
     public function down(): void

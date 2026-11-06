@@ -113,6 +113,7 @@ return new class extends Migration
                 'KEY_COLUMN_USAGE.REFERENCED_TABLE_NAME',
                 'KEY_COLUMN_USAGE.REFERENCED_COLUMN_NAME',
                 'REFERENTIAL_CONSTRAINTS.DELETE_RULE',
+                'REFERENTIAL_CONSTRAINTS.UPDATE_RULE',
             ])
             ->where('KEY_COLUMN_USAGE.CONSTRAINT_SCHEMA', DB::getDatabaseName())
             ->where('KEY_COLUMN_USAGE.TABLE_NAME', $tableName)
@@ -132,8 +133,13 @@ return new class extends Migration
                 $actualRule = strtoupper((string) $foreignKey->DELETE_RULE);
                 $expectedRule = $deleteRule === 'null' ? 'SET NULL' : 'RESTRICT';
 
-                if ($actualRule !== $expectedRule) {
-                    throw new RuntimeException('Existing foreign key '.$constraintName.' has an incompatible delete rule.');
+                if (
+                    ! \App\Support\Database\MigrationSchemaGuard::mysqlReferentialActionMatches($actualRule, $expectedRule)
+                    || ! \App\Support\Database\MigrationSchemaGuard::mysqlReferentialActionMatches((string) $foreignKey->UPDATE_RULE, 'RESTRICT')
+                ) {
+                    throw new RuntimeException(
+                        'Existing foreign key '.$constraintName.' has incompatible actions (delete='.$actualRule.', update='.(string) $foreignKey->UPDATE_RULE.').'
+                    );
                 }
 
                 return;

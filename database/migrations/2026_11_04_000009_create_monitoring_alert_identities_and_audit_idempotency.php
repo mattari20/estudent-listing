@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Database\MigrationSchemaGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +35,15 @@ return new class extends Migration
                 throw new RuntimeException(
                     'Existing monitoring_alert_identities table is partially applied; missing columns: '.implode(', ', $missingColumns).'. Reconcile the exact schema before retrying.'
                 );
+            }
+
+            if (DB::getDriverName() === 'mysql') {
+                MigrationSchemaGuard::assertExistingColumnDefinitions('monitoring_alert_identities', [
+                    'dedupe_key' => ['type' => 'varchar(40)', 'nullable' => false],
+                    'active_alert_id' => ['type' => 'bigint unsigned', 'nullable' => true, 'default' => null],
+                    'created_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+                    'updated_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+                ]);
             }
 
             $primaryKey = DB::getDriverName() === 'mysql'
@@ -88,48 +98,12 @@ return new class extends Migration
             }
         });
 
-        $auditColumnExists = Schema::hasColumn('security_audit_events', 'monitoring_idempotency_key');
-        if (! $auditColumnExists) {
-            Schema::table('security_audit_events', function (Blueprint $table): void {
-                $table->string('monitoring_idempotency_key', 191)->nullable();
-            });
-        }
-
-        $duplicateAuditKeys = DB::table('security_audit_events')
-            ->select('monitoring_idempotency_key')
-            ->whereNotNull('monitoring_idempotency_key')
-            ->groupBy('monitoring_idempotency_key')
-            ->havingRaw('COUNT(*) > 1')
-            ->limit(1)
-            ->exists();
-
-        if ($duplicateAuditKeys) {
-            throw new RuntimeException(
-                'Duplicate non-NULL monitoring audit idempotency keys exist; reconcile explicitly before adding the unique index.'
-            );
-        }
-
-        $index = DB::getDriverName() === 'mysql'
-            ? DB::table('information_schema.STATISTICS')
-                ->selectRaw('MIN(NON_UNIQUE) AS NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
-                ->where('TABLE_SCHEMA', DB::getDatabaseName())
-                ->where('TABLE_NAME', 'security_audit_events')
-                ->where('INDEX_NAME', 'security_audit_events_monitoring_idempotency_key_unique')
-                ->groupBy('INDEX_NAME')
-                ->first()
-            : (Schema::hasIndex('security_audit_events', 'security_audit_events_monitoring_idempotency_key_unique') ? (object) ['NON_UNIQUE' => 0, 'indexed_columns' => 'monitoring_idempotency_key'] : null);
-
-        if ($index !== null) {
-            if ((int) $index->NON_UNIQUE !== 0 || $index->indexed_columns !== 'monitoring_idempotency_key') {
-                throw new RuntimeException(
-                    'Existing security audit monitoring idempotency index has an incompatible definition.'
-                );
-            }
-        } else {
-            Schema::table('security_audit_events', function (Blueprint $table): void {
-                $table->unique('monitoring_idempotency_key', 'security_audit_events_monitoring_idempotency_key_unique');
-            });
-        }
+        MigrationSchemaGuard::ensureNullableUniqueString(
+            'security_audit_events',
+            'monitoring_idempotency_key',
+            191,
+            'security_audit_events_monitoring_idempotency_key_unique'
+        );
     }
 
     public function down(): void
