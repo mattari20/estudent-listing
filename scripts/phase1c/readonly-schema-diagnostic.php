@@ -128,7 +128,10 @@ final class Phase1CReadOnlyDiagnostic
 
     private function inventory(): void
     {
-        foreach($this->pdo->query("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE'")->fetchAll(PDO::FETCH_COLUMN) as $t) $this->tables[(string)$t]=true;
+        $placeholders=implode(',',array_fill(0,count(self::TABLES),'?'));
+        $inventory=$this->pdo->prepare("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' AND TABLE_NAME IN ($placeholders)");
+        $inventory->execute(self::TABLES);
+        foreach($inventory->fetchAll(PDO::FETCH_COLUMN) as $t) $this->tables[(string)$t]=true;
         $this->absenceProof=$this->hasDatabaseWideSelect();
         foreach(self::TABLES as $t) {
             $this->columns[$t]=[];
@@ -205,7 +208,10 @@ final class Phase1CReadOnlyDiagnostic
     private function foreignKeys(): array
     {
         try {
-            return $this->pdo->query("SELECT k.CONSTRAINT_NAME,k.TABLE_NAME,k.COLUMN_NAME,k.ORDINAL_POSITION,k.POSITION_IN_UNIQUE_CONSTRAINT,k.REFERENCED_TABLE_SCHEMA,k.REFERENCED_TABLE_NAME,k.REFERENCED_COLUMN_NAME,r.MATCH_OPTION,r.UPDATE_RULE,r.DELETE_RULE FROM information_schema.KEY_COLUMN_USAGE k JOIN information_schema.REFERENTIAL_CONSTRAINTS r ON r.CONSTRAINT_SCHEMA=k.CONSTRAINT_SCHEMA AND r.CONSTRAINT_NAME=k.CONSTRAINT_NAME AND r.TABLE_NAME=k.TABLE_NAME WHERE k.CONSTRAINT_SCHEMA=DATABASE() AND k.REFERENCED_TABLE_NAME IS NOT NULL ORDER BY k.TABLE_NAME,k.CONSTRAINT_NAME,k.ORDINAL_POSITION")->fetchAll();
+            $placeholders=implode(',',array_fill(0,count(self::TABLES),'?'));
+            $q=$this->pdo->prepare("SELECT k.CONSTRAINT_NAME,k.TABLE_NAME,k.COLUMN_NAME,k.ORDINAL_POSITION,k.POSITION_IN_UNIQUE_CONSTRAINT,k.REFERENCED_TABLE_SCHEMA,k.REFERENCED_TABLE_NAME,k.REFERENCED_COLUMN_NAME,r.MATCH_OPTION,r.UPDATE_RULE,r.DELETE_RULE FROM information_schema.KEY_COLUMN_USAGE k JOIN information_schema.REFERENTIAL_CONSTRAINTS r ON r.CONSTRAINT_SCHEMA=k.CONSTRAINT_SCHEMA AND r.CONSTRAINT_NAME=k.CONSTRAINT_NAME AND r.TABLE_NAME=k.TABLE_NAME WHERE k.CONSTRAINT_SCHEMA=DATABASE() AND k.TABLE_NAME IN ($placeholders) AND k.REFERENCED_TABLE_NAME IS NOT NULL ORDER BY k.TABLE_NAME,k.CONSTRAINT_NAME,k.ORDINAL_POSITION");
+            $q->execute(self::TABLES);
+            return $q->fetchAll();
         } catch(Throwable $e) {return [['state'=>'UNKNOWN','error'=>$this->safeError($e)]];}
     }
 
