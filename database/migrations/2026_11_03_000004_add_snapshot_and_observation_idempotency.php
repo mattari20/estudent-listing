@@ -1,6 +1,6 @@
 <?php
 
-use App\\Support\\Database\\MigrationSchemaGuard;
+use App\Support\Database\MigrationSchemaGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +39,7 @@ return new class extends Migration
                 ->where('INDEX_NAME', 'source_observations_current_snapshot_unique')
                 ->groupBy('INDEX_NAME')
                 ->first()
-            : (Schema::hasIndex('source_change_observations', 'source_observations_current_snapshot_unique') ? (object) ['NON_UNIQUE' => 0, 'indexed_columns' => 'current_snapshot_id'] : null);
+            : (Schema::hasIndex('source_change_observations', 'source_observations_current_snapshot_unique') ? (object) ['NON_UNIQUE' => 0, 'COLUMN_COUNT' => 1, 'indexed_columns' => 'current_snapshot_id', 'PREFIX_LENGTH' => null, 'INDEX_TYPE' => 'BTREE'] : null);
 
         if ($observationIndex !== null) {
             if ((int) $observationIndex->NON_UNIQUE !== 0 || (int) $observationIndex->COLUMN_COUNT !== 1 || $observationIndex->indexed_columns !== 'current_snapshot_id' || $observationIndex->PREFIX_LENGTH !== null || strtoupper((string) $observationIndex->INDEX_TYPE) !== 'BTREE') {
