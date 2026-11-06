@@ -21,6 +21,7 @@ final class Phase1CReadOnlyDiagnostic
     ];
 
     private const INDEXES = [
+        ['password_reset_tokens','PRIMARY',['id'],true],
         ['governed_execution_leases','governed_execution_leases_task_key_unique',['task_key'],true],
         ['governed_execution_leases','governed_execution_leases_expires_at_index',['expires_at'],false],
         ['source_retrieval_runs','source_retrieval_runs_idempotency_key_unique',['idempotency_key'],true],
@@ -28,6 +29,7 @@ final class Phase1CReadOnlyDiagnostic
         ['source_change_observations','source_observations_current_snapshot_unique',['current_snapshot_id'],true],
         ['institute_discovery_run_outcomes','institute_discovery_run_outcomes_idempotency_key_unique',['idempotency_key'],true],
         ['change_events','change_events_source_link_unique',['source_change_assertion_link_id'],true],
+        ['security_audit_events','security_audit_events_monitoring_idempotency_key_unique',['monitoring_idempotency_key'],true],
         ['monitoring_policy_run_sources','monitoring_policy_run_source_unique',['monitoring_policy_run_id','source_id'],true],
         ['import_batches','import_batches_discovery_identity_unique',['discovery_identity_key'],true],
         ['evidence','evidence_discovery_identity_unique',['discovery_identity_key'],true],
@@ -40,8 +42,6 @@ final class Phase1CReadOnlyDiagnostic
         ['source_snapshot_reconciliation_requests','source_snapshot_reconciliation_requests_identity_key_unique',['identity_key'],true],
         ['source_snapshot_reconciliation_requests','snapshot_reconciliation_source_status_idx',['source_id','status'],false],
         ['source_snapshot_reconciliation_requests','snapshot_reconciliation_current_status_idx',['current_snapshot_id','status'],false],
-        ['data_reverification_queue_identities','data_reverification_queue_identities_active_queue_id_index',['active_queue_id'],false],
-        ['monitoring_alert_identities','monitoring_alert_identities_active_alert_id_index',['active_alert_id'],false],
         ['import_conflict_events','import_conflict_events_import_conflict_id_occurred_at_index',['import_conflict_id','occurred_at'],false],
         ['monitoring_policy_run_sources','monitoring_policy_source_status_idx',['source_id','status'],false],
     ];
