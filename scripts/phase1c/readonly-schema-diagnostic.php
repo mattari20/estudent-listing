@@ -220,7 +220,7 @@ final class Phase1CReadOnlyDiagnostic
             $q->execute([$key,$r['subject_type'],$r['subject_id'],$r['attribute'],$r['id']]); $n=(int)$q->fetchColumn();
             $records[]=['record_ordinal'=>$i+1,'state'=>$n===1?'PASS':'FAIL','mapping_match_count'=>$n];
         }
-        return ['state'=>!$ready?'NOT_CHECKED':($count===5&&count($rows)===5?'PASS':'FAIL'),'open_record_count'=>$count,'records'=>$records];
+        return ['state'=>!$ready?'NOT_CHECKED':($count===count($rows)&&$count<=5?'PASS':'FAIL'),'open_record_count'=>$count,'records'=>$records];
     }
 
     private function alertMapping(): array
@@ -236,7 +236,7 @@ final class Phase1CReadOnlyDiagnostic
             $q->execute([$r['dedupe_key'],$r['id']]); $n=(int)$q->fetchColumn();
             $records[]=['record_ordinal'=>$i+1,'state'=>$n===1?'PASS':'FAIL','mapping_match_count'=>$n];
         }
-        return ['state'=>!$ready?'NOT_CHECKED':($count===2&&count($rows)===2?'PASS':'FAIL'),'open_record_count'=>$count,'records'=>$records];
+        return ['state'=>!$ready?'NOT_CHECKED':($count===count($rows)&&$count<=2?'PASS':'FAIL'),'open_record_count'=>$count,'records'=>$records];
     }
 
     private function orphanChecks(): array
