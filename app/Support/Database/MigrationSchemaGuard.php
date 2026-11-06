@@ -76,6 +76,17 @@ final class MigrationSchemaGuard
         }, 'bigint unsigned');
     }
 
+    /**
+     * MySQL 8 omits integer display widths while MariaDB 11.8 still reports
+     * them in COLUMN_TYPE. Display width does not change the integer domain.
+     */
+    private static function normalizeMysqlColumnType(string $type): string
+    {
+        $type = strtolower(trim($type));
+
+        return preg_replace('/^(tinyint|smallint|mediumint|int|integer|bigint)\\(\\d+\\)/', '$1', $type) ?? $type;
+    }
+
     private static function ensureNullableUniqueColumn(
         string $table,
         string $column,
@@ -98,7 +109,7 @@ final class MigrationSchemaGuard
 
             if (
                 $definition === null
-                || strtolower((string) $definition->COLUMN_TYPE) !== $expectedMysqlType
+                || self::normalizeMysqlColumnType((string) $definition->COLUMN_TYPE) !== self::normalizeMysqlColumnType($expectedMysqlType)
                 || $definition->IS_NULLABLE !== 'YES'
             ) {
                 throw new RuntimeException(
