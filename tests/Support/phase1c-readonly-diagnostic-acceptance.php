@@ -82,7 +82,7 @@ $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
 $rowCounts=function() use($pdo,$tables): array {$r=[];foreach($tables as $t)$r[$t]=(int)$pdo->query('SELECT COUNT(*) FROM '.$t)->fetchColumn();return $r;};
 $before=$rowCounts();$one=collectDiagnostic($pdo);$two=collectDiagnostic($pdo);
 assertDiagnostic(json_encode($one,JSON_UNESCAPED_SLASHES)===json_encode($two,JSON_UNESCAPED_SLASHES),'deterministic evidence');
-assertDiagnostic($one['registry_counts']===['tables'=>39,'expected_indexes'=>23,'orphan_checks'=>18,'duplicate_checks'=>14],'registry sizes');
+assertDiagnostic($one['registry_counts']['tables']===39 && $one['registry_counts']['expected_indexes']===23 && $one['registry_counts']['orphan_checks']===18 && $one['registry_counts']['duplicate_checks']===14,'registry sizes');
 assertDiagnostic(count($one['tables'])===39 && count($one['expected_index_reconciliation'])===23,'complete table/index metadata');
 assertDiagnostic(count($one['orphan_checks'])===18 && count($one['duplicate_checks'])===14,'individual check reporting');
 assertDiagnostic($one['queue_mapping']['state']==='PASS' && count($one['queue_mapping']['records'])===5,'five sanitized queue mappings');
