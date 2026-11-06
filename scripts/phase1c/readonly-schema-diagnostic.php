@@ -250,7 +250,7 @@ final class Phase1CReadOnlyDiagnostic
         $ready=$this->has('monitoring_alert_identities',['dedupe_key','active_alert_id']);
         $records=[];
         foreach(array_slice($rows,0,2) as $i=>$r) {
-            if(!$ready) {$records[]=['record_ordinal'=>$i+1,'state'=>isset($this->columnErrors[$target])?'UNKNOWN':'NOT_CHECKED'];continue;}
+            if(!$ready) {$targetState=isset($this->columnErrors[$target])?'UNKNOWN':(!isset($this->tables[$target])&&!$this->absenceProof?'UNKNOWN':'NOT_CHECKED');$records[]=['record_ordinal'=>$i+1,'state'=>$targetState];continue;}
             $q=$this->pdo->prepare('SELECT COUNT(*) FROM monitoring_alert_identities WHERE dedupe_key=? AND active_alert_id=?');
             $q->execute([$r['dedupe_key'],$r['id']]); $n=(int)$q->fetchColumn();
             $records[]=['record_ordinal'=>$i+1,'state'=>$n===1?'PASS':'FAIL','mapping_match_count'=>$n];
