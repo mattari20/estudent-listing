@@ -111,7 +111,7 @@ return new class extends Migration
 
         $index = DB::getDriverName() === 'mysql'
             ? DB::table('information_schema.STATISTICS')
-                ->selectRaw('NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
+                ->selectRaw('MIN(NON_UNIQUE) AS NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
                 ->where('TABLE_SCHEMA', DB::getDatabaseName())
                 ->where('TABLE_NAME', 'security_audit_events')
                 ->where('INDEX_NAME', 'security_audit_events_monitoring_idempotency_key_unique')
