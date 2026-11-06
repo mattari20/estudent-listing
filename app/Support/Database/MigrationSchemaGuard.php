@@ -43,7 +43,7 @@ final class MigrationSchemaGuard
     /**
      * @param array<string, array{type: string|list<string>, nullable: bool, default?: mixed, auto_increment?: bool}> $expected
      */
-    private static function assertExistingColumnDefinitions(string $table, array $expected): void
+    public static function assertExistingColumnDefinitions(string $table, array $expected): void
     {
         if ($expected === []) {
             return;
