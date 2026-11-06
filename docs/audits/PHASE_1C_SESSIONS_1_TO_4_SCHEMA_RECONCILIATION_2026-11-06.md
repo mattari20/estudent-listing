@@ -214,8 +214,8 @@ This source review identifies hardening targets; it does not imply repository im
 
 - S2.1 MigrationSchemaGuard reviewed: PASS (source review).
 - S2.2 Table/column structural checks hardened: PARTIAL — exact existing-column contracts added to six guarded table migrations; integer display-width normalization shared with migrations 0002/00023; other migration-specific structural checks remain open.
-- S2.3 Index definitions verified/hardened: PARTIAL — exact single-column BTREE uniqueness, prefix length and composite-index equivalence are now checked by MigrationSchemaGuard.
-- S2.4 FK definitions verified/hardened: NOT_CHECKED.
+- S2.3 Index definitions verified/hardened: PARTIAL — exact single-column BTREE uniqueness, prefix length and composite-index equivalence are checked by MigrationSchemaGuard; migration 0004 now uses the shared exact capture-key index guard and checks the observation index prefix/type.
+- S2.4 FK definitions verified/hardened: PARTIAL — migrations 0014/0015 now validate parent table/column plus both UPDATE_RULE and DELETE_RULE; isolated object verifier checks all 23 expected FK actions. Full production expected-FK definitions remain missing.
 - S2.5 Trigger definitions verified/hardened: PARTIAL — migration source contains definition checks; helper/tests need expanded MariaDB validation.
 - S2.6 Backfills deterministic/idempotent: PARTIAL — source and MySQL tests reviewed; production backfills not run.
 - S2.7 Identity conflicts handled safely: PARTIAL — migration code checks conflicts; production mapping reconciliation NOT_CHECKED.
