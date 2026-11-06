@@ -1,5 +1,6 @@
 <?php
 
+use App\\Support\\Database\\MigrationSchemaGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +27,7 @@ return new class extends Migration
 
             if (
                 $column === null
-                || strtolower((string) $column->COLUMN_TYPE) !== 'tinyint(1)'
+                || ! MigrationSchemaGuard::mysqlColumnTypeMatches((string) $column->COLUMN_TYPE, 'tinyint(1)')
                 || $column->IS_NULLABLE !== 'NO'
                 || (string) $column->COLUMN_DEFAULT !== '0'
             ) {
