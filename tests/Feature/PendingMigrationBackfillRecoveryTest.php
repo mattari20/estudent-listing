@@ -110,7 +110,7 @@ class PendingMigrationBackfillRecoveryTest extends TestCase
 
         $migration = require database_path('migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php');
 
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('conflicts with its source queue row');
         $migration->up();
     }
@@ -141,8 +141,8 @@ class PendingMigrationBackfillRecoveryTest extends TestCase
 
         $migration = require database_path('migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php');
 
-        $this->expectException(\\RuntimeException::class);
-        $this->expectExceptionMessage('duplicate open reverification queue identities');
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('duplicate open subject/attribute rows');
         $migration->up();
     }
 
@@ -192,7 +192,7 @@ class PendingMigrationBackfillRecoveryTest extends TestCase
 
         $migration = require database_path('migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php');
 
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('points to a different alert');
         $migration->up();
     }
@@ -222,8 +222,8 @@ class PendingMigrationBackfillRecoveryTest extends TestCase
 
         $migration = require database_path('migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php');
 
-        $this->expectException(\\RuntimeException::class);
-        $this->expectExceptionMessage('duplicate open monitoring alert dedupe keys');
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Duplicate open monitoring alerts exist');
         $migration->up();
     }
 
