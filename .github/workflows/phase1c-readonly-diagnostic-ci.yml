@@ -1,0 +1,80 @@
+name: Phase 1C read-only diagnostic CI
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/phase1c-readonly-diagnostic-ci.yml"
+      - "scripts/phase1c/**"
+      - "tests/Support/phase1c-readonly-diagnostic-acceptance.php"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase1c-readonly-diagnostic-ci-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  disposable-database-acceptance:
+    name: ${{ matrix.engine }} disposable diagnostic acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - engine: mysql-8.4
+            image: mysql:8.4
+            health_cmd: mysqladmin ping -h 127.0.0.1 -uroot -proot
+          - engine: mariadb-11.8.9
+            image: mariadb:11.8.9
+            health_cmd: mariadb-admin ping --silent -h 127.0.0.1 -uroot -proot
+    services:
+      database:
+        image: ${{ matrix.image }}
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_ROOT_HOST: "%"
+          MYSQL_DATABASE: phase1c_diag
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_ROOT_HOST: "%"
+          MARIADB_DATABASE: phase1c_diag
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="${{ matrix.health_cmd }}"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP with PDO MySQL
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_mysql
+          coverage: none
+
+      - name: PHP syntax checks
+        run: |
+          php -l scripts/phase1c/readonly-schema-diagnostic.php
+          php -l tests/Support/phase1c-readonly-diagnostic-acceptance.php
+
+      - name: Install evidence schema validator
+        run: python3 -m pip install --disable-pip-version-check jsonschema==4.23.0
+
+      - name: Run disposable database acceptance
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: "3306"
+          DB_DATABASE: phase1c_diag
+          DB_USERNAME: root
+          DB_PASSWORD: root
+          EVIDENCE_OUTPUT: phase1c-readonly-evidence.json
+        run: php tests/Support/phase1c-readonly-diagnostic-acceptance.php
+
+      - name: Validate deterministic sanitized evidence schema
+        run: python3 scripts/phase1c/validate-readonly-evidence.py scripts/phase1c/readonly-diagnostic.schema.json phase1c-readonly-evidence.json

@@ -1,0 +1,127 @@
+name: Phase 1C — Protected Read-only Schema Diagnostic
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: "Exact current main SHA to verify"
+        required: true
+        type: string
+      operation_reason:
+        description: "Reason for full read-only schema evidence collection"
+        required: true
+        type: string
+      confirm_production_operation:
+        description: "Exact operation-specific read-only confirmation"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase1c-protected-readonly-schema-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    environment: production-readonly-diagnostics
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout immutable dispatch revision for authorization
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          path: .production-dispatch-guard
+
+      - name: Validate existing protected dispatch controls
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
+          EXPECTED_CONFIRMATION: "AUTHORIZE-PHASE1C-STRUCTURAL-READONLY-DIAGNOSTIC"
+        run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
+
+      - name: Validate environment-scoped production credentials (Hostinger)
+        env:
+          HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          KEY: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          test -n "$HOST" && test -n "$USER" && test -n "$KEY" && test -n "$PORT"
+          echo "hostinger_readonly_credentials=present"
+
+      - name: Checkout exact validated source revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha }}
+          fetch-depth: 1
+          path: .target-source
+
+      - name: Prepare standalone collector transfer
+        id: collector
+        working-directory: .target-source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f scripts/phase1c/readonly-schema-diagnostic.php
+          base64 -w0 scripts/phase1c/readonly-schema-diagnostic.php > collector.b64
+          echo "collector_b64=$(cat collector.b64)" >> "$GITHUB_OUTPUT"
+          rm -f collector.b64
+
+      - name: Run standalone read-only collector over existing protected SSH route
+        id: collect
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
+          COLLECTOR_B64: ${{ steps.collector.outputs.collector_b64 }}
+        with:
+          host: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          envs: PROJECT_PATH,COLLECTOR_B64
+          command_timeout: 5m
+          script_stop: true
+          capture_stdout: true
+          script: |
+            set -eu
+            case "$PROJECT_PATH" in /*) ;; *) echo '{"diagnostic_state":"FAILED_SAFE","reason":"INVALID_PROJECT_PATH"}'; exit 2 ;; esac
+            case "$PROJECT_PATH" in *".."*) echo '{"diagnostic_state":"FAILED_SAFE","reason":"INVALID_PROJECT_PATH"}'; exit 2 ;; esac
+            [ -f "$PROJECT_PATH/artisan" ] || { echo '{"diagnostic_state":"FAILED_SAFE","reason":"PROJECT_ARTISAN_MISSING"}'; exit 3; }
+            [ -f "$PROJECT_PATH/vendor/autoload.php" ] || { echo '{"diagnostic_state":"FAILED_SAFE","reason":"COMPOSER_AUTOLOAD_MISSING"}'; exit 4; }
+            PHP_BIN="/opt/alt/php85/usr/bin/php"
+            [ -x "$PHP_BIN" ] || { echo '{"diagnostic_state":"FAILED_SAFE","reason":"APPROVED_PHP_UNAVAILABLE"}'; exit 5; }
+            umask 077
+            tmp="$(mktemp /tmp/phase1c-readonly-diagnostic.XXXXXX.php)"
+            trap 'rm -f "$tmp"' EXIT HUP INT TERM
+            printf '%s' "$COLLECTOR_B64" | base64 -d > "$tmp"
+            chmod 600 "$tmp"
+            "$PHP_BIN" "$tmp" "$PROJECT_PATH"
+
+      - name: Materialize sanitized evidence without printing it
+        env:
+          EVIDENCE_JSON: ${{ steps.collect.outputs.stdout }}
+        run: |
+          set -euo pipefail
+          test -n "$EVIDENCE_JSON"
+          printf '%s\n' "$EVIDENCE_JSON" > phase1c-readonly-evidence.json
+          python3 -m pip install --disable-pip-version-check jsonschema==4.23.0
+          python3 .target-source/scripts/phase1c/validate-readonly-evidence.py .target-source/scripts/phase1c/readonly-diagnostic.schema.json phase1c-readonly-evidence.json
+          sha256sum phase1c-readonly-evidence.json | awk '{print $1}' > evidence.sha256
+          printf '{"workflow_run_id":"%s","target_sha":"%s","evidence_sha256":"%s"}\n' "$GITHUB_RUN_ID" "$GITHUB_SHA" "$(cat evidence.sha256)" > evidence-manifest.json
+
+      - name: Retain sanitized evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1c-readonly-diagnostic-${{ github.run_id }}
+          path: |
+            phase1c-readonly-evidence.json
+            evidence-manifest.json
+            evidence.sha256
+          if-no-files-found: error
+          retention-days: 7
