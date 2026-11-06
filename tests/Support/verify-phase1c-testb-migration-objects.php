@@ -157,6 +157,16 @@ foreach ($expectedForeignKeys as $name => [$table, $column, $parent, $parentColu
         && \App\Support\Database\MigrationSchemaGuard::mysqlReferentialActionMatches((string) $row->UPDATE_RULE, 'RESTRICT'),
         'foreign key '.$name.' has missing or incompatible source/target columns or referential actions'
     );
+    if ($row !== null) {
+        fwrite(
+            STDOUT,
+            'foreign_key_metadata='.$name
+                .' source='.$row->TABLE_NAME.'.'.$row->COLUMN_NAME
+                .' target='.$row->REFERENCED_TABLE_SCHEMA.'.'.$row->REFERENCED_TABLE_NAME.'.'.$row->REFERENCED_COLUMN_NAME
+                .' delete='.$row->DELETE_RULE
+                .' update='.$row->UPDATE_RULE.PHP_EOL
+        );
+    }
 }
 
 $auditTables = [
