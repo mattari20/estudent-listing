@@ -201,6 +201,7 @@ $criticalColumns = [
     ['monitoring_policy_runs', 'heartbeat_at', 'timestamp', 'YES'],
     ['users', 'must_change_password', 'tinyint(1)', 'NO'],
     ['import_batches', 'duplicate_rows', 'int unsigned', 'NO'],
+    ['source_change_observations', 'current_snapshot_id', 'bigint unsigned', 'NO'],
 ];
 
 foreach ($criticalColumns as [$table, $column, $type, $nullable]) {
