@@ -308,3 +308,15 @@ fail!('Phase 1C diagnostic must use shell set -e instead of removed script_stop 
 pass('Phase 1C SSH stdout capture uses the supported v1.2.1 action interface')
 
 puts "SUMMARY: #{READ_ONLY.length} read-only workflows, #{BLOCKED_OPERATIONS.length} blocked operations, retired administrator recovery workflow absent, #{paths.length} total workflows"
+
+
+# Large sanitized production evidence must not be injected uncompressed into
+# a process environment. The SSH output is gzip-compressed, base64 encoded,
+# and bounded before it crosses the action-output/environment boundary.
+diagnostic_source = File.read(File.join(WORKFLOWS, 'phase1c-readonly-schema-diagnostic.yml'))
+fail!('Phase 1C diagnostic must not pass the full JSON evidence as EVIDENCE_JSON') if diagnostic_source.match?(/^\s*EVIDENCE_JSON:/)
+fail!('Phase 1C diagnostic must return gzip-compressed evidence') unless diagnostic_source.include?('gzip -c "$evidence_tmp" > "$compressed_tmp"')
+fail!('Phase 1C diagnostic must enforce the remote compressed evidence cap') unless diagnostic_source.include?('[ "$compressed_bytes" -gt 70000 ]')
+fail!('Phase 1C diagnostic must bound the runner-side encoded evidence output') unless diagnostic_source.include?('test "${#EVIDENCE_GZIP_B64}" -le 100000')
+fail!('Phase 1C diagnostic must decode and decompress evidence before schema validation') unless diagnostic_source.include?('base64 --decode | gzip --decompress > phase1c-readonly-evidence.json')
+pass('Phase 1C evidence transfer is compressed, bounded, decoded to a file and schema-validated')
