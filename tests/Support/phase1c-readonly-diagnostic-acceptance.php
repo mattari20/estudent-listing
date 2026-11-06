@@ -38,7 +38,6 @@ $columns=[
 'import_conflicts'=>['identity_key CHAR(64) NULL'],
 'source_snapshot_reconciliation_requests'=>['identity_key VARCHAR(64) NULL','source_id BIGINT UNSIGNED NULL','status VARCHAR(20) NULL','current_snapshot_id BIGINT UNSIGNED NULL'],
 'governed_execution_leases'=>['task_key VARCHAR(120) NULL','expires_at TIMESTAMP NULL'],
-'source_monitoring_policies'=>['id BIGINT UNSIGNED NULL'],
 ];
 foreach($columns as $t=>$defs) foreach($defs as $def) $pdo->exec('ALTER TABLE '.$t.' ADD COLUMN '.$def);
 
