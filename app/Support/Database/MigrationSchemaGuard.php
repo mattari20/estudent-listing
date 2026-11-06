@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Database;
 
+use Closure;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -11,6 +12,32 @@ use RuntimeException;
 
 final class MigrationSchemaGuard
 {
+    /**
+     * Create a missing table, or fail closed when a partially-created table
+     * does not contain every required column.
+     *
+     * @param list<string> $requiredColumns
+     */
+    public static function createTableIfMissing(string $table, Closure $definition, array $requiredColumns): void
+    {
+        if (! Schema::hasTable($table)) {
+            Schema::create($table, $definition);
+            return;
+        }
+
+        $missingColumns = array_values(array_filter(
+            $requiredColumns,
+            static fn (string $column): bool => ! Schema::hasColumn($table, $column)
+        ));
+
+        if ($missingColumns !== []) {
+            throw new RuntimeException(
+                'Existing '.$table.' table is partially applied; missing columns: '.implode(', ', $missingColumns).'. Reconcile the exact schema before retrying.'
+            );
+        }
+    }
+
+
     public static function ensureNullableUniqueString(
         string $table,
         string $column,
