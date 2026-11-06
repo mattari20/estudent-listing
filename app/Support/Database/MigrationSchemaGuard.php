@@ -17,6 +17,7 @@ final class MigrationSchemaGuard
      * does not contain every required column.
      *
      * @param list<string> $requiredColumns
+     * @param array<string, array{type: string|list<string>, nullable: bool, default?: mixed, auto_increment?: bool}> $expectedColumnDefinitions
      */
     public static function createTableIfMissing(string $table, Closure $definition, array $requiredColumns, array $expectedColumnDefinitions = []): void
     {
