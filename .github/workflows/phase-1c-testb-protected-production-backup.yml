@@ -185,7 +185,7 @@ jobs:
             production_migrations=NOT_RUN
             EOF
             chmod 600 "$META"
-            sha256sum -c "$MANIFEST"
+            (cd "$BACKUP_DIR" && sha256sum -c "$(basename "$MANIFEST")")
             gzip -t "$FINAL"
             echo "backup_created=YES"
             echo "backup_integrity=PASS"
