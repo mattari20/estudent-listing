@@ -28,16 +28,18 @@ return new class extends Migration
                 $table->string('capture_key', 64)->nullable();
             });
         } else {
-            $column = DB::table('information_schema.COLUMNS')
-                ->where('TABLE_SCHEMA', DB::getDatabaseName())
-                ->where('TABLE_NAME', 'source_snapshots')
-                ->where('COLUMN_NAME', 'capture_key')
-                ->first();
+            if (DB::getDriverName() === 'mysql') {
+                $column = DB::table('information_schema.COLUMNS')
+                    ->where('TABLE_SCHEMA', DB::getDatabaseName())
+                    ->where('TABLE_NAME', 'source_snapshots')
+                    ->where('COLUMN_NAME', 'capture_key')
+                    ->first();
 
-            if ($column === null || strtolower((string) $column->COLUMN_TYPE) !== 'varchar(64)' || $column->IS_NULLABLE !== 'YES') {
-                throw new RuntimeException(
-                    'Existing source_snapshots.capture_key has an incompatible definition; expected nullable VARCHAR(64).'
-                );
+                if ($column === null || strtolower((string) $column->COLUMN_TYPE) !== 'varchar(64)' || $column->IS_NULLABLE !== 'YES') {
+                    throw new RuntimeException(
+                        'Existing source_snapshots.capture_key has an incompatible definition; expected nullable VARCHAR(64).'
+                    );
+                }
             }
         }
 
