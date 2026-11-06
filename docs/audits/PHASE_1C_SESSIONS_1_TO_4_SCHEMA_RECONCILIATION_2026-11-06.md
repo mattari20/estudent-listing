@@ -165,7 +165,7 @@ A separate MariaDB portability issue was found while reviewing migration rerun g
 
 ### MySQL 8.4.13 isolated recovery
 
-Latest exact-head run [#42247680217](https://github.com/mattari20/estudent-listing/actions/runs/42247680217) passed against disposable MySQL 8.4.
+Latest exact-head run [#42248358275](https://github.com/mattari20/estudent-listing/actions/runs/42248358275) passed against disposable MySQL 8.4.
 
 - Clean full 18-migration install and Laravel rerun: PASS.
 - All 18 migration-ledger entries present exactly once: PASS.
@@ -196,7 +196,7 @@ This source review identifies hardening targets; it does not imply repository im
 
 ### Session 1 — Definitive production schema reconciliation
 
-- S1.1 Current PR head and repository revision: PASS — PR #1057 is open/unmerged; exact branch head is `1a91cbc2a51427f6a2776db8fa55ce2a724415a1`, based on main `cfe25b49d2014a6008e72a1276b76f69603fce93`.
+- S1.1 Current PR head and repository revision: PASS — PR #1057 is open/unmerged; current report-evidence head is `0f939142114af89fef887fba40f655c230578c78`; the tested application/workflow code head is `1a91cbc2a51427f6a2776db8fa55ce2a724415a1` (later commits updated only this report), based on main `cfe25b49d2014a6008e72a1276b76f69603fce93`.
 - S1.2 Existing work and prior workflow evidence: PASS — prior commits, PR branch, run #42243449408, later exact-head failures and corrected runs reviewed.
 - S1.3 All 18 migration sources reviewed: PASS.
 - S1.4 Expected tables individually reconciled: PARTIAL — 39 expected table checks; 11 MISSING and 28 PRESENT. Full per-table definition equivalence for all 28 present tables remains UNKNOWN.
@@ -212,7 +212,7 @@ This source review identifies hardening targets; it does not imply repository im
 - S1.14 All skipped checks have documented reasons: PASS — missing table/column prerequisites are recorded; NOT_CHECKED is not relabeled as MISSING or PASS.
 - S1.15 Historical metadata exception accurately classified: PASS — exact historical cause remains UNKNOWN; no cause invented.
 - S1.16 Current sanitized diagnostic behavior tested: PASS — sanitizer unit tests cover PDO and non-PDO exception paths, SQLSTATE/vendor fallback and credential redaction; latest read-only diagnostic run #42207248782 succeeded. Historical exception reproduction remains unavailable.
-- S1.17 MariaDB identity-conflict regression failures corrected: PASS — MariaDB 11.8.9 exact-head run #42247680217 passed the identity-conflict suite.
+- S1.17 MariaDB identity-conflict regression failures corrected: PASS — MariaDB 11.8.9 exact-head run #42248358275 passed the identity-conflict suite.
 - S1.18 MySQL foreign-key verification failures corrected: PASS — MySQL 8.4 exact-head run #42247680217 verified all 23 exact source/target mappings and referential actions.
 - S1.19 MariaDB 11.8.9 acceptance workflow passed: PASS — run #42247680217, clean install, rerun, all-18 manual reapplication, object verifier, 20/48 and 24/104 PHPUnit suites, 24 trigger lifecycle checks.
 - S1.20 MySQL 8.4 acceptance workflow passed: PASS — run #42247680217, same acceptance scope and test counts.
