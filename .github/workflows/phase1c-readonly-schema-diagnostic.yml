@@ -3,11 +3,6 @@ name: Phase 1C — Protected Read-only Schema Diagnostic
 on:
   workflow_dispatch:
     inputs:
-      project_path:
-        description: "Absolute path to the Institutes Laravel project"
-        required: true
-        type: string
-        default: "/home/u537436044/domains/estudent.pk/public_html/institutes"
       target_sha:
         description: "Exact current main SHA to verify"
         required: true
@@ -82,7 +77,7 @@ jobs:
         id: collect
         uses: appleboy/ssh-action@v1.2.0
         env:
-          PROJECT_PATH: ${{ inputs.project_path }}
+          PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
           COLLECTOR_B64: ${{ steps.collector.outputs.collector_b64 }}
         with:
           host: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
