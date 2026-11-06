@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Database\MigrationSchemaGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -8,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('structured_enrichment_promotion_events', function (Blueprint $table): void {
+        MigrationSchemaGuard::createTableIfMissing('structured_enrichment_promotion_events', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('enrichment_import_row_id')
                 ->constrained('enrichment_import_rows', indexName: 'struct_enrichment_row_fk')
@@ -30,7 +31,11 @@ return new class extends Migration
             $table->index(['enrichment_import_row_id', 'occurred_at'], 'structured_enrichment_row_event_idx');
             $table->index(['canonical_type', 'canonical_id'], 'structured_enrichment_canonical_idx');
             $table->index(['import_batch_id', 'event_type'], 'structured_enrichment_batch_event_idx');
-        });
+        }, [
+            'id', 'enrichment_import_row_id', 'import_batch_id', 'entity_type', 'event_type',
+            'canonical_type', 'canonical_id', 'actor_type', 'actor_id', 'reason',
+            'before_snapshot', 'after_snapshot', 'metadata', 'occurred_at', 'created_at', 'updated_at',
+        ]);
     }
 
     public function down(): void

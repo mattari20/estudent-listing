@@ -109,57 +109,22 @@ return new class extends Migration
             throw new RuntimeException('Audit-retention foreign-key migration found orphan history; reconcile explicitly before continuing: '.implode('; ', $found));
         }
 
-        Schema::table('identity_resolution_decisions', function (Blueprint $table): void {
-            $table->dropForeign(['import_row_id']);
-            $table->foreign('import_row_id', 'identity_decision_row_restrict_fk')
-                ->references('id')->on('import_rows')->restrictOnDelete();
-        });
-        Schema::table('verification_decisions', function (Blueprint $table): void {
-            $table->dropForeign(['assertion_id']);
-            $table->foreign('assertion_id', 'verification_decision_assertion_restrict_fk')
-                ->references('id')->on('assertions')->restrictOnDelete();
-        });
-        Schema::table('import_reconciliation_events', function (Blueprint $table): void {
-            $table->dropForeign(['import_batch_id']);
-            $table->foreign('import_batch_id', 'import_reconciliation_batch_restrict_fk')
-                ->references('id')->on('import_batches')->restrictOnDelete();
-        });
-        Schema::table('import_promotion_decisions', function (Blueprint $table): void {
-            $table->dropForeign(['import_row_id']);
-            $table->foreign('import_row_id', 'import_promotion_decision_row_restrict_fk')
-                ->references('id')->on('import_rows')->restrictOnDelete();
-        });
-        Schema::table('import_promotion_events', function (Blueprint $table): void {
-            $table->dropForeign(['import_row_id']);
-            $table->dropForeign(['import_batch_id']);
-            $table->foreign('import_row_id', 'import_promotion_event_row_restrict_fk')
-                ->references('id')->on('import_rows')->restrictOnDelete();
-            $table->foreign('import_batch_id', 'import_promotion_event_batch_restrict_fk')
-                ->references('id')->on('import_batches')->restrictOnDelete();
-        });
-        Schema::table('reverification_events', function (Blueprint $table): void {
-            $table->dropForeign(['queue_id']);
-            $table->foreign('queue_id', 'reverification_event_queue_restrict_fk')
-                ->references('id')->on('data_reverification_queue')->restrictOnDelete();
-        });
-        Schema::table('structured_enrichment_promotion_events', function (Blueprint $table): void {
-            $table->dropForeign('struct_enrichment_row_fk');
-            $table->dropForeign(['import_batch_id']);
-            $table->foreign('enrichment_import_row_id', 'structured_enrichment_row_restrict_fk')
-                ->references('id')->on('enrichment_import_rows')->restrictOnDelete();
-            $table->foreign('import_batch_id', 'structured_enrichment_batch_restrict_fk')
-                ->references('id')->on('import_batches')->restrictOnDelete();
-        });
-        Schema::table('import_conflict_events', function (Blueprint $table): void {
-            $table->dropForeign(['import_conflict_id']);
-            $table->foreign('import_conflict_id', 'import_conflict_event_restrict_fk')
-                ->references('id')->on('import_conflicts')->restrictOnDelete();
-        });
-        Schema::table('governed_execution_run_events', function (Blueprint $table): void {
-            $table->dropForeign(['run_id']);
-            $table->foreign('run_id', 'governed_run_event_restrict_fk')
-                ->references('id')->on('governed_execution_runs')->restrictOnDelete();
-        });
+        foreach ([
+            ['identity_resolution_decisions', 'import_row_id', 'identity_decision_row_restrict_fk', 'import_rows'],
+            ['verification_decisions', 'assertion_id', 'verification_decision_assertion_restrict_fk', 'assertions'],
+            ['import_reconciliation_events', 'import_batch_id', 'import_reconciliation_batch_restrict_fk', 'import_batches'],
+            ['import_promotion_decisions', 'import_row_id', 'import_promotion_decision_row_restrict_fk', 'import_rows'],
+            ['import_promotion_events', 'import_row_id', 'import_promotion_event_row_restrict_fk', 'import_rows'],
+            ['import_promotion_events', 'import_batch_id', 'import_promotion_event_batch_restrict_fk', 'import_batches'],
+            ['reverification_events', 'queue_id', 'reverification_event_queue_restrict_fk', 'data_reverification_queue'],
+            ['structured_enrichment_promotion_events', 'enrichment_import_row_id', 'structured_enrichment_row_restrict_fk', 'enrichment_import_rows'],
+            ['structured_enrichment_promotion_events', 'import_batch_id', 'structured_enrichment_batch_restrict_fk', 'import_batches'],
+            ['import_conflict_events', 'import_conflict_id', 'import_conflict_event_restrict_fk', 'import_conflicts'],
+            ['governed_execution_run_events', 'run_id', 'governed_run_event_restrict_fk', 'governed_execution_runs'],
+        ] as [$tableName, $columnName, $constraintName, $parentTable]) {
+            $this->ensureMysqlRestrictForeignKey($tableName, $columnName, $constraintName, $parentTable);
+        }
+
         $this->installMysqlGuards();
     }
 
@@ -233,16 +198,91 @@ return new class extends Migration
         );
     }
 
+    private function ensureMysqlRestrictForeignKey(
+        string $tableName,
+        string $columnName,
+        string $constraintName,
+        string $parentTable,
+        string $parentColumn = 'id'
+    ): void {
+        $existing = DB::table('information_schema.KEY_COLUMN_USAGE')
+            ->join('information_schema.REFERENTIAL_CONSTRAINTS', function ($join): void {
+                $join->on('REFERENTIAL_CONSTRAINTS.CONSTRAINT_SCHEMA', '=', 'KEY_COLUMN_USAGE.CONSTRAINT_SCHEMA')
+                    ->on('REFERENTIAL_CONSTRAINTS.CONSTRAINT_NAME', '=', 'KEY_COLUMN_USAGE.CONSTRAINT_NAME')
+                    ->on('REFERENTIAL_CONSTRAINTS.TABLE_NAME', '=', 'KEY_COLUMN_USAGE.TABLE_NAME');
+            })
+            ->select([
+                'KEY_COLUMN_USAGE.CONSTRAINT_NAME',
+                'KEY_COLUMN_USAGE.REFERENCED_TABLE_NAME',
+                'KEY_COLUMN_USAGE.REFERENCED_COLUMN_NAME',
+                'REFERENTIAL_CONSTRAINTS.DELETE_RULE',
+            ])
+            ->where('KEY_COLUMN_USAGE.CONSTRAINT_SCHEMA', DB::getDatabaseName())
+            ->where('KEY_COLUMN_USAGE.TABLE_NAME', $tableName)
+            ->where('KEY_COLUMN_USAGE.COLUMN_NAME', $columnName)
+            ->whereNotNull('KEY_COLUMN_USAGE.REFERENCED_TABLE_NAME')
+            ->get();
+
+        foreach ($existing as $foreignKey) {
+            if (
+                $foreignKey->REFERENCED_TABLE_NAME !== $parentTable
+                || $foreignKey->REFERENCED_COLUMN_NAME !== $parentColumn
+            ) {
+                throw new RuntimeException(
+                    'Existing foreign key on '.$tableName.'.'.$columnName.' references an unexpected parent; refusing automatic replacement.'
+                );
+            }
+
+            if ($foreignKey->CONSTRAINT_NAME === $constraintName) {
+                if (strtoupper((string) $foreignKey->DELETE_RULE) !== 'RESTRICT') {
+                    throw new RuntimeException('Existing foreign key '.$constraintName.' has an incompatible delete rule.');
+                }
+
+                return;
+            }
+
+            DB::statement(
+                'ALTER TABLE `'.$tableName.'` DROP FOREIGN KEY `'.$foreignKey->CONSTRAINT_NAME.'`'
+            );
+        }
+
+        Schema::table($tableName, function (Blueprint $blueprint) use ($columnName, $constraintName, $parentTable, $parentColumn): void {
+            $blueprint->foreign($columnName, $constraintName)
+                ->references($parentColumn)
+                ->on($parentTable)
+                ->restrictOnDelete();
+        });
+    }
+
     private function createMysqlTriggerIfMissing(string $name, string $table, string $event, string $body): void
     {
-        $exists = DB::table('information_schema.TRIGGERS')
+        $existing = DB::table('information_schema.TRIGGERS')
             ->where('TRIGGER_SCHEMA', DB::getDatabaseName())
             ->where('TRIGGER_NAME', $name)
-            ->exists();
+            ->first();
 
-        if (! $exists) {
-            DB::unprepared('CREATE TRIGGER '.$name.' BEFORE '.$event.' ON '.$table.' FOR EACH ROW '.$body);
+        if ($existing !== null) {
+            $normalize = static function (string $statement): string {
+                $statement = strtolower(trim(preg_replace('/\\s+/', ' ', $statement) ?? $statement));
+                return rtrim($statement, '; ');
+            };
+
+            $matches = $existing->EVENT_OBJECT_TABLE === $table
+                && strtoupper((string) $existing->EVENT_MANIPULATION) === $event
+                && strtoupper((string) $existing->ACTION_TIMING) === 'BEFORE'
+                && strtoupper((string) $existing->ACTION_ORIENTATION) === 'ROW'
+                && $normalize((string) $existing->ACTION_STATEMENT) === $normalize($body);
+
+            if (! $matches) {
+                throw new RuntimeException(
+                    'Existing audit trigger '.$name.' has a mismatched table, event, timing or body; refusing to treat its name as proof of correctness.'
+                );
+            }
+
+            return;
         }
+
+        DB::unprepared('CREATE TRIGGER '.$name.' BEFORE '.$event.' ON '.$table.' FOR EACH ROW '.$body);
     }
 
     private function dropMysqlGuards(): void

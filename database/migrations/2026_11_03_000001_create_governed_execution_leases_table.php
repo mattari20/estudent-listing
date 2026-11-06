@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Database\MigrationSchemaGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -8,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('governed_execution_leases', function (Blueprint $table): void {
+        MigrationSchemaGuard::createTableIfMissing('governed_execution_leases', function (Blueprint $table): void {
             $table->id();
             $table->string('task_key', 120)->unique();
             $table->uuid('owner_token');
@@ -16,7 +17,7 @@ return new class extends Migration
             $table->timestamp('acquired_at');
             $table->timestamp('expires_at')->index();
             $table->timestamps();
-        });
+        }, ['id', 'task_key', 'owner_token', 'run_id', 'acquired_at', 'expires_at', 'created_at', 'updated_at']);
     }
 
     public function down(): void
