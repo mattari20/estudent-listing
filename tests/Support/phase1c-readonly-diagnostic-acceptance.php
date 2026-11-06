@@ -89,10 +89,24 @@ assertDiagnostic(count($one['orphan_checks'])===18 && count($one['duplicate_chec
 assertDiagnostic($one['queue_mapping']['state']==='PASS' && count($one['queue_mapping']['records'])===5,'five sanitized queue mappings');
 assertDiagnostic($one['alert_mapping']['state']==='PASS' && count($one['alert_mapping']['records'])===2,'two sanitized alert mappings');
 assertDiagnostic($one['orphan_checks'][1]['state']==='FAIL','orphan failure');
+assertDiagnostic(count(array_filter($one['expected_index_reconciliation'],fn($r)=>$r['state']==='PASS'))===23,'all expected index definitions');
+if(getenv('EVIDENCE_OUTPUT')) file_put_contents(getenv('EVIDENCE_OUTPUT'),json_encode($one,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR).PHP_EOL);
 assertDiagnostic($one['transaction']['outcome']==='ROLLED_BACK','success rollback');
 assertDiagnostic($before===$rowCounts(),'collector caused no row changes');
 foreach($one['queue_mapping']['records'] as $r) assertDiagnostic(array_diff(array_keys($r),['record_ordinal','state','mapping_match_count'])===[],'queue privacy');
 foreach($one['alert_mapping']['records'] as $r) assertDiagnostic(array_diff(array_keys($r),['record_ordinal','state','mapping_match_count'])===[],'alert privacy');
+
+// A table-scoped account cannot prove absent tables are missing; they must remain UNKNOWN.
+$limitedUser='phase1c_diag_limited';
+$limitedPassword=bin2hex(random_bytes(16));
+$database=(string)$pdo->query('SELECT DATABASE()')->fetchColumn();
+$pdo->exec("CREATE USER '".$limitedUser."'@'%' IDENTIFIED BY '".$limitedPassword."'");
+$pdo->exec('GRANT SELECT ON '.$database.'.source_retrieval_runs TO '.$limitedUser."@'%'");
+$limitedPdo=new PDO('mysql:host='.getenv('DB_HOST').';port='.(getenv('DB_PORT')?:3306).';dbname='.getenv('DB_DATABASE').';charset=utf8mb4',$limitedUser,$limitedPassword,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+$limited=collectDiagnostic($limitedPdo);
+assertDiagnostic($limited['metadata_visibility']['complete']===false,'limited grant detected');
+foreach($limited['tables'] as $t) if($t['state']==='MISSING') throw new RuntimeException('limited metadata must not be classified MISSING');
+$pdo->exec("DROP USER '".$limitedUser."'@'%'");
 
 $pdo->exec('ALTER TABLE source_retrieval_runs DROP INDEX source_retrieval_runs_idempotency_key_unique');
 $pdo->exec('ALTER TABLE source_retrieval_runs ADD COLUMN wrong_column INT NULL');
