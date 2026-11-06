@@ -91,7 +91,14 @@ final class MigrationSchemaGuard
                 // differently on some server/driver combinations. Use the
                 // metadata NULL predicate so SQL NULL is never confused with
                 // the literal string "NULL".
-                $actualDefaultIsNull = (bool) $actual->COLUMN_DEFAULT_IS_NULL;
+                $rawDefault = $actual->COLUMN_DEFAULT;
+                // MariaDB 11.8 reports an implicit SQL NULL default as the
+                // unquoted string NULL for nullable columns, rather than SQL
+                // NULL. A quoted "'NULL'" remains a literal string default.
+                $mariaDbNullSentinel = $actualNullable
+                    && is_string($rawDefault)
+                    && strtoupper(trim($rawDefault)) === 'NULL';
+                $actualDefaultIsNull = (bool) $actual->COLUMN_DEFAULT_IS_NULL || $mariaDbNullSentinel;
                 $expectedDefault = $contract['default'];
                 $defaultMatches = $expectedDefault === null
                     ? $actualDefaultIsNull
