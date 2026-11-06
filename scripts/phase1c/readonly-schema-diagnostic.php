@@ -89,6 +89,8 @@ final class Phase1CReadOnlyDiagnostic
     private PDO $pdo;
     private array $tables=[];
     private array $columns=[];
+    private array $columnErrors=[];
+    private array $indexErrors=[];
     private bool $absenceProof=false;
 
     public function __construct(PDO $pdo) { $this->pdo=$pdo; }
@@ -136,9 +138,11 @@ final class Phase1CReadOnlyDiagnostic
         foreach(self::TABLES as $t) {
             $this->columns[$t]=[];
             if(!isset($this->tables[$t])) continue;
-            $q=$this->pdo->prepare('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?');
-            $q->execute([$t]);
-            foreach($q->fetchAll(PDO::FETCH_COLUMN) as $c) $this->columns[$t][(string)$c]=true;
+            try {
+                $q=$this->pdo->prepare('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?');
+                $q->execute([$t]);
+                foreach($q->fetchAll(PDO::FETCH_COLUMN) as $c) $this->columns[$t][(string)$c]=true;
+            } catch(Throwable $e) { $this->columnErrors[$t]=$this->safeError($e); }
         }
     }
 
@@ -166,7 +170,7 @@ final class Phase1CReadOnlyDiagnostic
                 $q=$this->pdo->prepare('SELECT COLUMN_NAME,ORDINAL_POSITION,COLUMN_DEFAULT,IS_NULLABLE,DATA_TYPE,COLUMN_TYPE,CHARACTER_MAXIMUM_LENGTH,CHARACTER_OCTET_LENGTH,NUMERIC_PRECISION,NUMERIC_SCALE,DATETIME_PRECISION,CHARACTER_SET_NAME,COLLATION_NAME,COLUMN_KEY,EXTRA,PRIVILEGES,COLUMN_COMMENT,GENERATION_EXPRESSION FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? ORDER BY ORDINAL_POSITION');
                 $q->execute([$t]);
                 foreach($q->fetchAll() as $r) { $r['COLUMN_DEFAULT']=$this->safeDefault((string)$r['COLUMN_NAME'],$r['COLUMN_DEFAULT']); unset($r['PRIVILEGES'],$r['COLUMN_COMMENT']); $out[]=['table'=>$t]+$r; }
-            } catch(Throwable $e) {$out[]=['table'=>$t,'state'=>'UNKNOWN','error'=>$this->safeError($e)];}
+            } catch(Throwable $e) {$this->columnErrors[$t]=$this->safeError($e);$out[]=['table'=>$t,'state'=>'UNKNOWN','error'=>$this->safeError($e)];}
         }
         return $out;
     }
@@ -180,7 +184,7 @@ final class Phase1CReadOnlyDiagnostic
                 $q=$this->pdo->prepare('SELECT INDEX_NAME,NON_UNIQUE,SEQ_IN_INDEX,COLUMN_NAME,COLLATION,SUB_PART,NULLABLE,INDEX_TYPE FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? ORDER BY INDEX_NAME,SEQ_IN_INDEX');
                 $q->execute([$t]);
                 foreach($q->fetchAll() as $r) $out[]=['table'=>$t]+$r;
-            } catch(Throwable $e) {$out[]=['table'=>$t,'state'=>'UNKNOWN','error'=>$this->safeError($e)];}
+            } catch(Throwable $e) {$this->indexErrors[$t]=$this->safeError($e);$out[]=['table'=>$t,'state'=>'UNKNOWN','error'=>$this->safeError($e)];}
         }
         return $out;
     }
@@ -192,7 +196,9 @@ final class Phase1CReadOnlyDiagnostic
         $out=[];
         foreach(self::INDEXES as [$table,$name,$columns,$unique]) {
             $expected=['table'=>$table,'name'=>$name,'columns'=>$columns,'unique'=>$unique,'index_type'=>'BTREE'];
-            if(!isset($this->tables[$table])) {$out[]=$expected+['state'=>'NOT_CHECKED','reason'=>'TABLE_MISSING'];continue;}
+            if(!isset($this->tables[$table])) {$out[]=$expected+['state'=>$this->absenceProof?'NOT_CHECKED':'UNKNOWN','reason'=>$this->absenceProof?'TABLE_MISSING':'METADATA_VISIBILITY_NOT_PROVEN'];continue;}
+            if(isset($this->indexErrors[$table])) {$out[]=$expected+['state'=>'UNKNOWN','reason'=>'INDEX_METADATA_UNAVAILABLE','error'=>$this->indexErrors[$table]];continue;}
+            if(isset($this->columnErrors[$table])) {$out[]=$expected+['state'=>'UNKNOWN','reason'=>'COLUMN_METADATA_UNAVAILABLE','error'=>$this->columnErrors[$table]];continue;}
             $rows=$actual[$table][$name]??[];
             if(!$rows) {$out[]=$expected+['state'=>'MISSING'];continue;}
             usort($rows,fn($a,$b)=>(int)$a['SEQ_IN_INDEX']<=>(int)$b['SEQ_IN_INDEX']);
@@ -217,13 +223,15 @@ final class Phase1CReadOnlyDiagnostic
 
     private function queueMapping(): array
     {
-        if(!$this->has('data_reverification_queue',['id','subject_type','subject_id','attribute','status'])) return ['state'=>'NOT_CHECKED','reason'=>'SOURCE_TABLE_OR_COLUMNS_MISSING','records'=>[]];
+        if(!isset($this->tables['data_reverification_queue'])) return ['state'=>$this->absenceProof?'NOT_CHECKED':'UNKNOWN','reason'=>'SOURCE_TABLE_NOT_VISIBLE','records'=>[]];
+        if(isset($this->columnErrors['data_reverification_queue'])) return ['state'=>'UNKNOWN','reason'=>'SOURCE_COLUMN_METADATA_UNAVAILABLE','records'=>[]];
+        if(!$this->has('data_reverification_queue',['id','subject_type','subject_id','attribute','status'])) return ['state'=>'NOT_CHECKED','reason'=>'SOURCE_COLUMNS_MISSING','records'=>[]];
         $count=(int)$this->pdo->query("SELECT COUNT(*) FROM data_reverification_queue WHERE status='open'")->fetchColumn();
         $rows=$this->pdo->query("SELECT id,subject_type,subject_id,attribute FROM data_reverification_queue WHERE status='open' ORDER BY id LIMIT 6")->fetchAll();
         $ready=$this->has('data_reverification_queue_identities',['identity_key','subject_type','subject_id','attribute','active_queue_id']);
         $records=[];
         foreach(array_slice($rows,0,5) as $i=>$r) {
-            if(!$ready) {$records[]=['record_ordinal'=>$i+1,'state'=>'NOT_CHECKED'];continue;}
+            if(!$ready) {$records[]=['record_ordinal'=>$i+1,'state'=>isset($this->columnErrors[$target])?'UNKNOWN':'NOT_CHECKED'];continue;}
             $key=hash('sha256',json_encode([(string)$r['subject_type'],(int)$r['subject_id'],$r['attribute']],JSON_THROW_ON_ERROR));
             $q=$this->pdo->prepare('SELECT COUNT(*) FROM data_reverification_queue_identities WHERE identity_key=? AND subject_type=? AND subject_id=? AND (attribute <=> ?) AND active_queue_id=?');
             $q->execute([$key,$r['subject_type'],$r['subject_id'],$r['attribute'],$r['id']]); $n=(int)$q->fetchColumn();
@@ -234,13 +242,15 @@ final class Phase1CReadOnlyDiagnostic
 
     private function alertMapping(): array
     {
-        if(!$this->has('monitoring_alerts',['id','dedupe_key','status'])) return ['state'=>'NOT_CHECKED','reason'=>'SOURCE_TABLE_OR_COLUMNS_MISSING','records'=>[]];
+        if(!isset($this->tables['monitoring_alerts'])) return ['state'=>$this->absenceProof?'NOT_CHECKED':'UNKNOWN','reason'=>'SOURCE_TABLE_NOT_VISIBLE','records'=>[]];
+        if(isset($this->columnErrors['monitoring_alerts'])) return ['state'=>'UNKNOWN','reason'=>'SOURCE_COLUMN_METADATA_UNAVAILABLE','records'=>[]];
+        if(!$this->has('monitoring_alerts',['id','dedupe_key','status'])) return ['state'=>'NOT_CHECKED','reason'=>'SOURCE_COLUMNS_MISSING','records'=>[]];
         $count=(int)$this->pdo->query("SELECT COUNT(*) FROM monitoring_alerts WHERE status='open'")->fetchColumn();
         $rows=$this->pdo->query("SELECT id,dedupe_key FROM monitoring_alerts WHERE status='open' ORDER BY id LIMIT 3")->fetchAll();
         $ready=$this->has('monitoring_alert_identities',['dedupe_key','active_alert_id']);
         $records=[];
         foreach(array_slice($rows,0,2) as $i=>$r) {
-            if(!$ready) {$records[]=['record_ordinal'=>$i+1,'state'=>'NOT_CHECKED'];continue;}
+            if(!$ready) {$records[]=['record_ordinal'=>$i+1,'state'=>isset($this->columnErrors[$target])?'UNKNOWN':'NOT_CHECKED'];continue;}
             $q=$this->pdo->prepare('SELECT COUNT(*) FROM monitoring_alert_identities WHERE dedupe_key=? AND active_alert_id=?');
             $q->execute([$r['dedupe_key'],$r['id']]); $n=(int)$q->fetchColumn();
             $records[]=['record_ordinal'=>$i+1,'state'=>$n===1?'PASS':'FAIL','mapping_match_count'=>$n];
@@ -253,7 +263,7 @@ final class Phase1CReadOnlyDiagnostic
         $out=[];
         foreach(self::ORPHANS as [$id,$tables,$columns,$sql]) {
             $missing=$this->missing($tables,$columns);
-            if($missing) {$out[]=['id'=>$id,'state'=>'NOT_CHECKED','missing_prerequisites'=>$missing];continue;}
+            if($missing) {$unknown=(bool)array_filter($missing,fn($x)=>str_starts_with($x,'metadata:'));$out[]=['id'=>$id,'state'=>$unknown?'UNKNOWN':'NOT_CHECKED','missing_prerequisites'=>$missing];continue;}
             try {$bad=(bool)$this->pdo->query($sql)->fetchColumn();$out[]=['id'=>$id,'state'=>$bad?'FAIL':'PASS','orphan_exists'=>$bad];}
             catch(Throwable $e) {$out[]=['id'=>$id,'state'=>'UNKNOWN','error'=>$this->safeError($e)];}
         }
@@ -302,8 +312,11 @@ final class Phase1CReadOnlyDiagnostic
     private function missing(array $tables,array $columns): array
     {
         $out=[];
-        foreach($tables as $t) if(!isset($this->tables[$t])) $out[]='table:'.$t;
-        foreach($columns as $t=>$names) foreach($names as $c) if(isset($this->tables[$t])&&!isset($this->columns[$t][$c])) $out[]='column:'.$t.'.'.$c;
+        foreach($tables as $t) if(!isset($this->tables[$t])) $out[]=$this->absenceProof?'table:'.$t:'metadata:table:'.$t;
+        foreach($columns as $t=>$names) {
+            if(isset($this->columnErrors[$t])) {$out[]='metadata:columns:'.$t;continue;}
+            foreach($names as $c) if(isset($this->tables[$t])&&!isset($this->columns[$t][$c])) $out[]='column:'.$t.'.'.$c;
+        }
         sort($out); return $out;
     }
 
