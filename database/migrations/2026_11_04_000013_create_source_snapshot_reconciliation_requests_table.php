@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Database\MigrationSchemaGuard;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -8,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('source_snapshot_reconciliation_requests', function (Blueprint $table): void {
+        MigrationSchemaGuard::createTableIfMissing('source_snapshot_reconciliation_requests', function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('source_id');
             $table->unsignedBigInteger('triggering_snapshot_id');
@@ -33,7 +34,11 @@ return new class extends Migration
 
             $table->index(['source_id', 'status'], 'snapshot_reconciliation_source_status_idx');
             $table->index(['current_snapshot_id', 'status'], 'snapshot_reconciliation_current_status_idx');
-        });
+        }, [
+            'id', 'source_id', 'triggering_snapshot_id', 'current_snapshot_id',
+            'expected_previous_snapshot_id', 'recorded_previous_snapshot_id',
+            'identity_key', 'status', 'details', 'created_at', 'updated_at',
+        ]);
     }
 
     public function down(): void
