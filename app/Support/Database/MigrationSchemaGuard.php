@@ -123,7 +123,7 @@ final class MigrationSchemaGuard
 
         if (DB::getDriverName() === 'mysql') {
             $existing = DB::table('information_schema.STATISTICS')
-                ->selectRaw('MIN(NON_UNIQUE) AS NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
+                ->selectRaw('MIN(NON_UNIQUE) AS NON_UNIQUE, COUNT(*) AS COLUMN_COUNT, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns, MAX(SUB_PART) AS PREFIX_LENGTH, MIN(INDEX_TYPE) AS INDEX_TYPE, MAX(SEQ_IN_INDEX) AS LAST_SEQUENCE')
                 ->where('TABLE_SCHEMA', DB::getDatabaseName())
                 ->where('TABLE_NAME', $table)
                 ->where('INDEX_NAME', $indexName)
@@ -131,19 +131,33 @@ final class MigrationSchemaGuard
                 ->first();
 
             if ($existing !== null) {
-                if ((int) $existing->NON_UNIQUE !== 0 || $existing->indexed_columns !== $column) {
+                if (
+                    (int) $existing->NON_UNIQUE !== 0
+                    || (int) $existing->COLUMN_COUNT !== 1
+                    || $existing->indexed_columns !== $column
+                    || $existing->PREFIX_LENGTH !== null
+                    || strtoupper((string) $existing->INDEX_TYPE) !== 'BTREE'
+                    || (int) $existing->LAST_SEQUENCE !== 1
+                ) {
                     throw new RuntimeException('Existing index '.$indexName.' has an incompatible definition.');
                 }
 
                 return;
             }
 
+            // A composite unique index beginning with this column is not
+            // equivalent: it still permits duplicate values for this column.
             $equivalent = DB::table('information_schema.STATISTICS')
+                ->select('INDEX_NAME')
                 ->where('TABLE_SCHEMA', DB::getDatabaseName())
                 ->where('TABLE_NAME', $table)
                 ->where('NON_UNIQUE', 0)
-                ->where('COLUMN_NAME', $column)
-                ->where('SEQ_IN_INDEX', 1)
+                ->groupBy('INDEX_NAME')
+                ->havingRaw('COUNT(*) = 1')
+                ->havingRaw(
+                    'SUM(CASE WHEN COLUMN_NAME = ? AND SEQ_IN_INDEX = 1 AND SUB_PART IS NULL AND INDEX_TYPE = ? THEN 1 ELSE 0 END) = 1',
+                    [$column, 'BTREE']
+                )
                 ->exists();
         } else {
             if (Schema::hasIndex($table, $indexName)) {
