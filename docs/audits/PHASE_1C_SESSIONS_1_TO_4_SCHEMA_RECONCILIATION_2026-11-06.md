@@ -480,7 +480,7 @@ This prior run confirms that the existing preflight path has previously complete
 
 The connected GitHub Actions controls available to this execution expose workflow-run/job/artifact inspection and rerun operations, but do not expose the `workflow_dispatch` action. No SSH credential values or direct Hostinger access are available through this execution.
 
-More importantly, the existing workflow validator requires the workflow to run from current `main`. The requested expanded diagnostic code does not exist on `main`; the current PR branch is 78 commits ahead and must remain unmerged under this task's explicit restriction. A workflow changed only on PR #1057 cannot pass the existing main-only dispatch guard. Dispatching the current main workflow would only repeat the limited preflight described in Section 15.2 and would not satisfy this task.
+More importantly, the existing workflow validator requires the workflow to run from current `main`. The requested expanded diagnostic code does not exist on `main`; the current PR branch is 79 commits ahead and must remain unmerged under this task's explicit restriction. A workflow changed only on PR #1057 cannot pass the existing main-only dispatch guard. Dispatching the current main workflow would only repeat the limited preflight described in Section 15.2 and would not satisfy this task.
 
 Therefore:
 - no new protected production workflow was dispatched;
