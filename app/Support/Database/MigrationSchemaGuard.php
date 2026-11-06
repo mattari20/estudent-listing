@@ -196,7 +196,7 @@ final class MigrationSchemaGuard
         $createSql = (string) (($definition->{'Create Table'} ?? null) ?? ($definitionValues[1] ?? ''));
         $wrappedColumn = preg_quote(DB::getQueryGrammar()->wrap($column), '/');
 
-        return preg_match('/^\\s*'.$wrappedColumn.'\\s+.*?\\bDEFAULT\\s+\\'NULL\\'(?:\\s|,|$)/im', $createSql) === 1;
+        return preg_match("~^\\s*".$wrappedColumn."\\s+.*?\\bDEFAULT\\s+'NULL'(?:\\s|,|$)~im", $createSql) === 1;
     }
 
     public static function mysqlColumnTypeMatches(string $actual, string $expected): bool
