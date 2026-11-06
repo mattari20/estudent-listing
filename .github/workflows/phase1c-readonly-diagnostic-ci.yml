@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: phase1c-readonly-diagnostic-ci-${{ github.ref }}
+  group: phase1c-readonly-diagnostic-ci-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
