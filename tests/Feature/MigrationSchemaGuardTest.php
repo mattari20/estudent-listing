@@ -142,6 +142,28 @@ class MigrationSchemaGuardTest extends TestCase
         );
     }
 
+    public function test_nullable_unique_unsigned_big_integer_guard_accepts_mysql_and_mariadb_metadata(): void
+    {
+        Schema::create('migration_guard_test', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('source_link_id')->nullable();
+        });
+
+        MigrationSchemaGuard::ensureNullableUniqueUnsignedBigInteger(
+            'migration_guard_test',
+            'source_link_id',
+            'migration_guard_test_source_link_unique'
+        );
+
+        MigrationSchemaGuard::ensureNullableUniqueUnsignedBigInteger(
+            'migration_guard_test',
+            'source_link_id',
+            'migration_guard_test_source_link_unique'
+        );
+
+        $this->assertTrue(Schema::hasIndex('migration_guard_test', 'migration_guard_test_source_link_unique'));
+    }
+
     public function test_nullable_unique_string_guard_rejects_existing_duplicate_values(): void
     {
         Schema::create('migration_guard_test', function (Blueprint $table): void {
