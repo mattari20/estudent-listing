@@ -179,7 +179,7 @@ This does not prove MariaDB compatibility.
 
 ### MariaDB 11.8.9
 
-PR [#1057](https://github.com/mattari20/estudent-listing/pull/1057) adds a disposable `mariadb:11.8.9` CI service and runs the same recovery acceptance flow using `phase1c_testb_recovery` / `phase1c_ci`. Its status and test counts must be updated only after the final exact-head workflow result is available. Initial MariaDB run [#42235535943](https://github.com/mattari20/estudent-listing/actions/runs/42235535943) provisioned MariaDB 11.8.9, verified the exact server/database/user, completed the clean 18-migration install, reran the migrator, and verified all 18 ledger entries exactly once. It then failed in the object-verifier step because the verifier expected `int unsigned` while MariaDB reports `int(10) unsigned` for `import_batches.duplicate_rows`. The migration itself succeeded; this was a verifier portability defect. Integer display-width normalization has now been added to the migration guard and schema-object verifier, with new guard regression coverage. The exact-head rerun is pending; MariaDB acceptance is not yet claimed.
+PR [#1057](https://github.com/mattari20/estudent-listing/pull/1057) adds a disposable `mariadb:11.8.9` CI service and runs the same recovery acceptance flow using `phase1c_testb_recovery` / `phase1c_ci`. Its status and test counts must be updated only after the final exact-head workflow result is available. Initial MariaDB run [#42235535943](https://github.com/mattari20/estudent-listing/actions/runs/42235535943) provisioned MariaDB 11.8.9, verified the exact server/database/user, completed the clean 18-migration install, reran the migrator, and verified all 18 ledger entries exactly once. It then failed in the object-verifier step because the verifier expected `int unsigned` while MariaDB reports `int(10) unsigned` for `import_batches.duplicate_rows`. The migration itself succeeded; this was a verifier portability defect. Integer display-width normalization was added to the migration guard and schema-object verifier, with regression coverage. The subsequent MariaDB run [#42236169585](https://github.com/mattari20/estudent-listing/actions/runs/42236169585) completed successfully on MariaDB 11.8.9: clean install, rerun, all 18 ledger entries exactly once, object verifier, 14 tests / 26 assertions, 24 audit-retention/monitoring tests / 104 assertions, and all 24 trigger lifecycle checks passed. Further hardening was then added: explicit existing-column contracts, manual reapplication of all 18 migration `up()` methods, and exact FK update/delete-action verification. The current exact-head rerun [#42237868615](https://github.com/mattari20/estudent-listing/actions/runs/42237868615) is queued; final acceptance of those additional changes remains pending.
 
 ## 8. Migration source and guard review findings
 
@@ -222,7 +222,7 @@ This source review identifies hardening targets; it does not imply repository im
 - S2.8 Partial/interrupted DDL recovery: PARTIAL — missing/partial table and incompatible-column guards are tested; full interrupted DDL recovery across every migration is not yet proven.
 - S2.9 Ledger completion behavior: PASS in isolated MySQL; production ledger entries remain zero.
 - S2.10 Regression tests added for every required scenario: PARTIAL — added composite-index, prefixed-index, incompatible-column-type and unsigned-BIGINT metadata coverage; remaining requested failure modes are not all covered.
-- S2.11 Relevant test suites: PARTIAL — existing MySQL tests pass; MariaDB pending.
+- S2.11 Relevant test suites: PARTIAL — the existing MySQL and MariaDB suites passed in runs #42202674014 and #42236169585; latest added migration-reapply and FK-action hardening awaits exact-head rerun.
 - S2.12 Changes committed/patch prepared: PARTIAL — PR #1057 contains workflow/diagnostic changes, not full MigrationSchemaGuard hardening.
 
 ### Session 3 — MariaDB compatibility
@@ -236,7 +236,7 @@ This source review identifies hardening targets; it does not imply repository im
 - S3.7 Interrupted execution: NOT_CHECKED on MariaDB.
 - S3.8 Ledger consistency: PASS — all 18 migration entries verified exactly once on MariaDB 11.8.9 in run #42235535943.
 - S3.9 Production isolation: PASS by workflow design; job uses disposable CI service.
-- S3.10 Final MariaDB evidence: NOT_CHECKED.
+- S3.10 Final MariaDB evidence: PARTIAL — run #42236169585 passed the MariaDB 11.8.9 acceptance set; later added all-18 manual migration reapplication and FK update-rule checks await run #42237868615.
 
 ### Session 4 — Production preflight
 
