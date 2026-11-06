@@ -15,6 +15,7 @@ on:
       - 'tests/Feature/SourceMonitoringBatchRecoveryTest.php'
       - 'tests/Support/verify-append-only-audit-triggers.php'
       - 'tests/Support/verify-phase1c-testb-migration-objects.php'
+      - 'docs/audits/PHASE_1C_SESSIONS_1_TO_4_SCHEMA_RECONCILIATION_2026-11-06.md'
 
 permissions:
   contents: read
