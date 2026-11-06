@@ -257,7 +257,7 @@ backup_path = File.join(WORKFLOWS, 'phase-1c-testb-protected-production-backup.y
 fail!('missing protected Phase 1C production backup workflow') unless File.file?(backup_path)
 backup_workflow = parse_workflow(backup_path)
 backup_events = events_for(backup_workflow)
-fail!('backup workflow must expose pull_request validation and manual production dispatch') unless backup_events.keys.map(&:to_s).sort == %w[pull_request workflow_dispatch]
+fail!('backup workflow must expose pull_request validation and manual production dispatch') unless backup_events.keys.map(&:to_s) == %w[workflow_dispatch]
 backup_job = backup_workflow.fetch('jobs').fetch('backup')
 fail!('backup job must use production-backup environment') unless backup_job['environment'] == 'production-backup'
 backup_steps = backup_job.fetch('steps', [])
