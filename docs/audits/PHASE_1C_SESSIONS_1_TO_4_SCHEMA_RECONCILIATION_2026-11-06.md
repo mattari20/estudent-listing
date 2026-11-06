@@ -250,7 +250,7 @@ This source review identifies hardening targets; it does not imply repository im
 - S4.8 Migration execution order: PARTIAL — source dependencies reviewed; final order needs full preflight/parent-table reconciliation.
 - S4.9 Production impact: PARTIAL — known DDL/FK/trigger/backfill impact documented in source; actual recovery sizing/lock analysis not complete.
 - S4.10 Remaining blockers: PASS — documented above.
-- S4.11 Final readiness: PASS — decision is NOT_READY.
+- S4.11 Final readiness: PARTIAL — the existing read-only preflight evidence supports NOT_READY; a final preflight rerun is intentionally deferred until Sessions 1–3 are complete.
 
 ## 10. Final production decision
 
