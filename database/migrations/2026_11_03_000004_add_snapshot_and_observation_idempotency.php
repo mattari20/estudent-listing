@@ -59,7 +59,7 @@ return new class extends Migration
 
         $captureIndex = DB::getDriverName() === 'mysql'
             ? DB::table('information_schema.STATISTICS')
-                ->selectRaw('NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
+                ->selectRaw('MIN(NON_UNIQUE) AS NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
                 ->where('TABLE_SCHEMA', DB::getDatabaseName())
                 ->where('TABLE_NAME', 'source_snapshots')
                 ->where('INDEX_NAME', 'source_snapshots_capture_key_unique')
@@ -79,7 +79,7 @@ return new class extends Migration
 
         $observationIndex = DB::getDriverName() === 'mysql'
             ? DB::table('information_schema.STATISTICS')
-                ->selectRaw('NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
+                ->selectRaw('MIN(NON_UNIQUE) AS NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns')
                 ->where('TABLE_SCHEMA', DB::getDatabaseName())
                 ->where('TABLE_NAME', 'source_change_observations')
                 ->where('INDEX_NAME', 'source_observations_current_snapshot_unique')
