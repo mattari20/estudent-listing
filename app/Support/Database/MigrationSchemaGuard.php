@@ -83,7 +83,7 @@ final class MigrationSchemaGuard
                 );
             }
 
-            if (array_key_exists('default', $contract) && $actual->COLUMN_DEFAULT != $contract['default']) {
+            if (array_key_exists('default', $contract) && self::normalizeMysqlColumnDefault($actual->COLUMN_DEFAULT) !== self::normalizeMysqlColumnDefault($contract['default'])) {
                 throw new RuntimeException(
                     'Existing '.$table.'.'.$column.' has an incompatible default value.'
                 );
@@ -143,6 +143,20 @@ final class MigrationSchemaGuard
      * MySQL 8 omits integer display widths while MariaDB 11.8 still reports
      * them in COLUMN_TYPE. Display width does not change the integer domain.
      */
+    private static function normalizeMysqlColumnDefault(mixed $default): ?string
+    {
+        if ($default === null) {
+            return null;
+        }
+
+        $value = (string) $default;
+        if (strlen($value) >= 2 && $value[0] === "'" && $value[strlen($value) - 1] === "'") {
+            $value = str_replace("''", "'", substr($value, 1, -1));
+        }
+
+        return $value;
+    }
+
     private static function normalizeMysqlColumnType(string $type): string
     {
         $type = strtolower(trim($type));
