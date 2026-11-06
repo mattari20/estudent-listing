@@ -37,6 +37,15 @@ return new class extends Migration
                 );
             }
 
+            if (DB::getDriverName() === 'mysql') {
+                MigrationSchemaGuard::assertExistingColumnDefinitions('monitoring_alert_identities', [
+                    'dedupe_key' => ['type' => 'varchar(40)', 'nullable' => false],
+                    'active_alert_id' => ['type' => 'bigint unsigned', 'nullable' => true, 'default' => null],
+                    'created_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+                    'updated_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+                ]);
+            }
+
             $primaryKey = DB::getDriverName() === 'mysql'
                 ? DB::table('information_schema.STATISTICS')
                     ->where('TABLE_SCHEMA', DB::getDatabaseName())
