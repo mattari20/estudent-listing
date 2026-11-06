@@ -300,4 +300,11 @@ fail!('dispatch guard must reject a generic confirmation') unless guard.include?
 fail!('dispatch guard must execute from its isolated checkout') unless guard.include?('cd "$(dirname "${BASH_SOURCE[0]}")/../.."')
 pass('shared guard enforces manual dispatch, main, exact current SHA, reason and unique confirmation')
 
+# The diagnostic requires SSH stdout capture, introduced in appleboy/ssh-action v1.2.1.
+diagnostic_source = File.read(File.join(WORKFLOWS, 'phase1c-readonly-schema-diagnostic.yml'))
+fail!('Phase 1C diagnostic must use an SSH action version that supports capture_stdout') unless diagnostic_source.include?('uses: appleboy/ssh-action@v1.2.1')
+fail!('Phase 1C diagnostic must enable the supported stdout output') unless diagnostic_source.match?(/^\s*capture_stdout:\s*true\s*$/)
+fail!('Phase 1C diagnostic must use shell set -e instead of removed script_stop input') if diagnostic_source.match?(/^\s*script_stop:/)
+pass('Phase 1C SSH stdout capture uses the supported v1.2.1 action interface')
+
 puts "SUMMARY: #{READ_ONLY.length} read-only workflows, #{BLOCKED_OPERATIONS.length} blocked operations, retired administrator recovery workflow absent, #{paths.length} total workflows"
