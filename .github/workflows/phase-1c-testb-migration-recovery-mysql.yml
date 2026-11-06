@@ -63,7 +63,7 @@ jobs:
           test "$DB_HOST" = 127.0.0.1
           test "$DB_DATABASE" = phase1c_testb_recovery
           test "$DB_USERNAME" = phase1c_ci
-          mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e 'SELECT VERSION(), DATABASE(), CURRENT_USER();'
+          mysql --host=127.0.0.1 --port="$DB_PORT" --user="$DB_USERNAME" --password="$DB_PASSWORD" --database="$DB_DATABASE" --batch --skip-column-names -e 'SELECT VERSION(), DATABASE(), CURRENT_USER();'
       - name: Execute complete 18-migration chain on clean MySQL
         run: php artisan migrate:fresh --force
       - name: Re-run Laravel migrator and verify exactly-once ledger
