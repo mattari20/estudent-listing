@@ -46,10 +46,10 @@ jobs:
           TARGET_SHA: ${{ inputs.target_sha }}
           OPERATION_REASON: ${{ inputs.operation_reason }}
           CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
-          EXPECTED_CONFIRMATION: "AUTHORIZE-PHASE1C-TESTB-PRODUCTION-READINESS-READONLY"
+          EXPECTED_CONFIRMATION: "AUTHORIZE-PHASE1C-STRUCTURAL-READONLY-DIAGNOSTIC"
         run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
 
-      - name: Validate existing protected Hostinger credentials
+      - name: Validate environment-scoped production credentials (Hostinger)
         env:
           HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
           USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
