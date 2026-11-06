@@ -208,4 +208,47 @@ class MigrationSchemaGuardTest extends TestCase
             'migration_guard_test_identity_unique'
         );
     }
+
+    public function test_existing_nullable_column_accepts_a_sql_null_default_on_mysql_and_mariadb(): void
+    {
+        if (DB::getDriverName() !== 'mysql') {
+            $this->markTestSkipped('Exact column default metadata is specific to MySQL/MariaDB.');
+        }
+
+        Schema::create('migration_guard_partial_test', function (Blueprint $table): void {
+            $table->string('attribute')->nullable();
+        });
+
+        MigrationSchemaGuard::assertExistingColumnDefinitions('migration_guard_partial_test', [
+            'attribute' => ['type' => 'varchar(255)', 'nullable' => true, 'default' => null],
+        ]);
+
+        $this->assertTrue(Schema::hasColumn('migration_guard_partial_test', 'attribute'));
+    }
+
+    public function test_sql_null_default_is_not_confused_with_literal_null_string(): void
+    {
+        if (DB::getDriverName() !== 'mysql') {
+            $this->markTestSkipped('Exact column default metadata is specific to MySQL/MariaDB.');
+        }
+
+        Schema::create('migration_guard_partial_test', function (Blueprint $table): void {
+            $table->string('attribute')->nullable()->default('NULL');
+        });
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('incompatible default value');
+        MigrationSchemaGuard::assertExistingColumnDefinitions('migration_guard_partial_test', [
+            'attribute' => ['type' => 'varchar(255)', 'nullable' => true, 'default' => null],
+        ]);
+    }
+
+    public function test_mysql_no_action_metadata_is_equivalent_to_restrict_but_not_cascade(): void
+    {
+        $this->assertTrue(MigrationSchemaGuard::mysqlReferentialActionMatches('NO ACTION', 'RESTRICT'));
+        $this->assertTrue(MigrationSchemaGuard::mysqlReferentialActionMatches('restrict', 'RESTRICT'));
+        $this->assertFalse(MigrationSchemaGuard::mysqlReferentialActionMatches('CASCADE', 'RESTRICT'));
+        $this->assertFalse(MigrationSchemaGuard::mysqlReferentialActionMatches('SET NULL', 'RESTRICT'));
+    }
+
 }
