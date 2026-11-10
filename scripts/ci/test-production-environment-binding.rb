@@ -307,7 +307,7 @@ fail!('Phase 1C evidence must not use SSH stdout capture') if diagnostic_source.
 fail!('Phase 1C evidence must not be transported through action outputs or environment variables') if diagnostic_source.match?(/EVIDENCE_GZIP_B64|steps\.collect\.outputs\.stdout/)
 fail!('Phase 1C diagnostic must retain the bounded remote compressed evidence cap') unless diagnostic_source.include?('[ "$compressed_bytes" -gt 70000 ]')
 fail!('Phase 1C diagnostic must create a remote SHA-256 manifest before transfer') unless diagnostic_source.include?('sha256sum "$compressed_tmp"')
-fail!('Phase 1C diagnostic must stream the remote compressed file using OpenSSH') unless diagnostic_source.include?('cat \\'$remote_prefix.gz\\'') && diagnostic_source.include?('> evidence.gz.part')
+fail!('Phase 1C diagnostic must stream the remote compressed file using OpenSSH') unless diagnostic_source.include?("cat '$remote_prefix.gz'") && diagnostic_source.include?('> evidence.gz.part')
 fail!('Phase 1C diagnostic must use strict host-key checking for binary SSH transfer') unless diagnostic_source.include?('StrictHostKeyChecking=yes')
 fail!('Phase 1C diagnostic must validate the transferred bytes, gzip, JSON schema and privacy contract') unless diagnostic_source.include?('validate-evidence-transfer.py') && diagnostic_source.include?('validate-readonly-evidence.py')
 fail!('Phase 1C diagnostic must not decode evidence from Base64') if diagnostic_source.include?('base64 --decode | gzip')
