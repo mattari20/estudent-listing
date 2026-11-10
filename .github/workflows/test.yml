@@ -29,6 +29,7 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check jsonschema==4.23.0
           python3 -m unittest discover -s tests/phase1c -p 'test_evidence_transfer.py' -v
+          python3 -m unittest discover -s tests/phase1c -p 'test_host_identity.py' -v
 
       - name: Validate consolidated production workflow isolation
         run: python3 scripts/ci/test-production-workflow-isolation.py
@@ -46,6 +47,9 @@ jobs:
           extensions: mbstring, dom, fileinfo, pdo_sqlite
           coverage: none
           tools: composer:v2
+
+      - name: Test protected database identity guard
+        run: php tests/phase1c/test_database_identity.php
 
       - name: Setup Node
         uses: actions/setup-node@v4
