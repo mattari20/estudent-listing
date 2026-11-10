@@ -157,6 +157,7 @@ jobs:
           ssh "${ssh_options[@]}" "$SSH_USER@$SSH_HOST" "cat '$remote_prefix.manifest.json'" > remote-evidence-manifest.json
           ssh "${ssh_options[@]}" "$SSH_USER@$SSH_HOST" "cat '$remote_prefix.gz'" > evidence.gz.part
           mv evidence.gz.part evidence.gz
+          python3 -m pip install --disable-pip-version-check jsonschema==4.23.0
           python3 .target-source/scripts/phase1c/validate-evidence-transfer.py \
             --manifest remote-evidence-manifest.json \
             --compressed evidence.gz \
