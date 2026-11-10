@@ -180,7 +180,7 @@ jobs:
             --run-id "$RUN_ID" \
             --target-sha "$TARGET_SHA"
 
-      - name: Remove and verify run-specific remote and runner transfer files
+      - name: Remove temporary remote and runner transfer files (verify run-specific absence)
         if: always()
         env:
           SSH_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
