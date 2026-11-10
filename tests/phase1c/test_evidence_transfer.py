@@ -108,6 +108,13 @@ class EvidenceTransferTests(unittest.TestCase):
             + " ".join(f"{key}={value}" for key, value in mixed.items())
         )
 
+    def test_corrupted_base64_character_is_rejected(self) -> None:
+        encoded = __import__("base64").b64encode(self.compressed).decode("ascii")
+        corrupted = encoded[:12] + "!" + encoded[13:]
+        metrics = inspect_legacy_base64(corrupted)
+        self.assertFalse(metrics["base64_alphabet_only"])
+        self.assertFalse(metrics["strict_base64_decode"])
+
     def test_truncated_base64_is_rejected(self) -> None:
         encoded = __import__("base64").b64encode(self.compressed).decode("ascii")
         metrics = inspect_legacy_base64(encoded[:-1])
