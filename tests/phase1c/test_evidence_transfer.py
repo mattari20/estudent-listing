@@ -103,6 +103,10 @@ class EvidenceTransferTests(unittest.TestCase):
         self.assertFalse(mixed["base64_alphabet_only"])
         self.assertFalse(mixed["strict_base64_decode"])
         self.assertEqual(mixed["gzip_integrity"], "NOT_CHECKED")
+        print(
+            "legacy_capture_diagnostics=PASS "
+            + " ".join(f"{key}={value}" for key, value in mixed.items())
+        )
 
     def test_truncated_base64_is_rejected(self) -> None:
         encoded = __import__("base64").b64encode(self.compressed).decode("ascii")
