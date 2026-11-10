@@ -75,6 +75,26 @@ class HostIdentityTests(unittest.TestCase):
                 trailing = len(stripped) - len(stripped.rstrip("\\"))
                 self.assertEqual(trailing, 1, f"line {number} has {trailing} trailing backslashes")
 
+
+    def test_every_extracted_workflow_shell_block_passes_bash_n(self):
+        workflow = (Path(__file__).parents[2] / ".github/workflows/phase1c-readonly-schema-diagnostic.yml").read_text()
+        lines = workflow.splitlines()
+        extracted = 0
+        for index, line in enumerate(lines):
+            if line.strip() not in ("run: |", "script: |"):
+                continue
+            parent_indent = len(line) - len(line.lstrip())
+            body = []
+            for child in lines[index + 1:]:
+                if child and len(child) - len(child.lstrip()) <= parent_indent:
+                    break
+                body.append(child[parent_indent + 2:] if child.startswith(" " * (parent_indent + 2)) else "")
+            shell = "\n".join(body) + "\n"
+            result = subprocess.run(["bash", "-n"], input=shell, text=True, capture_output=True)
+            self.assertEqual(result.returncode, 0, f"shell block at line {index + 1}: {result.stderr}")
+            extracted += 1
+        self.assertGreaterEqual(extracted, 5)
+
     def test_extracted_prepare_step_is_valid_shell_and_preserves_private_key(self):
         workflow = (Path(__file__).parents[2] / ".github/workflows/phase1c-readonly-schema-diagnostic.yml").read_text()
         shell = self.extract_prepare_transfer_shell(workflow)
