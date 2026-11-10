@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/phase1c-readonly-diagnostic-ci.yml"
       - "scripts/phase1c/**"
+      - "tests/phase1c/**"
       - "tests/Support/phase1c-readonly-diagnostic-acceptance.php"
   workflow_dispatch:
 
@@ -65,6 +66,9 @@ jobs:
 
       - name: Install evidence schema validator
         run: python3 -m pip install --disable-pip-version-check jsonschema==4.23.0
+
+      - name: Run Phase 1C metadata visibility and cleanup hardening tests
+        run: python3 -m unittest discover -s tests/phase1c -p 'test_readonly_hardening.py' -v
 
       - name: Run disposable database acceptance
         env:

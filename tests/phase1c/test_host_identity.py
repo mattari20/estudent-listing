@@ -162,7 +162,13 @@ class HostIdentityTests(unittest.TestCase):
         self.assertIn("verify-host-identity.py", workflow)
         self.assertIn("StrictHostKeyChecking=yes", workflow)
         self.assertNotIn('ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" > "$known_hosts_file"', workflow)
-        self.assertGreaterEqual(workflow.count('UserKnownHostsFile=$known_hosts_file'), 2)
+        cleanup = (Path(__file__).parents[2] / "scripts/phase1c/cleanup-evidence-transfer.sh").read_text()
+        self.assertIn("StrictHostKeyChecking=yes", cleanup)
+        self.assertGreaterEqual(
+            workflow.count('UserKnownHostsFile=$known_hosts_file')
+            + cleanup.count('UserKnownHostsFile=$known_hosts_file'),
+            2,
+        )
 
 
 if __name__ == "__main__":
