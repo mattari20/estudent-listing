@@ -107,13 +107,12 @@ final class Phase1CReadOnlyDiagnostic
 
     public function collect(string $expectedDatabase): array
     {
-        // Verify the actual selected schema before opening the evidence transaction
-        // or issuing any schema-inventory query.
-        $selectedDatabase = $this->pdo->query('SELECT DATABASE()')->fetchColumn();
-        phase1cValidateDatabaseIdentity(is_string($selectedDatabase) ? $selectedDatabase : null, $expectedDatabase);
         $this->pdo->exec('SET TRANSACTION READ ONLY');
         $this->pdo->beginTransaction();
         try {
+            // Verify the actual selected schema before any schema-inventory query.
+            $selectedDatabase = $this->pdo->query('SELECT DATABASE()')->fetchColumn();
+            phase1cValidateDatabaseIdentity(is_string($selectedDatabase) ? $selectedDatabase : null, $expectedDatabase);
             $version=(string)$this->pdo->query('SELECT VERSION()')->fetchColumn();
             $this->inventory();
             $result=[
