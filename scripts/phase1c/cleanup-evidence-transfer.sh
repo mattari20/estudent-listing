@@ -2,7 +2,7 @@
 # Remove only this workflow attempt's staged evidence and always clean runner temp files.
 set -euo pipefail
 
-if [[ "$#" -ne 8 ]]; then
+if [[ "$#" -ne 9 ]]; then
   echo "remote_transfer_cleanup=FAIL reason=invalid_arguments" >&2
   exit 2
 fi
@@ -15,6 +15,7 @@ known_hosts_file="$5"
 run_id="$6"
 run_attempt="$7"
 runner_temp="$8"
+workspace_dir="$9"
 
 transfer_id="${run_id}-${run_attempt}"
 if [[ ! "$transfer_id" =~ ^[0-9]+-[0-9]+$ ]]; then
@@ -26,7 +27,7 @@ cleanup_runner_files() {
   rm -f -- "$key_file" "$known_hosts_file" \
     "$runner_temp/phase1c-hostinger-readonly-key" \
     "$runner_temp/phase1c-hostinger-known-hosts" \
-    evidence.gz evidence.gz.part remote-evidence-manifest.json
+    "$workspace_dir/evidence.gz" "$workspace_dir/evidence.gz.part" "$workspace_dir/remote-evidence-manifest.json"
 }
 trap cleanup_runner_files EXIT
 

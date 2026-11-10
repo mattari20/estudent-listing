@@ -76,7 +76,7 @@ class RemoteCleanupTests(unittest.TestCase):
         })
         return subprocess.run(
             ["bash", str(CLEANUP), "185.232.14.237", "readonly-user", "65002",
-             str(self.key), str(self.known), "123456789", "2", str(self.root)],
+             str(self.key), str(self.known), "123456789", "2", str(self.root), str(self.root)],
             env=env, capture_output=True, text=True,
         )
 

@@ -194,7 +194,7 @@ jobs:
             "$SSH_HOST" "$SSH_USER" "$SSH_PORT" \
             "$RUNNER_TEMP/phase1c-hostinger-readonly-key" \
             "$RUNNER_TEMP/phase1c-hostinger-known-hosts" \
-            "$RUN_ID" "$RUN_ATTEMPT" "$RUNNER_TEMP"
+            "$RUN_ID" "$RUN_ATTEMPT" "$RUNNER_TEMP" "$GITHUB_WORKSPACE"
 
       - name: Retain sanitized evidence artifact
         uses: actions/upload-artifact@v4
