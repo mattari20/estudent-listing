@@ -300,23 +300,25 @@ fail!('dispatch guard must reject a generic confirmation') unless guard.include?
 fail!('dispatch guard must execute from its isolated checkout') unless guard.include?('cd "$(dirname "${BASH_SOURCE[0]}")/../.."')
 pass('shared guard enforces manual dispatch, main, exact current SHA, reason and unique confirmation')
 
-# The diagnostic requires SSH stdout capture, introduced in appleboy/ssh-action v1.2.1.
+# The Phase 1C diagnostic must never move evidence through SSH stdout/action outputs.
 diagnostic_source = File.read(File.join(WORKFLOWS, 'phase1c-readonly-schema-diagnostic.yml'))
-fail!('Phase 1C diagnostic must use an SSH action version that supports capture_stdout') unless diagnostic_source.include?('uses: appleboy/ssh-action@v1.2.1')
-fail!('Phase 1C diagnostic must enable the supported stdout output') unless diagnostic_source.match?(/^\s*capture_stdout:\s*true\s*$/)
-fail!('Phase 1C diagnostic must use shell set -e instead of removed script_stop input') if diagnostic_source.match?(/^\s*script_stop:/)
-pass('Phase 1C SSH stdout capture uses the supported v1.2.1 action interface')
+fail!('Phase 1C diagnostic must use the reviewed SSH action version') unless diagnostic_source.include?('uses: appleboy/ssh-action@v1.2.1')
+fail!('Phase 1C evidence must not use SSH stdout capture') if diagnostic_source.match?(/^\s*capture_stdout:\s*true\s*$/)
+fail!('Phase 1C evidence must not be transported through action outputs or environment variables') if diagnostic_source.match?(/EVIDENCE_GZIP_B64|steps\.collect\.outputs\.stdout/)
+fail!('Phase 1C diagnostic must retain the bounded remote compressed evidence cap') unless diagnostic_source.include?('[ "$compressed_bytes" -gt 70000 ]')
+fail!('Phase 1C diagnostic must create a remote SHA-256 manifest before transfer') unless diagnostic_source.include?('sha256sum "$compressed_tmp"')
+fail!('Phase 1C diagnostic must stream the remote compressed file using OpenSSH') unless diagnostic_source.include?("cat '$remote_prefix.gz'") && diagnostic_source.include?('> evidence.gz.part')
+fail!('Phase 1C diagnostic must use strict host-key checking for binary SSH transfer') unless diagnostic_source.include?('StrictHostKeyChecking=yes')
+fail!('Phase 1C diagnostic must validate the transferred bytes, gzip, JSON schema and privacy contract') unless diagnostic_source.include?('validate-evidence-transfer.py') && diagnostic_source.include?('validate-readonly-evidence.py')
+fail!('Phase 1C diagnostic must not decode evidence from Base64') if diagnostic_source.include?('base64 --decode | gzip')
+steps = parse_workflow(File.join(WORKFLOWS, 'phase1c-readonly-schema-diagnostic.yml')).fetch('jobs').fetch('collect').fetch('steps')
+validation_index = steps.index { |step| step.fetch('name', '').include?('Stream evidence over SSH and validate') }
+cleanup_index = steps.index { |step| step.fetch('name', '').include?('Remove temporary remote and runner transfer files') }
+artifact_index = steps.index { |step| step.fetch('name', '').include?('Retain sanitized evidence artifact') }
+fail!('Phase 1C evidence validation must precede cleanup and artifact retention') unless validation_index && cleanup_index && artifact_index && validation_index < cleanup_index && cleanup_index < artifact_index
+pass('Phase 1C evidence uses bounded binary SSH streaming, remote/runner SHA-256 comparison, gzip integrity, schema/privacy validation and fail-closed artifact ordering')
 
+# The adversarial transfer test is part of ordinary production-secret-free CI.
+test_workflow = File.read(File.join(WORKFLOWS, 'test.yml'))
+fail!('Phase 1C evidence transfer tests must run in ordinary CI') unless test_workflow.include?('unittest discover -s tests/phase1c')
 puts "SUMMARY: #{READ_ONLY.length} read-only workflows, #{BLOCKED_OPERATIONS.length} blocked operations, retired administrator recovery workflow absent, #{paths.length} total workflows"
-
-
-# Large sanitized production evidence must not be injected uncompressed into
-# a process environment. The SSH output is gzip-compressed, base64 encoded,
-# and bounded before it crosses the action-output/environment boundary.
-diagnostic_source = File.read(File.join(WORKFLOWS, 'phase1c-readonly-schema-diagnostic.yml'))
-fail!('Phase 1C diagnostic must not pass the full JSON evidence as EVIDENCE_JSON') if diagnostic_source.match?(/^\s*EVIDENCE_JSON:/)
-fail!('Phase 1C diagnostic must return gzip-compressed evidence') unless diagnostic_source.include?('gzip -c "$evidence_tmp" > "$compressed_tmp"')
-fail!('Phase 1C diagnostic must enforce the remote compressed evidence cap') unless diagnostic_source.include?('[ "$compressed_bytes" -gt 70000 ]')
-fail!('Phase 1C diagnostic must bound the runner-side encoded evidence output') unless diagnostic_source.include?('test "${#EVIDENCE_GZIP_B64}" -le 100000')
-fail!('Phase 1C diagnostic must decode and decompress evidence before schema validation') unless diagnostic_source.include?('base64 --decode | gzip --decompress > phase1c-readonly-evidence.json')
-pass('Phase 1C evidence transfer is compressed, bounded, decoded to a file and schema-validated')
