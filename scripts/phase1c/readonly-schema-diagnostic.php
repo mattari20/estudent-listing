@@ -15,6 +15,24 @@ function phase1cValidateDatabaseIdentity(?string $actualDatabase, string $expect
     }
 }
 
+function phase1cMetadataVisibilityComplete(array $globalPrivileges, array $schemaPrivileges): bool
+{
+    $coversSchema = static function (array $privileges): bool {
+        foreach ($privileges as $privilege) {
+            $value = strtoupper(trim((string)$privilege));
+            if ($value === 'SELECT' || $value === 'ALL PRIVILEGES') return true;
+        }
+        return false;
+    };
+
+    return $coversSchema($globalPrivileges) || $coversSchema($schemaPrivileges);
+}
+
+function phase1cMetadataAbsenceState(bool $metadataVisibilityComplete): string
+{
+    return $metadataVisibilityComplete ? 'MISSING' : 'UNKNOWN';
+}
+
 final class Phase1CReadOnlyDiagnostic
 {
     private const TABLES = [
@@ -147,7 +165,7 @@ final class Phase1CReadOnlyDiagnostic
         $inventory=$this->pdo->prepare("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' AND TABLE_NAME IN ($placeholders)");
         $inventory->execute(self::TABLES);
         foreach($inventory->fetchAll(PDO::FETCH_COLUMN) as $t) $this->tables[(string)$t]=true;
-        $this->absenceProof=$this->hasDatabaseWideSelect();
+        $this->absenceProof=$this->hasCompleteSchemaMetadataVisibility();
         foreach(self::TABLES as $t) {
             $this->columns[$t]=[];
             if(!isset($this->tables[$t])) continue;
@@ -163,7 +181,7 @@ final class Phase1CReadOnlyDiagnostic
     {
         $out=[];
         foreach(self::TABLES as $t) {
-            if(!isset($this->tables[$t])) {$out[]=['table'=>$t,'state'=>$this->absenceProof?'MISSING':'UNKNOWN','reason'=>$this->absenceProof?'TABLE_ABSENT':'METADATA_VISIBILITY_NOT_PROVEN'];continue;}
+            if(!isset($this->tables[$t])) {$out[]=['table'=>$t,'state'=>phase1cMetadataAbsenceState($this->absenceProof),'reason'=>$this->absenceProof?'TABLE_ABSENT':'METADATA_VISIBILITY_NOT_PROVEN'];continue;}
             try {
                 $q=$this->pdo->prepare("SELECT ENGINE,ROW_FORMAT,TABLE_COLLATION,CREATE_OPTIONS FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND TABLE_TYPE='BASE TABLE'");
                 $q->execute([$t]); $options=$q->fetch()?:[];
@@ -301,20 +319,24 @@ final class Phase1CReadOnlyDiagnostic
         return $out;
     }
 
-    private function hasDatabaseWideSelect(): bool
+    private function hasCompleteSchemaMetadataVisibility(): bool
     {
         try {
-            $database=(string)$this->pdo->query('SELECT DATABASE()')->fetchColumn();
-            $grants=$this->pdo->query('SHOW GRANTS')->fetchAll(PDO::FETCH_COLUMN);
-            foreach($grants as $grant) {
-                $grant=(string)$grant;
-                if(preg_match('/^GRANT\\s+ALL PRIVILEGES\\s+ON\\s+(?:\\*|'.preg_quote(chr(96).$database.chr(96),'/').')\\.\\*/i',$grant)) return true;
-                if(preg_match('/^GRANT\\s+[^;]*\\bSELECT\\b[^;]*\\s+ON\\s+(?:\\*|'.preg_quote(chr(96).$database.chr(96),'/').')\\.\\*/i',$grant)) return true;
-            }
+            // Restrict the proof to direct global or current-schema SELECT grants.
+            // Role-derived or table-by-table privileges are deliberately insufficient:
+            // in those cases hidden objects remain UNKNOWN rather than being called absent.
+            $principal = "CONCAT(QUOTE(SUBSTRING(CURRENT_USER(), 1, LENGTH(CURRENT_USER()) - LENGTH(SUBSTRING_INDEX(CURRENT_USER(), '@', -1)) - 1)), '@', QUOTE(SUBSTRING_INDEX(CURRENT_USER(), '@', -1)))";
+            $global = $this->pdo->query(
+                "SELECT PRIVILEGE_TYPE FROM information_schema.USER_PRIVILEGES WHERE GRANTEE = {$principal}"
+            )->fetchAll(PDO::FETCH_COLUMN);
+            $schemaQuery = $this->pdo->query(
+                "SELECT PRIVILEGE_TYPE FROM information_schema.SCHEMA_PRIVILEGES WHERE TABLE_SCHEMA = DATABASE() AND GRANTEE = {$principal}"
+            );
+            $schema = $schemaQuery->fetchAll(PDO::FETCH_COLUMN);
+            return phase1cMetadataVisibilityComplete($global, $schema);
         } catch(Throwable $e) {
             return false;
         }
-        return false;
     }
 
     private function has(string $table,array $columns): bool
