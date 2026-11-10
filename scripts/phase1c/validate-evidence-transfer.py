@@ -151,12 +151,17 @@ def validate_transfer(
             temporary_path.unlink(missing_ok=True)
 
     evidence_sha256 = hashlib.sha256(raw).hexdigest()
+    materialized_sha256 = hashlib.sha256(evidence_output.read_bytes()).hexdigest()
+    if materialized_sha256 != evidence_sha256:
+        evidence_output.unlink(missing_ok=True)
+        _fail("materialized_evidence_checksum_mismatch")
     evidence_sha_path = evidence_output.parent / "evidence.sha256"
     evidence_sha_path.write_text(evidence_sha256 + "\n", encoding="ascii")
     artifact_manifest = {
         "workflow_run_id": expected_run_id,
         "target_sha": expected_target_sha,
         "evidence_sha256": evidence_sha256,
+        "materialized_evidence_sha256": materialized_sha256,
         "compressed_sha256": remote_sha256,
         "compressed_bytes": compressed_bytes,
     }
