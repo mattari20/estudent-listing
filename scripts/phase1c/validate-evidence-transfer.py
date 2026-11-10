@@ -64,16 +64,19 @@ def _fail(reason: str) -> None:
 
 
 def _bounded_gzip_decompress(payload: bytes) -> bytes:
-    decoder = zlib.decompressobj(16 + zlib.MAX_WBITS)
-    raw = decoder.decompress(payload, MAX_EVIDENCE_BYTES + 1)
-    if len(raw) > MAX_EVIDENCE_BYTES or decoder.unconsumed_tail:
-        _fail("decompressed_evidence_exceeds_limit")
-    raw += decoder.flush()
-    if len(raw) > MAX_EVIDENCE_BYTES:
-        _fail("decompressed_evidence_exceeds_limit")
-    if not decoder.eof or decoder.unused_data:
-        _fail("gzip_integrity_or_framing_failure")
-    return raw
+    try:
+        decoder = zlib.decompressobj(16 + zlib.MAX_WBITS)
+        raw = decoder.decompress(payload, MAX_EVIDENCE_BYTES + 1)
+        if len(raw) > MAX_EVIDENCE_BYTES or decoder.unconsumed_tail:
+            _fail("decompressed_evidence_exceeds_limit")
+        raw += decoder.flush()
+        if len(raw) > MAX_EVIDENCE_BYTES:
+            _fail("decompressed_evidence_exceeds_limit")
+        if not decoder.eof or decoder.unused_data:
+            _fail("gzip_integrity_or_framing_failure")
+        return raw
+    except zlib.error as exc:
+        raise ValueError("gzip_integrity_or_framing_failure") from exc
 
 
 def validate_transfer(
