@@ -4,19 +4,22 @@ from __future__ import annotations
 
 import gzip
 import hashlib
+import importlib.util
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "scripts" / "phase1c"))
-from validate_evidence_transfer import (  # noqa: E402
-    MAX_COMPRESSED_BYTES,
-    inspect_legacy_base64,
-    validate_transfer,
-)
+TRANSFER_MODULE_PATH = ROOT / "scripts/phase1c/validate-evidence-transfer.py"
+TRANSFER_SPEC = importlib.util.spec_from_file_location("validate_evidence_transfer", TRANSFER_MODULE_PATH)
+if TRANSFER_SPEC is None or TRANSFER_SPEC.loader is None:
+    raise RuntimeError("cannot load evidence transfer validator")
+TRANSFER_MODULE = importlib.util.module_from_spec(TRANSFER_SPEC)
+TRANSFER_SPEC.loader.exec_module(TRANSFER_MODULE)
+MAX_COMPRESSED_BYTES = TRANSFER_MODULE.MAX_COMPRESSED_BYTES
+inspect_legacy_base64 = TRANSFER_MODULE.inspect_legacy_base64
+validate_transfer = TRANSFER_MODULE.validate_transfer
 
 
 class EvidenceTransferTests(unittest.TestCase):
