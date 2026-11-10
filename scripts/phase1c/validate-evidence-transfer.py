@@ -52,6 +52,7 @@ def inspect_legacy_base64(captured: str) -> dict[str, Any]:
         "base64_length_mod_4": len(captured) % 4,
         "base64_length_valid": length_valid,
         "base64_padding_valid": padding_valid,
+        "base64_padding_chars": padding,
         "strict_base64_decode": decoded is not None,
         "decoded_compressed_bytes": len(decoded) if decoded is not None else None,
         "gzip_integrity": gzip_integrity,
@@ -88,6 +89,8 @@ def validate_transfer(
     expected_run_id: str,
     expected_target_sha: str,
 ) -> dict[str, Any]:
+    if manifest_path.stat().st_size > 4_096:
+        _fail("manifest_size_out_of_bounds")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     required = {"workflow_run_id", "target_sha", "compressed_bytes", "compressed_sha256"}
     if not isinstance(manifest, dict) or set(manifest) != required:
@@ -101,10 +104,13 @@ def validate_transfer(
     if not isinstance(manifest["compressed_sha256"], str) or not SHA256_RE.fullmatch(manifest["compressed_sha256"]):
         _fail("manifest_checksum_invalid")
 
+    compressed_stat_bytes = compressed_path.stat().st_size
+    if compressed_stat_bytes == 0 or compressed_stat_bytes > MAX_COMPRESSED_BYTES:
+        _fail("compressed_evidence_size_out_of_bounds")
     compressed = compressed_path.read_bytes()
     compressed_bytes = len(compressed)
-    if compressed_bytes == 0 or compressed_bytes > MAX_COMPRESSED_BYTES:
-        _fail("compressed_evidence_size_out_of_bounds")
+    if compressed_bytes != compressed_stat_bytes:
+        _fail("compressed_evidence_changed_during_read")
     if compressed_bytes != manifest["compressed_bytes"]:
         _fail("compressed_evidence_byte_count_mismatch")
 
