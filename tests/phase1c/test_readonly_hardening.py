@@ -42,6 +42,22 @@ class MetadataVisibilityTests(unittest.TestCase):
         self.assertEqual(self.php("phase1cMetadataAbsenceState(true)"), "MISSING")
 
 
+class WorkflowArtifactGateTests(unittest.TestCase):
+    def test_artifact_retention_is_after_unconditional_cleanup_gate(self):
+        workflow = (ROOT / ".github/workflows/phase1c-readonly-schema-diagnostic.yml").read_text(encoding="utf-8")
+        cleanup_name = "Remove temporary remote and runner transfer files"
+        artifact_name = "Retain sanitized evidence artifact"
+        cleanup_index = workflow.index(cleanup_name)
+        artifact_index = workflow.index(artifact_name)
+        self.assertLess(cleanup_index, artifact_index)
+        cleanup_block = workflow[cleanup_index:artifact_index]
+        self.assertIn("if: always()", cleanup_block)
+        artifact_block = workflow[artifact_index:]
+        self.assertNotRegex(artifact_block, r"(?m)^\\s+if:")
+        # GitHub's default success() condition skips upload when the cleanup step fails.
+        self.assertIn("actions/upload-artifact@v4", artifact_block)
+
+
 class RemoteCleanupTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
