@@ -121,7 +121,7 @@ class HostIdentityTests(unittest.TestCase):
 
             key_file = runner_temp / "phase1c-hostinger-readonly-key"
             known_hosts = runner_temp / "phase1c-hostinger-known-hosts"
-            self.assertEqual(key_file.read_text().rstrip("\\n"), private_key.rstrip("\\n"))
+            self.assertEqual(key_file.read_text().rstrip("\n"), private_key.rstrip("\n"))
             self.assertEqual(stat.S_IMODE(key_file.stat().st_mode), 0o600)
             self.assertTrue(known_hosts.is_file())
             parsed = subprocess.run(["ssh-keygen", "-y", "-f", str(key_file)], capture_output=True, text=True)
