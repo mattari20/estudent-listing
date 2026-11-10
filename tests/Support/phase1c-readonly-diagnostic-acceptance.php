@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__,2).'/scripts/phase1c/readonly-schema-diagnostic.php';
 
 function assertDiagnostic(bool $ok,string $message): void { if(!$ok) throw new RuntimeException('acceptance_failed: '.$message); }
-function collectDiagnostic(PDO $pdo): array { return (new Phase1CReadOnlyDiagnostic($pdo))->collect(); }
+function collectDiagnostic(PDO $pdo, ?string $expectedDatabase = null): array { return (new Phase1CReadOnlyDiagnostic($pdo))->collect($expectedDatabase ?? (string)getenv('DB_DATABASE')); }
 
 $pdo=new PDO('mysql:host='.getenv('DB_HOST').';port='.(getenv('DB_PORT')?:3306).';dbname='.getenv('DB_DATABASE').';charset=utf8mb4',getenv('DB_USERNAME'),getenv('DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false]);
 $tables=['assertions','change_events','data_reverification_queue','data_reverification_queue_identities','enrichment_import_rows','evidence','governed_execution_leases','governed_execution_run_events','governed_execution_runs','identity_match_candidates','identity_resolution_decisions','import_batches','import_conflict_events','import_conflicts','import_promotion_decisions','import_promotion_events','import_reconciliation_events','import_rows','institute_discovery_run_outcomes','institutions','migrations','monitoring_alert_identities','monitoring_alerts','monitoring_policy_run_sources','monitoring_policy_runs','official_source_refresh_events','password_reset_tokens','provenance_review_events','reverification_events','security_audit_events','source_change_observations','source_monitoring_policies','source_retrieval_runs','source_snapshot_reconciliation_requests','source_snapshots','sources','structured_enrichment_promotion_events','users','verification_decisions'];
@@ -87,7 +87,12 @@ $schemaCounts=function() use($pdo): array { return [
     'foreign_keys'=>(int)$pdo->query('SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE CONSTRAINT_SCHEMA=DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL')->fetchColumn(),
     'triggers'=>(int)$pdo->query('SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE()')->fetchColumn(),
 ]; };
-$before=$rowCounts();$beforeSchema=$schemaCounts();$one=collectDiagnostic($pdo);$two=collectDiagnostic($pdo);
+$before=$rowCounts();$beforeSchema=$schemaCounts();
+$identityRejected=false;
+try { collectDiagnostic($pdo, 'phase1c_wrong_database'); } catch (RuntimeException $e) { $identityRejected=true; }
+assertDiagnostic($identityRejected && !$pdo->inTransaction(),'unexpected selected database rejected before schema evidence');
+assertDiagnostic($before===$rowCounts() && $beforeSchema===$schemaCounts(),'database identity rejection performs no schema/data changes');
+$one=collectDiagnostic($pdo);$two=collectDiagnostic($pdo);
 assertDiagnostic(json_encode($one,JSON_UNESCAPED_SLASHES)===json_encode($two,JSON_UNESCAPED_SLASHES),'deterministic evidence');
 assertDiagnostic($one['registry_counts']['tables']===39 && $one['registry_counts']['expected_indexes']===23 && $one['registry_counts']['orphan_checks']===18 && $one['registry_counts']['duplicate_checks']===14,'registry sizes');
 assertDiagnostic(count($one['tables'])===39 && count($one['expected_index_reconciliation'])===23,'complete table/index metadata');

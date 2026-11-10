@@ -43,7 +43,7 @@ class EvidenceTransferTests(unittest.TestCase):
     def valid_evidence() -> dict:
         return {
             "schema_version": "phase1c-readonly-diagnostic/v1",
-            "database": {"engine": "mysql", "server_version": "8.4-fixture"},
+            "database": {"engine": "mysql", "server_version": "8.4-fixture", "identity_verified": True},
             "metadata_visibility": {"complete": True},
             "tables": [{"table": f"fixture_{i}", "state": "PASS"} for i in range(39)],
             "columns": [],

@@ -5,6 +5,16 @@ declare(strict_types=1);
  * Standalone, allowlisted, read-only Phase 1C diagnostic.
  * No Laravel migration classes are loaded or invoked.
  */
+function phase1cValidateDatabaseIdentity(?string $actualDatabase, string $expectedDatabase): void
+{
+    if ($expectedDatabase === '' || !preg_match('/^[A-Za-z0-9_]+$/', $expectedDatabase)) {
+        throw new RuntimeException('Expected database identity is missing or invalid.');
+    }
+    if ($actualDatabase === null || $actualDatabase === '' || !hash_equals($expectedDatabase, $actualDatabase)) {
+        throw new RuntimeException('Selected database identity does not match the protected expectation.');
+    }
+}
+
 final class Phase1CReadOnlyDiagnostic
 {
     private const TABLES = [
@@ -95,16 +105,19 @@ final class Phase1CReadOnlyDiagnostic
 
     public function __construct(PDO $pdo) { $this->pdo=$pdo; }
 
-    public function collect(): array
+    public function collect(string $expectedDatabase): array
     {
         $this->pdo->exec('SET TRANSACTION READ ONLY');
         $this->pdo->beginTransaction();
         try {
+            // Verify the actual selected schema before any schema-inventory query.
+            $selectedDatabase = $this->pdo->query('SELECT DATABASE()')->fetchColumn();
+            phase1cValidateDatabaseIdentity(is_string($selectedDatabase) ? $selectedDatabase : null, $expectedDatabase);
             $version=(string)$this->pdo->query('SELECT VERSION()')->fetchColumn();
             $this->inventory();
             $result=[
                 'schema_version'=>'phase1c-readonly-diagnostic/v1',
-                'database'=>['engine'=>stripos($version,'mariadb')!==false?'mariadb':'mysql','server_version'=>$version],
+                'database'=>['engine'=>stripos($version,'mariadb')!==false?'mariadb':'mysql','server_version'=>$version,'identity_verified'=>true],
                 'metadata_visibility'=>['complete'=>$this->absenceProof],
                 'tables'=>$this->tableMetadata(),
                 'columns'=>$this->columnMetadata(),
@@ -382,7 +395,9 @@ if(PHP_SAPI==='cli' && realpath($_SERVER['SCRIPT_FILENAME']??'')===__FILE__) {
     try {
         $root=$argv[1]??'';
         if($root===''||!str_starts_with($root,'/')) throw new RuntimeException('Invalid project root.');
-        $e=(new Phase1CReadOnlyDiagnostic(phase1cDiagnosticPdo($root)))->collect();
+        $expectedDatabase=getenv('EXPECTED_DATABASE_NAME');
+        if (!is_string($expectedDatabase) || $expectedDatabase === '') throw new RuntimeException('Protected expected database identity is unavailable.');
+        $e=(new Phase1CReadOnlyDiagnostic(phase1cDiagnosticPdo($root)))->collect($expectedDatabase);
         echo json_encode($e,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR).PHP_EOL;
     } catch(Throwable $e) {
         $i=$e instanceof PDOException&&is_array($e->errorInfo??null)?$e->errorInfo:[];

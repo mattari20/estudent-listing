@@ -309,6 +309,11 @@ fail!('Phase 1C diagnostic must retain the bounded remote compressed evidence ca
 fail!('Phase 1C diagnostic must create a remote SHA-256 manifest before transfer') unless diagnostic_source.include?('sha256sum "$compressed_tmp"')
 fail!('Phase 1C diagnostic must stream the remote compressed file using OpenSSH') unless diagnostic_source.include?("cat '$remote_prefix.gz'") && diagnostic_source.include?('> evidence.gz.part')
 fail!('Phase 1C diagnostic must use strict host-key checking for binary SSH transfer') unless diagnostic_source.include?('StrictHostKeyChecking=yes')
+fail!('Phase 1C appleboy SSH action must pin the trusted Hostinger ED25519 fingerprint') unless diagnostic_source.include?('fingerprint: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST_FINGERPRINT }}')
+fail!('Phase 1C diagnostic must validate pinned Hostinger host and port before connecting') unless diagnostic_source.include?('185.232.14.237') && diagnostic_source.include?('65002') && diagnostic_source.include?('verify-host-identity.py')
+fail!('Phase 1C diagnostic must reject unverified ssh-keyscan output') if diagnostic_source.include?('ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" > "$known_hosts_file"')
+fail!('Phase 1C diagnostic must pass the protected expected database identity to the collector') unless diagnostic_source.include?('PRODUCTION_READONLY_EXPECTED_DB_NAME') && diagnostic_source.include?('EXPECTED_DATABASE_NAME')
+
 fail!('Phase 1C diagnostic must validate the transferred bytes, gzip, JSON schema and privacy contract') unless diagnostic_source.include?('validate-evidence-transfer.py') && diagnostic_source.include?('validate-readonly-evidence.py')
 fail!('Phase 1C diagnostic must not decode evidence from Base64') if diagnostic_source.include?('base64 --decode | gzip')
 steps = parse_workflow(File.join(WORKFLOWS, 'phase1c-readonly-schema-diagnostic.yml')).fetch('jobs').fetch('collect').fetch('steps')
