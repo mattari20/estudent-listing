@@ -32,24 +32,24 @@ jobs:
       - name: Checkout immutable dispatch revision for authorization
         uses: actions/checkout@v4
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           path: .production-dispatch-guard
 
       - name: Validate existing protected dispatch controls
         env:
-          TARGET_SHA: \${{ inputs.target_sha }}
-          OPERATION_REASON: \${{ inputs.operation_reason }}
-          CONFIRM_PRODUCTION_OPERATION: \${{ inputs.confirm_production_operation }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+          OPERATION_REASON: ${{ inputs.operation_reason }}
+          CONFIRM_PRODUCTION_OPERATION: ${{ inputs.confirm_production_operation }}
           EXPECTED_CONFIRMATION: "AUTHORIZE-PHASE1C-STRUCTURAL-READONLY-DIAGNOSTIC"
         run: bash .production-dispatch-guard/scripts/ci/validate-production-dispatch.sh
 
       - name: Validate environment-scoped production credentials (Hostinger)
         env:
-          HOST: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
-          USER: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
-          KEY: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
-          PORT: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          KEY: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
         run: |
           set -euo pipefail
           test -n "$HOST" && test -n "$USER" && test -n "$KEY" && test -n "$PORT"
@@ -58,15 +58,15 @@ jobs:
       - name: Checkout exact validated source revision
         uses: actions/checkout@v4
         with:
-          ref: \${{ inputs.target_sha }}
+          ref: ${{ inputs.target_sha }}
           fetch-depth: 1
           path: .target-source
 
       - name: Prepare binary-safe SSH transfer client
         env:
-          SSH_HOST: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
-          SSH_PORT: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
-          SSH_KEY: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          SSH_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          SSH_KEY: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
         run: |
           set -euo pipefail
           key_file="$RUNNER_TEMP/phase1c-hostinger-readonly-key"
@@ -93,14 +93,14 @@ jobs:
         uses: appleboy/ssh-action@v1.2.1
         env:
           PROJECT_PATH: /home/u537436044/domains/estudent.pk/public_html/institutes
-          TRANSFER_ID: \${{ github.run_id }}-\${{ github.run_attempt }}
-          TARGET_SHA: \${{ inputs.target_sha }}
-          COLLECTOR_B64: \${{ steps.collector.outputs.collector_b64 }}
+          TRANSFER_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+          COLLECTOR_B64: ${{ steps.collector.outputs.collector_b64 }}
         with:
-          host: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
-          username: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
-          key: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
-          port: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          host: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
           envs: PROJECT_PATH,TRANSFER_ID,TARGET_SHA,COLLECTOR_B64
           command_timeout: 5m
           script: |
@@ -109,7 +109,7 @@ jobs:
             case "$PROJECT_PATH" in *".."*) echo '{"diagnostic_state":"FAILED_SAFE","reason":"INVALID_PROJECT_PATH"}'; exit 2 ;; esac
             case "$TRANSFER_ID" in ''|*[!0-9-]*) echo '{"diagnostic_state":"FAILED_SAFE","reason":"INVALID_TRANSFER_ID"}'; exit 2 ;; esac
             case "$TARGET_SHA" in *[!0-9a-f]*|'') echo '{"diagnostic_state":"FAILED_SAFE","reason":"INVALID_TARGET_SHA"}'; exit 2 ;; esac
-            [ "\${#TARGET_SHA}" -eq 40 ] || { echo '{"diagnostic_state":"FAILED_SAFE","reason":"INVALID_TARGET_SHA"}'; exit 2; }
+            [ "${#TARGET_SHA}" -eq 40 ] || { echo '{"diagnostic_state":"FAILED_SAFE","reason":"INVALID_TARGET_SHA"}'; exit 2; }
             [ -f "$PROJECT_PATH/artisan" ] || { echo '{"diagnostic_state":"FAILED_SAFE","reason":"PROJECT_ARTISAN_MISSING"}'; exit 3; }
             [ -f "$PROJECT_PATH/vendor/autoload.php" ] || { echo '{"diagnostic_state":"FAILED_SAFE","reason":"COMPOSER_AUTOLOAD_MISSING"}'; exit 4; }
             PHP_BIN="/opt/alt/php85/usr/bin/php"
@@ -132,20 +132,20 @@ jobs:
             compressed_sha256="$(sha256sum "$compressed_tmp" | awk '{print $1}')"
             remote_prefix="/tmp/phase1c-readonly-evidence-$TRANSFER_ID"
             printf '{"workflow_run_id":"%s","target_sha":"%s","compressed_bytes":%s,"compressed_sha256":"%s"}\n' \
-              "\${GITHUB_RUN_ID:-\${TRANSFER_ID%%-*}}" "$TARGET_SHA" "$compressed_bytes" "$compressed_sha256" > "$manifest_tmp"
+              "${GITHUB_RUN_ID:-${TRANSFER_ID%%-*}}" "$TARGET_SHA" "$compressed_bytes" "$compressed_sha256" > "$manifest_tmp"
             chmod 600 "$compressed_tmp" "$manifest_tmp"
-            mv "$compressed_tmp" "\${remote_prefix}.gz"
-            mv "$manifest_tmp" "\${remote_prefix}.manifest.json"
+            mv "$compressed_tmp" "${remote_prefix}.gz"
+            mv "$manifest_tmp" "${remote_prefix}.manifest.json"
             echo "evidence_ready=1 compressed_bytes=$compressed_bytes compressed_sha256=$compressed_sha256"
 
       - name: Stream evidence over SSH and validate before materialization
         env:
-          SSH_HOST: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
-          SSH_USER: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
-          SSH_PORT: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
-          RUN_ID: \${{ github.run_id }}
-          RUN_ATTEMPT: \${{ github.run_attempt }}
-          TARGET_SHA: \${{ inputs.target_sha }}
+          SSH_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          SSH_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          SSH_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          TARGET_SHA: ${{ inputs.target_sha }}
         run: |
           set -euo pipefail
           transfer_id="$RUN_ID-$RUN_ATTEMPT"
@@ -154,8 +154,8 @@ jobs:
           key_file="$RUNNER_TEMP/phase1c-hostinger-readonly-key"
           known_hosts_file="$RUNNER_TEMP/phase1c-hostinger-known-hosts"
           ssh_options=(-T -q -p "$SSH_PORT" -i "$key_file" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$known_hosts_file")
-          ssh "\${ssh_options[@]}" "$SSH_USER@$SSH_HOST" "cat '$remote_prefix.manifest.json'" > remote-evidence-manifest.json
-          ssh "\${ssh_options[@]}" "$SSH_USER@$SSH_HOST" "cat '$remote_prefix.gz'" > evidence.gz.part
+          ssh "${ssh_options[@]}" "$SSH_USER@$SSH_HOST" "cat '$remote_prefix.manifest.json'" > remote-evidence-manifest.json
+          ssh "${ssh_options[@]}" "$SSH_USER@$SSH_HOST" "cat '$remote_prefix.gz'" > evidence.gz.part
           mv evidence.gz.part evidence.gz
           python3 .target-source/scripts/phase1c/validate-evidence-transfer.py \
             --manifest remote-evidence-manifest.json \
@@ -169,11 +169,11 @@ jobs:
       - name: Remove temporary remote and runner transfer files
         if: always()
         env:
-          SSH_HOST: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
-          SSH_USER: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
-          SSH_PORT: \${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
-          RUN_ID: \${{ github.run_id }}
-          RUN_ATTEMPT: \${{ github.run_attempt }}
+          SSH_HOST: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST }}
+          SSH_USER: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_USER }}
+          SSH_PORT: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_PORT }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           set +e
           transfer_id="$RUN_ID-$RUN_ATTEMPT"
@@ -195,7 +195,7 @@ jobs:
       - name: Retain sanitized evidence artifact
         uses: actions/upload-artifact@v4
         with:
-          name: phase1c-readonly-diagnostic-\${{ github.run_id }}
+          name: phase1c-readonly-diagnostic-${{ github.run_id }}
           path: |
             phase1c-readonly-evidence.json
             evidence-manifest.json
