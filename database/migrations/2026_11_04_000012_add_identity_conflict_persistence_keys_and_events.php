@@ -46,6 +46,20 @@ return new class extends Migration
             'id', 'import_conflict_id', 'event_type', 'status_before', 'status_after',
             'actor_type', 'actor_id', 'reason', 'metadata', 'idempotency_key',
             'occurred_at', 'created_at', 'updated_at',
+        ], [
+            'id' => ['type' => 'bigint unsigned', 'nullable' => false, 'auto_increment' => true],
+            'import_conflict_id' => ['type' => 'bigint unsigned', 'nullable' => false],
+            'event_type' => ['type' => 'varchar(40)', 'nullable' => false],
+            'status_before' => ['type' => 'varchar(30)', 'nullable' => true, 'default' => null],
+            'status_after' => ['type' => 'varchar(30)', 'nullable' => false],
+            'actor_type' => ['type' => 'varchar(40)', 'nullable' => true, 'default' => null],
+            'actor_id' => ['type' => 'bigint unsigned', 'nullable' => true, 'default' => null],
+            'reason' => ['type' => 'text', 'nullable' => true, 'default' => null],
+            'metadata' => ['type' => ['json', 'longtext'], 'nullable' => true, 'default' => null],
+            'idempotency_key' => ['type' => 'char(64)', 'nullable' => false],
+            'occurred_at' => ['type' => 'timestamp', 'nullable' => false],
+            'created_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+            'updated_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
         ]);
     }
 

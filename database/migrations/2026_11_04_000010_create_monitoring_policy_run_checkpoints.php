@@ -19,7 +19,18 @@ return new class extends Migration
             $table->json('summary')->nullable();
             $table->string('failure_code', 160)->nullable();
             $table->timestamps();
-        }, ['id', 'source_monitoring_policy_id', 'execution_run_id', 'status', 'started_at', 'finished_at', 'summary', 'failure_code', 'created_at', 'updated_at']);
+        }, ['id', 'source_monitoring_policy_id', 'execution_run_id', 'status', 'started_at', 'finished_at', 'summary', 'failure_code', 'created_at', 'updated_at'], [
+            'id' => ['type' => 'bigint unsigned', 'nullable' => false, 'auto_increment' => true],
+            'source_monitoring_policy_id' => ['type' => 'bigint unsigned', 'nullable' => false],
+            'execution_run_id' => ['type' => 'char(36)', 'nullable' => true, 'default' => null],
+            'status' => ['type' => 'varchar(20)', 'nullable' => false],
+            'started_at' => ['type' => 'timestamp', 'nullable' => false],
+            'finished_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+            'summary' => ['type' => ['json', 'longtext'], 'nullable' => true, 'default' => null],
+            'failure_code' => ['type' => 'varchar(160)', 'nullable' => true, 'default' => null],
+            'created_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+            'updated_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+        ]);
 
         MigrationSchemaGuard::createTableIfMissing('monitoring_policy_run_sources', function (Blueprint $table): void {
             $table->id();
@@ -34,7 +45,19 @@ return new class extends Migration
             $table->timestamps();
             $table->unique(['monitoring_policy_run_id', 'source_id'], 'monitoring_policy_run_source_unique');
             $table->index(['source_id', 'status'], 'monitoring_policy_source_status_idx');
-        }, ['id', 'monitoring_policy_run_id', 'source_id', 'status', 'retrieval_run_id', 'observation_id', 'failure_code', 'started_at', 'finished_at', 'created_at', 'updated_at']);
+        }, ['id', 'monitoring_policy_run_id', 'source_id', 'status', 'retrieval_run_id', 'observation_id', 'failure_code', 'started_at', 'finished_at', 'created_at', 'updated_at'], [
+            'id' => ['type' => 'bigint unsigned', 'nullable' => false, 'auto_increment' => true],
+            'monitoring_policy_run_id' => ['type' => 'bigint unsigned', 'nullable' => false],
+            'source_id' => ['type' => 'bigint unsigned', 'nullable' => false],
+            'status' => ['type' => 'varchar(20)', 'nullable' => false],
+            'retrieval_run_id' => ['type' => 'bigint unsigned', 'nullable' => true, 'default' => null],
+            'observation_id' => ['type' => 'bigint unsigned', 'nullable' => true, 'default' => null],
+            'failure_code' => ['type' => 'varchar(160)', 'nullable' => true, 'default' => null],
+            'started_at' => ['type' => 'timestamp', 'nullable' => false],
+            'finished_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+            'created_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+            'updated_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+        ]);
     }
 
     public function down(): void

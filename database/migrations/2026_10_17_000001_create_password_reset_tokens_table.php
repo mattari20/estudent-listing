@@ -12,7 +12,11 @@ return new class extends Migration {
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
-        }, ['email', 'token', 'created_at']);
+        }, ['email', 'token', 'created_at'], [
+            'email' => ['type' => 'varchar(255)', 'nullable' => false],
+            'token' => ['type' => 'varchar(255)', 'nullable' => false],
+            'created_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+        ]);
     }
 
     public function down(): void

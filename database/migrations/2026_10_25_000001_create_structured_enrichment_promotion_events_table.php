@@ -35,6 +35,23 @@ return new class extends Migration
             'id', 'enrichment_import_row_id', 'import_batch_id', 'entity_type', 'event_type',
             'canonical_type', 'canonical_id', 'actor_type', 'actor_id', 'reason',
             'before_snapshot', 'after_snapshot', 'metadata', 'occurred_at', 'created_at', 'updated_at',
+        ], [
+            'id' => ['type' => 'bigint unsigned', 'nullable' => false, 'auto_increment' => true],
+            'enrichment_import_row_id' => ['type' => 'bigint unsigned', 'nullable' => false],
+            'import_batch_id' => ['type' => 'bigint unsigned', 'nullable' => false],
+            'entity_type' => ['type' => 'varchar(40)', 'nullable' => false],
+            'event_type' => ['type' => 'varchar(60)', 'nullable' => false],
+            'canonical_type' => ['type' => 'varchar(80)', 'nullable' => true, 'default' => null],
+            'canonical_id' => ['type' => 'bigint unsigned', 'nullable' => true, 'default' => null],
+            'actor_type' => ['type' => 'varchar(40)', 'nullable' => false, 'default' => 'system'],
+            'actor_id' => ['type' => 'bigint unsigned', 'nullable' => true, 'default' => null],
+            'reason' => ['type' => 'text', 'nullable' => true, 'default' => null],
+            'before_snapshot' => ['type' => ['json', 'longtext'], 'nullable' => true, 'default' => null],
+            'after_snapshot' => ['type' => ['json', 'longtext'], 'nullable' => true, 'default' => null],
+            'metadata' => ['type' => ['json', 'longtext'], 'nullable' => true, 'default' => null],
+            'occurred_at' => ['type' => 'timestamp', 'nullable' => false],
+            'created_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
+            'updated_at' => ['type' => 'timestamp', 'nullable' => true, 'default' => null],
         ]);
     }
 

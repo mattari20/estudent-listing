@@ -84,6 +84,7 @@ jobs:
           import base64, hashlib, json, os, subprocess
           files = [
             "app/Support/Database/MigrationSchemaGuard.php",
+            "app/Support/Database/DatabaseMetadataExceptionSanitizer.php",
             "database/migrations/2026_10_17_000001_create_password_reset_tokens_table.php",
             "database/migrations/2026_10_17_000002_add_must_change_password_to_users_table.php",
             "database/migrations/2026_10_23_000001_add_duplicate_rows_to_import_batches_table.php",
@@ -223,8 +224,16 @@ jobs:
                 $pdo->rollBack();
                 echo "database_metadata_transaction=ROLLED_BACK\n";
             } catch (Throwable $e) {
-                echo "database_metadata=FAILED_SAFE\n";
-                exit(0);
+                $details = \App\Support\Database\DatabaseMetadataExceptionSanitizer::describe(
+                    $e,
+                    [(string) ($c['host'] ?? ''), (string) ($c['database'] ?? ''), (string) ($c['username'] ?? ''), (string) ($c['password'] ?? '')]
+                );
+                echo "database_metadata=FAILED\n";
+                echo 'database_metadata_exception_class=' . $details['exception_class'] . "\n";
+                echo 'database_metadata_sqlstate=' . $details['sqlstate'] . "\n";
+                echo 'database_metadata_vendor_code=' . $details['vendor_code'] . "\n";
+                echo 'database_metadata_sanitized_message=' . $details['sanitized_message'] . "\n";
+                exit(20);
             }
             PHP
             echo "production_database_changed=false"
