@@ -41,15 +41,16 @@ def inspect_legacy_base64(captured: str) -> dict[str, Any]:
     if decoded is not None:
         compressed_sha256 = hashlib.sha256(decoded).hexdigest()
         try:
-            gzip.decompress(decoded)
+            _bounded_gzip_decompress(decoded)
             gzip_integrity = "PASS"
-        except (OSError, EOFError, zlib.error):
+        except (OSError, EOFError, ValueError, zlib.error):
             gzip_integrity = "FAIL"
 
     return {
         "captured_output_length": len(captured),
         "base64_alphabet_only": alphabet_only,
         "base64_length_mod_4": len(captured) % 4,
+        "base64_length_valid": length_valid,
         "base64_padding_valid": padding_valid,
         "strict_base64_decode": decoded is not None,
         "decoded_compressed_bytes": len(decoded) if decoded is not None else None,
