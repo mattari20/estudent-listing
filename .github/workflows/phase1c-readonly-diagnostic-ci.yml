@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/phase1c-readonly-diagnostic-ci.yml"
       - "scripts/phase1c/**"
+      - "scripts/diagnostics/phase1c-migration-ledger-reconciliation.php"
       - "tests/phase1c/**"
       - "tests/Support/phase1c-readonly-diagnostic-acceptance.php"
   workflow_dispatch:
@@ -62,6 +63,7 @@ jobs:
       - name: PHP syntax checks
         run: |
           php -l scripts/phase1c/readonly-schema-diagnostic.php
+          php -l scripts/diagnostics/phase1c-migration-ledger-reconciliation.php
           php -l tests/Support/phase1c-readonly-diagnostic-acceptance.php
 
       - name: Install evidence schema validator
@@ -69,6 +71,9 @@ jobs:
 
       - name: Run Phase 1C metadata visibility and cleanup hardening tests
         run: python3 -m unittest discover -s tests/phase1c -p 'test_readonly_hardening.py' -v
+
+      - name: Run Phase 1C evidence schema and privacy tests
+        run: python3 -m unittest discover -s tests/phase1c -p 'test_readonly_evidence_validator.py' -v
 
       - name: Run disposable database acceptance
         env:

@@ -7,10 +7,44 @@ function collectDiagnostic(PDO $pdo, ?string $expectedDatabase = null): array { 
 
 $pdo=new PDO('mysql:host='.getenv('DB_HOST').';port='.(getenv('DB_PORT')?:3306).';dbname='.getenv('DB_DATABASE').';charset=utf8mb4',getenv('DB_USERNAME'),getenv('DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false]);
 $tables=['assertions','change_events','data_reverification_queue','data_reverification_queue_identities','enrichment_import_rows','evidence','governed_execution_leases','governed_execution_run_events','governed_execution_runs','identity_match_candidates','identity_resolution_decisions','import_batches','import_conflict_events','import_conflicts','import_promotion_decisions','import_promotion_events','import_reconciliation_events','import_rows','institute_discovery_run_outcomes','institutions','migrations','monitoring_alert_identities','monitoring_alerts','monitoring_policy_run_sources','monitoring_policy_runs','official_source_refresh_events','password_reset_tokens','provenance_review_events','reverification_events','security_audit_events','source_change_observations','source_monitoring_policies','source_retrieval_runs','source_snapshot_reconciliation_requests','source_snapshots','sources','structured_enrichment_promotion_events','users','verification_decisions'];
-foreach($tables as $t) $pdo->exec('CREATE TABLE '.$t.' (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB');
+foreach($tables as $t) {
+    $id=$t==='governed_execution_runs'?'id CHAR(36) NOT NULL PRIMARY KEY':'id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY';
+    $pdo->exec('CREATE TABLE '.$t.' ('.$id.') ENGINE=InnoDB');
+}
+
+$expectedMigrations=[
+    '2026_10_17_000001_create_password_reset_tokens_table',
+    '2026_10_17_000002_add_must_change_password_to_users_table',
+    '2026_10_23_000001_add_duplicate_rows_to_import_batches_table',
+    '2026_10_25_000001_create_structured_enrichment_promotion_events_table',
+    '2026_11_03_000001_create_governed_execution_leases_table',
+    '2026_11_03_000002_create_governed_execution_runs_table',
+    '2026_11_03_000003_add_source_retrieval_idempotency_key',
+    '2026_11_03_000004_add_snapshot_and_observation_idempotency',
+    '2026_11_03_000005_add_discovery_outcome_idempotency_key',
+    '2026_11_03_000006_add_change_event_source_link_identity',
+    '2026_11_03_000007_create_data_reverification_queue_identities_table',
+    '2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency',
+    '2026_11_04_000010_create_monitoring_policy_run_checkpoints',
+    '2026_11_04_000011_add_discovery_candidate_persistence_identity_keys',
+    '2026_11_04_000012_add_identity_conflict_persistence_keys_and_events',
+    '2026_11_04_000013_create_source_snapshot_reconciliation_requests_table',
+    '2026_11_04_000014_enforce_append_only_audit_retention',
+    '2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat',
+];
+$pdo->exec('ALTER TABLE migrations ADD COLUMN migration VARCHAR(255) NOT NULL, ADD COLUMN batch INT UNSIGNED NOT NULL');
+$ledgerInsert=$pdo->prepare('INSERT INTO migrations(migration,batch) VALUES(?,?)');
+foreach($expectedMigrations as $index=>$migration) {
+    if($index===1) continue;
+    $ledgerInsert->execute([$migration,1]);
+}
+$ledgerInsert->execute([$expectedMigrations[0],2]);
 
 $columns=[
-'identity_resolution_decisions'=>['import_row_id BIGINT UNSIGNED NULL','decision_identity_key CHAR(64) NULL'],
+'identity_resolution_decisions'=>['import_row_id BIGINT UNSIGNED NULL','decision_identity_key CHAR(64) NULL','institution_id BIGINT UNSIGNED NULL','decision VARCHAR(30) NULL','actor_type VARCHAR(40) NULL','actor_id BIGINT UNSIGNED NULL','reason TEXT NULL','decided_at TIMESTAMP NULL','created_at TIMESTAMP NULL'],
+'users'=>['must_change_password TINYINT(1) NOT NULL DEFAULT 0'],
+'import_batches'=>['duplicate_rows INT UNSIGNED NOT NULL DEFAULT 0','discovery_identity_key VARCHAR(64) NULL'],
+'password_reset_tokens'=>['email VARCHAR(255) NOT NULL','token VARCHAR(255) NOT NULL','created_at TIMESTAMP NULL DEFAULT NULL'],
 'security_audit_events'=>['monitoring_idempotency_key VARCHAR(191) NULL'],
 'verification_decisions'=>['assertion_id BIGINT UNSIGNED NULL'],
 'import_reconciliation_events'=>['import_batch_id BIGINT UNSIGNED NULL'],
@@ -19,26 +53,25 @@ $columns=[
 'reverification_events'=>['queue_id BIGINT UNSIGNED NULL'],
 'structured_enrichment_promotion_events'=>['enrichment_import_row_id BIGINT UNSIGNED NULL','import_batch_id BIGINT UNSIGNED NULL'],
 'import_conflict_events'=>['import_conflict_id BIGINT UNSIGNED NULL','idempotency_key CHAR(64) NULL','occurred_at TIMESTAMP NULL'],
-'governed_execution_run_events'=>['run_id CHAR(36) NULL'],
-'monitoring_policy_runs'=>['source_monitoring_policy_id BIGINT UNSIGNED NULL','execution_run_id CHAR(36) NULL'],
-'monitoring_policy_run_sources'=>['monitoring_policy_run_id BIGINT UNSIGNED NULL','source_id BIGINT UNSIGNED NULL','retrieval_run_id BIGINT UNSIGNED NULL','observation_id BIGINT UNSIGNED NULL','status VARCHAR(20) NULL'],
+'governed_execution_run_events'=>['run_id CHAR(36) NOT NULL','event_type VARCHAR(30) NOT NULL','occurred_at TIMESTAMP NOT NULL'],
+'monitoring_policy_runs'=>['heartbeat_at TIMESTAMP NULL DEFAULT NULL','source_monitoring_policy_id BIGINT UNSIGNED NOT NULL','execution_run_id CHAR(36) NULL DEFAULT NULL','started_at TIMESTAMP NOT NULL'],
+'monitoring_policy_run_sources'=>['monitoring_policy_run_id BIGINT UNSIGNED NOT NULL','source_id BIGINT UNSIGNED NOT NULL','retrieval_run_id BIGINT UNSIGNED NULL DEFAULT NULL','observation_id BIGINT UNSIGNED NULL DEFAULT NULL','status VARCHAR(20) NULL'],
 'monitoring_alert_identities'=>['dedupe_key VARCHAR(40) NULL','active_alert_id BIGINT UNSIGNED NULL'],
 'monitoring_alerts'=>['dedupe_key VARCHAR(40) NULL','status VARCHAR(20) NULL'],
 'data_reverification_queue'=>['subject_type VARCHAR(255) NULL','subject_id BIGINT UNSIGNED NULL','attribute VARCHAR(255) NULL','status VARCHAR(20) NULL'],
 'data_reverification_queue_identities'=>['identity_key VARCHAR(64) NULL','subject_type VARCHAR(255) NULL','subject_id BIGINT UNSIGNED NULL','attribute VARCHAR(255) NULL','active_queue_id BIGINT UNSIGNED NULL'],
-'source_retrieval_runs'=>['idempotency_key VARCHAR(64) NULL'],
-'source_snapshots'=>['capture_key VARCHAR(64) NULL'],
 'source_change_observations'=>['current_snapshot_id BIGINT UNSIGNED NULL'],
 'institute_discovery_run_outcomes'=>['idempotency_key VARCHAR(64) NULL'],
 'change_events'=>['source_change_assertion_link_id BIGINT UNSIGNED NULL'],
-'import_batches'=>['discovery_identity_key VARCHAR(64) NULL'],
+'source_retrieval_runs'=>["idempotency_key VARCHAR(64) NULL DEFAULT 'NULL'"],
+'source_snapshots'=>['capture_key VARCHAR(64) NULL DEFAULT NULL'],
 'evidence'=>['discovery_identity_key VARCHAR(64) NULL'],
 'import_rows'=>['discovery_identity_key VARCHAR(64) NULL'],
 'assertions'=>['discovery_identity_key VARCHAR(64) NULL'],
 'identity_match_candidates'=>['identity_key CHAR(64) NULL'],
 'import_conflicts'=>['identity_key CHAR(64) NULL'],
 'source_snapshot_reconciliation_requests'=>['identity_key VARCHAR(64) NULL','source_id BIGINT UNSIGNED NULL','status VARCHAR(20) NULL','current_snapshot_id BIGINT UNSIGNED NULL'],
-'governed_execution_leases'=>['task_key VARCHAR(120) NULL','expires_at TIMESTAMP NULL'],
+'governed_execution_leases'=>['task_key VARCHAR(120) NOT NULL','owner_token CHAR(36) NOT NULL','run_id CHAR(36) NOT NULL','expires_at TIMESTAMP NOT NULL'],
 ];
 foreach($columns as $t=>$defs) foreach($defs as $def) $pdo->exec('ALTER TABLE '.$t.' ADD COLUMN '.$def);
 
@@ -68,6 +101,20 @@ $indexes=[
 ];
 foreach($indexes as [$t,$name,$cols,$unique]) $pdo->exec('CREATE '.($unique?'UNIQUE ':'').'INDEX '.$name.' ON '.$t.' ('.$cols.')');
 $pdo->exec('ALTER TABLE verification_decisions ADD CONSTRAINT fixture_verification_assertion_fk FOREIGN KEY (assertion_id) REFERENCES assertions(id)');
+$pdo->exec('ALTER TABLE verification_decisions DROP FOREIGN KEY fixture_verification_assertion_fk');
+$pdo->exec('ALTER TABLE verification_decisions ADD CONSTRAINT verification_decision_assertion_restrict_fk FOREIGN KEY (assertion_id) REFERENCES assertions(id) ON DELETE RESTRICT ON UPDATE RESTRICT');
+$pdo->exec('ALTER TABLE identity_resolution_decisions ADD CONSTRAINT identity_decision_row_restrict_fk FOREIGN KEY (import_row_id) REFERENCES import_rows(id) ON DELETE CASCADE');
+$triggerName='audit_immut_'.substr(hash('sha256','security_audit_events'),0,16).'_d';
+$pdo->exec("CREATE TRIGGER {$triggerName} BEFORE DELETE ON security_audit_events FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'incorrect trigger body'");
+$pdo->exec("CREATE TRIGGER identity_decision_delete_guard BEFORE DELETE ON identity_resolution_decisions FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Identity decision history cannot be deleted'");
+$identityUpdateConditions=[
+    'OLD.decision_identity_key IS NULL','NEW.decision_identity_key IS NOT NULL','OLD.id <=> NEW.id',
+    'OLD.import_row_id <=> NEW.import_row_id','OLD.institution_id <=> NEW.institution_id',
+    'OLD.decision <=> NEW.decision','OLD.actor_type <=> NEW.actor_type','OLD.actor_id <=> NEW.actor_id',
+    'OLD.reason <=> NEW.reason','OLD.decided_at <=> NEW.decided_at','OLD.created_at <=> NEW.created_at',
+];
+$identityUpdateBody="BEGIN IF NOT (".implode(' AND ',$identityUpdateConditions).") THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Identity decision history is immutable except one-time key enrichment'; END IF; END";
+$pdo->exec('CREATE TRIGGER identity_decision_update_guard BEFORE UPDATE ON identity_resolution_decisions FOR EACH ROW '.$identityUpdateBody);
 
 $q=$pdo->prepare('INSERT INTO data_reverification_queue(subject_type,subject_id,attribute,status) VALUES(?,?,?,?)');
 $qi=$pdo->prepare('INSERT INTO data_reverification_queue_identities(identity_key,subject_type,subject_id,attribute,active_queue_id) VALUES(?,?,?,?,?)');
@@ -94,13 +141,42 @@ assertDiagnostic($identityRejected && !$pdo->inTransaction(),'unexpected selecte
 assertDiagnostic($before===$rowCounts() && $beforeSchema===$schemaCounts(),'database identity rejection performs no schema/data changes');
 $one=collectDiagnostic($pdo);$two=collectDiagnostic($pdo);
 assertDiagnostic(json_encode($one,JSON_UNESCAPED_SLASHES)===json_encode($two,JSON_UNESCAPED_SLASHES),'deterministic evidence');
-assertDiagnostic($one['registry_counts']['tables']===39 && $one['registry_counts']['expected_indexes']===23 && $one['registry_counts']['orphan_checks']===18 && $one['registry_counts']['duplicate_checks']===14,'registry sizes');
+assertDiagnostic($one['registry_counts']['tables']===39 && $one['registry_counts']['expected_indexes']===23 && $one['registry_counts']['expected_columns']===50 && $one['registry_counts']['expected_foreign_keys']===23 && $one['registry_counts']['expected_triggers']===24 && $one['registry_counts']['expected_migrations']===18 && $one['registry_counts']['orphan_checks']===18 && $one['registry_counts']['duplicate_checks']===14,'registry sizes');
 assertDiagnostic(count($one['tables'])===39 && count($one['expected_index_reconciliation'])===23,'complete table/index metadata');
+assertDiagnostic(count($one['expected_column_reconciliation'])===50 && count($one['expected_foreign_key_reconciliation'])===23 && count($one['expected_trigger_reconciliation'])===24 && count($one['migration_ledger_reconciliation'])===18,'complete reconciliation sections');
 assertDiagnostic(count($one['orphan_checks'])===18 && count($one['duplicate_checks'])===14,'individual check reporting');
 assertDiagnostic($one['queue_mapping']['state']==='PASS' && count($one['queue_mapping']['records'])===5,'five sanitized queue mappings');
 assertDiagnostic($one['alert_mapping']['state']==='PASS' && count($one['alert_mapping']['records'])===2,'two sanitized alert mappings');
 
 assertDiagnostic($one['orphan_checks'][1]['state']==='FAIL','orphan failure');
+$column=array_values(array_filter($one['expected_column_reconciliation'],fn($r)=>$r['table']==='source_change_observations'&&$r['column']==='current_snapshot_id'))[0];
+assertDiagnostic($column['state']==='FAIL','column nullability mismatch');
+$validColumn=array_values(array_filter($one['expected_column_reconciliation'],fn($r)=>$r['table']==='users'&&$r['column']==='must_change_password'))[0];
+assertDiagnostic($validColumn['state']==='PASS','column type, nullability and default match');
+$nullableDefaultColumn=array_values(array_filter($one['expected_column_reconciliation'],fn($r)=>$r['table']==='password_reset_tokens'&&$r['column']==='created_at'))[0];
+assertDiagnostic($nullableDefaultColumn['state']==='PASS','nullable column default matches');
+$sqlNullDefaultColumn=array_values(array_filter($one['expected_column_reconciliation'],fn($r)=>$r['table']==='source_snapshots'&&$r['column']==='capture_key'))[0];
+assertDiagnostic($sqlNullDefaultColumn['state']==='PASS','SQL NULL default matches');
+$literalNullDefaultColumn=array_values(array_filter($one['expected_column_reconciliation'],fn($r)=>$r['table']==='source_retrieval_runs'&&$r['column']==='idempotency_key'))[0];
+assertDiagnostic($literalNullDefaultColumn['state']==='FAIL','literal string NULL does not match SQL NULL default');
+$foreignKey=array_values(array_filter($one['expected_foreign_key_reconciliation'],fn($r)=>$r['name']==='identity_decision_row_restrict_fk'))[0];
+assertDiagnostic($foreignKey['state']==='FAIL','foreign-key delete-action mismatch');
+$validForeignKey=array_values(array_filter($one['expected_foreign_key_reconciliation'],fn($r)=>$r['name']==='verification_decision_assertion_restrict_fk'))[0];
+assertDiagnostic($validForeignKey['state']==='PASS','exact foreign-key definition matches');
+$badTriggerName='audit_immut_'.substr(hash('sha256','security_audit_events'),0,16).'_d';
+$trigger=array_values(array_filter($one['expected_trigger_reconciliation'],fn($r)=>$r['name']===$badTriggerName))[0];
+assertDiagnostic($trigger['state']==='FAIL','trigger body mismatch');
+$validDeleteTrigger=array_values(array_filter($one['expected_trigger_reconciliation'],fn($r)=>$r['name']==='identity_decision_delete_guard'))[0];
+$validUpdateTrigger=array_values(array_filter($one['expected_trigger_reconciliation'],fn($r)=>$r['name']==='identity_decision_update_guard'))[0];
+assertDiagnostic($validDeleteTrigger['state']==='PASS'&&$validUpdateTrigger['state']==='PASS','exact simple and compound trigger definitions match');
+$duplicateMigration=array_values(array_filter($one['migration_ledger_reconciliation'],fn($r)=>$r['migration']===$expectedMigrations[0]))[0];
+assertDiagnostic($duplicateMigration['state']==='FAIL'&&$duplicateMigration['record_count']===2&&$duplicateMigration['duplicate_count']===1&&$duplicateMigration['batches']===[1,2],'duplicate migration ledger rows retained');
+$missingColumn=array_values(array_filter($one['expected_column_reconciliation'],fn($r)=>$r['table']==='source_snapshot_reconciliation_requests'&&$r['column']==='expected_previous_snapshot_id'))[0];
+$missingForeignKey=array_values(array_filter($one['expected_foreign_key_reconciliation'],fn($r)=>$r['name']==='ssr_source_fk'))[0];
+$missingTriggerName='audit_immut_'.substr(hash('sha256','verification_decisions'),0,16).'_u';
+$missingTrigger=array_values(array_filter($one['expected_trigger_reconciliation'],fn($r)=>$r['name']===$missingTriggerName))[0];
+$missingMigration=array_values(array_filter($one['migration_ledger_reconciliation'],fn($r)=>$r['migration']===$expectedMigrations[1]))[0];
+assertDiagnostic($missingColumn['state']==='MISSING'&&$missingForeignKey['state']==='MISSING'&&$missingTrigger['state']==='MISSING'&&$missingMigration['state']==='MISSING','absent expected objects are MISSING with complete visibility');
 $badIndexes=array_values(array_filter($one['expected_index_reconciliation'],fn($r)=>$r['state']!=='PASS'));
 assertDiagnostic($badIndexes===[],'index definition mismatch: '.implode(',',array_map(fn($r)=>$r['name'].':'.$r['state'], $badIndexes)));
 if(getenv('EVIDENCE_OUTPUT')) file_put_contents(getenv('EVIDENCE_OUTPUT'),json_encode($one,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR).PHP_EOL);
@@ -116,10 +192,19 @@ $limitedPassword=bin2hex(random_bytes(16));
 $database=(string)$pdo->query('SELECT DATABASE()')->fetchColumn();
 $pdo->exec("CREATE USER '".$limitedUser."'@'%' IDENTIFIED BY '".$limitedPassword."'");
 $pdo->exec('GRANT SELECT ON '.$database.'.source_retrieval_runs TO '.$limitedUser."@'%'");
+$pdo->exec('GRANT SELECT ON '.$database.'.source_snapshot_reconciliation_requests TO '.$limitedUser."@'%'");
+$pdo->exec('GRANT SELECT ON '.$database.'.security_audit_events TO '.$limitedUser."@'%'");
+$pdo->exec('GRANT SELECT ON '.$database.'.verification_decisions TO '.$limitedUser."@'%'");
+$pdo->exec('GRANT SELECT ON '.$database.'.migrations TO '.$limitedUser."@'%'");
 $limitedPdo=new PDO('mysql:host='.getenv('DB_HOST').';port='.(getenv('DB_PORT')?:3306).';dbname='.getenv('DB_DATABASE').';charset=utf8mb4',$limitedUser,$limitedPassword,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
 $limited=collectDiagnostic($limitedPdo);
 assertDiagnostic($limited['metadata_visibility']['complete']===false,'limited grant detected');
 foreach($limited['tables'] as $t) if($t['state']==='MISSING') throw new RuntimeException('limited metadata must not be classified MISSING');
+$limitedColumn=array_values(array_filter($limited['expected_column_reconciliation'],fn($r)=>$r['table']==='source_snapshot_reconciliation_requests'&&$r['column']==='expected_previous_snapshot_id'))[0];
+$limitedForeignKey=array_values(array_filter($limited['expected_foreign_key_reconciliation'],fn($r)=>$r['name']==='ssr_source_fk'))[0];
+$limitedTrigger=array_values(array_filter($limited['expected_trigger_reconciliation'],fn($r)=>$r['name']===$missingTriggerName))[0];
+$limitedMigration=array_values(array_filter($limited['migration_ledger_reconciliation'],fn($r)=>$r['migration']===$expectedMigrations[1]))[0];
+assertDiagnostic($limitedColumn['state']==='UNKNOWN'&&$limitedForeignKey['state']==='UNKNOWN'&&$limitedTrigger['state']==='UNKNOWN'&&$limitedMigration['state']==='UNKNOWN','incomplete metadata remains UNKNOWN');
 $pdo->exec("DROP USER '".$limitedUser."'@'%'");
 
 $pdo->exec('ALTER TABLE source_retrieval_runs DROP INDEX source_retrieval_runs_idempotency_key_unique');

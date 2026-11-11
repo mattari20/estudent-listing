@@ -41,6 +41,23 @@ class MetadataVisibilityTests(unittest.TestCase):
     def test_absent_object_is_missing_with_visibility_proof(self):
         self.assertEqual(self.php("phase1cMetadataAbsenceState(true)"), "MISSING")
 
+    def test_trigger_absence_requires_direct_trigger_visibility(self):
+        self.assertEqual(self.php("phase1cTriggerMetadataVisibilityComplete(['TRIGGER'], []) ? 'true' : 'false'"), "true")
+        self.assertEqual(self.php("phase1cTriggerMetadataVisibilityComplete(['SELECT'], []) ? 'true' : 'false'"), "false")
+
+    def test_migration_ledger_grouping_retains_duplicate_batches(self):
+        expression = "json_encode(phase1cGroupMigrationLedgerRows([['migration'=>'m','batch'=>3],['migration'=>'m','batch'=>7]])['m'])"
+        self.assertEqual(self.php(expression), "[3,7]")
+
+    def test_mysql_null_default_metadata_distinguishes_literal_and_unknown(self):
+        expression = "json_encode([phase1cMysqlNullDefaultFromDefinition('varchar(10) DEFAULT NULL,'), phase1cMysqlNullDefaultFromDefinition(\"varchar(10) DEFAULT 'NULL',\"), phase1cMysqlNullDefaultFromDefinition('varchar(10)')])"
+        self.assertEqual(self.php(expression), "[true,false,null]")
+
+    def test_standalone_ledger_reconciler_reports_duplicate_rows(self):
+        source = (ROOT / "scripts/diagnostics/phase1c-migration-ledger-reconciliation.php").read_text(encoding="utf-8")
+        self.assertIn("$ledger[(string)$row['migration']][] = $row['batch'];", source)
+        self.assertIn("DUPLICATE_LEDGER_ROWS", source)
+
 
 class WorkflowArtifactGateTests(unittest.TestCase):
     def test_artifact_retention_is_after_unconditional_cleanup_gate(self):
