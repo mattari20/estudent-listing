@@ -8,7 +8,7 @@
   "application_table_scope_count": 62,
   "framework_managed_ledger": "migrations",
   "framework_managed_ledger_source": "Laravel DatabaseMigrationRepository",
-  "coverage_state": "PARTIAL_OBJECT_MAPPING; 23 EMPTY SUPERSEDED MIGRATIONS SOURCE-REVIEWED AS NO-OP; 27 NON-EMPTY MIGRATIONS SOURCE-REVIEWED PARTIALLY; 47 NON-EMPTY MIGRATIONS STILL REQUIRE INDIVIDUAL REVIEW",
+  "coverage_state": "SOURCE_REVIEWED_PARTIAL FOR ALL NON-NOOP MIGRATIONS; OBJECT-LEVEL FINAL DEFINITION AND CUMULATIVE RECONCILIATION PENDING",
   "migrations": [
     {
       "migration": "2026_09_23_000001_create_institutions_table",
@@ -2703,11 +2703,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "sources",
+      "expected_postconditions": "Creates import_batches with BIGINT UNSIGNED AI PK; batch_key unique VARCHAR(255); entity_type/source_type/status; nullable source_id FK sources.id SET NULL; unsigned row counters default 0; nullable received/completed timestamps and notes; timestamps; indexes entity_type/status and source_id/status.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates import_batches with BIGINT UNSIGNED AI PK; batch_key unique VARCHAR(255); entity_type/source_type/status; nullable source_id FK sources.id SET NULL; unsigned row counters default 0; nullable received/completed timestamps and notes; timestamps; indexes entity_type/status and source_id/status.",
+        "down_effect": "DROP TABLE import_batches",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000001_create_import_batches_table.php; Git blob 66b3dbc6b1876d5accaf4a523d76f6470481eca0.",
+        "related_objects": [
+          "import_batches"
+        ],
+        "prerequisites": "sources",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE import_batches",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000002_create_import_rows_table",
@@ -2726,11 +2743,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "import_batches",
+      "expected_postconditions": "Creates import_rows with BIGINT UNSIGNED AI PK; import_batch_id FK CASCADE; unsigned row_number; status received and match_state unresolved defaults; nullable canonical subject pair; required JSON payload; nullable normalized_payload/validation_errors JSON; notes/timestamps; unique(import_batch_id,row_number); indexes batch/status and canonical subject pair.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates import_rows with BIGINT UNSIGNED AI PK; import_batch_id FK CASCADE; unsigned row_number; status received and match_state unresolved defaults; nullable canonical subject pair; required JSON payload; nullable normalized_payload/validation_errors JSON; notes/timestamps; unique(import_batch_id,row_number); indexes batch/status and canonical subject pair.",
+        "down_effect": "DROP TABLE import_rows",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000002_create_import_rows_table.php; Git blob 3b8cdaa90cdc81feae14290c8f1110b9aa3c8419.",
+        "related_objects": [
+          "import_rows"
+        ],
+        "prerequisites": "import_batches",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE import_rows",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000003_create_identity_match_candidates_table",
@@ -2749,11 +2783,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "import_rows, institutions",
+      "expected_postconditions": "Creates identity_match_candidates with BIGINT UNSIGNED AI PK; import_row_id FK CASCADE; nullable institution_id FK SET NULL; match_type; nullable DECIMAL(5,4) confidence; status unresolved default; nullable reason/matched_at; timestamps; indexes import_row/status, institution/status, match_type/status.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates identity_match_candidates with BIGINT UNSIGNED AI PK; import_row_id FK CASCADE; nullable institution_id FK SET NULL; match_type; nullable DECIMAL(5,4) confidence; status unresolved default; nullable reason/matched_at; timestamps; indexes import_row/status, institution/status, match_type/status.",
+        "down_effect": "DROP TABLE identity_match_candidates",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000003_create_identity_match_candidates_table.php; Git blob 39c52bed46160f1d9ab6c1710608b1efb8c0f2be.",
+        "related_objects": [
+          "identity_match_candidates"
+        ],
+        "prerequisites": "import_rows, institutions",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE identity_match_candidates",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000004_create_identity_resolution_decisions_table",
@@ -2772,11 +2823,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "import_rows, institutions",
+      "expected_postconditions": "Creates identity_resolution_decisions with BIGINT UNSIGNED AI PK; import_row_id FK CASCADE; nullable institution_id FK SET NULL; decision; nullable actor_type/actor_id/reason/decided_at; timestamps; indexes import_row/decision and institution/decision.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates identity_resolution_decisions with BIGINT UNSIGNED AI PK; import_row_id FK CASCADE; nullable institution_id FK SET NULL; decision; nullable actor_type/actor_id/reason/decided_at; timestamps; indexes import_row/decision and institution/decision.",
+        "down_effect": "DROP TABLE identity_resolution_decisions",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000004_create_identity_resolution_decisions_table.php; Git blob 0b11286a8daad1c48d3f4076b4b92ed6154b3a6b.",
+        "related_objects": [
+          "identity_resolution_decisions"
+        ],
+        "prerequisites": "import_rows, institutions",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE identity_resolution_decisions",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000005_create_users_table",
@@ -2795,11 +2863,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "None",
+      "expected_postconditions": "Creates users with BIGINT UNSIGNED AI PK; name/email/password VARCHAR(255) NOT NULL; unique email; role VARCHAR(255) default operator; remember_token VARCHAR(100) nullable; nullable timestamps.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates users with BIGINT UNSIGNED AI PK; name/email/password VARCHAR(255) NOT NULL; unique email; role VARCHAR(255) default operator; remember_token VARCHAR(100) nullable; nullable timestamps.",
+        "down_effect": "DROP TABLE users",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000005_create_users_table.php; Git blob 96c8c96fe0a787f61a032c74ed4236cc2caee62b.",
+        "related_objects": [
+          "users"
+        ],
+        "prerequisites": "None",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE users",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000006_create_verification_decisions_table",
@@ -2818,11 +2903,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "assertions",
+      "expected_postconditions": "Creates verification_decisions with BIGINT UNSIGNED AI PK; assertion_id FK CASCADE; nullable previous_state; required new_state; nullable actor_type/actor_id/reason/decided_at; timestamps; indexes assertion/new_state and actor_type/actor_id.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates verification_decisions with BIGINT UNSIGNED AI PK; assertion_id FK CASCADE; nullable previous_state; required new_state; nullable actor_type/actor_id/reason/decided_at; timestamps; indexes assertion/new_state and actor_type/actor_id.",
+        "down_effect": "DROP TABLE verification_decisions",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000006_create_verification_decisions_table.php; Git blob bf9ae35c3f4f6d5fd35ce2031618d955d77a5769.",
+        "related_objects": [
+          "verification_decisions"
+        ],
+        "prerequisites": "assertions",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE verification_decisions",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000007_create_provenance_review_events_table",
@@ -2841,11 +2943,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "None",
+      "expected_postconditions": "Creates provenance_review_events with BIGINT UNSIGNED AI PK; subject_type/subject_id/event_type; nullable actor_type/actor_id; status default recorded; nullable reason/metadata JSON/occurred_at; timestamps; named indexes provenance_review_events_subject_idx(subject_type,subject_id,event_type) and provenance_review_events_status_idx(status,occurred_at).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates provenance_review_events with BIGINT UNSIGNED AI PK; subject_type/subject_id/event_type; nullable actor_type/actor_id; status default recorded; nullable reason/metadata JSON/occurred_at; timestamps; named indexes provenance_review_events_subject_idx(subject_type,subject_id,event_type) and provenance_review_events_status_idx(status,occurred_at).",
+        "down_effect": "DROP TABLE provenance_review_events",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000007_create_provenance_review_events_table.php; Git blob 646952f7d26214b499cc3f0a4a286e821c960060.",
+        "related_objects": [
+          "provenance_review_events"
+        ],
+        "prerequisites": "None",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE provenance_review_events",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000008_add_enrichment_metadata_to_import_rows",
@@ -2864,11 +2983,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "import_rows with canonical_subject_id",
+      "expected_postconditions": "Adds nullable parent_subject_type VARCHAR(255) and parent_subject_id BIGINT UNSIGNED after canonical_subject_id; adds ordinary index(parent_subject_type,parent_subject_id). No data transformation.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Adds nullable parent_subject_type VARCHAR(255) and parent_subject_id BIGINT UNSIGNED after canonical_subject_id; adds ordinary index(parent_subject_type,parent_subject_id). No data transformation.",
+        "down_effect": "Drops the new index and both columns",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000008_add_enrichment_metadata_to_import_rows.php; Git blob d1dcd5abdc3a86d5fa24549601078f1d575507b7.",
+        "related_objects": [
+          "import_rows"
+        ],
+        "prerequisites": "import_rows with canonical_subject_id",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "Drops the new index and both columns",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000008_create_enrichment_import_rows_table",
@@ -2887,11 +3023,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "import_batches",
+      "expected_postconditions": "Creates enrichment_import_rows with BIGINT UNSIGNED AI PK; import_batch_id FK CASCADE; entity_type; nullable canonical_subject_id; status candidate and match_state unresolved defaults; required payload JSON; nullable normalized_payload/validation_errors JSON; timestamps; indexes (import_batch_id,entity_type,status) and (entity_type,canonical_subject_id).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates enrichment_import_rows with BIGINT UNSIGNED AI PK; import_batch_id FK CASCADE; entity_type; nullable canonical_subject_id; status candidate and match_state unresolved defaults; required payload JSON; nullable normalized_payload/validation_errors JSON; timestamps; indexes (import_batch_id,entity_type,status) and (entity_type,canonical_subject_id).",
+        "down_effect": "DROP TABLE enrichment_import_rows",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000008_create_enrichment_import_rows_table.php; Git blob bb9c882ad245baa73bb827659d117c51a20ac376.",
+        "related_objects": [
+          "enrichment_import_rows"
+        ],
+        "prerequisites": "import_batches",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE enrichment_import_rows",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000009_create_import_reconciliation_events_table",
@@ -2910,11 +3063,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "import_batches, import_rows",
+      "expected_postconditions": "Creates import_reconciliation_events with BIGINT UNSIGNED AI PK; import_batch_id FK CASCADE; nullable import_row_id FK SET NULL; event_type; state open/severity info defaults; nullable subject pair, description, metadata JSON, actor pair, occurred_at; timestamps; indexes batch/state, row/event_type, subject pair/state.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates import_reconciliation_events with BIGINT UNSIGNED AI PK; import_batch_id FK CASCADE; nullable import_row_id FK SET NULL; event_type; state open/severity info defaults; nullable subject pair, description, metadata JSON, actor pair, occurred_at; timestamps; indexes batch/state, row/event_type, subject pair/state.",
+        "down_effect": "DROP TABLE import_reconciliation_events",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000009_create_import_reconciliation_events_table.php; Git blob d6691a09cefdd1589567c517bfd21cd35a30bbe8.",
+        "related_objects": [
+          "import_reconciliation_events"
+        ],
+        "prerequisites": "import_batches, import_rows",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE import_reconciliation_events",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000010_create_import_schema_profiles_table",
@@ -2933,11 +3103,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "None",
+      "expected_postconditions": "Creates import_schema_profiles with BIGINT UNSIGNED AI PK; profile_key/entity_type/version; status active default; required columns and columns JSON; nullable normalization_rules JSON/description; timestamps; unique(profile_key,version), index(entity_type,status).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates import_schema_profiles with BIGINT UNSIGNED AI PK; profile_key/entity_type/version; status active default; required columns and columns JSON; nullable normalization_rules JSON/description; timestamps; unique(profile_key,version), index(entity_type,status).",
+        "down_effect": "DROP TABLE import_schema_profiles",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000010_create_import_schema_profiles_table.php; Git blob 4e9b041e5bb0ace2976634fc7e6d3178b8a3a593.",
+        "related_objects": [
+          "import_schema_profiles"
+        ],
+        "prerequisites": "None",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE import_schema_profiles",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000011_create_import_promotion_decisions_table",
@@ -2956,11 +3143,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "import_rows",
+      "expected_postconditions": "Creates import_promotion_decisions with BIGINT UNSIGNED AI PK; import_row_id FK CASCADE; decision; nullable actor_type/actor_id; required reason; nullable decided_at; timestamps; indexes row/decision and actor pair.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates import_promotion_decisions with BIGINT UNSIGNED AI PK; import_row_id FK CASCADE; decision; nullable actor_type/actor_id; required reason; nullable decided_at; timestamps; indexes row/decision and actor pair.",
+        "down_effect": "DROP TABLE import_promotion_decisions",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000011_create_import_promotion_decisions_table.php; Git blob 00162249855d9d6d5f00ac896a25e81790e182cd.",
+        "related_objects": [
+          "import_promotion_decisions"
+        ],
+        "prerequisites": "import_rows",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE import_promotion_decisions",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000012_create_import_promotion_events_table",
@@ -2979,11 +3183,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "import_rows, import_batches",
+      "expected_postconditions": "Creates import_promotion_events with BIGINT UNSIGNED AI PK; import_row_id and import_batch_id FKs CASCADE; entity/event types; nullable previous/new status and match state, canonical pair, actor pair, decision pair, reason, metadata JSON; required occurred_at; timestamps; indexes row/occurred_at, batch/event_type, named canonical subject index, actor pair.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates import_promotion_events with BIGINT UNSIGNED AI PK; import_row_id and import_batch_id FKs CASCADE; entity/event types; nullable previous/new status and match state, canonical pair, actor pair, decision pair, reason, metadata JSON; required occurred_at; timestamps; indexes row/occurred_at, batch/event_type, named canonical subject index, actor pair.",
+        "down_effect": "DROP TABLE import_promotion_events",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000012_create_import_promotion_events_table.php; Git blob 8955eececeba54e57d72abc0225f32a86e263f20.",
+        "related_objects": [
+          "import_promotion_events"
+        ],
+        "prerequisites": "import_rows, import_batches",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE import_promotion_events",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000013_create_import_conflicts_table",
@@ -3002,11 +3223,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "import_rows, import_batches",
+      "expected_postconditions": "Creates import_conflicts with BIGINT UNSIGNED AI PK; import_row_id/import_batch_id FKs CASCADE; conflict_type; severity warning/status open defaults; required description; nullable details JSON, related_row_id, related subject pair, resolver pair, resolution_reason/resolved_at; timestamps; indexes batch/status, row/status, conflict_type/status.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates import_conflicts with BIGINT UNSIGNED AI PK; import_row_id/import_batch_id FKs CASCADE; conflict_type; severity warning/status open defaults; required description; nullable details JSON, related_row_id, related subject pair, resolver pair, resolution_reason/resolved_at; timestamps; indexes batch/status, row/status, conflict_type/status.",
+        "down_effect": "DROP TABLE import_conflicts",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000013_create_import_conflicts_table.php; Git blob 1a81003ed2237e71e8f6f9b8a08abdda0b7c259d.",
+        "related_objects": [
+          "import_conflicts"
+        ],
+        "prerequisites": "import_rows, import_batches",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE import_conflicts",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000014_create_data_reverification_queue_table",
@@ -3025,11 +3263,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "sources",
+      "expected_postconditions": "Creates data_reverification_queue with BIGINT UNSIGNED AI PK; subject pair; nullable attribute; reason; priority normal/status open defaults; nullable source_id FK sources SET NULL; nullable evidence_id (no FK declared); required observed_at; nullable due_at, assignee pair, notes/resolved_at; timestamps; indexes subject/status, priority/status, due/status, source/status.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates data_reverification_queue with BIGINT UNSIGNED AI PK; subject pair; nullable attribute; reason; priority normal/status open defaults; nullable source_id FK sources SET NULL; nullable evidence_id (no FK declared); required observed_at; nullable due_at, assignee pair, notes/resolved_at; timestamps; indexes subject/status, priority/status, due/status, source/status.",
+        "down_effect": "DROP TABLE data_reverification_queue",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000014_create_data_reverification_queue_table.php; Git blob eadc9eed0b5e25bfc5c1754d3565b639e2f68f39.",
+        "related_objects": [
+          "data_reverification_queue"
+        ],
+        "prerequisites": "sources",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE data_reverification_queue",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000015_create_reverification_events_table",
@@ -3048,11 +3303,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "data_reverification_queue",
+      "expected_postconditions": "Creates reverification_events with BIGINT UNSIGNED AI PK; queue_id FK data_reverification_queue CASCADE; event_type; nullable actor pair, previous/new status, evidence_id (no FK declared), reason, metadata JSON; required occurred_at; timestamps; indexes queue/occurred_at, event_type/occurred_at, actor pair.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates reverification_events with BIGINT UNSIGNED AI PK; queue_id FK data_reverification_queue CASCADE; event_type; nullable actor pair, previous/new status, evidence_id (no FK declared), reason, metadata JSON; required occurred_at; timestamps; indexes queue/occurred_at, event_type/occurred_at, actor pair.",
+        "down_effect": "DROP TABLE reverification_events",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000015_create_reverification_events_table.php; Git blob a3ac13c2f1091aef295b2da9a490fab3f61c80cf.",
+        "related_objects": [
+          "reverification_events"
+        ],
+        "prerequisites": "data_reverification_queue",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE reverification_events",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000016_create_source_monitoring_policies_table",
@@ -3071,11 +3343,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "sources",
+      "expected_postconditions": "Creates source_monitoring_policies with BIGINT UNSIGNED AI PK; name; nullable subject_type/attribute; unsigned fresh_after_days default 30 and stale_after_days default 90; priority normal/status active defaults; nullable source_id FK sources SET NULL; nullable last_run_at; timestamps; indexes status/subject_type and source/status.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates source_monitoring_policies with BIGINT UNSIGNED AI PK; name; nullable subject_type/attribute; unsigned fresh_after_days default 30 and stale_after_days default 90; priority normal/status active defaults; nullable source_id FK sources SET NULL; nullable last_run_at; timestamps; indexes status/subject_type and source/status.",
+        "down_effect": "DROP TABLE source_monitoring_policies",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000016_create_source_monitoring_policies_table.php; Git blob be77ff71f54f2562b398d5bf72053b5e32fac8e9.",
+        "related_objects": [
+          "source_monitoring_policies"
+        ],
+        "prerequisites": "sources",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE source_monitoring_policies",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000017_create_source_snapshots_table",
@@ -3094,11 +3383,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "sources",
+      "expected_postconditions": "Creates source_snapshots with BIGINT UNSIGNED AI PK; source_id FK sources CASCADE; nullable reference/content_hash/content_type; nullable unsigned BIGINT content_length; required captured_at; status captured default; nullable metadata JSON; timestamps; indexes source/captured_at, source/content_hash, status/captured_at.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates source_snapshots with BIGINT UNSIGNED AI PK; source_id FK sources CASCADE; nullable reference/content_hash/content_type; nullable unsigned BIGINT content_length; required captured_at; status captured default; nullable metadata JSON; timestamps; indexes source/captured_at, source/content_hash, status/captured_at.",
+        "down_effect": "DROP TABLE source_snapshots",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000017_create_source_snapshots_table.php; Git blob c41eb19b69e8d4b50a4969673ec3809e889f04b6.",
+        "related_objects": [
+          "source_snapshots"
+        ],
+        "prerequisites": "sources",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE source_snapshots",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000018_create_source_change_observations_table",
@@ -3117,11 +3423,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "sources, source_snapshots",
+      "expected_postconditions": "Creates source_change_observations with BIGINT UNSIGNED AI PK; source_id FK sources CASCADE; nullable previous_snapshot_id FK SET NULL; current_snapshot_id FK CASCADE; change_state; materiality unknown/status detected defaults; nullable summary/details JSON; required observed_at; timestamps; indexes source/change_state/status, current_snapshot_id, materiality/status.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates source_change_observations with BIGINT UNSIGNED AI PK; source_id FK sources CASCADE; nullable previous_snapshot_id FK SET NULL; current_snapshot_id FK CASCADE; change_state; materiality unknown/status detected defaults; nullable summary/details JSON; required observed_at; timestamps; indexes source/change_state/status, current_snapshot_id, materiality/status.",
+        "down_effect": "DROP TABLE source_change_observations",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000018_create_source_change_observations_table.php; Git blob bd55107b780ddb3ab69f8366a7fcc403641e8ef0.",
+        "related_objects": [
+          "source_change_observations"
+        ],
+        "prerequisites": "sources, source_snapshots",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE source_change_observations",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000019_create_source_retrieval_runs_table",
@@ -3140,11 +3463,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "sources, source_snapshots",
+      "expected_postconditions": "Creates source_retrieval_runs with BIGINT UNSIGNED AI PK; source_id FK sources CASCADE; status started default; nullable unsigned smallint http_status, content_type, unsigned BIGINT content_length, content_hash; nullable snapshot_id FK source_snapshots SET NULL; nullable error_message/completed_at; required started_at; timestamps; indexes source/status and status/started_at.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates source_retrieval_runs with BIGINT UNSIGNED AI PK; source_id FK sources CASCADE; status started default; nullable unsigned smallint http_status, content_type, unsigned BIGINT content_length, content_hash; nullable snapshot_id FK source_snapshots SET NULL; nullable error_message/completed_at; required started_at; timestamps; indexes source/status and status/started_at.",
+        "down_effect": "DROP TABLE source_retrieval_runs",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000019_create_source_retrieval_runs_table.php; Git blob 1282fc1bfcbf6a78cb94d9206fe5765e61d00a91.",
+        "related_objects": [
+          "source_retrieval_runs"
+        ],
+        "prerequisites": "sources, source_snapshots",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE source_retrieval_runs",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000020_create_source_change_assertion_links_table",
@@ -3163,11 +3503,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "source_change_observations, assertions",
+      "expected_postconditions": "Creates source_change_assertion_links with BIGINT UNSIGNED AI PK; source_change_observation_id unsigned BIGINT FK named source_change_assertion_obs_fk to source_change_observations CASCADE; assertion_id FK assertions CASCADE; nullable attribute; impact unknown/status candidate defaults; nullable reason; timestamps; named unique(observation_id,assertion_id); indexes assertion/status and impact/status.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates source_change_assertion_links with BIGINT UNSIGNED AI PK; source_change_observation_id unsigned BIGINT FK named source_change_assertion_obs_fk to source_change_observations CASCADE; assertion_id FK assertions CASCADE; nullable attribute; impact unknown/status candidate defaults; nullable reason; timestamps; named unique(observation_id,assertion_id); indexes assertion/status and impact/status.",
+        "down_effect": "DROP TABLE source_change_assertion_links",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000020_create_source_change_assertion_links_table.php; Git blob 9d6ef807d584898b739bb7fb83fe26508f6774c1.",
+        "related_objects": [
+          "source_change_assertion_links"
+        ],
+        "prerequisites": "source_change_observations, assertions",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE source_change_assertion_links",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000021_add_monitoring_execution_fields",
@@ -3186,11 +3543,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "source_monitoring_policies",
+      "expected_postconditions": "Adds nullable cadence VARCHAR(255), next_run_at/last_success_at/last_failure_at TIMESTAMP, consecutive_failures unsigned INT default 0; adds index(status,next_run_at). No data transformation.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Adds nullable cadence VARCHAR(255), next_run_at/last_success_at/last_failure_at TIMESTAMP, consecutive_failures unsigned INT default 0; adds index(status,next_run_at). No data transformation.",
+        "down_effect": "Drops index and five added columns",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000021_add_monitoring_execution_fields.php; Git blob 93d6bf2ad51bef001e8347547859042dafdef1c8.",
+        "related_objects": [
+          "source_monitoring_policies"
+        ],
+        "prerequisites": "source_monitoring_policies",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "Drops index and five added columns",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000022_create_monitoring_alerts_table",
@@ -3209,11 +3583,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "source_monitoring_policies, sources",
+      "expected_postconditions": "Creates monitoring_alerts with BIGINT UNSIGNED AI PK; nullable source_monitoring_policy_id/source_id FKs SET NULL; alert_type; severity info/status open defaults; required dedupe_key/message; nullable details JSON; required first_detected_at/last_detected_at; nullable ack/resolved timestamps; timestamps; indexes status/severity, source/alert_type/status, dedupe_key/status.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates monitoring_alerts with BIGINT UNSIGNED AI PK; nullable source_monitoring_policy_id/source_id FKs SET NULL; alert_type; severity info/status open defaults; required dedupe_key/message; nullable details JSON; required first_detected_at/last_detected_at; nullable ack/resolved timestamps; timestamps; indexes status/severity, source/alert_type/status, dedupe_key/status.",
+        "down_effect": "DROP TABLE monitoring_alerts",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000022_create_monitoring_alerts_table.php; Git blob 86af8afba7302872f74c602986f09fe3d3c0b6f1.",
+        "related_objects": [
+          "monitoring_alerts"
+        ],
+        "prerequisites": "source_monitoring_policies, sources",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE monitoring_alerts",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_24_000026_add_snapshot_id_to_evidences_table",
@@ -3232,11 +3623,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "evidence and source_snapshots",
+      "expected_postconditions": "Adds nullable snapshot_id BIGINT UNSIGNED after source_id and FK to source_snapshots ON DELETE SET NULL. No data transformation.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Adds nullable snapshot_id BIGINT UNSIGNED after source_id and FK to source_snapshots ON DELETE SET NULL. No data transformation.",
+        "down_effect": "Drops FK and snapshot_id",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_24_000026_add_snapshot_id_to_evidences_table.php; Git blob c18b987a9a733d5ff39ba9c9ba145ab939d729fb.",
+        "related_objects": [
+          "evidence"
+        ],
+        "prerequisites": "evidence and source_snapshots",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "Drops FK and snapshot_id",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_25_000001_create_external_rankings_table",
@@ -3288,11 +3696,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "source_snapshots",
+      "expected_postconditions": "Conditional helper: if content column exists up() returns; otherwise adds nullable LONGTEXT content after content_type. down() conditionally drops content. Existing column type is not validated when present; partial pre-existing definitions remain a source uncertainty.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Conditional helper: if content column exists up() returns; otherwise adds nullable LONGTEXT content after content_type. down() conditionally drops content. Existing column type is not validated when present; partial pre-existing definitions remain a source uncertainty.",
+        "down_effect": "Conditionally drops content; asymmetric with up() early return and no type validation",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_26_000001_add_content_to_source_snapshots_table.php; Git blob b078cf1c2a15b4c2476e86420da0c83c0379ab2c.",
+        "related_objects": [
+          "source_snapshots"
+        ],
+        "prerequisites": "source_snapshots",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "Conditionally drops content; asymmetric with up() early return and no type validation",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_09_26_000002_add_scheduling_to_source_monitoring_policies_table",
@@ -3311,11 +3736,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "source_monitoring_policies",
+      "expected_postconditions": "For each of cadence, next_run_at, last_success_at, last_failure_at, consecutive_failures: adds only when absent. cadence VARCHAR(255) DEFAULT daily; three nullable TIMESTAMP fields; unsigned INT consecutive_failures DEFAULT 0. Does not add the index created by prior 2026_09_24_000021 migration. No data transform.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "For each of cadence, next_run_at, last_success_at, last_failure_at, consecutive_failures: adds only when absent. cadence VARCHAR(255) DEFAULT daily; three nullable TIMESTAMP fields; unsigned INT consecutive_failures DEFAULT 0. Does not add the index created by prior 2026_09_24_000021 migration. No data transform.",
+        "down_effect": "Conditionally drops each of five columns independently; does not manage any index",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_09_26_000002_add_scheduling_to_source_monitoring_policies_table.php; Git blob bc310e16a6fe27ff8c4542b2f85d62ee7f6cbc0e.",
+        "related_objects": [
+          "source_monitoring_policies"
+        ],
+        "prerequisites": "source_monitoring_policies",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "Conditionally drops each of five columns independently; does not manage any index",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_10_17_000001_create_password_reset_tokens_table",
@@ -3334,11 +3776,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "None",
+      "expected_postconditions": "Calls MigrationSchemaGuard::createTableIfMissing; creates email VARCHAR(255) primary key, token VARCHAR(255) NOT NULL, created_at nullable TIMESTAMP; validates required columns and exact MySQL type/null/default contracts on existing table. Helper does not validate indexes beyond declared columns.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Calls MigrationSchemaGuard::createTableIfMissing; creates email VARCHAR(255) primary key, token VARCHAR(255) NOT NULL, created_at nullable TIMESTAMP; validates required columns and exact MySQL type/null/default contracts on existing table. Helper does not validate indexes beyond declared columns.",
+        "down_effect": "DROP TABLE password_reset_tokens",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_10_17_000001_create_password_reset_tokens_table.php; Git blob 3da9e7b36565d3dc64962e88ab1683be54ceafcd.",
+        "related_objects": [
+          "password_reset_tokens"
+        ],
+        "prerequisites": "None",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE password_reset_tokens",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_10_17_000002_add_must_change_password_to_users_table",
@@ -3357,11 +3816,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "users",
+      "expected_postconditions": "Adds users.must_change_password BOOLEAN/TINYINT(1) NOT NULL DEFAULT 0 when absent and returns. If already present on MySQL, reads information_schema.COLUMNS and validates tinyint(1), NOT NULL, default 0; throws on mismatch. No data backfill.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Adds users.must_change_password BOOLEAN/TINYINT(1) NOT NULL DEFAULT 0 when absent and returns. If already present on MySQL, reads information_schema.COLUMNS and validates tinyint(1), NOT NULL, default 0; throws on mismatch. No data backfill.",
+        "down_effect": "Conditionally drops must_change_password",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_10_17_000002_add_must_change_password_to_users_table.php; Git blob 2fc797413ffb241829bcbc9aa9d50dcbc194653f.",
+        "related_objects": [
+          "users"
+        ],
+        "prerequisites": "users",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "Conditionally drops must_change_password",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_10_23_000001_add_duplicate_rows_to_import_batches_table",
@@ -3380,11 +3856,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "import_batches",
+      "expected_postconditions": "Adds duplicate_rows INT UNSIGNED NOT NULL DEFAULT 0 after candidate_rows when absent and returns. If present on MySQL validates type, nullability and default through information_schema; no data backfill.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Adds duplicate_rows INT UNSIGNED NOT NULL DEFAULT 0 after candidate_rows when absent and returns. If present on MySQL validates type, nullability and default through information_schema; no data backfill.",
+        "down_effect": "Conditionally drops duplicate_rows",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_10_23_000001_add_duplicate_rows_to_import_batches_table.php; Git blob a0bd89f56c4bc4f0e592bba6ed7846b7cb083c3f.",
+        "related_objects": [
+          "import_batches"
+        ],
+        "prerequisites": "import_batches",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "Conditionally drops duplicate_rows",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_10_23_070000_create_institute_discovery_run_outcomes_table",
@@ -3403,11 +3896,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "sources, source_change_observations, source_snapshots",
+      "expected_postconditions": "Creates BIGINT UNSIGNED AI PK; nullable source_id, source_change_observation_id and snapshot_id with named FKs to sources/source_change_observations/source_snapshots SET NULL; nullable profile_key; outcome VARCHAR(40); unsigned candidate_count default 0; nullable review_package_status VARCHAR(40), failure_class, details JSON; required occurred_at; timestamps; indexes source/time and outcome/time.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates BIGINT UNSIGNED AI PK; nullable source_id, source_change_observation_id and snapshot_id with named FKs to sources/source_change_observations/source_snapshots SET NULL; nullable profile_key; outcome VARCHAR(40); unsigned candidate_count default 0; nullable review_package_status VARCHAR(40), failure_class, details JSON; required occurred_at; timestamps; indexes source/time and outcome/time.",
+        "down_effect": "DROP TABLE institute_discovery_run_outcomes",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_10_23_070000_create_institute_discovery_run_outcomes_table.php; Git blob f16b6fb27918c4ac2802c445c3c7750d50a62d26.",
+        "related_objects": [
+          "institute_discovery_run_outcomes"
+        ],
+        "prerequisites": "sources, source_change_observations, source_snapshots",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE institute_discovery_run_outcomes",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_10_25_000001_create_structured_enrichment_promotion_events_table",
@@ -3426,11 +3936,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "enrichment_import_rows, import_batches",
+      "expected_postconditions": "Uses MigrationSchemaGuard createTableIfMissing with declared required columns and MySQL expected definitions. Creates BIGINT UNSIGNED AI PK; enrichment_import_row_id and import_batch_id FKs CASCADE; entity_type VARCHAR(40), event_type VARCHAR(60), nullable canonical_type VARCHAR(80)/canonical_id, actor_type VARCHAR(40) default system, nullable actor_id/reason/before_snapshot/after_snapshot/metadata JSON, occurred_at required TIMESTAMP, timestamps; named indexes row/time, canonical pair, batch/event.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Uses MigrationSchemaGuard createTableIfMissing with declared required columns and MySQL expected definitions. Creates BIGINT UNSIGNED AI PK; enrichment_import_row_id and import_batch_id FKs CASCADE; entity_type VARCHAR(40), event_type VARCHAR(60), nullable canonical_type VARCHAR(80)/canonical_id, actor_type VARCHAR(40) default system, nullable actor_id/reason/before_snapshot/after_snapshot/metadata JSON, occurred_at required TIMESTAMP, timestamps; named indexes row/time, canonical pair, batch/event.",
+        "down_effect": "DROP TABLE structured_enrichment_promotion_events",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_10_25_000001_create_structured_enrichment_promotion_events_table.php; Git blob bfef89d68947a79cd0044d440801eaf277d591f8.",
+        "related_objects": [
+          "structured_enrichment_promotion_events"
+        ],
+        "prerequisites": "enrichment_import_rows, import_batches",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE structured_enrichment_promotion_events",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_10_25_000002_create_official_source_refresh_events_table",
@@ -3449,11 +3976,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "sources and source_change_observations are semantic references but migration declares no FKs",
+      "expected_postconditions": "Conditional table creation. If table exists, checks required column presence and named/equivalent ordered nonunique indexes, throws if incomplete, otherwise returns without validating exact column definitions/FKs. If absent creates BIGINT UNSIGNED AI PK; nullable source_id and source_change_observation_id indexed; canonical_type VARCHAR(100), canonical_id BIGINT UNSIGNED, field_name VARCHAR(100); nullable before/after JSON; required evidence_url/evidence_excerpt TEXT, content_fingerprint VARCHAR(128), observed_at/occurred_at TIMESTAMP; timestamps; indexes source, observation and canonical_type/canonical_id/field_name.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Conditional table creation. If table exists, checks required column presence and named/equivalent ordered nonunique indexes, throws if incomplete, otherwise returns without validating exact column definitions/FKs. If absent creates BIGINT UNSIGNED AI PK; nullable source_id and source_change_observation_id indexed; canonical_type VARCHAR(100), canonical_id BIGINT UNSIGNED, field_name VARCHAR(100); nullable before/after JSON; required evidence_url/evidence_excerpt TEXT, content_fingerprint VARCHAR(128), observed_at/occurred_at TIMESTAMP; timestamps; indexes source, observation and canonical_type/canonical_id/field_name.",
+        "down_effect": "DROP TABLE official_source_refresh_events",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_10_25_000002_create_official_source_refresh_events_table.php; Git blob 338e9f365400edc7f9be8c05c8094caa096ec850.",
+        "related_objects": [
+          "official_source_refresh_events"
+        ],
+        "prerequisites": "sources and source_change_observations are semantic references but migration declares no FKs",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE official_source_refresh_events",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_10_29_000001_create_institution_field_approvals_table",
@@ -3472,11 +4016,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "institutions, sources, source_change_observations, source_snapshots, evidence, users, official_source_refresh_events",
+      "expected_postconditions": "Creates BIGINT UNSIGNED AI PK; institution_id FK RESTRICT; field_name VARCHAR(100); nullable expected_current_value LONGTEXT; proposed_value LONGTEXT; source_id/source_change_observation_id/source_snapshot_id/evidence_id FKs RESTRICT; evidence_url TEXT/evidence_excerpt LONGTEXT; content_fingerprint VARCHAR(128); source_observed_at VARCHAR(40), nullable evidence_observed_at; proposal_hash CHAR(64) unique; status VARCHAR(24) default pending; created_by FK users RESTRICT; nullable reviewer_id FK users RESTRICT; nullable decision_at/decision_reason/applied_at/application_outcome; nullable applied_refresh_event_id FK official_source_refresh_events RESTRICT; timestamps; three named indexes.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates BIGINT UNSIGNED AI PK; institution_id FK RESTRICT; field_name VARCHAR(100); nullable expected_current_value LONGTEXT; proposed_value LONGTEXT; source_id/source_change_observation_id/source_snapshot_id/evidence_id FKs RESTRICT; evidence_url TEXT/evidence_excerpt LONGTEXT; content_fingerprint VARCHAR(128); source_observed_at VARCHAR(40), nullable evidence_observed_at; proposal_hash CHAR(64) unique; status VARCHAR(24) default pending; created_by FK users RESTRICT; nullable reviewer_id FK users RESTRICT; nullable decision_at/decision_reason/applied_at/application_outcome; nullable applied_refresh_event_id FK official_source_refresh_events RESTRICT; timestamps; three named indexes.",
+        "down_effect": "DROP TABLE institution_field_approvals",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php; Git blob 4838d0bad6f1c7d21e328b88409cbd74f5f0069d.",
+        "related_objects": [
+          "institution_field_approvals"
+        ],
+        "prerequisites": "institutions, sources, source_change_observations, source_snapshots, evidence, users, official_source_refresh_events",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE institution_field_approvals",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_11_03_000001_create_governed_execution_leases_table",
@@ -3495,19 +4056,36 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "None",
+      "expected_postconditions": "Uses MigrationSchemaGuard createTableIfMissing with exact column contract. Creates BIGINT UNSIGNED AI PK; task_key VARCHAR(120) unique; owner_token/run_id UUID (MySQL CHAR(36)); acquired_at/expires_at required TIMESTAMP; expires_at index; timestamps.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Uses MigrationSchemaGuard createTableIfMissing with exact column contract. Creates BIGINT UNSIGNED AI PK; task_key VARCHAR(120) unique; owner_token/run_id UUID (MySQL CHAR(36)); acquired_at/expires_at required TIMESTAMP; expires_at index; timestamps.",
+        "down_effect": "DROP TABLE governed_execution_leases",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_11_03_000001_create_governed_execution_leases_table.php; Git blob 927a2837bcbbe645b8359859d41afe8c8dd7ff33.",
+        "related_objects": [
+          "governed_execution_leases"
+        ],
+        "prerequisites": "None",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE governed_execution_leases",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_11_03_000002_create_governed_execution_runs_table",
       "source_file": "database/migrations/2026_11_03_000002_create_governed_execution_runs_table.php",
       "git_blob_sha": "ea8d5aafb5863a3b5ec254fe1494ec1be19ae00b",
       "tables_created": [
-        "governed_execution_run_events",
-        "governed_execution_runs"
+        "governed_execution_runs",
+        "governed_execution_run_events"
       ],
       "tables_altered": [],
       "columns_created": [],
@@ -3519,11 +4097,29 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "None for runs; event FK references governed_execution_runs",
+      "expected_postconditions": "Creates two tables through MigrationSchemaGuard. Runs: UUID CHAR(36) PK; task_key VARCHAR(120) index; owner_token CHAR(36) index; runner VARCHAR(80); nullable application_revision VARCHAR(40); status VARCHAR(20) index; started_at required; nullable heartbeat_at/finished_at/failure_code VARCHAR(160); timestamps. Events: BIGINT UNSIGNED AI PK; run_id CHAR(36) indexed FK CASCADE to runs; event_type VARCHAR(30); occurred_at required; nullable failure_code VARCHAR(160); timestamps. Exact declared column contracts are passed to helper.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates two tables through MigrationSchemaGuard. Runs: UUID CHAR(36) PK; task_key VARCHAR(120) index; owner_token CHAR(36) index; runner VARCHAR(80); nullable application_revision VARCHAR(40); status VARCHAR(20) index; started_at required; nullable heartbeat_at/finished_at/failure_code VARCHAR(160); timestamps. Events: BIGINT UNSIGNED AI PK; run_id CHAR(36) indexed FK CASCADE to runs; event_type VARCHAR(30); occurred_at required; nullable failure_code VARCHAR(160); timestamps. Exact declared column contracts are passed to helper.",
+        "down_effect": "Drops events then runs",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_11_03_000002_create_governed_execution_runs_table.php; Git blob ea8d5aafb5863a3b5ec254fe1494ec1be19ae00b.",
+        "related_objects": [
+          "governed_execution_run_events",
+          "governed_execution_runs"
+        ],
+        "prerequisites": "None for runs; event FK references governed_execution_runs",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "Drops events then runs",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_11_03_000003_add_source_retrieval_idempotency_key",
@@ -3542,11 +4138,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "source_retrieval_runs",
+      "expected_postconditions": "MigrationSchemaGuard::ensureNullableUniqueString adds nullable VARCHAR(64) idempotency_key plus named single-column unique BTREE after checking table, type/nullability, duplicate nonnull values and exact index contract. Existing incompatible same-name/equivalent unique state throws.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "MigrationSchemaGuard::ensureNullableUniqueString adds nullable VARCHAR(64) idempotency_key plus named single-column unique BTREE after checking table, type/nullability, duplicate nonnull values and exact index contract. Existing incompatible same-name/equivalent unique state throws.",
+        "down_effect": "If column exists drops named unique then column; may fail if index name/contract differs",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_11_03_000003_add_source_retrieval_idempotency_key.php; Git blob 6eb3dbfde2a0db7909d9192882b0d31d62e4c3af.",
+        "related_objects": [
+          "source_retrieval_runs"
+        ],
+        "prerequisites": "source_retrieval_runs",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "If column exists drops named unique then column; may fail if index name/contract differs",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_11_03_000004_add_snapshot_and_observation_idempotency",
@@ -3554,8 +4167,8 @@
       "git_blob_sha": "f11de606de1fef11012a5314c4fe98069ee5c093",
       "tables_created": [],
       "tables_altered": [
-        "source_change_observations",
-        "source_snapshots"
+        "source_snapshots",
+        "source_change_observations"
       ],
       "columns_created": [],
       "columns_changed": [],
@@ -3566,11 +4179,29 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "source_snapshots, source_change_observations",
+      "expected_postconditions": "Read-only duplicate preflight rejects duplicate non-NULL current_snapshot_id. Adds nullable VARCHAR(64) capture_key plus named unique index to source_snapshots through MigrationSchemaGuard. Validates source_change_observations.current_snapshot_id is NOT NULL BIGINT UNSIGNED on MySQL; inspects named unique index exact single-column BTREE contract; if another equivalent unique exists under another name throws; otherwise adds named unique current_snapshot_id. down drops observation unique and capture_key unique+column.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Read-only duplicate preflight rejects duplicate non-NULL current_snapshot_id. Adds nullable VARCHAR(64) capture_key plus named unique index to source_snapshots through MigrationSchemaGuard. Validates source_change_observations.current_snapshot_id is NOT NULL BIGINT UNSIGNED on MySQL; inspects named unique index exact single-column BTREE contract; if another equivalent unique exists under another name throws; otherwise adds named unique current_snapshot_id. down drops observation unique and capture_key unique+column.",
+        "down_effect": "Drops named uniques and capture_key; destructive column removal",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_11_03_000004_add_snapshot_and_observation_idempotency.php; Git blob f11de606de1fef11012a5314c4fe98069ee5c093.",
+        "related_objects": [
+          "source_change_observations",
+          "source_snapshots"
+        ],
+        "prerequisites": "source_snapshots, source_change_observations",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "Drops named uniques and capture_key; destructive column removal",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_11_03_000005_add_discovery_outcome_idempotency_key",
@@ -3589,11 +4220,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "institute_discovery_run_outcomes",
+      "expected_postconditions": "MigrationSchemaGuard adds nullable VARCHAR(64) idempotency_key and named single-column unique index with duplicate preflight and strict existing definition/index checks.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "MigrationSchemaGuard adds nullable VARCHAR(64) idempotency_key and named single-column unique index with duplicate preflight and strict existing definition/index checks.",
+        "down_effect": "Drops unique and column if present",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_11_03_000005_add_discovery_outcome_idempotency_key.php; Git blob ada1a93014061499a3adf9fcf2fa013d80d0d57c.",
+        "related_objects": [
+          "institute_discovery_run_outcomes"
+        ],
+        "prerequisites": "institute_discovery_run_outcomes",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "Drops unique and column if present",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_11_03_000006_add_change_event_source_link_identity",
@@ -3612,11 +4260,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "change_events",
+      "expected_postconditions": "MigrationSchemaGuard adds nullable BIGINT UNSIGNED source_change_assertion_link_id and named unique index; helper checks duplicates and exact unique index semantics.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "MigrationSchemaGuard adds nullable BIGINT UNSIGNED source_change_assertion_link_id and named unique index; helper checks duplicates and exact unique index semantics.",
+        "down_effect": "Drops named unique and column if present",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_11_03_000006_add_change_event_source_link_identity.php; Git blob 1f9fd0492450ef2088a87a1b26e347f5ca49b750.",
+        "related_objects": [
+          "change_events"
+        ],
+        "prerequisites": "change_events",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "Drops named unique and column if present",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_11_03_000007_create_data_reverification_queue_identities_table",
@@ -3625,7 +4290,9 @@
       "tables_created": [
         "data_reverification_queue_identities"
       ],
-      "tables_altered": [],
+      "tables_altered": [
+        "data_reverification_queue"
+      ],
       "columns_created": [],
       "columns_changed": [],
       "columns_removed": [],
@@ -3635,11 +4302,29 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
+      "required_prerequisites": "data_reverification_queue",
+      "expected_postconditions": "Preflights duplicate open queue identities. Creates identity_key VARCHAR(64) PK, subject_type VARCHAR(255), subject_id BIGINT UNSIGNED, nullable attribute VARCHAR(255), nullable active_queue_id BIGINT UNSIGNED indexed, timestamps; if pre-existing validates required columns, MySQL column definitions and exact PK. Then chunkById reads open queue rows and INSERTs SHA-256 identities, refusing key/queue conflicts. This is a data backfill and is prohibited in production under this task; only source-described.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Preflights duplicate open queue identities. Creates identity_key VARCHAR(64) PK, subject_type VARCHAR(255), subject_id BIGINT UNSIGNED, nullable attribute VARCHAR(255), nullable active_queue_id BIGINT UNSIGNED indexed, timestamps; if pre-existing validates required columns, MySQL column definitions and exact PK. Then chunkById reads open queue rows and INSERTs SHA-256 identities, refusing key/queue conflicts. This is a data backfill and is prohibited in production under this task; only source-described.",
+        "down_effect": "DROP TABLE identity table; does not delete or reverse queue rows",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php; Git blob 36b528652da2441320fbb66669b3589f771a993b.",
+        "related_objects": [
+          "data_reverification_queue",
+          "data_reverification_queue_identities"
+        ],
+        "prerequisites": "data_reverification_queue",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
+        "rollback_considerations": "DROP TABLE identity table; does not delete or reverse queue rows",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency",
@@ -3660,19 +4345,37 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
+      "required_prerequisites": "monitoring_alerts, security_audit_events",
+      "expected_postconditions": "Read-only preflight rejects duplicate open monitoring alert dedupe_key. Creates monitoring_alert_identities with dedupe_key VARCHAR(40) PK, nullable active_alert_id BIGINT UNSIGNED indexed, timestamps; validates existing schema/PK if present. Reads open alerts in chunks and inserts identity rows, refusing mismatches. Adds security_audit_events.monitoring_idempotency_key nullable VARCHAR(191) with named unique via MigrationSchemaGuard.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Read-only preflight rejects duplicate open monitoring alert dedupe_key. Creates monitoring_alert_identities with dedupe_key VARCHAR(40) PK, nullable active_alert_id BIGINT UNSIGNED indexed, timestamps; validates existing schema/PK if present. Reads open alerts in chunks and inserts identity rows, refusing mismatches. Adds security_audit_events.monitoring_idempotency_key nullable VARCHAR(191) with named unique via MigrationSchemaGuard.",
+        "down_effect": "Drops audit unique and column; drops monitoring_alert_identities (data loss of identity map)",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php; Git blob 14f22fc27014d05ebe8f73982820f6f49c15e407.",
+        "related_objects": [
+          "monitoring_alert_identities",
+          "security_audit_events"
+        ],
+        "prerequisites": "monitoring_alerts, security_audit_events",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
+        "rollback_considerations": "Drops audit unique and column; drops monitoring_alert_identities (data loss of identity map)",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_11_04_000010_create_monitoring_policy_run_checkpoints",
       "source_file": "database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php",
       "git_blob_sha": "4cae07cf6f837e590c222d425e37cc2fa9106dd2",
       "tables_created": [
-        "monitoring_policy_run_sources",
-        "monitoring_policy_runs"
+        "monitoring_policy_runs",
+        "monitoring_policy_run_sources"
       ],
       "tables_altered": [],
       "columns_created": [],
@@ -3684,11 +4387,29 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "source_monitoring_policies, governed_execution_runs, sources, source_retrieval_runs, source_change_observations",
+      "expected_postconditions": "Creates both checkpoint tables through MigrationSchemaGuard with required column/type/null/default contracts. Runs: BIGINT UNSIGNED AI PK, policy_id BIGINT UNSIGNED indexed, nullable execution_run_id CHAR(36) indexed, status VARCHAR(20) indexed, started_at, nullable finished_at/summary JSON-or-LONGTEXT/failure_code VARCHAR(160), timestamps. Run sources: BIGINT UNSIGNED AI PK, policy_run_id/source_id BIGINT UNSIGNED, status VARCHAR(20), nullable retrieval_run_id/observation_id BIGINT UNSIGNED, nullable failure_code, started_at/nullable finished_at, timestamps; unique(policy_run_id,source_id), index(source_id,status). FKs are deferred to 000015.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Creates both checkpoint tables through MigrationSchemaGuard with required column/type/null/default contracts. Runs: BIGINT UNSIGNED AI PK, policy_id BIGINT UNSIGNED indexed, nullable execution_run_id CHAR(36) indexed, status VARCHAR(20) indexed, started_at, nullable finished_at/summary JSON-or-LONGTEXT/failure_code VARCHAR(160), timestamps. Run sources: BIGINT UNSIGNED AI PK, policy_run_id/source_id BIGINT UNSIGNED, status VARCHAR(20), nullable retrieval_run_id/observation_id BIGINT UNSIGNED, nullable failure_code, started_at/nullable finished_at, timestamps; unique(policy_run_id,source_id), index(source_id,status). FKs are deferred to 000015.",
+        "down_effect": "Drops run_sources then runs",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php; Git blob 4cae07cf6f837e590c222d425e37cc2fa9106dd2.",
+        "related_objects": [
+          "monitoring_policy_run_sources",
+          "monitoring_policy_runs"
+        ],
+        "prerequisites": "source_monitoring_policies, governed_execution_runs, sources, source_retrieval_runs, source_change_observations",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "Drops run_sources then runs",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_11_04_000011_add_discovery_candidate_persistence_identity_keys",
@@ -3696,10 +4417,10 @@
       "git_blob_sha": "030939e952e112ae5c453d0537569288ef484401",
       "tables_created": [],
       "tables_altered": [
-        "assertions",
-        "evidence",
         "import_batches",
-        "import_rows"
+        "evidence",
+        "import_rows",
+        "assertions"
       ],
       "columns_created": [],
       "columns_changed": [],
@@ -3710,11 +4431,31 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "all four tables",
+      "expected_postconditions": "Four helper calls add nullable VARCHAR(64) discovery_identity_key and named unique indexes to import_batches, evidence, import_rows, assertions. Each helper checks table existence, exact MySQL type/nullability, duplicate non-NULL keys and exact single-column BTREE unique index; conflicting equivalent differently named index throws.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Four helper calls add nullable VARCHAR(64) discovery_identity_key and named unique indexes to import_batches, evidence, import_rows, assertions. Each helper checks table existence, exact MySQL type/nullability, duplicate non-NULL keys and exact single-column BTREE unique index; conflicting equivalent differently named index throws.",
+        "down_effect": "For each table conditionally drops named unique and column",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php; Git blob 030939e952e112ae5c453d0537569288ef484401.",
+        "related_objects": [
+          "assertions",
+          "evidence",
+          "import_batches",
+          "import_rows"
+        ],
+        "prerequisites": "all four tables",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "For each table conditionally drops named unique and column",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_11_04_000012_add_identity_conflict_persistence_keys_and_events",
@@ -3737,11 +4478,31 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "identity_match_candidates, identity_resolution_decisions, import_conflicts",
+      "expected_postconditions": "Adds nullable CHAR(64) identity_key/decision_identity_key with unique indexes to identity_match_candidates, identity_resolution_decisions, import_conflicts via strict helper. Creates import_conflict_events with BIGINT UNSIGNED AI PK; import_conflict_id FK CASCADE; event_type VARCHAR(40); nullable status_before VARCHAR(30), actor_type VARCHAR(40), actor_id BIGINT UNSIGNED, reason TEXT, metadata JSON; status_after VARCHAR(30); idempotency_key CHAR(64) unique; occurred_at required; timestamps; index(conflict_id,occurred_at); exact required column/type contract passed to helper.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Adds nullable CHAR(64) identity_key/decision_identity_key with unique indexes to identity_match_candidates, identity_resolution_decisions, import_conflicts via strict helper. Creates import_conflict_events with BIGINT UNSIGNED AI PK; import_conflict_id FK CASCADE; event_type VARCHAR(40); nullable status_before VARCHAR(30), actor_type VARCHAR(40), actor_id BIGINT UNSIGNED, reason TEXT, metadata JSON; status_after VARCHAR(30); idempotency_key CHAR(64) unique; occurred_at required; timestamps; index(conflict_id,occurred_at); exact required column/type contract passed to helper.",
+        "down_effect": "Drops event table then drops unique keys and three identity columns",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php; Git blob 3e37261d337dd51e9b0b5f304aad66ef45ac5374.",
+        "related_objects": [
+          "identity_match_candidates",
+          "identity_resolution_decisions",
+          "import_conflict_events",
+          "import_conflicts"
+        ],
+        "prerequisites": "identity_match_candidates, identity_resolution_decisions, import_conflicts",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "Drops event table then drops unique keys and three identity columns",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_11_04_000013_create_source_snapshot_reconciliation_requests_table",
@@ -3760,11 +4521,28 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "sources, source_snapshots",
+      "expected_postconditions": "Uses MigrationSchemaGuard createTableIfMissing with exact required columns and MySQL definitions. Creates BIGINT UNSIGNED AI PK; source_id, triggering_snapshot_id, current_snapshot_id required BIGINT UNSIGNED; nullable expected_previous_snapshot_id and recorded_previous_snapshot_id; identity_key VARCHAR(64) unique; status VARCHAR(32) default pending_review; nullable details JSON; timestamps; five named FKs (source and three snapshot refs CASCADE; two previous snapshot refs SET NULL); indexes source/status and current_snapshot/status.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Uses MigrationSchemaGuard createTableIfMissing with exact required columns and MySQL definitions. Creates BIGINT UNSIGNED AI PK; source_id, triggering_snapshot_id, current_snapshot_id required BIGINT UNSIGNED; nullable expected_previous_snapshot_id and recorded_previous_snapshot_id; identity_key VARCHAR(64) unique; status VARCHAR(32) default pending_review; nullable details JSON; timestamps; five named FKs (source and three snapshot refs CASCADE; two previous snapshot refs SET NULL); indexes source/status and current_snapshot/status.",
+        "down_effect": "DROP TABLE source_snapshot_reconciliation_requests",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_11_04_000013_create_source_snapshot_reconciliation_requests_table.php; Git blob 687dd588cb743f2c8d687ff3d699b182688f62c5.",
+        "related_objects": [
+          "source_snapshot_reconciliation_requests"
+        ],
+        "prerequisites": "sources, source_snapshots",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "DROP TABLE source_snapshot_reconciliation_requests",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_11_04_000014_enforce_append_only_audit_retention",
@@ -3772,25 +4550,15 @@
       "git_blob_sha": "dcbdba2cecff8dbeee00ef6cbf65ee236897e1de",
       "tables_created": [],
       "tables_altered": [
-        "assertions",
-        "data_reverification_queue",
-        "enrichment_import_rows",
-        "governed_execution_run_events",
-        "governed_execution_runs",
         "identity_resolution_decisions",
-        "import_batches",
-        "import_conflict_events",
-        "import_conflicts",
+        "verification_decisions",
+        "import_reconciliation_events",
         "import_promotion_decisions",
         "import_promotion_events",
-        "import_reconciliation_events",
-        "import_rows",
-        "official_source_refresh_events",
-        "provenance_review_events",
         "reverification_events",
-        "security_audit_events",
         "structured_enrichment_promotion_events",
-        "verification_decisions"
+        "import_conflict_events",
+        "governed_execution_run_events"
       ],
       "columns_created": [],
       "columns_changed": [],
@@ -3801,11 +4569,36 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+      "required_prerequisites": "audit tables and their parent tables; import_conflict_events and governed_execution_run_events must exist",
+      "expected_postconditions": "SQLite path installs 22 append-only UPDATE/DELETE guards on 11 audit tables, two identity-decision guards and 7 parent-delete guards. MySQL path runs 11 orphan preflight SELECTs, installs/reconciles 11 named RESTRICT FKs, then creates 22 BEFORE ROW triggers on 11 tables plus identity_decision_update_guard/delete_guard. MySQL raw SQL CREATE/DROP TRIGGER and ALTER TABLE DROP FOREIGN KEY are used. import_reconciliation_events UPDATE guard permits only one-time import_row_id non-NULL to NULL detachment with all other fields unchanged; identity_resolution_decisions UPDATE guard permits only decision_identity_key NULL->NOT NULL with all other tracked fields unchanged. No data DML in up().",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "SQLite path installs 22 append-only UPDATE/DELETE guards on 11 audit tables, two identity-decision guards and 7 parent-delete guards. MySQL path runs 11 orphan preflight SELECTs, installs/reconciles 11 named RESTRICT FKs, then creates 22 BEFORE ROW triggers on 11 tables plus identity_decision_update_guard/delete_guard. MySQL raw SQL CREATE/DROP TRIGGER and ALTER TABLE DROP FOREIGN KEY are used. import_reconciliation_events UPDATE guard permits only one-time import_row_id non-NULL to NULL detachment with all other fields unchanged; identity_resolution_decisions UPDATE guard permits only decision_identity_key NULL->NOT NULL with all other tracked fields unchanged. No data DML in up().",
+        "down_effect": "Drops MySQL triggers and reverses 11 RESTRICT FKs to CASCADE; SQLite drops all append-only/identity/parent guards. Parent-FK rollback restores cascade deletion and is not semantically equivalent to retained-history protection",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php; Git blob dcbdba2cecff8dbeee00ef6cbf65ee236897e1de.",
+        "related_objects": [
+          "governed_execution_run_events",
+          "identity_resolution_decisions",
+          "import_conflict_events",
+          "import_promotion_decisions",
+          "import_promotion_events",
+          "import_reconciliation_events",
+          "reverification_events",
+          "structured_enrichment_promotion_events",
+          "verification_decisions"
+        ],
+        "prerequisites": "audit tables and their parent tables; import_conflict_events and governed_execution_run_events must exist",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "rollback_considerations": "Drops MySQL triggers and reverses 11 RESTRICT FKs to CASCADE; SQLite drops all append-only/identity/parent guards. Parent-FK rollback restores cascade deletion and is not semantically equivalent to retained-history protection",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     },
     {
       "migration": "2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat",
@@ -3813,9 +4606,9 @@
       "git_blob_sha": "83577ba3cbcd5abe481fd50b4737da70499cbccd",
       "tables_created": [],
       "tables_altered": [
-        "monitoring_alert_identities",
+        "monitoring_policy_runs",
         "monitoring_policy_run_sources",
-        "monitoring_policy_runs"
+        "monitoring_alert_identities"
       ],
       "columns_created": [],
       "columns_changed": [],
@@ -3826,18 +4619,37 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
+      "required_prerequisites": "monitoring_policy_runs, monitoring_policy_run_sources, monitoring_alert_identities and all referenced tables",
+      "expected_postconditions": "Runs 7 orphan preflight queries; adds nullable TIMESTAMP heartbeat_at to monitoring_policy_runs if absent or validates existing MySQL metadata; installs 7 FKs: policy_run.policy_id->source_monitoring_policies RESTRICT, policy_run.execution_run_id->governed_execution_runs SET NULL, run_sources.policy_run_id->monitoring_policy_runs RESTRICT, source_id->sources RESTRICT, retrieval_run_id->source_retrieval_runs SET NULL, observation_id->source_change_observations SET NULL, alert_identity.active_alert_id->monitoring_alerts SET NULL. MySQL helper can DROP existing FK with same source column after verifying expected parent then add canonical constraint; SQLite adds FKs. Backfills heartbeat_at from started_at using UPDATE for null values.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "SOURCE_REVIEWED_PARTIAL",
+        "up_effect": "Runs 7 orphan preflight queries; adds nullable TIMESTAMP heartbeat_at to monitoring_policy_runs if absent or validates existing MySQL metadata; installs 7 FKs: policy_run.policy_id->source_monitoring_policies RESTRICT, policy_run.execution_run_id->governed_execution_runs SET NULL, run_sources.policy_run_id->monitoring_policy_runs RESTRICT, source_id->sources RESTRICT, retrieval_run_id->source_retrieval_runs SET NULL, observation_id->source_change_observations SET NULL, alert_identity.active_alert_id->monitoring_alerts SET NULL. MySQL helper can DROP existing FK with same source column after verifying expected parent then add canonical constraint; SQLite adds FKs. Backfills heartbeat_at from started_at using UPDATE for null values.",
+        "down_effect": "Drops 7 FKs and heartbeat_at; heartbeat values written by up() are discarded",
+        "operation_order": "Migration filename ordering; see migration name and source file path",
+        "source_evidence": "Complete migration source inspected from database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php; Git blob 83577ba3cbcd5abe481fd50b4737da70499cbccd.",
+        "related_objects": [
+          "monitoring_alert_identities",
+          "monitoring_policy_run_sources",
+          "monitoring_policy_runs"
+        ],
+        "prerequisites": "monitoring_policy_runs, monitoring_policy_run_sources, monitoring_alert_identities and all referenced tables",
+        "raw_sql_operations": [
+          "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
+        ],
+        "data_effects": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
+        "rollback_considerations": "Drops 7 FKs and heartbeat_at; heartbeat values written by up() are discarded",
+        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
+      }
     }
   ],
   "source_review_counts": {
     "migration_file_count": 97,
     "reviewed_noop_count": 23,
-    "reviewed_non_empty_count": 27,
-    "remaining_non_empty_count": 47,
+    "reviewed_non_empty_count": 74,
+    "remaining_non_empty_count": 0,
     "application_tables_with_final_definition_complete": 0
   }
 }
