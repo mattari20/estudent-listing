@@ -53,8 +53,8 @@ foreach ($schema['results'] as $table => $tableResult) {
         }
     }
 }
-phase1d2bAssert($counts['columns'] === 793, 'all 793 source-derived column contracts must be compared');
-phase1d2bAssert($counts['indexes'] === 231, 'all 231 source-derived index contracts must be compared');
+phase1d2bAssert($counts['columns'] === 796, 'all 796 source-derived column contracts including the 3-column framework ledger must be compared');
+phase1d2bAssert($counts['indexes'] === 232, 'all 232 source-derived indexes including the framework ledger primary key must be compared');
 phase1d2bAssert($counts['foreign_keys'] === 89, 'all 89 source-derived foreign-key contracts must be compared');
 phase1d2bAssert($counts['triggers'] === 24, 'all 24 source-derived trigger contracts must be compared');
 phase1d2bAssert($counts['table_options_pass'] === 62, 'charset/collation/server-default options must reconcile for all application tables');
