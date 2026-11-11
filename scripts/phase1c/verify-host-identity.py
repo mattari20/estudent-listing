@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pin the Hostinger SSH endpoint and verify its presented ED25519 key."""
+"""Pin the Hostinger SSH endpoint and verify its presented ECDSA key."""
 from __future__ import annotations
 
 import argparse
@@ -9,7 +9,7 @@ from pathlib import Path
 
 EXPECTED_HOST = "185.232.14.237"
 EXPECTED_PORT = "65002"
-EXPECTED_FINGERPRINT = "SHA256:W9YXwb9g6kNtTQxZvw+/cxOeyMUeyw+Y4v4iIc/eHAk"
+EXPECTED_FINGERPRINT = "SHA256:rLqM002opFW/1fGj8IAj/Sdr6u1tVaN8Tb89lcl1eQE"
 FINGERPRINT_RE = re.compile(r"^SHA256:[A-Za-z0-9+/]+$")
 
 
@@ -32,7 +32,7 @@ def validate_presented_fingerprint(fingerprint: str, trusted: str) -> None:
 def verify(host: str, port: str, fingerprint: str, known_hosts: Path) -> None:
     validate_reference(host, port, fingerprint)
     scan = subprocess.run(
-        ["ssh-keyscan", "-T", "10", "-t", "ed25519", "-p", port, host],
+        ["ssh-keyscan", "-T", "10", "-t", "ecdsa", "-p", port, host],
         check=False, capture_output=True, text=True, timeout=15,
     )
     if scan.returncode != 0 or not scan.stdout.strip():
@@ -47,7 +47,7 @@ def verify(host: str, port: str, fingerprint: str, known_hosts: Path) -> None:
         raise ValueError("host_key_fingerprint_unavailable")
     fingerprints = [line.split()[1] for line in report.stdout.splitlines() if len(line.split()) >= 2]
     if len(fingerprints) != 1:
-        raise ValueError("unexpected_ed25519_host_key_count")
+        raise ValueError("unexpected_ecdsa_host_key_count")
     validate_presented_fingerprint(fingerprints[0], fingerprint)
 
 

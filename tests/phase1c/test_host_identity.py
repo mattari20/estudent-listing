@@ -12,6 +12,7 @@ MODULE_PATH = Path(__file__).parents[2] / "scripts/phase1c/verify-host-identity.
 SPEC = importlib.util.spec_from_file_location("verify_host_identity", MODULE_PATH)
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+VERIFIED_HOST_FINGERPRINT = "SHA256:rLqM002opFW/1fGj8IAj/Sdr6u1tVaN8Tb89lcl1eQE"
 
 
 class HostIdentityTests(unittest.TestCase):
@@ -40,15 +41,18 @@ class HostIdentityTests(unittest.TestCase):
     @patch.object(MODULE.subprocess, "run")
     def test_presented_key_scanned_and_verified_before_use(self, run):
         run.side_effect = [
-            CompletedProcess([], 0, "[185.232.14.237]:65002 ssh-ed25519 AAAATESTKEY\n", ""),
-            CompletedProcess([], 0, "256 SHA256:W9YXwb9g6kNtTQxZvw+/cxOeyMUeyw+Y4v4iIc/eHAk host (ED25519)\n", ""),
+            CompletedProcess([], 0, "[185.232.14.237]:65002 ecdsa-sha2-nistp256 AAAATESTKEY\n", ""),
+            CompletedProcess([], 0, f"256 {VERIFIED_HOST_FINGERPRINT} host (ECDSA)\n", ""),
         ]
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "known_hosts"
             MODULE.verify(MODULE.EXPECTED_HOST, MODULE.EXPECTED_PORT, MODULE.EXPECTED_FINGERPRINT, path)
             self.assertTrue(path.exists())
             self.assertEqual(run.call_count, 2)
-            self.assertIn("ssh-keyscan", run.call_args_list[0].args[0][0])
+            self.assertEqual(
+                run.call_args_list[0].args[0],
+                ["ssh-keyscan", "-T", "10", "-t", "ecdsa", "-p", MODULE.EXPECTED_PORT, MODULE.EXPECTED_HOST],
+            )
             self.assertIn("ssh-keygen", run.call_args_list[1].args[0][0])
 
 
@@ -158,7 +162,9 @@ class HostIdentityTests(unittest.TestCase):
 
     def test_workflow_pins_action_and_both_openssh_connections(self):
         workflow = (Path(__file__).parents[2] / ".github/workflows/phase1c-readonly-schema-diagnostic.yml").read_text()
-        self.assertIn(f'test "$HOST_FINGERPRINT" = "{MODULE.EXPECTED_FINGERPRINT}"', workflow)
+        self.assertEqual(MODULE.EXPECTED_FINGERPRINT, VERIFIED_HOST_FINGERPRINT)
+        self.assertIn(f'test "$HOST_FINGERPRINT" = "{VERIFIED_HOST_FINGERPRINT}"', workflow)
+        self.assertIn('"-t", "ecdsa"', MODULE_PATH.read_text())
         self.assertIn("fingerprint: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST_FINGERPRINT }}", workflow)
         self.assertIn("verify-host-identity.py", workflow)
         self.assertIn("StrictHostKeyChecking=yes", workflow)
