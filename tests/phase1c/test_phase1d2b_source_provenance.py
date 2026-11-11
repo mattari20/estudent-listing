@@ -35,7 +35,7 @@ class Phase1D2BSourceProvenanceTest(unittest.TestCase):
         self.assertEqual(len(manifest_tables), 63)
 
         ledger = self.manifest["tables"]["migrations"]
-        self.assertEqual(ledger["managed_by"], "Laravel migrator; not created by an application migration in this directory")
+        self.assertEqual(ledger["managed_by"], "Laravel DatabaseMigrationRepository")
         self.assertEqual(ledger["create"], [])
         self.assertEqual(ledger["alter"], [])
 
