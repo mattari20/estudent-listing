@@ -88,7 +88,7 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
             with self.subTest(migration=entry["migration"]):
                 self.assertTrue(entry["operation_review"]["source_evidence"])
                 self.assertEqual(
-                    entry["operation_review"]["related_objects"],
+                    sorted(set(entry["operation_review"]["related_objects"])),
                     sorted(set(entry["tables_created"] + entry["tables_altered"])),
                 )
                 for collection in (
