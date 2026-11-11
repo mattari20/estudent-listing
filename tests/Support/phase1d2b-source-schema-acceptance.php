@@ -48,7 +48,7 @@ foreach ($schema['results'] as $table => $tableResult) {
         foreach (($tableResult['objects'][$kind] ?? []) as $object) {
             $counts[$kind]++;
             if (($object['state'] ?? null) !== 'PASS') {
-                $nonPass[] = ['table'=>$table,'kind'=>$kind,'object'=>$object['object'] ?? 'unknown','state'=>$object['state'] ?? 'UNKNOWN','reason'=>$object['reason'] ?? null,'mismatch_fields'=>$object['mismatch_fields'] ?? []];
+                $nonPass[] = ['table'=>$table,'kind'=>$kind,'object'=>$object['object'] ?? 'unknown','state'=>$object['state'] ?? 'UNKNOWN','reason'=>$object['reason'] ?? null,'mismatch_fields'=>$object['mismatch_fields'] ?? [],'expected'=>$object['expected'] ?? null,'observed'=>$object['observed'] ?? null];
             }
         }
     }
