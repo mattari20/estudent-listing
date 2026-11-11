@@ -47,6 +47,15 @@ class Phase1D2BSchemaScopeTest(unittest.TestCase):
                     f"no supported table creation operation found for {table}",
                 )
 
+    def test_alteration_migration_paths_exist_and_reference_their_table(self):
+        for table, entry in self.scope["tables"].items():
+            for migration in entry.get("alteration_migrations", []):
+                with self.subTest(table=table, migration=migration):
+                    source_path = ROOT / migration
+                    self.assertTrue(source_path.is_file(), f"missing alteration source: {migration}")
+                    source = source_path.read_text(encoding="utf-8")
+                    self.assertIn(table, source, f"alteration source does not reference {table}")
+
     def test_scope_is_not_mislabeled_as_final_schema_acceptance(self):
         self.assertEqual(
             self.scope["scope_status"],
