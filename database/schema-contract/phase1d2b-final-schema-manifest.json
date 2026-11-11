@@ -15,14 +15,15 @@
     "complete_columns": 0,
     "complete_indexes": 0,
     "complete_foreign_keys": 0,
-    "complete_trigger_contracts": 0,
+    "complete_trigger_contracts": 24,
     "state": "NOT_CHECKED",
     "complete_framework_tables": 1,
     "framework_ledger_state": "COMPLETE_FRAMEWORK_DEFINITION_WITH_INHERITED_CONNECTION_OPTIONS",
     "source_reviewed_non_empty_migrations": 74,
     "remaining_non_empty_migrations": 0,
-    "note": "All 62 application tables now have source-derived column/index/FK/trigger object entries. All remain PARTIAL, not COMPLETE: server-default engine, exact trigger identifier expansion, conditional/helper paths and end-to-end cumulative source-to-comparator reconciliation remain to be validated.",
-    "partial_application_tables": 62
+    "note": "62 application table object inventories are present. 24 source-derived trigger definitions across 12 tables have exact deterministic names and behavior. Table definitions remain PARTIAL pending server-default engine and full comparator acceptance.",
+    "partial_application_tables": 62,
+    "trigger_table_count": 12
   },
   "tables": {
     "accreditations": {
@@ -4622,21 +4623,21 @@
       ],
       "triggers": [
         {
-          "name": "audit_immut_governed_execution_run_events_u",
+          "name": "audit_immut_0c11b0a7b877443d_u",
           "timing": "BEFORE",
           "event": "UPDATE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
-          "behavior": "Rejects UPDATE with SQLSTATE 45000; append-only audit event history.",
+          "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         },
         {
-          "name": "audit_immut_governed_execution_run_events_d",
+          "name": "audit_immut_0c11b0a7b877443d_d",
           "timing": "BEFORE",
           "event": "DELETE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
-          "behavior": "Rejects DELETE with SQLSTATE 45000; append-only audit event history.",
+          "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         }
       ],
@@ -5461,7 +5462,7 @@
           "event": "UPDATE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
-          "behavior": "Rejects all updates except one-time decision_identity_key NULL -> NOT NULL enrichment with all tracked identity/decision/actor/reason/timestamp fields unchanged.",
+          "behavior": "Allows only one-time decision_identity_key NULL to NOT NULL enrichment while id, import_row_id, institution_id, decision, actor_type, actor_id, reason, decided_at and created_at remain unchanged; otherwise signals SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         },
         {
@@ -5470,7 +5471,7 @@
           "event": "DELETE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
-          "behavior": "Rejects deletion of identity decision history.",
+          "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         }
       ],
@@ -6100,21 +6101,21 @@
       ],
       "triggers": [
         {
-          "name": "audit_immut_{substr(sha256(\"import_conflict_events\"),0,16)}_u",
+          "name": "audit_immut_e6d938d7ffee7729_u",
           "timing": "BEFORE",
           "event": "UPDATE",
           "orientation": "ROW",
-          "definition_state": "PARTIAL",
-          "behavior": "Rejects all UPDATE operations; exact deterministic trigger identifier still needs hash expansion in manifest.",
+          "definition_state": "COMPLETE",
+          "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         },
         {
-          "name": "audit_immut_{substr(sha256(\"import_conflict_events\"),0,16)}_d",
+          "name": "audit_immut_e6d938d7ffee7729_d",
           "timing": "BEFORE",
           "event": "DELETE",
           "orientation": "ROW",
-          "definition_state": "PARTIAL",
-          "behavior": "Rejects all DELETE operations; exact deterministic trigger identifier still needs hash expansion in manifest.",
+          "definition_state": "COMPLETE",
+          "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         }
       ],
@@ -6727,22 +6728,22 @@
       ],
       "triggers": [
         {
-          "name": "audit_immut_import_promotion_decisions_u",
+          "name": "audit_immut_f9de606bfd4c935d_u",
           "timing": "BEFORE",
           "event": "UPDATE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
-          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php; actual trigger identifier uses first 16 hex characters of SHA-256(table name)."
+          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         },
         {
-          "name": "audit_immut_import_promotion_decisions_d",
+          "name": "audit_immut_f9de606bfd4c935d_d",
           "timing": "BEFORE",
           "event": "DELETE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php; actual trigger identifier uses first 16 hex characters of SHA-256(table name)."
+          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         }
       ],
       "source_provenance": [
@@ -7170,22 +7171,22 @@
       ],
       "triggers": [
         {
-          "name": "audit_immut_import_promotion_events_u",
+          "name": "audit_immut_f8fe18d3e78fdef2_u",
           "timing": "BEFORE",
           "event": "UPDATE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
-          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php; actual trigger identifier uses first 16 hex characters of SHA-256(table name)."
+          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         },
         {
-          "name": "audit_immut_import_promotion_events_d",
+          "name": "audit_immut_f8fe18d3e78fdef2_d",
           "timing": "BEFORE",
           "event": "DELETE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php; actual trigger identifier uses first 16 hex characters of SHA-256(table name)."
+          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         }
       ],
       "source_provenance": [
@@ -7529,21 +7530,21 @@
       ],
       "triggers": [
         {
-          "name": "audit_immut_<sha256-table-suffix>_u",
+          "name": "audit_immut_17f41e0249a768b1_u",
           "timing": "BEFORE",
           "event": "UPDATE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
-          "behavior": "Rejects all updates except nullable import_row_id detachment from non-NULL to NULL while every other listed field remains identical.",
+          "behavior": "Allows only one-time import_row_id detachment from non-NULL to NULL while every other listed row field remains unchanged; all other updates signal SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         },
         {
-          "name": "audit_immut_<sha256-table-suffix>_d",
+          "name": "audit_immut_17f41e0249a768b1_d",
           "timing": "BEFORE",
           "event": "DELETE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
-          "behavior": "Rejects all DELETE operations.",
+          "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         }
       ],
@@ -11333,21 +11334,21 @@
       "foreign_keys": [],
       "triggers": [
         {
-          "name": "audit_immut_<sha256-table-suffix>_u",
+          "name": "audit_immut_67d791570898e61c_u",
           "timing": "BEFORE",
           "event": "UPDATE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
-          "behavior": "Rejects all UPDATE operations.",
+          "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         },
         {
-          "name": "audit_immut_<sha256-table-suffix>_d",
+          "name": "audit_immut_67d791570898e61c_d",
           "timing": "BEFORE",
           "event": "DELETE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
-          "behavior": "Rejects all DELETE operations.",
+          "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         }
       ],
@@ -12232,21 +12233,21 @@
       "foreign_keys": [],
       "triggers": [
         {
-          "name": "audit_immut_<sha256-table-suffix>_u",
+          "name": "audit_immut_b04f820f0d4b68b3_u",
           "timing": "BEFORE",
           "event": "UPDATE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
-          "behavior": "Rejects all UPDATE operations.",
+          "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         },
         {
-          "name": "audit_immut_<sha256-table-suffix>_d",
+          "name": "audit_immut_b04f820f0d4b68b3_d",
           "timing": "BEFORE",
           "event": "DELETE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
-          "behavior": "Rejects all DELETE operations.",
+          "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         }
       ],
@@ -13464,22 +13465,22 @@
       ],
       "triggers": [
         {
-          "name": "audit_immut_reverification_events_u",
+          "name": "audit_immut_72992154e9e26525_u",
           "timing": "BEFORE",
           "event": "UPDATE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
-          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php; actual trigger identifier uses first 16 hex characters of SHA-256(table name)."
+          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         },
         {
-          "name": "audit_immut_reverification_events_d",
+          "name": "audit_immut_72992154e9e26525_d",
           "timing": "BEFORE",
           "event": "DELETE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php; actual trigger identifier uses first 16 hex characters of SHA-256(table name)."
+          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         }
       ],
       "source_provenance": [
@@ -14922,21 +14923,21 @@
       "foreign_keys": [],
       "triggers": [
         {
-          "name": "audit_immut_{substr(sha256(\"security_audit_events\"),0,16)}_u",
+          "name": "audit_immut_5e1df25372fff553_u",
           "timing": "BEFORE",
           "event": "UPDATE",
           "orientation": "ROW",
-          "definition_state": "PARTIAL",
-          "behavior": "Rejects all UPDATE operations; exact deterministic trigger identifier still needs hash expansion in manifest.",
+          "definition_state": "COMPLETE",
+          "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         },
         {
-          "name": "audit_immut_{substr(sha256(\"security_audit_events\"),0,16)}_d",
+          "name": "audit_immut_5e1df25372fff553_d",
           "timing": "BEFORE",
           "event": "DELETE",
           "orientation": "ROW",
-          "definition_state": "PARTIAL",
-          "behavior": "Rejects all DELETE operations; exact deterministic trigger identifier still needs hash expansion in manifest.",
+          "definition_state": "COMPLETE",
+          "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         }
       ],
@@ -17583,21 +17584,21 @@
       ],
       "triggers": [
         {
-          "name": "audit_immut_{substr(sha256(\"structured_enrichment_promotion_events\"),0,16)}_u",
+          "name": "audit_immut_3ba3ddd28550296d_u",
           "timing": "BEFORE",
           "event": "UPDATE",
           "orientation": "ROW",
-          "definition_state": "PARTIAL",
-          "behavior": "Rejects all UPDATE operations; exact deterministic trigger identifier remains to be expanded.",
+          "definition_state": "COMPLETE",
+          "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         },
         {
-          "name": "audit_immut_{substr(sha256(\"structured_enrichment_promotion_events\"),0,16)}_d",
+          "name": "audit_immut_3ba3ddd28550296d_d",
           "timing": "BEFORE",
           "event": "DELETE",
           "orientation": "ROW",
-          "definition_state": "PARTIAL",
-          "behavior": "Rejects all DELETE operations; exact deterministic trigger identifier remains to be expanded.",
+          "definition_state": "COMPLETE",
+          "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         }
       ],
@@ -18011,21 +18012,21 @@
       ],
       "triggers": [
         {
-          "name": "audit_immut_sha256(security-independent table suffix)_u",
+          "name": "audit_immut_493307493f91dfc1_u",
           "timing": "BEFORE",
           "event": "UPDATE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
-          "behavior": "Always signals SQLSTATE 45000; updates to verification decision history are rejected.",
+          "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         },
         {
-          "name": "audit_immut_sha256(security-independent table suffix)_d",
+          "name": "audit_immut_493307493f91dfc1_d",
           "timing": "BEFORE",
           "event": "DELETE",
           "orientation": "ROW",
           "definition_state": "COMPLETE",
-          "behavior": "Always signals SQLSTATE 45000; deletes from verification decision history are rejected.",
+          "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
           "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
         }
       ],
