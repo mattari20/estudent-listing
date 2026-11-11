@@ -33,6 +33,15 @@ class Phase1D2BSourceProvenanceTest(unittest.TestCase):
         self.assertEqual(self.manifest["application_table_count"], 62)
         self.assertEqual(self.manifest["framework_managed_table_count"], 1)
         self.assertEqual(len(manifest_tables), 63)
+        self.assertEqual(self.manifest["cumulative_manifest_coverage"]["application_table_state"], "COMPLETE")
+        self.assertEqual(self.manifest["cumulative_manifest_coverage"]["complete_application_tables"], 62)
+        self.assertEqual(self.manifest["cumulative_manifest_coverage"]["migration_object_pass"], 97)
+        self.assertEqual(self.manifest["cumulative_manifest_coverage"]["migration_object_not_checked"], 0)
+        self.assertTrue(all(
+            entry["object_level_review"] == "COMPLETE"
+            for name, entry in self.manifest["tables"].items()
+            if name != "migrations"
+        ))
 
         ledger = self.manifest["tables"]["migrations"]
         self.assertEqual(ledger["managed_by"], "Laravel DatabaseMigrationRepository")
