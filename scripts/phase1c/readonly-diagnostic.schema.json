@@ -1,28 +1,1012 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://estudent.pk/schemas/phase1c-readonly-diagnostic-v1.json",
-  "title": "Phase 1C Read-only Diagnostic Evidence",
+  "$id": "https://estudent.pk/schemas/phase1c-readonly-diagnostic-v2.json",
+  "title": "Phase 1D Full-Ledger Read-only Diagnostic Evidence",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version","database","metadata_visibility","tables","columns","indexes","expected_index_reconciliation","expected_column_reconciliation","foreign_keys","expected_foreign_key_reconciliation","expected_trigger_reconciliation","migration_ledger_reconciliation","queue_mapping","alert_mapping","orphan_checks","duplicate_checks","registry_counts","transaction"],
+  "required": [
+    "schema_version",
+    "database",
+    "metadata_visibility",
+    "tables",
+    "columns",
+    "indexes",
+    "expected_index_reconciliation",
+    "expected_column_reconciliation",
+    "foreign_keys",
+    "expected_foreign_key_reconciliation",
+    "expected_trigger_reconciliation",
+    "migration_ledger_reconciliation",
+    "queue_mapping",
+    "alert_mapping",
+    "orphan_checks",
+    "duplicate_checks",
+    "registry_counts",
+    "transaction",
+    "full_migration_ledger_inventory"
+  ],
   "properties": {
-    "schema_version": {"const": "phase1c-readonly-diagnostic/v1"},
-    "database": {"type":"object","required":["engine","server_version","identity_verified"],"properties":{"engine":{"enum":["mysql","mariadb"]},"server_version":{"type":"string","maxLength":128},"identity_verified":{"const":true}},"additionalProperties":false},
-    "metadata_visibility":{"type":"object","required":["complete","triggers_complete"],"properties":{"complete":{"type":"boolean"},"triggers_complete":{"type":"boolean"}},"additionalProperties":false},
-    "tables": {"type":"array","minItems":39,"maxItems":39,"items":{"type":"object","required":["table","state"],"properties":{"table":{"type":"string"},"state":{"enum":["PASS","MISSING","UNKNOWN"]},"options":{"type":"object"},"create_table_sql":{"type":"string"},"error":{"type":"object","required":["exception_class","sqlstate","vendor_code"]}},"additionalProperties":true}},
-    "columns": {"type":"array","items":{"type":"object","required":["table"],"properties":{"table":{"type":"string"},"COLUMN_NAME":{"type":"string"},"ORDINAL_POSITION":{"type":["integer","string"]},"COLUMN_DEFAULT":{},"IS_NULLABLE":{"type":"string"},"DATA_TYPE":{"type":"string"},"COLUMN_TYPE":{"type":"string"},"EXTRA":{"type":"string"},"GENERATION_EXPRESSION":{"type":["string","null"]},"state":{"enum":["UNKNOWN"]},"error":{"type":"object"}},"additionalProperties":true}},
-    "indexes": {"type":"array","items":{"type":"object","required":["table"],"properties":{"table":{"type":"string"},"INDEX_NAME":{"type":"string"},"NON_UNIQUE":{"type":["integer","string"]},"SEQ_IN_INDEX":{"type":["integer","string"]},"COLUMN_NAME":{"type":["string","null"]},"SUB_PART":{"type":["integer","string","null"]},"INDEX_TYPE":{"type":"string"},"state":{"enum":["UNKNOWN"]},"error":{"type":"object"}},"additionalProperties":true}},
-    "expected_index_reconciliation": {"type":"array","minItems":23,"maxItems":23,"items":{"type":"object","required":["table","name","columns","unique","index_type","state"],"properties":{"table":{"type":"string"},"name":{"type":"string"},"columns":{"type":"array","items":{"type":"string"}},"unique":{"type":"boolean"},"index_type":{"type":"string"},"state":{"enum":["PASS","FAIL","MISSING","NOT_CHECKED","UNKNOWN"]},"reason":{"type":"string"},"observed":{"type":"object"}},"additionalProperties":true}},
-    "expected_column_reconciliation":{"type":"array","minItems":50,"maxItems":50,"items":{"type":"object","required":["table","column","type","nullable","state"],"properties":{"table":{"type":"string"},"column":{"type":"string"},"type":{"type":"string"},"nullable":{"type":"boolean"},"default":{"type":["string","null"]},"state":{"enum":["PASS","FAIL","MISSING","UNKNOWN"]},"reason":{"type":"string"},"observed":{"type":"object","properties":{"type":{"type":"string"},"nullable":{"type":"boolean"},"default":{"type":["string","null"]},"default_is_null":{"type":"boolean"}},"additionalProperties":false},"error":{"type":"object","required":["exception_class","sqlstate","vendor_code"]}},"additionalProperties":false}},
-    "foreign_keys": {"type":"array","items":{"type":"object"}},
-    "expected_foreign_key_reconciliation":{"type":"array","minItems":23,"maxItems":23,"items":{"type":"object","required":["name","table","column","referenced_table","referenced_column","match_option","update_rule","delete_rule","state"],"properties":{"name":{"type":"string"},"table":{"type":"string"},"column":{"type":"string"},"referenced_table":{"type":"string"},"referenced_column":{"type":"string"},"match_option":{"type":"string"},"update_rule":{"type":"string"},"delete_rule":{"type":"string"},"state":{"enum":["PASS","FAIL","MISSING","UNKNOWN"]},"reason":{"type":"string"},"observed":{"type":"object","properties":{"name":{"type":"string"},"table":{"type":"string"},"column":{"type":"string"},"ordinal_position":{"type":"integer"},"position_in_unique_constraint":{"type":"integer"},"referenced_table_schema":{"type":"string"},"referenced_table":{"type":"string"},"referenced_column":{"type":"string"},"match_option":{"type":"string"},"update_rule":{"type":"string"},"delete_rule":{"type":"string"}},"additionalProperties":false},"error":{"type":"object","required":["exception_class","sqlstate","vendor_code"]}},"additionalProperties":false}},
-    "expected_trigger_reconciliation":{"type":"array","minItems":24,"maxItems":24,"items":{"type":"object","required":["name","table","event","timing","orientation","body_contract","state"],"properties":{"name":{"type":"string"},"table":{"type":"string"},"event":{"enum":["UPDATE","DELETE"]},"timing":{"const":"BEFORE"},"orientation":{"const":"ROW"},"body_contract":{"enum":["append_only","reconciliation_detach","identity_key_enrichment","identity_decision_delete"]},"state":{"enum":["PASS","FAIL","MISSING","UNKNOWN"]},"reason":{"type":"string"},"observed":{"type":"object","properties":{"table":{"type":"string"},"event":{"type":"string"},"timing":{"type":"string"},"orientation":{"type":"string"},"body_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"}},"additionalProperties":false},"error":{"type":"object","required":["exception_class","sqlstate","vendor_code"]}},"additionalProperties":false}},
-    "migration_ledger_reconciliation":{"type":"array","minItems":18,"maxItems":18,"items":{"type":"object","required":["migration","state","record_count","duplicate_count","batches"],"properties":{"migration":{"type":"string"},"state":{"enum":["PASS","FAIL","MISSING","UNKNOWN"]},"reason":{"type":"string"},"record_count":{"type":["integer","null"],"minimum":0},"duplicate_count":{"type":["integer","null"],"minimum":0},"batches":{"type":"array","items":{"type":"integer","minimum":0}},"batch_values_valid":{"type":"boolean"},"error":{"type":"object","required":["exception_class","sqlstate","vendor_code"]}},"additionalProperties":false}},
-    "queue_mapping": {"type":"object","required":["state","records"],"properties":{"state":{"enum":["PASS","FAIL","NOT_CHECKED","UNKNOWN"]},"open_record_count":{"type":"integer","minimum":0},"reason":{"type":"string"},"records":{"type":"array","maxItems":5,"items":{"type":"object","required":["record_ordinal","state"],"properties":{"record_ordinal":{"type":"integer","minimum":1,"maximum":5},"state":{"enum":["PASS","FAIL","NOT_CHECKED","UNKNOWN"]},"mapping_match_count":{"type":"integer","minimum":0}},"additionalProperties":false}}},"additionalProperties":true},
-    "alert_mapping": {"type":"object","required":["state","records"],"properties":{"state":{"enum":["PASS","FAIL","NOT_CHECKED","UNKNOWN"]},"open_record_count":{"type":"integer","minimum":0},"reason":{"type":"string"},"records":{"type":"array","maxItems":2,"items":{"type":"object","required":["record_ordinal","state"],"properties":{"record_ordinal":{"type":"integer","minimum":1,"maximum":2},"state":{"enum":["PASS","FAIL","NOT_CHECKED","UNKNOWN"]},"mapping_match_count":{"type":"integer","minimum":0}},"additionalProperties":false}}},"additionalProperties":true},
-    "orphan_checks": {"type":"array","minItems":18,"maxItems":18,"items":{"type":"object","required":["id","state"],"properties":{"id":{"type":"string"},"state":{"enum":["PASS","FAIL","NOT_CHECKED","UNKNOWN"]},"orphan_exists":{"type":"boolean"},"missing_prerequisites":{"type":"array","items":{"type":"string"}},"error":{"type":"object"}},"additionalProperties":true}},
-    "duplicate_checks": {"type":"array","minItems":14,"maxItems":14,"items":{"type":"object","required":["id","state"],"properties":{"id":{"type":"string"},"state":{"enum":["PASS","FAIL","NOT_CHECKED","UNKNOWN"]},"duplicate_group_exists":{"type":"boolean"},"missing_prerequisites":{"type":"array","items":{"type":"string"}},"error":{"type":"object"}},"additionalProperties":true}},
-    "registry_counts": {"type":"object","required":["tables","expected_indexes","expected_columns","expected_foreign_keys","expected_triggers","expected_migrations","orphan_checks","duplicate_checks"],"properties":{"tables":{"const":39},"expected_indexes":{"const":23},"expected_columns":{"const":50},"expected_foreign_keys":{"const":23},"expected_triggers":{"const":24},"expected_migrations":{"const":18},"orphan_checks":{"const":18},"duplicate_checks":{"const":14}},"additionalProperties":false},
-    "transaction": {"type":"object","required":["mode","outcome"],"properties":{"mode":{"const":"READ ONLY"},"outcome":{"const":"ROLLED_BACK"}},"additionalProperties":false}
+    "schema_version": {
+      "const": "phase1c-readonly-diagnostic/v2"
+    },
+    "database": {
+      "type": "object",
+      "required": [
+        "engine",
+        "server_version",
+        "identity_verified"
+      ],
+      "properties": {
+        "engine": {
+          "enum": [
+            "mysql",
+            "mariadb"
+          ]
+        },
+        "server_version": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "identity_verified": {
+          "const": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "metadata_visibility": {
+      "type": "object",
+      "required": [
+        "complete",
+        "triggers_complete"
+      ],
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "triggers_complete": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tables": {
+      "type": "array",
+      "minItems": 39,
+      "maxItems": 39,
+      "items": {
+        "type": "object",
+        "required": [
+          "table",
+          "state"
+        ],
+        "properties": {
+          "table": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "PASS",
+              "MISSING",
+              "UNKNOWN"
+            ]
+          },
+          "options": {
+            "type": "object"
+          },
+          "create_table_sql": {
+            "type": "string"
+          },
+          "error": {
+            "type": "object",
+            "required": [
+              "exception_class",
+              "sqlstate",
+              "vendor_code"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "columns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "table"
+        ],
+        "properties": {
+          "table": {
+            "type": "string"
+          },
+          "COLUMN_NAME": {
+            "type": "string"
+          },
+          "ORDINAL_POSITION": {
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "COLUMN_DEFAULT": {},
+          "IS_NULLABLE": {
+            "type": "string"
+          },
+          "DATA_TYPE": {
+            "type": "string"
+          },
+          "COLUMN_TYPE": {
+            "type": "string"
+          },
+          "EXTRA": {
+            "type": "string"
+          },
+          "GENERATION_EXPRESSION": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "enum": [
+              "UNKNOWN"
+            ]
+          },
+          "error": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "indexes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "table"
+        ],
+        "properties": {
+          "table": {
+            "type": "string"
+          },
+          "INDEX_NAME": {
+            "type": "string"
+          },
+          "NON_UNIQUE": {
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "SEQ_IN_INDEX": {
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "COLUMN_NAME": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "SUB_PART": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "INDEX_TYPE": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "UNKNOWN"
+            ]
+          },
+          "error": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "expected_index_reconciliation": {
+      "type": "array",
+      "minItems": 23,
+      "maxItems": 23,
+      "items": {
+        "type": "object",
+        "required": [
+          "table",
+          "name",
+          "columns",
+          "unique",
+          "index_type",
+          "state"
+        ],
+        "properties": {
+          "table": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unique": {
+            "type": "boolean"
+          },
+          "index_type": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "MISSING",
+              "NOT_CHECKED",
+              "UNKNOWN"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "observed": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "expected_column_reconciliation": {
+      "type": "array",
+      "minItems": 50,
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "required": [
+          "table",
+          "column",
+          "type",
+          "nullable",
+          "state"
+        ],
+        "properties": {
+          "table": {
+            "type": "string"
+          },
+          "column": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "default": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "MISSING",
+              "UNKNOWN"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "observed": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "nullable": {
+                "type": "boolean"
+              },
+              "default": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "default_is_null": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "error": {
+            "type": "object",
+            "required": [
+              "exception_class",
+              "sqlstate",
+              "vendor_code"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "foreign_keys": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "expected_foreign_key_reconciliation": {
+      "type": "array",
+      "minItems": 23,
+      "maxItems": 23,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "table",
+          "column",
+          "referenced_table",
+          "referenced_column",
+          "match_option",
+          "update_rule",
+          "delete_rule",
+          "state"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "table": {
+            "type": "string"
+          },
+          "column": {
+            "type": "string"
+          },
+          "referenced_table": {
+            "type": "string"
+          },
+          "referenced_column": {
+            "type": "string"
+          },
+          "match_option": {
+            "type": "string"
+          },
+          "update_rule": {
+            "type": "string"
+          },
+          "delete_rule": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "MISSING",
+              "UNKNOWN"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "observed": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "table": {
+                "type": "string"
+              },
+              "column": {
+                "type": "string"
+              },
+              "ordinal_position": {
+                "type": "integer"
+              },
+              "position_in_unique_constraint": {
+                "type": "integer"
+              },
+              "referenced_table_schema": {
+                "type": "string"
+              },
+              "referenced_table": {
+                "type": "string"
+              },
+              "referenced_column": {
+                "type": "string"
+              },
+              "match_option": {
+                "type": "string"
+              },
+              "update_rule": {
+                "type": "string"
+              },
+              "delete_rule": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "error": {
+            "type": "object",
+            "required": [
+              "exception_class",
+              "sqlstate",
+              "vendor_code"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "expected_trigger_reconciliation": {
+      "type": "array",
+      "minItems": 24,
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "table",
+          "event",
+          "timing",
+          "orientation",
+          "body_contract",
+          "state"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "table": {
+            "type": "string"
+          },
+          "event": {
+            "enum": [
+              "UPDATE",
+              "DELETE"
+            ]
+          },
+          "timing": {
+            "const": "BEFORE"
+          },
+          "orientation": {
+            "const": "ROW"
+          },
+          "body_contract": {
+            "enum": [
+              "append_only",
+              "reconciliation_detach",
+              "identity_key_enrichment",
+              "identity_decision_delete"
+            ]
+          },
+          "state": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "MISSING",
+              "UNKNOWN"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "observed": {
+            "type": "object",
+            "properties": {
+              "table": {
+                "type": "string"
+              },
+              "event": {
+                "type": "string"
+              },
+              "timing": {
+                "type": "string"
+              },
+              "orientation": {
+                "type": "string"
+              },
+              "body_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "additionalProperties": false
+          },
+          "error": {
+            "type": "object",
+            "required": [
+              "exception_class",
+              "sqlstate",
+              "vendor_code"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "migration_ledger_reconciliation": {
+      "type": "array",
+      "minItems": 18,
+      "maxItems": 18,
+      "items": {
+        "type": "object",
+        "required": [
+          "migration",
+          "state",
+          "record_count",
+          "duplicate_count",
+          "batches"
+        ],
+        "properties": {
+          "migration": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "MISSING",
+              "UNKNOWN"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "record_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "duplicate_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "batches": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "batch_values_valid": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "object",
+            "required": [
+              "exception_class",
+              "sqlstate",
+              "vendor_code"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "queue_mapping": {
+      "type": "object",
+      "required": [
+        "state",
+        "records"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NOT_CHECKED",
+            "UNKNOWN"
+          ]
+        },
+        "open_record_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reason": {
+          "type": "string"
+        },
+        "records": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "required": [
+              "record_ordinal",
+              "state"
+            ],
+            "properties": {
+              "record_ordinal": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5
+              },
+              "state": {
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "NOT_CHECKED",
+                  "UNKNOWN"
+                ]
+              },
+              "mapping_match_count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "alert_mapping": {
+      "type": "object",
+      "required": [
+        "state",
+        "records"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NOT_CHECKED",
+            "UNKNOWN"
+          ]
+        },
+        "open_record_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reason": {
+          "type": "string"
+        },
+        "records": {
+          "type": "array",
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "required": [
+              "record_ordinal",
+              "state"
+            ],
+            "properties": {
+              "record_ordinal": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2
+              },
+              "state": {
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "NOT_CHECKED",
+                  "UNKNOWN"
+                ]
+              },
+              "mapping_match_count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "orphan_checks": {
+      "type": "array",
+      "minItems": 18,
+      "maxItems": 18,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "state"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NOT_CHECKED",
+              "UNKNOWN"
+            ]
+          },
+          "orphan_exists": {
+            "type": "boolean"
+          },
+          "missing_prerequisites": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "error": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "duplicate_checks": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "state"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NOT_CHECKED",
+              "UNKNOWN"
+            ]
+          },
+          "duplicate_group_exists": {
+            "type": "boolean"
+          },
+          "missing_prerequisites": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "error": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "registry_counts": {
+      "type": "object",
+      "required": [
+        "tables",
+        "expected_indexes",
+        "expected_columns",
+        "expected_foreign_keys",
+        "expected_triggers",
+        "expected_migrations",
+        "orphan_checks",
+        "duplicate_checks"
+      ],
+      "properties": {
+        "tables": {
+          "const": 39
+        },
+        "expected_indexes": {
+          "const": 23
+        },
+        "expected_columns": {
+          "const": 50
+        },
+        "expected_foreign_keys": {
+          "const": 23
+        },
+        "expected_triggers": {
+          "const": 24
+        },
+        "expected_migrations": {
+          "const": 18
+        },
+        "orphan_checks": {
+          "const": 18
+        },
+        "duplicate_checks": {
+          "const": 14
+        }
+      },
+      "additionalProperties": false
+    },
+    "transaction": {
+      "type": "object",
+      "required": [
+        "mode",
+        "outcome"
+      ],
+      "properties": {
+        "mode": {
+          "const": "READ ONLY"
+        },
+        "outcome": {
+          "const": "ROLLED_BACK"
+        }
+      },
+      "additionalProperties": false
+    },
+    "full_migration_ledger_inventory": {
+      "type": "object",
+      "required": [
+        "state",
+        "source_file_count",
+        "ledger_row_count",
+        "distinct_ledger_migration_count",
+        "source_files_not_recorded",
+        "ledger_entries_without_source_files",
+        "duplicate_ledger_entries",
+        "invalid_ledger_rows",
+        "batch_numbers",
+        "batch_gaps",
+        "batch_gap_state",
+        "ordering_state",
+        "ordering_anomalies"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "MISSING",
+            "UNKNOWN"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "source_file_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "ledger_row_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "distinct_ledger_migration_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "source_files_not_recorded": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ledger_entries_without_source_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "duplicate_ledger_entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "migration",
+              "occurrences"
+            ],
+            "properties": {
+              "migration": {
+                "type": "string"
+              },
+              "occurrences": {
+                "type": "integer",
+                "minimum": 2
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "invalid_ledger_rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "migration": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "batch_numbers": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "batch_gaps": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "batch_gap_state": {
+          "enum": [
+            "PASS",
+            "NOT_CHECKED",
+            "UNKNOWN"
+          ]
+        },
+        "ordering_state": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNKNOWN"
+          ]
+        },
+        "ordering_anomalies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "batch",
+              "previous_migration",
+              "migration"
+            ],
+            "properties": {
+              "batch": {
+                "type": "integer"
+              },
+              "previous_migration": {
+                "type": "string"
+              },
+              "migration": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "error": {
+          "type": "object",
+          "required": [
+            "exception_class",
+            "sqlstate",
+            "vendor_code"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
   }
 }
