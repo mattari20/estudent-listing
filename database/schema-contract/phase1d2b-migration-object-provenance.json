@@ -8,7 +8,7 @@
   "application_table_scope_count": 62,
   "framework_managed_ledger": "migrations",
   "framework_managed_ledger_source": "Laravel DatabaseMigrationRepository",
-  "coverage_state": "23 REVIEWED_NOOP; 51 SOURCE_REVIEWED_COMPLETE; 23 SOURCE_REVIEWED_PARTIAL; OBJECT-LEVEL SOURCE-TO-MANIFEST MAPPING POPULATED; CUMULATIVE TABLE RECONCILIATION PENDING",
+  "coverage_state": "23 REVIEWED_NOOP; 74 SOURCE_REVIEWED_COMPLETE; 0 SOURCE_REVIEWED_PARTIAL; ALL SOURCE OPERATIONS REVIEWED; OBJECT-LEVEL COMPARATOR ACCEPTANCE PENDING",
   "migrations": [
     {
       "migration": "2026_09_23_000001_create_institutions_table",
@@ -5643,10 +5643,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "source_snapshots",
       "expected_postconditions": "Conditional helper: if content column exists up() returns; otherwise adds nullable LONGTEXT content after content_type. down() conditionally drops content. Existing column type is not validated when present; partial pre-existing definitions remain a source uncertainty.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Conditional helper: if content column exists up() returns; otherwise adds nullable LONGTEXT content after content_type. down() conditionally drops content. Existing column type is not validated when present; partial pre-existing definitions remain a source uncertainty.",
         "down_effect": "Conditionally drops content; asymmetric with up() early return and no type validation",
         "operation_order": 75,
@@ -5658,10 +5658,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "Conditionally drops content; asymmetric with up() early return and no type validation",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "source_snapshots.content"
@@ -5671,7 +5670,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "Adds content/content metadata only when the column is absent; an existing column is accepted without exact type/length/default validation. Down drops the added content columns when present.",
+        "rollback_review": "Down may remove a pre-existing column if the migration was recorded after an earlier manual/partial application; this ownership ambiguity is explicitly recorded.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 75
@@ -5696,10 +5698,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "source_monitoring_policies",
       "expected_postconditions": "For each of cadence, next_run_at, last_success_at, last_failure_at, consecutive_failures: adds only when absent. cadence VARCHAR(255) DEFAULT daily; three nullable TIMESTAMP fields; unsigned INT consecutive_failures DEFAULT 0. Does not add the index created by prior 2026_09_24_000021 migration. No data transform.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "For each of cadence, next_run_at, last_success_at, last_failure_at, consecutive_failures: adds only when absent. cadence VARCHAR(255) DEFAULT daily; three nullable TIMESTAMP fields; unsigned INT consecutive_failures DEFAULT 0. Does not add the index created by prior 2026_09_24_000021 migration. No data transform.",
         "down_effect": "Conditionally drops each of five columns independently; does not manage any index",
         "operation_order": 76,
@@ -5711,10 +5713,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "Conditionally drops each of five columns independently; does not manage any index",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [],
           "columns_changed": [],
@@ -5722,7 +5723,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "Adds each scheduling column and index only when absent; an existing column is not revalidated for exact type/default. Down removes the scheduling columns/index.",
+        "rollback_review": "Down may remove pre-existing scheduling columns accepted by the conditional up path.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 76
@@ -5753,10 +5757,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "None",
       "expected_postconditions": "Calls MigrationSchemaGuard::createTableIfMissing; creates email VARCHAR(255) primary key, token VARCHAR(255) NOT NULL, created_at nullable TIMESTAMP; validates required columns and exact MySQL type/null/default contracts on existing table. Helper does not validate indexes beyond declared columns.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Calls MigrationSchemaGuard::createTableIfMissing; creates email VARCHAR(255) primary key, token VARCHAR(255) NOT NULL, created_at nullable TIMESTAMP; validates required columns and exact MySQL type/null/default contracts on existing table. Helper does not validate indexes beyond declared columns.",
         "down_effect": "DROP TABLE password_reset_tokens",
         "operation_order": 77,
@@ -5768,10 +5772,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "DROP TABLE password_reset_tokens",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "password_reset_tokens.created_at",
@@ -5785,7 +5788,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "MigrationSchemaGuard::createTableIfMissing creates the table on a clean path; an existing table path checks required columns and MySQL column definitions but does not fully prove primary-key/index parity.",
+        "rollback_review": "Down drops the table even when the helper accepted a pre-existing table; this is destructive for that conditional path.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 77
@@ -5812,10 +5818,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "users",
       "expected_postconditions": "Adds users.must_change_password BOOLEAN/TINYINT(1) NOT NULL DEFAULT 0 when absent and returns. If already present on MySQL, reads information_schema.COLUMNS and validates tinyint(1), NOT NULL, default 0; throws on mismatch. No data backfill.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Adds users.must_change_password BOOLEAN/TINYINT(1) NOT NULL DEFAULT 0 when absent and returns. If already present on MySQL, reads information_schema.COLUMNS and validates tinyint(1), NOT NULL, default 0; throws on mismatch. No data backfill.",
         "down_effect": "Conditionally drops must_change_password",
         "operation_order": 78,
@@ -5827,10 +5833,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "Conditionally drops must_change_password",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "users.must_change_password"
@@ -5840,7 +5845,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "Adds the boolean column when absent; if present, validates its MySQL type/nullability/default through MigrationSchemaGuard::assertExistingColumnDefinitions.",
+        "rollback_review": "Down drops the column whenever present, including a column that existed before the migration.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 78
@@ -5867,10 +5875,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "import_batches",
       "expected_postconditions": "Adds duplicate_rows INT UNSIGNED NOT NULL DEFAULT 0 after candidate_rows when absent and returns. If present on MySQL validates type, nullability and default through information_schema; no data backfill.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Adds duplicate_rows INT UNSIGNED NOT NULL DEFAULT 0 after candidate_rows when absent and returns. If present on MySQL validates type, nullability and default through information_schema; no data backfill.",
         "down_effect": "Conditionally drops duplicate_rows",
         "operation_order": 79,
@@ -5882,10 +5890,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation; default is zero.",
         "rollback_considerations": "Conditionally drops duplicate_rows",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "import_batches.duplicate_rows"
@@ -5895,7 +5902,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "Adds duplicate_rows when absent; if present, validates unsigned integer type, nullability and default through MigrationSchemaGuard.",
+        "rollback_review": "Down drops the column whenever present, including a pre-existing matching column.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 79
@@ -5944,10 +5954,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "sources, source_change_observations, source_snapshots",
       "expected_postconditions": "Creates BIGINT UNSIGNED AI PK; nullable source_id, source_change_observation_id and snapshot_id with named FKs to sources/source_change_observations/source_snapshots SET NULL; nullable profile_key; outcome VARCHAR(40); unsigned candidate_count default 0; nullable review_package_status VARCHAR(40), failure_class, details JSON; required occurred_at; timestamps; indexes source/time and outcome/time.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Creates BIGINT UNSIGNED AI PK; nullable source_id, source_change_observation_id and snapshot_id with named FKs to sources/source_change_observations/source_snapshots SET NULL; nullable profile_key; outcome VARCHAR(40); unsigned candidate_count default 0; nullable review_package_status VARCHAR(40), failure_class, details JSON; required occurred_at; timestamps; indexes source/time and outcome/time.",
         "down_effect": "DROP TABLE institute_discovery_run_outcomes",
         "operation_order": 80,
@@ -5959,10 +5969,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "DROP TABLE institute_discovery_run_outcomes",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "institute_discovery_run_outcomes.candidate_count",
@@ -5994,7 +6003,10 @@
           ],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "Unconditional create on the clean migration path; standard create/drop table migration.",
+        "rollback_review": "Down drops the created table.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 80
@@ -6041,10 +6053,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "enrichment_import_rows, import_batches",
       "expected_postconditions": "Uses MigrationSchemaGuard createTableIfMissing with declared required columns and MySQL expected definitions. Creates BIGINT UNSIGNED AI PK; enrichment_import_row_id and import_batch_id FKs CASCADE; entity_type VARCHAR(40), event_type VARCHAR(60), nullable canonical_type VARCHAR(80)/canonical_id, actor_type VARCHAR(40) default system, nullable actor_id/reason/before_snapshot/after_snapshot/metadata JSON, occurred_at required TIMESTAMP, timestamps; named indexes row/time, canonical pair, batch/event.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Uses MigrationSchemaGuard createTableIfMissing with declared required columns and MySQL expected definitions. Creates BIGINT UNSIGNED AI PK; enrichment_import_row_id and import_batch_id FKs CASCADE; entity_type VARCHAR(40), event_type VARCHAR(60), nullable canonical_type VARCHAR(80)/canonical_id, actor_type VARCHAR(40) default system, nullable actor_id/reason/before_snapshot/after_snapshot/metadata JSON, occurred_at required TIMESTAMP, timestamps; named indexes row/time, canonical pair, batch/event.",
         "down_effect": "DROP TABLE structured_enrichment_promotion_events",
         "operation_order": 81,
@@ -6056,10 +6068,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "DROP TABLE structured_enrichment_promotion_events",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "structured_enrichment_promotion_events.actor_id",
@@ -6089,7 +6100,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "MigrationSchemaGuard::createTableIfMissing creates the table on a clean path; existing-table path validates required columns and MySQL column definitions but does not fully validate all indexes/FKs.",
+        "rollback_review": "Down drops the table even if the helper accepted a pre-existing table.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 81
@@ -6135,10 +6149,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "sources and source_change_observations are semantic references but migration declares no FKs",
       "expected_postconditions": "Conditional table creation. If table exists, checks required column presence and named/equivalent ordered nonunique indexes, throws if incomplete, otherwise returns without validating exact column definitions/FKs. If absent creates BIGINT UNSIGNED AI PK; nullable source_id and source_change_observation_id indexed; canonical_type VARCHAR(100), canonical_id BIGINT UNSIGNED, field_name VARCHAR(100); nullable before/after JSON; required evidence_url/evidence_excerpt TEXT, content_fingerprint VARCHAR(128), observed_at/occurred_at TIMESTAMP; timestamps; indexes source, observation and canonical_type/canonical_id/field_name.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Conditional table creation. If table exists, checks required column presence and named/equivalent ordered nonunique indexes, throws if incomplete, otherwise returns without validating exact column definitions/FKs. If absent creates BIGINT UNSIGNED AI PK; nullable source_id and source_change_observation_id indexed; canonical_type VARCHAR(100), canonical_id BIGINT UNSIGNED, field_name VARCHAR(100); nullable before/after JSON; required evidence_url/evidence_excerpt TEXT, content_fingerprint VARCHAR(128), observed_at/occurred_at TIMESTAMP; timestamps; indexes source, observation and canonical_type/canonical_id/field_name.",
         "down_effect": "DROP TABLE official_source_refresh_events",
         "operation_order": 82,
@@ -6150,10 +6164,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "DROP TABLE official_source_refresh_events",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "official_source_refresh_events.after_value",
@@ -6182,7 +6195,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "Creates the table if absent; existing-table path verifies required columns and named indexes but does not fully validate every column definition or FK contract.",
+        "rollback_review": "Down drops the table even if the conditional path accepted a pre-existing table.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 82
@@ -6254,10 +6270,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "institutions, sources, source_change_observations, source_snapshots, evidence, users, official_source_refresh_events",
       "expected_postconditions": "Creates BIGINT UNSIGNED AI PK; institution_id FK RESTRICT; field_name VARCHAR(100); nullable expected_current_value LONGTEXT; proposed_value LONGTEXT; source_id/source_change_observation_id/source_snapshot_id/evidence_id FKs RESTRICT; evidence_url TEXT/evidence_excerpt LONGTEXT; content_fingerprint VARCHAR(128); source_observed_at VARCHAR(40), nullable evidence_observed_at; proposal_hash CHAR(64) unique; status VARCHAR(24) default pending; created_by FK users RESTRICT; nullable reviewer_id FK users RESTRICT; nullable decision_at/decision_reason/applied_at/application_outcome; nullable applied_refresh_event_id FK official_source_refresh_events RESTRICT; timestamps; three named indexes.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Creates BIGINT UNSIGNED AI PK; institution_id FK RESTRICT; field_name VARCHAR(100); nullable expected_current_value LONGTEXT; proposed_value LONGTEXT; source_id/source_change_observation_id/source_snapshot_id/evidence_id FKs RESTRICT; evidence_url TEXT/evidence_excerpt LONGTEXT; content_fingerprint VARCHAR(128); source_observed_at VARCHAR(40), nullable evidence_observed_at; proposal_hash CHAR(64) unique; status VARCHAR(24) default pending; created_by FK users RESTRICT; nullable reviewer_id FK users RESTRICT; nullable decision_at/decision_reason/applied_at/application_outcome; nullable applied_refresh_event_id FK official_source_refresh_events RESTRICT; timestamps; three named indexes.",
         "down_effect": "DROP TABLE institution_field_approvals",
         "operation_order": 83,
@@ -6269,10 +6285,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "DROP TABLE institution_field_approvals",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "institution_field_approvals.application_outcome",
@@ -6327,7 +6342,10 @@
           ],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "Unconditional create on clean migration path; six FK-support indexes are engine-generated where no declared index covers the FK source column.",
+        "rollback_review": "Down drops the created table.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 83
@@ -6365,10 +6383,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "None",
       "expected_postconditions": "Uses MigrationSchemaGuard createTableIfMissing with exact column contract. Creates BIGINT UNSIGNED AI PK; task_key VARCHAR(120) unique; owner_token/run_id UUID (MySQL CHAR(36)); acquired_at/expires_at required TIMESTAMP; expires_at index; timestamps.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Uses MigrationSchemaGuard createTableIfMissing with exact column contract. Creates BIGINT UNSIGNED AI PK; task_key VARCHAR(120) unique; owner_token/run_id UUID (MySQL CHAR(36)); acquired_at/expires_at required TIMESTAMP; expires_at index; timestamps.",
         "down_effect": "DROP TABLE governed_execution_leases",
         "operation_order": 84,
@@ -6380,10 +6398,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "DROP TABLE governed_execution_leases",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "governed_execution_leases.acquired_at",
@@ -6404,7 +6421,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "MigrationSchemaGuard::createTableIfMissing creates the table on a clean path; existing-table path verifies required columns and MySQL column definitions but does not fully validate unique/ordinary index parity.",
+        "rollback_review": "Down drops the table even if the helper accepted a pre-existing table.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 84
@@ -6457,10 +6477,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "None for runs; event FK references governed_execution_runs",
       "expected_postconditions": "Creates two tables through MigrationSchemaGuard. Runs: UUID CHAR(36) PK; task_key VARCHAR(120) index; owner_token CHAR(36) index; runner VARCHAR(80); nullable application_revision VARCHAR(40); status VARCHAR(20) index; started_at required; nullable heartbeat_at/finished_at/failure_code VARCHAR(160); timestamps. Events: BIGINT UNSIGNED AI PK; run_id CHAR(36) indexed FK CASCADE to runs; event_type VARCHAR(30); occurred_at required; nullable failure_code VARCHAR(160); timestamps. Exact declared column contracts are passed to helper.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Creates two tables through MigrationSchemaGuard. Runs: UUID CHAR(36) PK; task_key VARCHAR(120) index; owner_token CHAR(36) index; runner VARCHAR(80); nullable application_revision VARCHAR(40); status VARCHAR(20) index; started_at required; nullable heartbeat_at/finished_at/failure_code VARCHAR(160); timestamps. Events: BIGINT UNSIGNED AI PK; run_id CHAR(36) indexed FK CASCADE to runs; event_type VARCHAR(30); occurred_at required; nullable failure_code VARCHAR(160); timestamps. Exact declared column contracts are passed to helper.",
         "down_effect": "Drops events then runs",
         "operation_order": 85,
@@ -6473,10 +6493,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "Drops events then runs",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "governed_execution_run_events.created_at",
@@ -6511,7 +6530,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "MigrationSchemaGuard::createTableIfMissing creates governed_execution_runs and governed_execution_run_events on a clean path; existing-table path validates columns/types but not complete index/FK parity.",
+        "rollback_review": "Down drops run events first and then runs; an accepted pre-existing table would also be dropped.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 85
@@ -6540,10 +6562,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "source_retrieval_runs",
       "expected_postconditions": "MigrationSchemaGuard::ensureNullableUniqueString adds nullable VARCHAR(64) idempotency_key plus named single-column unique BTREE after checking table, type/nullability, duplicate nonnull values and exact index contract. Existing incompatible same-name/equivalent unique state throws.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "MigrationSchemaGuard::ensureNullableUniqueString adds nullable VARCHAR(64) idempotency_key plus named single-column unique BTREE after checking table, type/nullability, duplicate nonnull values and exact index contract. Existing incompatible same-name/equivalent unique state throws.",
         "down_effect": "If column exists drops named unique then column; may fail if index name/contract differs",
         "operation_order": 86,
@@ -6555,10 +6577,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "If column exists drops named unique then column; may fail if index name/contract differs",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "source_retrieval_runs.idempotency_key"
@@ -6570,7 +6591,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "MigrationSchemaGuard::ensureNullableUniqueString validates or creates a nullable VARCHAR(64) column and exact unique BTREE index; incompatible existing column/index causes an exception.",
+        "rollback_review": "Down drops the named unique index and column if the column exists, including previously present matching objects.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 86
@@ -6601,10 +6625,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "source_snapshots, source_change_observations",
       "expected_postconditions": "Read-only duplicate preflight rejects duplicate non-NULL current_snapshot_id. Adds nullable VARCHAR(64) capture_key plus named unique index to source_snapshots through MigrationSchemaGuard. Validates source_change_observations.current_snapshot_id is NOT NULL BIGINT UNSIGNED on MySQL; inspects named unique index exact single-column BTREE contract; if another equivalent unique exists under another name throws; otherwise adds named unique current_snapshot_id. down drops observation unique and capture_key unique+column.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Read-only duplicate preflight rejects duplicate non-NULL current_snapshot_id. Adds nullable VARCHAR(64) capture_key plus named unique index to source_snapshots through MigrationSchemaGuard. Validates source_change_observations.current_snapshot_id is NOT NULL BIGINT UNSIGNED on MySQL; inspects named unique index exact single-column BTREE contract; if another equivalent unique exists under another name throws; otherwise adds named unique current_snapshot_id. down drops observation unique and capture_key unique+column.",
         "down_effect": "Drops named uniques and capture_key; destructive column removal",
         "operation_order": 87,
@@ -6617,10 +6641,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "Read-only duplicate preflight only; no data backfill or DML.",
         "rollback_considerations": "Drops named uniques and capture_key; destructive column removal",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "source_snapshots.capture_key"
@@ -6633,7 +6656,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "Preflights duplicate non-NULL current_snapshot_id rows; ensures source_snapshots.capture_key nullable unique string; validates current_snapshot_id BIGINT UNSIGNED NOT NULL; validates the named unique BTREE index and rejects a semantically equivalent differently named unique index rather than silently renaming it.",
+        "rollback_review": "Down drops the unique observation index and capture_key index/column when present.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 87
@@ -6662,10 +6688,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "institute_discovery_run_outcomes",
       "expected_postconditions": "MigrationSchemaGuard adds nullable VARCHAR(64) idempotency_key and named single-column unique index with duplicate preflight and strict existing definition/index checks.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "MigrationSchemaGuard adds nullable VARCHAR(64) idempotency_key and named single-column unique index with duplicate preflight and strict existing definition/index checks.",
         "down_effect": "Drops unique and column if present",
         "operation_order": 88,
@@ -6677,10 +6703,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "Drops unique and column if present",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "institute_discovery_run_outcomes.idempotency_key"
@@ -6692,7 +6717,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "MigrationSchemaGuard::ensureNullableUniqueString validates or creates nullable VARCHAR(64) and its exact unique index.",
+        "rollback_review": "Down drops the named unique index and column if present.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 88
@@ -6721,10 +6749,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "change_events",
       "expected_postconditions": "MigrationSchemaGuard adds nullable BIGINT UNSIGNED source_change_assertion_link_id and named unique index; helper checks duplicates and exact unique index semantics.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "MigrationSchemaGuard adds nullable BIGINT UNSIGNED source_change_assertion_link_id and named unique index; helper checks duplicates and exact unique index semantics.",
         "down_effect": "Drops named unique and column if present",
         "operation_order": 89,
@@ -6736,10 +6764,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "Drops named unique and column if present",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "change_events.source_change_assertion_link_id"
@@ -6751,7 +6778,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "MigrationSchemaGuard::ensureNullableUniqueUnsignedBigInteger validates or creates nullable BIGINT UNSIGNED and exact unique BTREE index.",
+        "rollback_review": "Down drops the named unique index and column if present.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 89
@@ -6789,10 +6819,10 @@
       "data_backfills_or_transformations": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
       "required_prerequisites": "data_reverification_queue",
       "expected_postconditions": "Preflights duplicate open queue identities. Creates identity_key VARCHAR(64) PK, subject_type VARCHAR(255), subject_id BIGINT UNSIGNED, nullable attribute VARCHAR(255), nullable active_queue_id BIGINT UNSIGNED indexed, timestamps; if pre-existing validates required columns, MySQL column definitions and exact PK. Then chunkById reads open queue rows and INSERTs SHA-256 identities, refusing key/queue conflicts. This is a data backfill and is prohibited in production under this task; only source-described.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Preflights duplicate open queue identities. Creates identity_key VARCHAR(64) PK, subject_type VARCHAR(255), subject_id BIGINT UNSIGNED, nullable attribute VARCHAR(255), nullable active_queue_id BIGINT UNSIGNED indexed, timestamps; if pre-existing validates required columns, MySQL column definitions and exact PK. Then chunkById reads open queue rows and INSERTs SHA-256 identities, refusing key/queue conflicts. This is a data backfill and is prohibited in production under this task; only source-described.",
         "down_effect": "DROP TABLE identity table; does not delete or reverse queue rows",
         "operation_order": 90,
@@ -6805,10 +6835,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
+        "data_effects": "Backfills open queue rows in chunks of 500. identity_key is SHA-256 of JSON [subject_type, integer subject_id, attribute]. Existing key/queue mappings are checked for conflicts; only absent mappings are inserted with timestamps.",
         "rollback_considerations": "DROP TABLE identity table; does not delete or reverse queue rows",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "data_reverification_queue_identities.active_queue_id",
@@ -6827,7 +6856,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "Preflights duplicate open queue subject/attribute identities; creates the identity table or validates required columns, MySQL definitions and PRIMARY(identity_key) on an existing-table path.",
+        "rollback_review": "Down drops the identity table and all derived mappings; destructive to backfilled identity rows.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 90
@@ -6865,10 +6897,10 @@
       "data_backfills_or_transformations": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
       "required_prerequisites": "monitoring_alerts, security_audit_events",
       "expected_postconditions": "Read-only preflight rejects duplicate open monitoring alert dedupe_key. Creates monitoring_alert_identities with dedupe_key VARCHAR(40) PK, nullable active_alert_id BIGINT UNSIGNED indexed, timestamps; validates existing schema/PK if present. Reads open alerts in chunks and inserts identity rows, refusing mismatches. Adds security_audit_events.monitoring_idempotency_key nullable VARCHAR(191) with named unique via MigrationSchemaGuard.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Read-only preflight rejects duplicate open monitoring alert dedupe_key. Creates monitoring_alert_identities with dedupe_key VARCHAR(40) PK, nullable active_alert_id BIGINT UNSIGNED indexed, timestamps; validates existing schema/PK if present. Reads open alerts in chunks and inserts identity rows, refusing mismatches. Adds security_audit_events.monitoring_idempotency_key nullable VARCHAR(191) with named unique via MigrationSchemaGuard.",
         "down_effect": "Drops audit unique and column; drops monitoring_alert_identities (data loss of identity map)",
         "operation_order": 91,
@@ -6882,10 +6914,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
+        "data_effects": "Backfills open alerts in chunks of 500, mapping dedupe_key to active_alert_id. Existing mismatched key/alert mappings abort; absent mappings are inserted.",
         "rollback_considerations": "Drops audit unique and column; drops monitoring_alert_identities (data loss of identity map)",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "monitoring_alert_identities.active_alert_id",
@@ -6903,7 +6934,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "Preflights duplicate open alert dedupe_key values; creates or validates monitoring_alert_identities columns, MySQL definitions and PRIMARY(dedupe_key); ensures security_audit_events.monitoring_idempotency_key is nullable unique VARCHAR(191).",
+        "rollback_review": "Down drops the audit idempotency unique index/column and drops monitoring_alert_identities, including derived mappings.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 91
@@ -6959,10 +6993,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "source_monitoring_policies, governed_execution_runs, sources, source_retrieval_runs, source_change_observations",
       "expected_postconditions": "Creates both checkpoint tables through MigrationSchemaGuard with required column/type/null/default contracts. Runs: BIGINT UNSIGNED AI PK, policy_id BIGINT UNSIGNED indexed, nullable execution_run_id CHAR(36) indexed, status VARCHAR(20) indexed, started_at, nullable finished_at/summary JSON-or-LONGTEXT/failure_code VARCHAR(160), timestamps. Run sources: BIGINT UNSIGNED AI PK, policy_run_id/source_id BIGINT UNSIGNED, status VARCHAR(20), nullable retrieval_run_id/observation_id BIGINT UNSIGNED, nullable failure_code, started_at/nullable finished_at, timestamps; unique(policy_run_id,source_id), index(source_id,status). FKs are deferred to 000015.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Creates both checkpoint tables through MigrationSchemaGuard with required column/type/null/default contracts. Runs: BIGINT UNSIGNED AI PK, policy_id BIGINT UNSIGNED indexed, nullable execution_run_id CHAR(36) indexed, status VARCHAR(20) indexed, started_at, nullable finished_at/summary JSON-or-LONGTEXT/failure_code VARCHAR(160), timestamps. Run sources: BIGINT UNSIGNED AI PK, policy_run_id/source_id BIGINT UNSIGNED, status VARCHAR(20), nullable retrieval_run_id/observation_id BIGINT UNSIGNED, nullable failure_code, started_at/nullable finished_at, timestamps; unique(policy_run_id,source_id), index(source_id,status). FKs are deferred to 000015.",
         "down_effect": "Drops run_sources then runs",
         "operation_order": 92,
@@ -6975,10 +7009,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation in this migration.",
         "rollback_considerations": "Drops run_sources then runs",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "monitoring_policy_run_sources.created_at",
@@ -7016,7 +7049,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "MigrationSchemaGuard::createTableIfMissing creates monitoring_policy_runs and monitoring_policy_run_sources; existing-table path validates required columns and MySQL column definitions but does not fully validate indexes/FKs. Later migration 000015 adds the FK contract.",
+        "rollback_review": "Down drops monitoring_policy_run_sources then monitoring_policy_runs; accepted pre-existing tables would also be dropped.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 92
@@ -7054,10 +7090,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "all four tables",
       "expected_postconditions": "Four helper calls add nullable VARCHAR(64) discovery_identity_key and named unique indexes to import_batches, evidence, import_rows, assertions. Each helper checks table existence, exact MySQL type/nullability, duplicate non-NULL keys and exact single-column BTREE unique index; conflicting equivalent differently named index throws.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Four helper calls add nullable VARCHAR(64) discovery_identity_key and named unique indexes to import_batches, evidence, import_rows, assertions. Each helper checks table existence, exact MySQL type/nullability, duplicate non-NULL keys and exact single-column BTREE unique index; conflicting equivalent differently named index throws.",
         "down_effect": "For each table conditionally drops named unique and column",
         "operation_order": 93,
@@ -7072,10 +7108,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "For each table conditionally drops named unique and column",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "assertions.discovery_identity_key",
@@ -7093,7 +7128,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "Ensures nullable unique VARCHAR(64) discovery_identity_key on import_batches, evidence, import_rows and assertions using strict MigrationSchemaGuard column/index validation.",
+        "rollback_review": "Down removes each named unique index and discovery_identity_key column if present.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 93
@@ -7146,10 +7184,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "identity_match_candidates, identity_resolution_decisions, import_conflicts",
       "expected_postconditions": "Adds nullable CHAR(64) identity_key/decision_identity_key with unique indexes to identity_match_candidates, identity_resolution_decisions, import_conflicts via strict helper. Creates import_conflict_events with BIGINT UNSIGNED AI PK; import_conflict_id FK CASCADE; event_type VARCHAR(40); nullable status_before VARCHAR(30), actor_type VARCHAR(40), actor_id BIGINT UNSIGNED, reason TEXT, metadata JSON; status_after VARCHAR(30); idempotency_key CHAR(64) unique; occurred_at required; timestamps; index(conflict_id,occurred_at); exact required column/type contract passed to helper.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Adds nullable CHAR(64) identity_key/decision_identity_key with unique indexes to identity_match_candidates, identity_resolution_decisions, import_conflicts via strict helper. Creates import_conflict_events with BIGINT UNSIGNED AI PK; import_conflict_id FK CASCADE; event_type VARCHAR(40); nullable status_before VARCHAR(30), actor_type VARCHAR(40), actor_id BIGINT UNSIGNED, reason TEXT, metadata JSON; status_after VARCHAR(30); idempotency_key CHAR(64) unique; occurred_at required; timestamps; index(conflict_id,occurred_at); exact required column/type contract passed to helper.",
         "down_effect": "Drops event table then drops unique keys and three identity columns",
         "operation_order": 94,
@@ -7164,10 +7202,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "Drops event table then drops unique keys and three identity columns",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "identity_match_candidates.identity_key",
@@ -7199,7 +7236,10 @@
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "Ensures nullable unique CHAR(64) identity keys on identity_match_candidates, identity_resolution_decisions and import_conflicts; creates import_conflict_events via createTableIfMissing, whose existing-table path validates columns/types but not full index/FK parity.",
+        "rollback_review": "Down drops import_conflict_events and removes the three unique identity columns/indexes.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 94
@@ -7250,10 +7290,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "sources, source_snapshots",
       "expected_postconditions": "Uses MigrationSchemaGuard createTableIfMissing with exact required columns and MySQL definitions. Creates BIGINT UNSIGNED AI PK; source_id, triggering_snapshot_id, current_snapshot_id required BIGINT UNSIGNED; nullable expected_previous_snapshot_id and recorded_previous_snapshot_id; identity_key VARCHAR(64) unique; status VARCHAR(32) default pending_review; nullable details JSON; timestamps; five named FKs (source and three snapshot refs CASCADE; two previous snapshot refs SET NULL); indexes source/status and current_snapshot/status.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Uses MigrationSchemaGuard createTableIfMissing with exact required columns and MySQL definitions. Creates BIGINT UNSIGNED AI PK; source_id, triggering_snapshot_id, current_snapshot_id required BIGINT UNSIGNED; nullable expected_previous_snapshot_id and recorded_previous_snapshot_id; identity_key VARCHAR(64) unique; status VARCHAR(32) default pending_review; nullable details JSON; timestamps; five named FKs (source and three snapshot refs CASCADE; two previous snapshot refs SET NULL); indexes source/status and current_snapshot/status.",
         "down_effect": "DROP TABLE source_snapshot_reconciliation_requests",
         "operation_order": 95,
@@ -7265,10 +7305,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "No row transformation.",
         "rollback_considerations": "DROP TABLE source_snapshot_reconciliation_requests",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "source_snapshot_reconciliation_requests.created_at",
@@ -7302,7 +7341,10 @@
           ],
           "foreign_keys_changed": [],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "MigrationSchemaGuard::createTableIfMissing creates the request table with five named FKs and two named indexes; existing-table path checks required columns and MySQL column definitions but not complete FK/index parity.",
+        "rollback_review": "Down drops the request table even if the helper accepted a pre-existing table.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [],
       "execution_order": 95
@@ -7370,10 +7412,10 @@
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "audit tables and their parent tables; import_conflict_events and governed_execution_run_events must exist",
       "expected_postconditions": "SQLite path installs 22 append-only UPDATE/DELETE guards on 11 audit tables, two identity-decision guards and 7 parent-delete guards. MySQL path runs 11 orphan preflight SELECTs, installs/reconciles 11 named RESTRICT FKs, then creates 22 BEFORE ROW triggers on 11 tables plus identity_decision_update_guard/delete_guard. MySQL raw SQL CREATE/DROP TRIGGER and ALTER TABLE DROP FOREIGN KEY are used. import_reconciliation_events UPDATE guard permits only one-time import_row_id non-NULL to NULL detachment with all other fields unchanged; identity_resolution_decisions UPDATE guard permits only decision_identity_key NULL->NOT NULL with all other tracked fields unchanged. No data DML in up().",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "SQLite path installs 22 append-only UPDATE/DELETE guards on 11 audit tables, two identity-decision guards and 7 parent-delete guards. MySQL path runs 11 orphan preflight SELECTs, installs/reconciles 11 named RESTRICT FKs, then creates 22 BEFORE ROW triggers on 11 tables plus identity_decision_update_guard/delete_guard. MySQL raw SQL CREATE/DROP TRIGGER and ALTER TABLE DROP FOREIGN KEY are used. import_reconciliation_events UPDATE guard permits only one-time import_row_id non-NULL to NULL detachment with all other fields unchanged; identity_resolution_decisions UPDATE guard permits only decision_identity_key NULL->NOT NULL with all other tracked fields unchanged. No data DML in up().",
         "down_effect": "Drops MySQL triggers and reverses 11 RESTRICT FKs to CASCADE; SQLite drops all append-only/identity/parent guards. Parent-FK rollback restores cascade deletion and is not semantically equivalent to retained-history protection",
         "operation_order": 96,
@@ -7403,10 +7445,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
+        "data_effects": "Read-only orphan preflight queries; no inserts, updates, deletes or backfills.",
         "rollback_considerations": "Drops MySQL triggers and reverses 11 RESTRICT FKs to CASCADE; SQLite drops all append-only/identity/parent guards. Parent-FK rollback restores cascade deletion and is not semantically equivalent to retained-history protection",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [],
           "columns_changed": [],
@@ -7451,7 +7492,10 @@
             "verification_decisions.audit_immut_493307493f91dfc1_d",
             "verification_decisions.audit_immut_493307493f91dfc1_u"
           ]
-        }
+        },
+        "conditional_paths": "Installs 22 append-only/identity guard triggers on MySQL, with exact existing-trigger table/event/timing/orientation/body validation. Replaces 11 FK action contracts after orphan preflight checks; no production data mutation is part of this source review.",
+        "rollback_review": "Drops its triggers and restores the documented cascade FK actions. Trigger behavior and FK action replacement are mapped to their exact source objects.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [
         "governed_execution_run_events.governed_run_event_restrict_fk",
@@ -7501,10 +7545,10 @@
       "data_backfills_or_transformations": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
       "required_prerequisites": "monitoring_policy_runs, monitoring_policy_run_sources, monitoring_alert_identities and all referenced tables",
       "expected_postconditions": "Runs 7 orphan preflight queries; adds nullable TIMESTAMP heartbeat_at to monitoring_policy_runs if absent or validates existing MySQL metadata; installs 7 FKs: policy_run.policy_id->source_monitoring_policies RESTRICT, policy_run.execution_run_id->governed_execution_runs SET NULL, run_sources.policy_run_id->monitoring_policy_runs RESTRICT, source_id->sources RESTRICT, retrieval_run_id->source_retrieval_runs SET NULL, observation_id->source_change_observations SET NULL, alert_identity.active_alert_id->monitoring_alerts SET NULL. MySQL helper can DROP existing FK with same source column after verifying expected parent then add canonical constraint; SQLite adds FKs. Backfills heartbeat_at from started_at using UPDATE for null values.",
-      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
-      "unmapped_operation_review": "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING",
+      "object_mapping_state": "SOURCE_REVIEWED_COMPLETE",
+      "unmapped_operation_review": "COMPLETE_SOURCE_OBJECT_MAPPING",
       "operation_review": {
-        "state": "SOURCE_REVIEWED_PARTIAL",
+        "state": "REVIEWED_SOURCE_COMPLETE",
         "up_effect": "Runs 7 orphan preflight queries; adds nullable TIMESTAMP heartbeat_at to monitoring_policy_runs if absent or validates existing MySQL metadata; installs 7 FKs: policy_run.policy_id->source_monitoring_policies RESTRICT, policy_run.execution_run_id->governed_execution_runs SET NULL, run_sources.policy_run_id->monitoring_policy_runs RESTRICT, source_id->sources RESTRICT, retrieval_run_id->source_retrieval_runs SET NULL, observation_id->source_change_observations SET NULL, alert_identity.active_alert_id->monitoring_alerts SET NULL. MySQL helper can DROP existing FK with same source column after verifying expected parent then add canonical constraint; SQLite adds FKs. Backfills heartbeat_at from started_at using UPDATE for null values.",
         "down_effect": "Drops 7 FKs and heartbeat_at; heartbeat values written by up() are discarded",
         "operation_order": 97,
@@ -7524,10 +7568,9 @@
         "raw_sql_operations": [
           "Not identified in this migration body; helper/raw SQL dependencies are separately recorded where present."
         ],
-        "data_effects": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
+        "data_effects": "Backfills monitoring_policy_runs.heartbeat_at from started_at for rows where heartbeat_at is NULL.",
         "rollback_considerations": "Drops 7 FKs and heartbeat_at; heartbeat values written by up() are discarded",
-        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
-        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_COMPLETE",
         "object_level_objects": {
           "columns_created": [
             "monitoring_policy_runs.heartbeat_at"
@@ -7548,7 +7591,10 @@
             "monitoring_policy_runs.mp_run_policy_fk"
           ],
           "triggers_installed": []
-        }
+        },
+        "conditional_paths": "Runs seven orphan preflight checks; adds heartbeat_at if absent or validates nullable TIMESTAMP if present; ensures seven named MySQL FK contracts. Existing same-parent FKs with other names are dropped before named replacements are created.",
+        "rollback_review": "Down drops the seven named FKs and heartbeat_at. It does not restore a differently named same-parent FK dropped by ensureMysqlForeignKey; this rollback asymmetry is recorded.",
+        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
       },
       "foreign_keys_changed": [
         "monitoring_alert_identities.mai_active_alert_fk",
@@ -7565,8 +7611,8 @@
   "source_review_counts": {
     "migration_file_count": 97,
     "reviewed_noop_count": 23,
-    "reviewed_complete_count": 51,
-    "reviewed_partial_count": 23,
+    "reviewed_complete_count": 74,
+    "reviewed_partial_count": 0,
     "not_checked_count": 0,
     "application_tables_with_final_definition_complete": 0
   }
