@@ -226,8 +226,8 @@ assertDiagnostic($fullSource['source_count']===97 && count($fullSource['migratio
 $fullObjectStates=array_count_values(array_column($fullSource['migration_object_reconciliation'],'object_state'));
 assertDiagnostic(array_sum($fullObjectStates)===97,'all 97 migrations receive one object state');
 assertDiagnostic(($fullSource['source_review_state_counts']['REVIEWED_NOOP'] ?? 0)===23,'all 23 no-op source dispositions remain preserved');
-assertDiagnostic(($fullSource['source_review_state_counts']['SOURCE_REVIEWED_COMPLETE'] ?? 0)===51,'all 51 individually completed source reviews remain separately classified');
-assertDiagnostic(($fullSource['source_review_state_counts']['SOURCE_REVIEWED_PARTIAL'] ?? 0)===23,'all 23 unresolved source reviews remain partial');
+assertDiagnostic(($fullSource['source_review_state_counts']['SOURCE_REVIEWED_COMPLETE'] ?? 0)===74,'all 74 individually completed source reviews remain separately classified');
+assertDiagnostic(($fullSource['source_review_state_counts']['SOURCE_REVIEWED_PARTIAL'] ?? 0)===0,'all 0 unresolved source reviews remain partial');
 foreach($fullSource['migration_object_reconciliation'] as $row) {
     if($row['source_review_state']==='REVIEWED_NOOP') assertDiagnostic($row['object_state']==='PASS','reviewed no-op must remain object-neutral: '.$row['migration']);
     if($row['source_review_state']==='SOURCE_REVIEWED_COMPLETE') assertDiagnostic(in_array($row['object_state'],['PASS','FAIL','UNKNOWN'],true),'fully mapped source review must not be silently NOT_CHECKED: '.$row['migration']);
