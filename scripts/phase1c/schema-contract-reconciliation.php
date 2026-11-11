@@ -309,6 +309,13 @@ final class Phase1D2BSchemaContractComparator
             foreach (['engine', 'charset', 'collation'] as $key) if (isset($value[$key])) $value[$key] = strtolower((string)$value[$key]);
             if (isset($value['options']) && $value['options'] === '') $value['options'] = null;
         }
+        if ($kind === 'foreign_key') {
+            foreach (['on_delete', 'on_update'] as $key) {
+                if (!isset($value[$key])) continue;
+                $action = strtoupper((string)$value[$key]);
+                $value[$key] = $action === 'NO ACTION' ? 'RESTRICT' : $action;
+            }
+        }
         if ($kind === 'column' && isset($value['type'])) {
             $normalizeType = static function (string $type): string {
                 $type = strtolower(preg_replace('/\\s+/', ' ', trim($type)));
