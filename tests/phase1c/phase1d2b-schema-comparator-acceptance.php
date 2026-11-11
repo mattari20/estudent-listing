@@ -11,10 +11,20 @@ function expectState(array $result, string $state, string $label): void
 }
 
 $column = ['name'=>'status','definition_state'=>'COMPLETE','type'=>'varchar(32)','nullable'=>false,'default'=>'active','default_expression'=>null,'auto_increment'=>false,'generated'=>null];
+$table=['name'=>'accounts','definition_state'=>'COMPLETE','engine'=>'InnoDB','charset'=>'utf8mb4','collation'=>'utf8mb4_unicode_ci','options'=>''];
+expectState(Phase1D2BSchemaContractComparator::compareObject('table',$table,['name'=>'accounts','engine'=>'innodb','charset'=>'UTF8MB4','collation'=>'UTF8MB4_UNICODE_CI','options'=>'']),'PASS','semantically equivalent table option casing');
+$wrongCollation=['name'=>'accounts','engine'=>'InnoDB','charset'=>'utf8mb4','collation'=>'utf8mb4_bin','options'=>''];
+expectState(Phase1D2BSchemaContractComparator::compareObject('table',$table,$wrongCollation),'FAIL','wrong table collation');
 expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,$column),'PASS','correct column');
 expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,array_replace($column,['type'=>'int'])),'FAIL','wrong type');
 expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,array_replace($column,['nullable'=>true])),'FAIL','wrong nullability');
 expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,array_replace($column,['default'=>'inactive'])),'FAIL','wrong default');
+$generated=$column; $generated['generated']='lower(status)';
+expectState(Phase1D2BSchemaContractComparator::compareObject('column',$generated,$generated),'PASS','generated column expression matches');
+$wrongGenerated=$generated; $wrongGenerated['generated']='upper(status)';
+expectState(Phase1D2BSchemaContractComparator::compareObject('column',$generated,$wrongGenerated),'FAIL','wrong generated expression');
+$autoIncrement=$column; $autoIncrement['auto_increment']=true;
+expectState(Phase1D2BSchemaContractComparator::compareObject('column',$autoIncrement,array_replace($autoIncrement,['auto_increment'=>false])),'FAIL','wrong auto increment');
 expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,null,true),'MISSING','missing column with complete visibility');
 expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,null,false),'UNKNOWN','incomplete metadata visibility');
 expectState(Phase1D2BSchemaContractComparator::compareObject('column',array_replace($column,['definition_state'=>'NOT_CHECKED']),null,true),'NOT_CHECKED','incomplete source definition');
