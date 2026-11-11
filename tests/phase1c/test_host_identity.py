@@ -41,7 +41,7 @@ class HostIdentityTests(unittest.TestCase):
     def test_presented_key_scanned_and_verified_before_use(self, run):
         run.side_effect = [
             CompletedProcess([], 0, "[185.232.14.237]:65002 ssh-ed25519 AAAATESTKEY\n", ""),
-            CompletedProcess([], 0, "256 SHA256:W9YXwb9g6kNtTQxZvw+/cxOevMUeyw+Y4v4iIc/eHAk host (ED25519)\n", ""),
+            CompletedProcess([], 0, "256 SHA256:W9YXwb9g6kNtTQxZvw+/cxOeyMUeyw+Y4v4iIc/eHAk host (ED25519)\n", ""),
         ]
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "known_hosts"
@@ -158,6 +158,7 @@ class HostIdentityTests(unittest.TestCase):
 
     def test_workflow_pins_action_and_both_openssh_connections(self):
         workflow = (Path(__file__).parents[2] / ".github/workflows/phase1c-readonly-schema-diagnostic.yml").read_text()
+        self.assertIn(f'test "$HOST_FINGERPRINT" = "{MODULE.EXPECTED_FINGERPRINT}"', workflow)
         self.assertIn("fingerprint: ${{ secrets.PRODUCTION_READONLY_HOSTINGER_SSH_HOST_FINGERPRINT }}", workflow)
         self.assertIn("verify-host-identity.py", workflow)
         self.assertIn("StrictHostKeyChecking=yes", workflow)

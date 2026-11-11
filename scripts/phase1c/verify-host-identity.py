@@ -9,7 +9,7 @@ from pathlib import Path
 
 EXPECTED_HOST = "185.232.14.237"
 EXPECTED_PORT = "65002"
-EXPECTED_FINGERPRINT = "SHA256:W9YXwb9g6kNtTQxZvw+/cxOevMUeyw+Y4v4iIc/eHAk"
+EXPECTED_FINGERPRINT = "SHA256:W9YXwb9g6kNtTQxZvw+/cxOeyMUeyw+Y4v4iIc/eHAk"
 FINGERPRINT_RE = re.compile(r"^SHA256:[A-Za-z0-9+/]+$")
 
 

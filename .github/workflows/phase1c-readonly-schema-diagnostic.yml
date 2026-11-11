@@ -59,7 +59,7 @@ jobs:
           test -n "$HOST_FINGERPRINT" && test -n "$EXPECTED_DATABASE_NAME"
           test "$HOST" = "185.232.14.237" || { echo "environment_validation=FAIL variable=PRODUCTION_READONLY_HOSTINGER_SSH_HOST"; exit 1; }
           test "$PORT" = "65002" || { echo "environment_validation=FAIL variable=PRODUCTION_READONLY_HOSTINGER_SSH_PORT"; exit 1; }
-          test "$HOST_FINGERPRINT" = "SHA256:W9YXwb9g6kNtTQxZvw+/cxOevMUeyw+Y4v4iIc/eHAk" || { echo "environment_validation=FAIL variable=PRODUCTION_READONLY_HOSTINGER_SSH_HOST_FINGERPRINT"; exit 1; }
+          test "$HOST_FINGERPRINT" = "SHA256:W9YXwb9g6kNtTQxZvw+/cxOeyMUeyw+Y4v4iIc/eHAk" || { echo "environment_validation=FAIL variable=PRODUCTION_READONLY_HOSTINGER_SSH_HOST_FINGERPRINT"; exit 1; }
           test "$EXPECTED_DATABASE_NAME" = "u537436044_Institutes" || { echo "environment_validation=FAIL variable=PRODUCTION_READONLY_EXPECTED_DB_NAME"; exit 1; }
           echo "hostinger_environment_validation=PASS"
 
