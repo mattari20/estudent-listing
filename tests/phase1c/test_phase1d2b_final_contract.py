@@ -65,12 +65,12 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
         remaining = [entry for entry in entries if entry["object_mapping_state"] in {"PARTIAL", "NOT_CHECKED"}]
 
         self.assertEqual(len(reviewed_noop), 23)
-        self.assertEqual(len(reviewed_non_empty), 16)
-        self.assertEqual(len(remaining), 58)
+        self.assertEqual(len(reviewed_non_empty), 27)
+        self.assertEqual(len(remaining), 47)
         self.assertEqual(self.provenance["source_review_counts"]["migration_file_count"], 97)
         self.assertEqual(self.provenance["source_review_counts"]["reviewed_noop_count"], 23)
-        self.assertEqual(self.provenance["source_review_counts"]["reviewed_non_empty_count"], 16)
-        self.assertEqual(self.provenance["source_review_counts"]["remaining_non_empty_count"], 58)
+        self.assertEqual(self.provenance["source_review_counts"]["reviewed_non_empty_count"], 27)
+        self.assertEqual(self.provenance["source_review_counts"]["remaining_non_empty_count"], 47)
 
     def test_superseded_empty_migrations_remain_reviewed_noop(self):
         entries = self.provenance["migrations"]
