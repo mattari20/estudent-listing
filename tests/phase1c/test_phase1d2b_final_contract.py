@@ -121,7 +121,7 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
             with self.subTest(table=table_name):
                 self.assertTrue(contract["columns"], "source-derived columns must be present")
                 self.assertTrue(contract["source_provenance"], "source provenance must be present")
-                self.assertEqual(contract["table_options"]["state"], "PARTIAL")
+                self.assertEqual(contract["table_options"]["state"], "COMPLETE")
                 column_names = {column["name"] for column in contract["columns"]}
                 for index in contract["indexes"]:
                     self.assertTrue(index["columns"])
