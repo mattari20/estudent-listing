@@ -832,7 +832,7 @@ final class Phase1CReadOnlyDiagnostic
             } elseif (isset($this->columnErrors[$table])) {
                 $state = 'UNKNOWN';
             } else {
-                $state = isset($this->columns[$table][$column]) ? 'PASS' : 'MISSING';
+                $state = isset($this->columns[$table][$column]) ? 'PASS' : ($this->absenceProof ? 'MISSING' : 'UNKNOWN');
             }
             $columnRows[$table.'.'.$column] = $state;
         }
@@ -947,10 +947,11 @@ final class Phase1CReadOnlyDiagnostic
             $presentCount = count(array_filter($states, static fn (string $state): bool => $state === 'PASS'));
             $missingCount = count(array_filter($states, static fn (string $state): bool => $state === 'MISSING'));
             $unknownCount = count(array_filter($states, static fn (string $state): bool => $state === 'UNKNOWN'));
-            if ($unknownCount > 0) {
-                $objectState = 'UNKNOWN';
-            } elseif ($presentCount > 0 && $missingCount > 0) {
+            $failCount = count(array_filter($states, static fn (string $state): bool => $state === 'FAIL'));
+            if ($failCount > 0 || ($presentCount > 0 && $missingCount > 0)) {
                 $objectState = 'FAIL';
+            } elseif ($unknownCount > 0) {
+                $objectState = 'UNKNOWN';
             } elseif ($missingCount > 0) {
                 $objectState = 'MISSING';
             } else {
