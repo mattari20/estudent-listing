@@ -580,11 +580,13 @@
   },
   "cumulative_manifest_coverage": {
     "application_tables": 62,
-    "source_derived_column_contracts": 62,
-    "source_derived_index_contracts": 62,
-    "source_derived_foreign_key_contracts": 62,
-    "source_derived_trigger_contracts": 62,
-    "definition_state": "PARTIAL",
-    "note": "The final manifest contains 62 application table object inventories; none is COMPLETE pending server-default engine, conditional migration, exact trigger naming and comparator reconciliation."
+    "application_table_state": "PARTIAL",
+    "columns": 793,
+    "indexes": 231,
+    "foreign_keys": 89,
+    "triggers": 24,
+    "trigger_tables": 12,
+    "complete_application_tables": 0,
+    "note": "Object inventories are source-derived and structurally populated. No table is COMPLETE because engine is server-default and conditional/helper/raw SQL behavior still requires exact acceptance."
   }
 }
