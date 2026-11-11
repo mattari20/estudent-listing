@@ -4,7 +4,7 @@
 **Execution scope:** Phase 1D.2B through Phase 1D.6  
 **Excluded:** Phase 1D.7 backup and restore  
 **Production boundary:** READ-ONLY / NO PRODUCTION EXECUTION  
-**Last verified main SHA:** `117d2dd710e7b9545b7a28b6c802415e26c02f1f` (2026-11-11)
+**Last verified main SHA:** `2f5d60f4280d7688b4a3f7d213b3e8a8242e4808` (2026-11-11)
 
 ## Authoritative completed baseline
 
@@ -21,7 +21,7 @@ PR #1070 final focused MySQL 8.4 / MariaDB 11.8.9 matrix passed (run #4297721454
 
 | Phase | Status | Branch | PR | Commit | MySQL | MariaDB | Blockers / next action |
 |---|---|---|---|---|---|---|---|
-| 1D.2B full schema and migration-ledger reconciliation | IN PROGRESS — DRAFT COMPLETION PR; FINAL SCHEMA CONTRACT OPEN | `phase1d2b/complete-source-schema-reconciliation` | [#1072](https://github.com/mattari20/estudent-listing/pull/1072) (draft) | `117d2dd710e7b9545b7a28b6c802415e26c02f1f` baseline | Pending | Pending | PR #1071 foundation merged. Expanded source inventory identifies 62 application table creation targets plus Laravel ledger (63 total); alteration references are recorded for 28 tables. CI now checks all 97 migration files for accounted create targets. Final-state definition manifest, exhaustive alteration/object provenance, comparator, migration/object reconciliation and full regression remain open. Initial recognizer failure for constant-backed Schema::create was corrected. Phase 1C diagnostic CI #42994466030 passed on commit `9360d71` for both MySQL 8.4 and MariaDB 11.8.9, including all-97-migration create-target scan and disposable acceptance. Laravel CI and Repository Test were still running at report time. Final schema definitions/comparator and complete object provenance remain open. |
+| 1D.2B final schema manifest and reconciliation | IN PROGRESS — COMPARATOR INTEGRATED; SOURCE DEFINITIONS OPEN | `phase1d2b/final-schema-manifest-comparator` | Pending | `2f5d60f4280d7688b4a3f7d213b3e8a8242e4808` baseline | Pending | Pending | PRs #1071 and #1072 merged. New v1 manifest has 63 entries, but 0/62 application tables have complete definitions; Laravel ledger definition is partial. All 97 migration source files have provenance records: 74 partial table-level mappings, 23 NOT_CHECKED. Fail-closed comparator and evidence v3 integrated; full source-ledger reconciliation emits 97 per-migration rows, reusing existing object checks for 18 target migrations and leaving other object states NOT_CHECKED. Focused positive/negative tests and MySQL/MariaDB CI pending exact-head execution. See `docs/audits/PHASE_1D_2B_FINAL_SCHEMA_RECONCILIATION_2026-11-11.md`. Phase remains NOT ACCEPTED; do not start 1D.3. |
 | 1D.3 existing production data compatibility | NOT STARTED | — | — | — | — | — | Must wait for 1D.2B formal acceptance; production row-level evidence remains unavailable and must stay NOT_CHECKED. |
 | 1D.4 controlled recovery implementation | NOT STARTED | — | — | — | — | — | Must use accepted 1D.2B/1D.3 results; no production execution. |
 | 1D.5 isolated recovery testing | NOT STARTED | — | — | — | NOT RUN | NOT RUN | Must test disposable MariaDB 11.8.9 and MySQL 8.4 without restarting Test 1A/1B. |
@@ -50,4 +50,4 @@ PR #1070 final focused MySQL 8.4 / MariaDB 11.8.9 matrix passed (run #4297721454
 
 ## Current next action
 
-Complete final-state definitions for all 62 application-owned table creation targets plus the framework ledger, verify every later alteration/object source, implement observed-vs-source comparison and full migration/object reconciliation, then complete PR #1072 with exact-head CI and review. Do not start Phase 1D.3 before formal acceptance. Do not start Phase 1D.3 until 1D.2B is formally accepted. Phase 1D.3 must not begin until Phase 1D.2B is formally merged and accepted.
+Complete all 62 application table definitions and every table/index/FK/trigger object contract; finish object-level mapping for all 97 migrations including raw SQL and data operations; expand object reconciliation beyond the 18 current target migrations; pass exact-head MySQL/MariaDB/Laravel/Test CI and obtain review approval. Do not start Phase 1D.3 until Phase 1D.2B is formally accepted and merged.
