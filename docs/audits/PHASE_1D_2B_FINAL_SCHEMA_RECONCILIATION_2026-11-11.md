@@ -1,8 +1,8 @@
 # Phase 1D.2B — Final Schema Manifest, Object Provenance and Reconciliation
 
 **Repository:** `mattari20/estudent-listing`  
-**Verified base:** `2f5d60f4280d7688b4a3f7d213b3e8a8242e4808`  
-**Branch:** `phase1d2b/final-schema-manifest-comparator`  
+**Verified base:** `d363fad00c15d6892677e452d5b1f383cbe892de`  
+**Branch:** `phase1d2b/complete-final-schema-reconciliation`  
 **Status:** IMPLEMENTATION IN PROGRESS — FINAL SCHEMA ACCEPTANCE BLOCKED  
 **Production boundary:** READ-ONLY / NO PRODUCTION EXECUTION
 
@@ -153,3 +153,17 @@ This branch delivers the versioned scope-wide contract skeleton, all-source file
 ### Corrected migration-review count (2026-11-11)
 
 A validation pass over the actual 97 provenance entries corrected the prior checkpoint counter. The ledger currently contains 23 `REVIEWED_NOOP`, 27 `SOURCE_REVIEWED_PARTIAL`, and 47 still `PARTIAL` / unreviewed non-empty files. The prior 16/58 narrative was inaccurate and is superseded by this 23/27/47 count. All 62 application definitions remain NOT_CHECKED; none of the 27 source reviews is treated as cumulative final-object completion.
+
+
+## Continuation from merged PR #1074 — 2026-11-11
+
+- Verified current `main` equals PR #1074 merge commit `d363fad00c15d6892677e452d5b1f383cbe892de`; the new continuation branch `phase1d2b/complete-final-schema-reconciliation` was created directly from that SHA.
+- Re-read all 97 migration provenance rows before changing review totals. The preserved distribution at start was 23 `REVIEWED_NOOP`, 27 `SOURCE_REVIEWED_PARTIAL`, and 47 `PARTIAL`.
+- Individually inspected the 47 remaining migration source bodies, including all 09/24 imports/reverification/monitoring migrations, later scheduling/content alterations, 10/17 guarded password migrations, 10/23 duplicate-row and discovery outcome migrations, 10/25 structured-enrichment and official-refresh migrations, 10/29 field approvals, 11/03 identity/idempotency migrations, and 11/04 monitoring checkpoint, append-only audit and FK/heartbeat migrations.
+- Added per-file source effects, object targets, prerequisites, rollback effects and identified data backfill/raw SQL/helper behavior to the provenance records. All 74 non-noop migrations are now `SOURCE_REVIEWED_PARTIAL`; 23 no-op migrations remain unchanged. No migration is marked `SOURCE_REVIEWED_COMPLETE` because cumulative object reconciliation, exact helper expansion and final table contracts are still open.
+- Critical migration behaviors recorded: 11/03 queue-identity migration inserts SHA-256 identities from open queue rows; 11/04 monitoring-alert identity migration inserts mappings from open alerts; 11/04 checkpoint FK migration updates null heartbeat values from started_at; 11/04 audit retention migration installs 24 MySQL triggers, installs/reconciles 11 RESTRICT foreign keys, and has a distinct SQLite trigger path. These are source findings only; no data migration or SQL was executed.
+- `MigrationSchemaGuard` source inspected: create-if-missing checks table existence/required columns and MySQL type/null/default/auto-increment metadata; nullable-unique helpers validate table, column, duplicate values and exact single-column unique BTREE index. Driver limitations and existing-schema behavior remain explicitly tracked.
+- Corrected current review distribution: 23 `REVIEWED_NOOP` + 74 `SOURCE_REVIEWED_PARTIAL` + 0 remaining unreviewed = 97. This is not full migration acceptance; the 74 remain partial pending cumulative object reconciliation.
+- Final application definitions remain 0/62 complete; the framework ledger remains separately complete for Laravel 13.33.0 columns/PK with inherited connection options.
+- New branch is based on the verified merged main. No new PR has been created until this first batch is ready for review.
+- No production connection, SQL, DDL, DML, migration, identity backfill, repair, deployment or production workflow dispatch was performed. No reverification records or monitoring alerts were modified. Test 1A/1B were not restarted. Phase 1D.3 and 1D.7 remain excluded.
