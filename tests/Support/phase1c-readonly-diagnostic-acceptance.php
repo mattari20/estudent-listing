@@ -207,13 +207,13 @@ assertDiagnostic(json_encode($one,JSON_UNESCAPED_SLASHES)===json_encode($two,JSO
 assertDiagnostic($one['schema_version']==='phase1c-readonly-diagnostic/v3','versioned schema comparator evidence');
 $sourceContract=$one['source_schema_reconciliation'];
 assertDiagnostic($sourceContract['contract']==='phase1d2b-schema-comparison/v1' && $sourceContract['table_count']===63,'all 63 source schema scope entries represented');
-assertDiagnostic($sourceContract['state']==='FAIL' && $sourceContract['complete_table_count']===0 && $sourceContract['schema_equivalence_proven']===false && $sourceContract['observed_metadata_collected']===true,'partial disposable schema must fail source reconciliation without claiming equivalence');
+assertDiagnostic($sourceContract['state']!=='PASS' && $sourceContract['schema_equivalence_proven']===false && $sourceContract['observed_metadata_collected']===true,'incomplete disposable fixture must not claim complete schema equivalence');
 assertDiagnostic(count($sourceContract['results'])===63,'all 63 source table comparison statuses are present');
 assertDiagnostic(count($sourceContract['unexpected_tables'])>=0,'unexpected table inventory is explicitly represented');
 $sourceMissingObjectCount=0;
 foreach($sourceContract['results'] as $tableName => $tableResult) {
     assertDiagnostic(in_array($tableResult['state'], ['FAIL','NOT_CHECKED','UNKNOWN'], true),'partial disposable schema cannot produce a table-level PASS');
-    assertDiagnostic(($tableResult['objects']['table']['state'] ?? null)==='NOT_CHECKED','table-level comparison remains NOT_CHECKED while engine options are server-default');
+    assertDiagnostic(in_array(($tableResult['objects']['table']['state'] ?? null), ['PASS','FAIL','MISSING','UNKNOWN'], true),'complete source table definitions are compared rather than left NOT_CHECKED');
     foreach(['columns','indexes','foreign_keys','triggers'] as $kind) {
         foreach(($tableResult['objects'][$kind] ?? []) as $objectResult) {
             if($objectResult['state']==='MISSING') $sourceMissingObjectCount++;
