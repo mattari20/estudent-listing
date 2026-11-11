@@ -4,7 +4,7 @@
 **Execution scope:** Phase 1D.2B through Phase 1D.6  
 **Excluded:** Phase 1D.7 backup and restore  
 **Production boundary:** READ-ONLY / NO PRODUCTION EXECUTION  
-**Last verified main SHA:** `2f5d60f4280d7688b4a3f7d213b3e8a8242e4808` (2026-11-11)
+**Last verified main SHA:** `d363fad00c15d6892677e452d5b1f383cbe892de` (2026-11-11)
 
 ## Authoritative completed baseline
 
@@ -75,3 +75,16 @@ Complete all 62 application table definitions and every table/index/FK/trigger o
 ### Corrected source review totals — 2026-11-11
 
 Verified directly from all 97 provenance rows: 23 REVIEWED_NOOP + 27 SOURCE_REVIEWED_PARTIAL + 47 remaining PARTIAL = 97. Previous 16/58 checkpoint figures were inaccurate and are superseded. Final application definitions: 0/62 complete.
+
+
+## Continuation after merged PR #1074 — 2026-11-11
+
+- PR #1074 is MERGED at `d363fad00c15d6892677e452d5b1f383cbe892de`; verified current `main` equals that exact commit.
+- New branch: `phase1d2b/complete-final-schema-reconciliation`, created from the verified current main SHA.
+- Re-read all 97 provenance entries before updating counts. Initial distribution 23 REVIEWED_NOOP / 27 SOURCE_REVIEWED_PARTIAL / 47 PARTIAL.
+- Individually inspected all 47 remaining non-empty migration files and source-reviewed their operation effects, target objects, prerequisites, rollback behavior, helper calls, raw SQL and data operations where present. Current distribution: 23 REVIEWED_NOOP / 74 SOURCE_REVIEWED_PARTIAL / 0 unreviewed. None of the 74 is marked SOURCE_REVIEWED_COMPLETE because cumulative object reconciliation and helper/framework-generated object contracts remain open.
+- Migration source effects include three data-writing/backfill paths (open queue identity insertion, open alert identity insertion, heartbeat_at population) and the audit retention FK/trigger transition. These were not executed.
+- `MigrationSchemaGuard` source reviewed: exact existing-column checks are MySQL-only; helper guards check required columns, types/nullability/default/auto-increment where declared, duplicate values and unique-index semantics. Existing helper call sites still need cross-table cumulative object reconciliation.
+- Application table definitions: 0/62 complete; framework Laravel migration ledger definition: complete for source-defined columns and PK, with inherited connection options.
+- Next: construct the cumulative final object registry and populate source-derived definitions for every application table; then extend comparator/collector reconciliation to all objects and run isolated MySQL/MariaDB acceptance.
+- Safety: no production database access or execution; no reverification record or monitoring alert changes; Test 1A/1B not restarted; Phase 1D.3 and 1D.7 not started.
