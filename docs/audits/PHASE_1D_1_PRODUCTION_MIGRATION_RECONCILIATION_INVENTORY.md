@@ -181,7 +181,7 @@ Table PRESENT is not a substitute for exact table-definition equivalence. The ev
 | 26 | monitoring_alert_identities.dedupe_key | MISSING | #12 |
 | 27 | monitoring_alert_identities.active_alert_id | MISSING | #12 |
 | 28 | security_audit_events.monitoring_idempotency_key | MISSING | #12 |
-| 29 | monitoring_policy_runs.heartbeat_at | MISSING | #13 / #18 |
+| 29 | monitoring_policy_runs.heartbeat_at | MISSING | #18 |
 | 30 | monitoring_policy_runs.source_monitoring_policy_id | MISSING | #13 |
 | 31 | monitoring_policy_runs.execution_run_id | MISSING | #13 |
 | 32 | monitoring_policy_runs.started_at | MISSING | #13 |
@@ -204,7 +204,7 @@ Table PRESENT is not a substitute for exact table-definition equivalence. The ev
 | 49 | source_snapshot_reconciliation_requests.expected_previous_snapshot_id | MISSING | #16 |
 | 50 | source_snapshot_reconciliation_requests.recorded_previous_snapshot_id | MISSING | #16 |
 
-The two PRESENT columns are `import_batches.duplicate_rows` and `source_change_observations.current_snapshot_id`. The artifact's per-column state is based on the definition-level comparator; do not infer that the remaining 48 are all missing from present parent tables—many are reported as MISSING because their parent table is absent.
+The two PRESENT columns are `import_batches.duplicate_rows` and `source_change_observations.current_snapshot_id`. **Independent review correction:** `monitoring_policy_runs.heartbeat_at` is introduced only by migration #18 (`2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php`); migration #13 creates the monitoring policy/checkpoint tables but does not define this heartbeat column. The artifact's per-column state is based on the definition-level comparator; do not infer that the remaining 48 are all missing from present parent tables—many are reported as MISSING because their parent table is absent.
 
 ### 4.3 Named indexes — 23
 
