@@ -106,11 +106,25 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
     def test_no_application_table_is_falsely_marked_complete(self):
         application = [v for v in self.manifest["tables"].values() if v["ownership"] == "application"]
         self.assertEqual(len(application), 62)
-        self.assertEqual(sum(v["definition_state"] == "PARTIAL" for v in application), 10)
-        self.assertEqual(sum(v["definition_state"] == "NOT_CHECKED" for v in application), 52)
+        self.assertEqual(sum(v["definition_state"] == "PARTIAL" for v in application), 62)
+        self.assertEqual(sum(v["definition_state"] == "NOT_CHECKED" for v in application), 0)
         self.assertEqual(self.manifest["definition_coverage"]["complete_application_tables"], 0)
-        self.assertEqual(self.manifest["definition_coverage"]["not_checked_application_tables"], 52)
-        self.assertEqual(self.manifest["definition_coverage"]["partial_application_tables"], 10)
+        self.assertEqual(self.manifest["definition_coverage"]["not_checked_application_tables"], 0)
+        self.assertEqual(self.manifest["definition_coverage"]["partial_application_tables"], 62)
+        for table_name, contract in self.manifest["tables"].items():
+            if contract["ownership"] != "application":
+                continue
+            with self.subTest(table=table_name):
+                self.assertTrue(contract["columns"], "source-derived columns must be present")
+                self.assertTrue(contract["source_provenance"], "source provenance must be present")
+                self.assertEqual(contract["table_options"]["state"], "PARTIAL")
+                column_names = {column["name"] for column in contract["columns"]}
+                for index in contract["indexes"]:
+                    self.assertTrue(index["columns"])
+                    self.assertTrue(all(column["name"] in column_names for column in index["columns"]))
+                for foreign_key in contract["foreign_keys"]:
+                    self.assertTrue(foreign_key["source_columns"])
+                    self.assertTrue(all(column in column_names for column in foreign_key["source_columns"]))
 
 
 if __name__ == "__main__":
