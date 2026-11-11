@@ -49,6 +49,12 @@ $ledgerNoSequence = phase1cAnalyzeFullMigrationLedger($ledgerSources, [
 ]);
 assertDiagnostic($ledgerNoSequence['ordering_state'] === 'UNKNOWN', 'ordering is UNKNOWN without a sequence column');
 
+$ledgerBatchGap = phase1cAnalyzeFullMigrationLedger($ledgerSources, [
+    ['id' => 1, 'migration' => $ledgerSources[0], 'batch' => 1],
+    ['id' => 2, 'migration' => $ledgerSources[1], 'batch' => 3],
+]);
+assertDiagnostic($ledgerBatchGap['state'] === 'PASS' && $ledgerBatchGap['batch_gaps'] === [2] && $ledgerBatchGap['batch_gap_state'] === 'NOT_CHECKED', 'batch gaps are exposed without assuming rollback history is corrupt');
+
 $pdo=new PDO('mysql:host='.getenv('DB_HOST').';port='.(getenv('DB_PORT')?:3306).';dbname='.getenv('DB_DATABASE').';charset=utf8mb4',getenv('DB_USERNAME'),getenv('DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false]);
 $tables=['assertions','change_events','data_reverification_queue','data_reverification_queue_identities','enrichment_import_rows','evidence','governed_execution_leases','governed_execution_run_events','governed_execution_runs','identity_match_candidates','identity_resolution_decisions','import_batches','import_conflict_events','import_conflicts','import_promotion_decisions','import_promotion_events','import_reconciliation_events','import_rows','institute_discovery_run_outcomes','institutions','migrations','monitoring_alert_identities','monitoring_alerts','monitoring_policy_run_sources','monitoring_policy_runs','official_source_refresh_events','password_reset_tokens','provenance_review_events','reverification_events','security_audit_events','source_change_observations','source_monitoring_policies','source_retrieval_runs','source_snapshot_reconciliation_requests','source_snapshots','sources','structured_enrichment_promotion_events','users','verification_decisions'];
 foreach($tables as $t) {
@@ -195,6 +201,12 @@ assertDiagnostic($one['registry_counts']['tables']===39 && $one['registry_counts
 assertDiagnostic(count($one['tables'])===39 && count($one['expected_index_reconciliation'])===23,'complete table/index metadata');
 assertDiagnostic(count($one['expected_column_reconciliation'])===50 && count($one['expected_foreign_key_reconciliation'])===23 && count($one['expected_trigger_reconciliation'])===24 && count($one['migration_ledger_reconciliation'])===18,'complete reconciliation sections');
 assertDiagnostic(count($one['orphan_checks'])===18 && count($one['duplicate_checks'])===14,'individual check reporting');
+
+$fullLedger = $one['full_migration_ledger_inventory'];
+assertDiagnostic($fullLedger['source_file_count'] >= 18 && $fullLedger['ledger_row_count'] === 18, 'full migration source and ledger inventory counts');
+assertDiagnostic(in_array($expectedMigrations[1], $fullLedger['source_files_not_recorded'], true), 'full ledger exposes source files absent from the ledger');
+assertDiagnostic($fullLedger['ledger_entries_without_source_files'] === [], 'all fixture ledger entries resolve to migration source files');
+assertDiagnostic($fullLedger['state'] === 'FAIL' && $fullLedger['duplicate_ledger_entries'][0]['migration'] === $expectedMigrations[0], 'full ledger reports duplicate source migration rows');
 
 $primaryIndex = static function (array $evidence): array {
     $matches = array_values(array_filter(
