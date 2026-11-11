@@ -210,7 +210,7 @@ The two PRESENT columns are `import_batches.duplicate_rows` and `source_change_o
 
 | # | Table | Expected index | Columns | Unique | State | Source |
 |---:|---|---|---|---|---|---|
-| 1 | password_reset_tokens | PRIMARY | id | yes | MISSING | #1 |
+| 1 | password_reset_tokens | PRIMARY | email | yes | MISSING | #1 |
 | 2 | governed_execution_leases | governed_execution_leases_task_key_unique | task_key | yes | MISSING | #5 |
 | 3 | governed_execution_leases | governed_execution_leases_expires_at_index | expires_at | no | MISSING | #5 |
 | 4 | source_retrieval_runs | source_retrieval_runs_idempotency_key_unique | idempotency_key | yes | MISSING | #7 |
@@ -234,7 +234,7 @@ The two PRESENT columns are `import_batches.duplicate_rows` and `source_change_o
 | 22 | import_conflict_events | import_conflict_events_import_conflict_id_occurred_at_index | import_conflict_id, occurred_at | no | MISSING | #15 |
 | 23 | monitoring_policy_run_sources | monitoring_policy_source_status_idx | source_id, status | no | MISSING | #13 |
 
-Index MISSING means the named expected index was absent in complete metadata. The 23 entries are the diagnostic's explicit named-index reconciliation registry, not an exhaustive count of every primary/secondary index created inside all 18 migration table definitions (for example, #4–#6 and #13 also define indexes as part of table creation). It does not authorize blindly creating an index: source definitions, uniqueness preconditions and current data must be revalidated immediately before a separately approved migration.
+Index MISSING means the named expected index was absent in complete metadata. The 23 entries are the diagnostic's explicit named-index reconciliation registry, not an exhaustive count of every primary/secondary index created inside all 18 migration table definitions (for example, #4–#6 and #13 also define indexes as part of table creation). It does not authorize blindly creating an index: source definitions, uniqueness preconditions and current data must be revalidated immediately before a separately approved migration. **Independent review correction:** the diagnostic's expected index registry lists `password_reset_tokens.PRIMARY(id)`, but migration #1 defines `email` as the primary key and defines no `id` column. The registry and production evidence were not changed; this inventory row now follows the authoritative migration source (`PRIMARY(email)`). This discrepancy must be resolved in a separately reviewed registry/diagnostic change, not by changing the migration.
 
 ### 4.4 Foreign keys — 23
 
