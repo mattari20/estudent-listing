@@ -54,7 +54,7 @@ foreach ($schema['results'] as $table => $tableResult) {
     }
 }
 phase1d2bAssert($counts['columns'] === 796, 'expected 796 columns; observed '.$counts['columns'].'; mismatches='.json_encode(array_slice($nonPass, 0, 8), JSON_THROW_ON_ERROR));
-phase1d2bAssert($counts['indexes'] === 232, 'expected 232 indexes; observed '.$counts['indexes'].'; index mismatches='.json_encode(array_slice(array_values(array_filter($nonPass, static fn(array $x): bool => ($x['kind'] ?? '') === 'indexes')), 0, 20), JSON_THROW_ON_ERROR));
+phase1d2bAssert($counts['indexes'] === 252, 'expected 252 indexes; observed '.$counts['indexes'].'; index mismatches='.json_encode(array_slice(array_values(array_filter($nonPass, static fn(array $x): bool => ($x['kind'] ?? '') === 'indexes')), 0, 20), JSON_THROW_ON_ERROR));
 phase1d2bAssert($counts['foreign_keys'] === 89, 'expected 89 foreign keys; observed '.$counts['foreign_keys'].'; mismatches='.json_encode(array_slice($nonPass, 0, 8), JSON_THROW_ON_ERROR));
 phase1d2bAssert($counts['triggers'] === 24, 'expected 24 triggers; observed '.$counts['triggers'].'; mismatches='.json_encode(array_slice($nonPass, 0, 8), JSON_THROW_ON_ERROR));
 phase1d2bAssert($counts['table_options_pass'] === 62, 'charset/collation/server-default options must reconcile for all application tables');
