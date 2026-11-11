@@ -58,6 +58,7 @@ assertDiagnostic($ledgerNoSequence['ordering_state'] === 'UNKNOWN', 'ordering is
 $ledgerBatchGap = phase1cAnalyzeFullMigrationLedger($ledgerSources, [
     ['id' => 1, 'migration' => $ledgerSources[0], 'batch' => 1],
     ['id' => 2, 'migration' => $ledgerSources[1], 'batch' => 3],
+    ['id' => 3, 'migration' => $ledgerSources[2], 'batch' => 3],
 ]);
 assertDiagnostic($ledgerBatchGap['state'] === 'PASS' && $ledgerBatchGap['batch_gaps'] === [2] && $ledgerBatchGap['batch_gap_state'] === 'NOT_CHECKED', 'batch gaps are exposed without assuming rollback history is corrupt');
 
