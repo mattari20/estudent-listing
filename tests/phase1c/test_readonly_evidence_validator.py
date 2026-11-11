@@ -13,7 +13,7 @@ SCHEMA = VALIDATOR.json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
 
 def valid_evidence():
     return {
-        "schema_version": "phase1c-readonly-diagnostic/v1",
+        "schema_version": "phase1c-readonly-diagnostic/v2",
         "database": {"engine": "mysql", "server_version": "8.4.0", "identity_verified": True},
         "metadata_visibility": {"complete": True, "triggers_complete": True},
         "tables": [{"table": f"table_{index}", "state": "PASS"} for index in range(39)],
@@ -40,6 +40,21 @@ def valid_evidence():
             {"migration": f"migration_{index}", "state": "PASS", "record_count": 1, "duplicate_count": 0, "batches": [1], "batch_values_valid": True}
             for index in range(18)
         ],
+        "full_migration_ledger_inventory": {
+            "state": "PASS",
+            "source_file_count": 18,
+            "ledger_row_count": 18,
+            "distinct_ledger_migration_count": 18,
+            "source_files_not_recorded": [],
+            "ledger_entries_without_source_files": [],
+            "duplicate_ledger_entries": [],
+            "invalid_ledger_rows": [],
+            "batch_numbers": [1],
+            "batch_gaps": [],
+            "batch_gap_state": "PASS",
+            "ordering_state": "PASS",
+            "ordering_anomalies": [],
+        },
         "queue_mapping": {"state": "NOT_CHECKED", "records": []},
         "alert_mapping": {"state": "NOT_CHECKED", "records": []},
         "orphan_checks": [{"id": f"orphan_{index}", "state": "PASS"} for index in range(18)],
@@ -68,6 +83,7 @@ class ReadonlyEvidenceValidatorTests(unittest.TestCase):
             "expected_foreign_key_reconciliation",
             "expected_trigger_reconciliation",
             "migration_ledger_reconciliation",
+            "full_migration_ledger_inventory",
         ):
             with self.subTest(section=section):
                 evidence = valid_evidence()
