@@ -114,9 +114,32 @@ A dedicated Python regression test now checks that the provenance table set matc
 
 This artifact is **provenance only**. It deliberately does not claim to be the full schema definition manifest: column definitions, complete index contracts, foreign-key actions, trigger bodies and table options must still be encoded and compared. Source migrations that create tables outside the diagnostic allowlist remain outside this 1D.2B table contract unless the authoritative scope is expanded; they must not be silently omitted from a broader whole-database claim.
 
+## 6.2 Expanded migration-created schema scope inventory
+
+Continuation branch `phase1d2b/complete-source-schema-reconciliation` was created from verified `main` SHA `117d2dd710e7b9545b7a28b6c802415e26c02f1f`.
+
+A source-level inventory of all 97 PHP files in `database/migrations` identified 62 distinct application-owned table creation targets, including multiple tables created by one migration and guarded `MigrationSchemaGuard::createTableIfMissing` operations. The Laravel `migrations` ledger is separately classified as framework-managed, giving 63 current table-scope entries in this inventory.
+
+New artifact:
+- `database/schema-contract/phase1d2b-schema-scope-inventory.json`
+- Contract: `phase1d2b-schema-scope-inventory/v1`
+- Application creation targets: 62
+- Framework-managed ledger: 1
+- Total entries: 63
+- Status: `SOURCE_CREATE_INVENTORY_IDENTIFIED; FINAL_SCHEMA_DEFINITION_NOT_CHECKED`
+
+The current 39-entry diagnostic allowlist is a subset of this expanded source inventory. This establishes that the previous 38-application-table inventory is not the complete migration-created application table scope.
+
+Regression:
+- `tests/phase1c/test_phase1d2b_schema_scope.py`
+- Checks scope counts, framework-ledger classification, allowlist inclusion, creation-source existence, recognized create operations and explicit NOT_CHECKED definition state.
+- Added to `phase1c-readonly-diagnostic-ci.yml`.
+
+Important limitation: this inventory is a creation-target/scope discovery artifact, not the final-state schema manifest. It does not yet encode complete final column definitions, indexes, foreign keys, triggers, table options or every subsequent alteration. Those definitions must be reconstructed from all applicable source migrations before any schema-equivalence PASS can be emitted.
+
 ## 6. Remaining blockers before Phase 1D.2B acceptance
 
-The source-backed full schema definition manifest and comparison engine are not yet complete. The existing table metadata PASS remains a successful metadata-read state, not proof of source equivalence. A complete definition manifest must cover the 38 application tables in the current 39-entry diagnostic allowlist (the 39th entry is the Laravel migrations ledger), using the new provenance map and authoritative migration history. Observed definitions must be compared across all columns, table options, indexes, foreign keys and trigger contracts.
+The source-backed full schema definition manifest and comparison engine are not yet complete. The existing table metadata PASS remains a successful metadata-read state, not proof of source equivalence. A complete definition manifest must cover the 62 application-owned table creation targets in the expanded scope inventory (plus the Laravel migrations ledger), using the provenance map and authoritative migration history. Observed definitions must be compared across all columns, table options, indexes, foreign keys and trigger contracts.
 
 The current target migration/object matrix is implemented, but its object mapping must be expanded and source-verified as part of the complete schema manifest. It must not be treated as exhaustive for every table/column/index/constraint created by the 18 migrations.
 
