@@ -27,7 +27,11 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
         self.assertEqual(ledger["ownership"], "framework_managed")
         self.assertEqual(ledger["managed_by"], "Laravel DatabaseMigrationRepository")
         self.assertEqual([c["name"] for c in ledger["columns"]], ["id", "migration", "batch"])
-        self.assertEqual(ledger["definition_state"], "NOT_CHECKED")
+        self.assertEqual([c["type"] for c in ledger["columns"]], ["int unsigned", "varchar(255)", "int"])
+        self.assertEqual(ledger["definition_state"], "COMPLETE")
+        self.assertEqual(ledger["framework_version"], "laravel/framework v13.33.0")
+        self.assertEqual(ledger["table_options"]["state"], "INHERITED_CONNECTION_DEFAULT")
+        self.assertEqual(ledger["indexes"][0]["name"], "PRIMARY")
 
     def test_all_97_migration_sources_are_accounted_for(self):
         entries = self.provenance["migrations"]
