@@ -13,7 +13,7 @@ SCHEMA = VALIDATOR.json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
 
 def valid_evidence():
     return {
-        "schema_version": "phase1c-readonly-diagnostic/v2",
+        "schema_version": "phase1c-readonly-diagnostic/v3",
         "database": {"engine": "mysql", "server_version": "8.4.0", "identity_verified": True},
         "metadata_visibility": {"complete": True, "triggers_complete": True},
         "tables": [{"table": f"table_{index}", "state": "PASS"} for index in range(39)],
@@ -61,6 +61,31 @@ def valid_evidence():
             "ordering_state": "PASS",
             "ordering_anomalies": [],
         },
+        "source_schema_reconciliation": {
+            "contract": "phase1d2b-schema-comparison/v1",
+            "state": "NOT_CHECKED",
+            "table_count": 63,
+            "complete_table_count": 0,
+            "results": {},
+            "definition_coverage": {"state": "NOT_CHECKED"},
+            "observed_metadata_collected": True,
+            "schema_equivalence_proven": False,
+        },
+        "full_source_migration_reconciliation": {
+            "state": "PASS",
+            "source_count": 97,
+            "ledger_row_count": 97,
+            "source_files_not_recorded": [],
+            "ledger_entries_without_source_files": [],
+            "duplicate_ledger_entries": [],
+            "invalid_ledger_rows": [],
+            "batch_numbers": [1],
+            "batch_gaps": [],
+            "batch_gap_state": "NOT_CHECKED",
+            "ordering_state": "PASS",
+            "migration_object_reconciliation": [],
+            "object_mapping_state": "NOT_CHECKED",
+        },
         "queue_mapping": {"state": "NOT_CHECKED", "records": []},
         "alert_mapping": {"state": "NOT_CHECKED", "records": []},
         "orphan_checks": [{"id": f"orphan_{index}", "state": "PASS"} for index in range(18)],
@@ -90,6 +115,8 @@ class ReadonlyEvidenceValidatorTests(unittest.TestCase):
             "expected_trigger_reconciliation",
             "migration_ledger_reconciliation",
             "full_migration_ledger_inventory",
+            "full_source_migration_reconciliation",
+            "source_schema_reconciliation",
             "migration_object_reconciliation",
         ):
             with self.subTest(section=section):
