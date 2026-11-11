@@ -5,6 +5,12 @@ require_once dirname(__DIR__,2).'/scripts/phase1c/readonly-schema-diagnostic.php
 function assertDiagnostic(bool $ok,string $message): void { if(!$ok) throw new RuntimeException('acceptance_failed: '.$message); }
 function collectDiagnostic(PDO $pdo, ?string $expectedDatabase = null): array { return (new Phase1CReadOnlyDiagnostic($pdo))->collect($expectedDatabase ?? (string)getenv('DB_DATABASE')); }
 
+assertDiagnostic(phase1cClassifyMigrationObjectLedgerState('PASS', 'PASS')['state'] === 'PASS', 'ledger and all expected objects present passes');
+assertDiagnostic(phase1cClassifyMigrationObjectLedgerState('PASS', 'MISSING')['state'] === 'FAIL', 'ledger row with missing objects fails');
+assertDiagnostic(phase1cClassifyMigrationObjectLedgerState('MISSING', 'PASS')['reason'] === 'EXPECTED_OBJECTS_PRESENT_WITHOUT_LEDGER_ENTRY', 'objects without ledger row fail');
+assertDiagnostic(phase1cClassifyMigrationObjectLedgerState('MISSING', 'FAIL')['reason'] === 'PARTIAL_OBJECT_APPLICATION_WITHOUT_LEDGER_ENTRY', 'partial objects without ledger row fail');
+assertDiagnostic(phase1cClassifyMigrationObjectLedgerState('UNKNOWN', 'PASS')['state'] === 'UNKNOWN', 'insufficient ledger evidence remains unknown');
+
 // Pure full-ledger contract tests run identically on MySQL and MariaDB.
 $ledgerSources = ['2026_01_01_000001_first', '2026_01_02_000001_second', '2026_01_03_000001_third'];
 $ledgerComplete = phase1cAnalyzeFullMigrationLedger($ledgerSources, [
@@ -207,6 +213,11 @@ assertDiagnostic($fullLedger['source_file_count'] >= 18 && $fullLedger['ledger_r
 assertDiagnostic(in_array($expectedMigrations[1], $fullLedger['source_files_not_recorded'], true), 'full ledger exposes source files absent from the ledger');
 assertDiagnostic($fullLedger['ledger_entries_without_source_files'] === [], 'all fixture ledger entries resolve to migration source files');
 assertDiagnostic($fullLedger['state'] === 'FAIL' && $fullLedger['duplicate_ledger_entries'][0]['migration'] === $expectedMigrations[0], 'full ledger reports duplicate source migration rows');
+
+$objectConsistency = $one['migration_object_reconciliation'];
+assertDiagnostic(count($objectConsistency) === 18, 'all 18 target migrations have object/ledger consistency results');
+$missingLedgerButObjects = array_values(array_filter($objectConsistency, static fn (array $row): bool => $row['migration'] === $expectedMigrations[1]))[0];
+assertDiagnostic($missingLedgerButObjects['ledger_state'] === 'MISSING' && $missingLedgerButObjects['object_state'] === 'PASS' && $missingLedgerButObjects['consistency_state'] === 'FAIL', 'objects present without their migration ledger entry fail');
 
 $primaryIndex = static function (array $evidence): array {
     $matches = array_values(array_filter(
