@@ -822,7 +822,28 @@ final class Phase1CReadOnlyDiagnostic
 
         try {
             $migrationDirectory = dirname(__DIR__, 2).'/database/migrations';
-            $sourcePaths = glob($migrationDirectory.'/*.php') ?: [];
+            if (!is_dir($migrationDirectory) || !is_readable($migrationDirectory)) {
+                return [
+                    'state' => 'UNKNOWN',
+                    'reason' => 'MIGRATION_SOURCE_DIRECTORY_UNAVAILABLE',
+                    'source_file_count' => null,
+                    'ledger_row_count' => null,
+                    'distinct_ledger_migration_count' => null,
+                    'source_files_not_recorded' => [],
+                    'ledger_entries_without_source_files' => [],
+                    'duplicate_ledger_entries' => [],
+                    'invalid_ledger_rows' => [],
+                    'batch_numbers' => [],
+                    'batch_gaps' => [],
+                    'batch_gap_state' => 'UNKNOWN',
+                    'ordering_state' => 'UNKNOWN',
+                    'ordering_anomalies' => [],
+                ];
+            }
+            $sourcePaths = glob($migrationDirectory.'/*.php');
+            if ($sourcePaths === false) {
+                throw new RuntimeException('Migration source filename inventory is unavailable.');
+            }
             $sourceNames = array_map(static fn (string $path): string => basename($path, '.php'), $sourcePaths);
             $hasId = isset($this->columns['migrations']['id']);
             $select = $hasId ? 'SELECT id,migration,batch FROM migrations ORDER BY id' : 'SELECT migration,batch FROM migrations ORDER BY batch,migration';
