@@ -145,6 +145,22 @@ The scope regression was strengthened to scan all 97 migration PHP files for lit
 
 The first run of this stronger scan failed because the test recognizer expected the constant-backed `Schema::create(self::TABLE)` call to close immediately; the real migration correctly passes a Blueprint closure after the constant. The failure was in the test recognizer, not the migration. The recognizer was corrected to accept the closure argument. Exact-head rerun is pending; no assertion has been removed or weakened.
 
+## 6.4 Exact-head scope inventory regression result
+
+At continuation commit `9360d713558c3455b19b20c161cd6d0a057c808e`, Phase 1C read-only diagnostic CI run **#42994466030** completed successfully.
+
+Both disposable database jobs passed:
+- MySQL 8.4 — PASS.
+- MariaDB 11.8.9 — PASS.
+
+Within each engine job:
+- Existing source provenance regression — PASS.
+- Expanded 63-entry schema scope regression — PASS, including the all-97-migration create-target scan and alteration-source path checks.
+- Existing disposable read-only diagnostic acceptance — PASS.
+- Sanitized evidence schema validation — PASS.
+
+This validates the new source-scope inventory and its test harness only. It does not validate final-state schema equivalence; the complete source-derived definition manifest and comparison engine remain open. Laravel CI and Repository Test for this exact head were still running at the time of this report update and must be rechecked on the final PR head.
+
 ## 6. Remaining blockers before Phase 1D.2B acceptance
 
 The source-backed full schema definition manifest and comparison engine are not yet complete. The existing table metadata PASS remains a successful metadata-read state, not proof of source equivalence. A complete definition manifest must cover the 62 application-owned table creation targets in the expanded scope inventory (plus the Laravel migrations ledger), using the provenance map and authoritative migration history. Observed definitions must be compared across all columns, table options, indexes, foreign keys and trigger contracts.
