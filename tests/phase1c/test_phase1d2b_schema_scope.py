@@ -54,12 +54,12 @@ class Phase1D2BSchemaScopeTest(unittest.TestCase):
 
         for source_path in migration_files:
             source = source_path.read_text(encoding="utf-8")
-            discovered.update(re.findall(r"Schema::create\\s*\\(\\s*['\\\"]([^'\\\"]+)", source))
-            discovered.update(re.findall(r"createTableIfMissing\\s*\\(\\s*['\\\"]([^'\\\"]+)", source))
-            discovered.update(re.findall(r"CREATE TABLE(?: IF NOT EXISTS)?\\s+\`?([a-zA-Z0-9_]+)", source, re.I))
+            discovered.update(re.findall(r"Schema::create\s*\(\s*['\\\"]([^'\\\"]+)", source))
+            discovered.update(re.findall(r"createTableIfMissing\s*\(\s*['\\\"]([^'\\\"]+)", source))
+            discovered.update(re.findall(r"CREATE TABLE(?: IF NOT EXISTS)?\s+\`?([a-zA-Z0-9_]+)", source, re.I))
 
-            if re.search(r"Schema::create\\s*\\(\\s*self::TABLE\\s*\\)", source):
-                constant = re.search(r"private const TABLE\\s*=\\s*['\\\"]([^'\\\"]+)", source)
+            if re.search(r"Schema::create\s*\(\s*self::TABLE\s*\)", source):
+                constant = re.search(r"private const TABLE\s*=\s*['\\\"]([^'\\\"]+)", source)
                 self.assertIsNotNone(constant, f"dynamic TABLE create needs a literal source constant: {source_path.name}")
                 discovered.add(constant.group(1))
 
