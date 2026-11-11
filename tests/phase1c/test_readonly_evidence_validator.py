@@ -110,6 +110,25 @@ class ReadonlyEvidenceValidatorTests(unittest.TestCase):
                 evidence[section].pop()
                 self.assertTrue(VALIDATOR.validate_document(SCHEMA, evidence))
 
+    def test_migration_object_matrix_rejects_false_passes(self):
+        evidence = valid_evidence()
+        evidence["migration_object_reconciliation"][0].update(
+            {"ledger_state": "MISSING", "object_state": "PASS", "consistency_state": "PASS"}
+        )
+        self.assertIn(
+            "privacy_validation=FAIL reason=migration_object_consistency_false_pass",
+            VALIDATOR.validate_document(SCHEMA, evidence),
+        )
+
+        evidence = valid_evidence()
+        evidence["migration_object_reconciliation"][0].update(
+            {"ledger_state": "PASS", "object_state": "FAIL", "consistency_state": "PASS"}
+        )
+        self.assertIn(
+            "privacy_validation=FAIL reason=migration_object_consistency_false_pass",
+            VALIDATOR.validate_document(SCHEMA, evidence),
+        )
+
     def test_duplicate_ledger_batches_are_all_retained(self):
         evidence = valid_evidence()
         evidence["migration_ledger_reconciliation"][0].update(
