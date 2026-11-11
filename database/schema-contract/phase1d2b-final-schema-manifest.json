@@ -21,7 +21,7 @@
     "framework_ledger_state": "COMPLETE_FRAMEWORK_DEFINITION_WITH_INHERITED_CONNECTION_OPTIONS",
     "source_reviewed_non_empty_migrations": 74,
     "remaining_non_empty_migrations": 0,
-    "note": "62 application table object inventories are present. 24 source-derived trigger definitions across 12 tables have exact deterministic names and behavior. Table definitions remain PARTIAL pending server-default engine and full comparator acceptance.",
+    "note": "All 62 application tables have source-derived object inventories. Table options are complete as a conditional source contract (engine resolved from @@default_storage_engine; charset/collation pinned). Table definitions remain PARTIAL pending exact cumulative object reconciliation and conditional migration-path resolution.",
     "partial_application_tables": 62,
     "trigger_table_count": 12
   },
@@ -36,8 +36,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -485,8 +485,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -782,8 +782,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -1102,8 +1102,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -1389,8 +1389,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -1647,8 +1647,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -1877,8 +1877,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -2250,8 +2250,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -2398,8 +2398,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -2724,8 +2724,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -2986,8 +2986,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -3280,8 +3280,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -3746,8 +3746,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -4090,8 +4090,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -4308,8 +4308,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -4484,8 +4484,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -4670,8 +4670,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -4917,8 +4917,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php sets utf8mb4/utf8mb4_unicode_ci; mysql engine is null so server default engine applies and is not pinned by application source."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -5212,8 +5212,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php sets utf8mb4/utf8mb4_unicode_ci; mysql engine is null so server default engine applies and is not pinned by application source."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -5509,8 +5509,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php sets utf8mb4/utf8mb4_unicode_ci; mysql engine is null so server default engine applies and is not pinned by application source."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -5865,8 +5865,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -6156,8 +6156,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -6548,8 +6548,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -6787,8 +6787,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -7235,8 +7235,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -7601,8 +7601,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php sets utf8mb4/utf8mb4_unicode_ci; mysql engine is null so server default engine applies and is not pinned by application source."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -7978,8 +7978,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -8217,8 +8217,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -8547,8 +8547,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -9114,8 +9114,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -9313,8 +9313,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -9538,8 +9538,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -9885,8 +9885,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -10102,8 +10102,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -10224,8 +10224,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -10566,8 +10566,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -10852,8 +10852,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -11114,8 +11114,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -11436,8 +11436,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -11516,8 +11516,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -11808,8 +11808,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -12068,8 +12068,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -12340,8 +12340,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -12534,8 +12534,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -12727,8 +12727,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -13080,8 +13080,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -13262,8 +13262,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -13577,8 +13577,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -13765,8 +13765,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -14213,8 +14213,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -14757,8 +14757,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -15038,8 +15038,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -15308,8 +15308,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -15561,8 +15561,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -15887,8 +15887,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -16235,8 +16235,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -16547,8 +16547,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -16865,8 +16865,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -17176,8 +17176,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -17344,8 +17344,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -17720,8 +17720,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php sets utf8mb4/utf8mb4_unicode_ci; mysql engine is null so server default engine applies and is not pinned by application source."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
@@ -17897,8 +17897,8 @@
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "PARTIAL",
-        "source": "config/database.php fixes charset/collation; engine=null means server default."
+        "state": "COMPLETE",
+        "source": "config/database.php sets MySQL engine=null; comparator resolves this source-level default through @@default_storage_engine at collection time. Charset/collation are configured as utf8mb4/utf8mb4_unicode_ci."
       },
       "columns": [
         {
