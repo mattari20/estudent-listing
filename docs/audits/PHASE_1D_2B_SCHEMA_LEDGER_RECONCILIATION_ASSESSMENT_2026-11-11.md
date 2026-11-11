@@ -78,6 +78,7 @@ The Phase 1D.2B branch now adds a version-two evidence contract and a full migra
 Changed implementation paths:
 - `scripts/phase1c/readonly-schema-diagnostic.php`
 - `scripts/phase1c/readonly-diagnostic.schema.json`
+- `scripts/phase1c/validate-readonly-evidence.py`
 - `tests/Support/phase1c-readonly-diagnostic-acceptance.php`
 - `tests/phase1c/test_readonly_evidence_validator.py`
 - `tests/phase1c/test_evidence_transfer.py`
@@ -94,18 +95,13 @@ The pure ledger analyzer and collector inventory now report:
 
 Focused acceptance fixtures now cover complete, missing, unexpected, duplicate, invalid-batch, ordering-anomaly, missing-sequence and batch-gap cases. The existing targeted 18-row reconciliation remains intact and separate from the full-ledger inventory.
 
-The evidence schema is versioned as `phase1c-readonly-diagnostic/v2`. No production database was queried by this implementation; all database acceptance remains in disposable CI services.
+The evidence schema is versioned as `phase1c-readonly-diagnostic/v2`. A target migration/object consistency matrix is also included for all 18 target migrations. It distinguishes a valid ledger/object pair, a ledger row with missing target objects, target objects present without a ledger row, partial target-object presence, and UNKNOWN evidence. The Python privacy validator rejects false PASS combinations. This matrix covers the currently registered target objects; it is not a substitute for the full 39-table source manifest. No production database was queried by this implementation; all database acceptance remains in disposable CI services.
 
 ## 6. Remaining blockers before Phase 1D.2B acceptance
 
 The source-backed full schema definition manifest and comparison engine are not yet complete. The existing table metadata PASS remains a successful metadata-read state, not proof of source equivalence. A complete 39-table manifest must be derived from the authoritative migration source history, and the observed definitions must be compared across all columns, table options, indexes, foreign keys and trigger contracts.
 
-The 18 target migrations also still need an explicit migration-to-object state matrix so the collector can distinguish:
-- Ledger entry plus all expected objects present.
-- Ledger entry with one or more expected objects missing.
-- Objects present while the ledger entry is absent.
-- Partial object application.
-- UNKNOWN / NOT_CHECKED when visibility or prerequisites are insufficient.
+The current target migration/object matrix is implemented, but its object mapping must be expanded and source-verified as part of the complete schema manifest. It must not be treated as exhaustive for every table/column/index/constraint created by the 18 migrations.
 
 Phase 1D.2B is therefore still IN PROGRESS. Do not begin Phase 1D.3.
 
@@ -131,6 +127,6 @@ Phase 1D.7 backup/restore is excluded from the supplied execution scope and is n
 
 ## 9. Current disposition
 
-**Phase 1D.2B is IN PROGRESS and NOT ACCEPTED.** The current collector provides substantial observed metadata, but it does not yet prove complete source-to-live schema equivalence, and the JSON evidence does not yet expose full-ledger reconciliation and object/ledger partial-application states.
+**Phase 1D.2B is IN PROGRESS and NOT ACCEPTED.** The current branch provides full-ledger inventory and target-object/ledger consistency evidence, but it does not yet prove complete source-to-live schema equivalence for all 39 tables and every object. Full source-derived schema manifest/comparison and exact-head isolated CI/review remain outstanding.
 
 Do not start Phase 1D.3 until the missing source contract, implementation, isolated regression, required review and merge are complete.
