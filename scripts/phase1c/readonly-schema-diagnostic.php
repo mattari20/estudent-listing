@@ -663,7 +663,7 @@ final class Phase1CReadOnlyDiagnostic
             $nullable = strtoupper((string)($row['IS_NULLABLE'] ?? 'NO')) === 'YES';
             $rawDefault = $row['COLUMN_DEFAULT'] ?? null;
             $defaultIsSqlNull = (bool)($row['COLUMN_DEFAULT_IS_NULL'] ?? false);
-            if ($defaultIsSqlNull || ($nullable && is_string($rawDefault) && strtoupper(trim($rawDefault)) === 'NULL')) {
+            if ($defaultIsSqlNull) {
                 $default = null;
             } else {
                 $default = $rawDefault;
