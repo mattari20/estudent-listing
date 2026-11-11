@@ -31,7 +31,7 @@ final class Phase1D2BSchemaContractComparator
         }
 
         $expectedValue = self::canonical($kind, self::withoutControlFields($expected));
-        $observedValue = self::canonical($kind, $observed);
+        $observedValue = self::canonical($kind, self::withoutControlFields($observed));
         $matches = $expectedValue === $observedValue;
 
         return [
