@@ -396,7 +396,7 @@ final class Phase1CReadOnlyDiagnostic
             $version=(string)$this->pdo->query('SELECT VERSION()')->fetchColumn();
             $this->inventory();
             $result=[
-                'schema_version'=>'phase1c-readonly-diagnostic/v1',
+                'schema_version'=>'phase1c-readonly-diagnostic/v2',
                 'database'=>['engine'=>stripos($version,'mariadb')!==false?'mariadb':'mysql','server_version'=>$version,'identity_verified'=>true],
                 'metadata_visibility'=>['complete'=>$this->absenceProof,'triggers_complete'=>$this->triggerAbsenceProof],
                 'tables'=>$this->tableMetadata(),
