@@ -217,16 +217,21 @@ function phase1cMysqlNullDefaultFromDefinition(?string $columnDefinition): ?bool
 final class Phase1CReadOnlyDiagnostic
 {
     private const TABLES = [
-        'assertions','change_events','data_reverification_queue','data_reverification_queue_identities',
-        'enrichment_import_rows','evidence','governed_execution_leases','governed_execution_run_events',
-        'governed_execution_runs','identity_match_candidates','identity_resolution_decisions',
-        'import_batches','import_conflict_events','import_conflicts','import_promotion_decisions',
-        'import_promotion_events','import_reconciliation_events','import_rows','institute_discovery_run_outcomes',
-        'institutions','migrations','monitoring_alert_identities','monitoring_alerts','monitoring_policy_run_sources',
-        'monitoring_policy_runs','official_source_refresh_events','password_reset_tokens','provenance_review_events',
-        'reverification_events','security_audit_events','source_change_observations','source_monitoring_policies',
-        'source_retrieval_runs','source_snapshot_reconciliation_requests','source_snapshots','sources',
-        'structured_enrichment_promotion_events','users','verification_decisions'
+        'accreditations','admission_intakes','assertions','campuses','change_events','data_quality_events',
+        'data_reverification_queue','data_reverification_queue_identities','eligibility_rules','enrichment_import_rows',
+        'evidence','external_rankings','fee_records','geographies','governed_execution_leases',
+        'governed_execution_run_events','governed_execution_runs','identity_match_candidates',
+        'identity_resolution_decisions','import_batches','import_conflict_events','import_conflicts',
+        'import_promotion_decisions','import_promotion_events','import_reconciliation_events','import_rows',
+        'import_schema_profiles','institute_discovery_run_outcomes','institution_field_approvals','institution_names',
+        'institutions','merit_records','migrations','moderation_actions','monitoring_alert_identities',
+        'monitoring_alerts','monitoring_policy_run_sources','monitoring_policy_runs','official_source_refresh_events',
+        'password_reset_tokens','program_offerings','programs','provenance_review_events','ranking_methodologies',
+        'recommendation_policies','recommendations','release_records','reverification_events','review_ratings',
+        'reviews','scholarships','security_audit_events','selection_outcomes','source_change_assertion_links',
+        'source_change_observations','source_monitoring_policies','source_retrieval_runs',
+        'source_snapshot_reconciliation_requests','source_snapshots','sources','structured_enrichment_promotion_events',
+        'users','verification_decisions'
     ];
 
     private const EXPECTED_COLUMNS = [
@@ -546,22 +551,147 @@ final class Phase1CReadOnlyDiagnostic
             if (!is_array($manifest) || ($manifest['contract'] ?? null) !== 'phase1d2b-final-schema-manifest/v1') {
                 return ['contract'=>'phase1d2b-schema-comparison/v1','state'=>'UNKNOWN','reason'=>'SOURCE_SCHEMA_MANIFEST_INVALID','table_count'=>0,'complete_table_count'=>0,'results'=>[],'definition_coverage'=>['state'=>'UNKNOWN'],'observed_metadata_collected'=>false,'schema_equivalence_proven'=>false];
             }
-            // This section intentionally supplies no observed object map. Do not
-            // reuse metadata-visibility proof as if it were an observation: an
-            // empty observed map would otherwise turn source-defined ledger
-            // columns/indexes into false MISSING results.
+            $observations = $this->observedSchemaContract();
             $comparison = Phase1D2BSchemaContractComparator::reconcileManifest(
                 $manifest,
-                [],
-                ['tables'=>false,'columns'=>false,'indexes'=>false,'foreign_keys'=>false,'triggers'=>false]
+                $observations['observed'],
+                $observations['visibility']
             );
             $comparison['definition_coverage'] = $manifest['definition_coverage'] ?? ['state'=>'UNKNOWN'];
-            $comparison['observed_metadata_collected'] = false;
-            $comparison['schema_equivalence_proven'] = false;
+            $comparison['observed_metadata_collected'] = $observations['observed']['tables'] !== [];
+            $comparison['schema_equivalence_proven'] = $comparison['state'] === 'PASS'
+                && $comparison['complete_table_count'] === 63;
             return $comparison;
         } catch (Throwable $e) {
             return ['contract'=>'phase1d2b-schema-comparison/v1','state'=>'UNKNOWN','reason'=>'SOURCE_SCHEMA_MANIFEST_READ_FAILED','table_count'=>0,'complete_table_count'=>0,'results'=>[],'definition_coverage'=>['state'=>'UNKNOWN'],'observed_metadata_collected'=>false,'schema_equivalence_proven'=>false];
         }
+    }
+
+    private function observedSchemaContract(): array
+    {
+        $observed = ['tables'=>[], 'columns'=>[], 'indexes'=>[], 'foreign_keys'=>[], 'triggers'=>[]];
+
+        $tableRows = $this->pdo->query(
+            "SELECT TABLE_NAME, ENGINE, TABLE_COLLATION, CREATE_OPTIONS FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE'"
+        )->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($tableRows as $row) {
+            $name = (string)$row['TABLE_NAME'];
+            $collation = $row['TABLE_COLLATION'] === null ? null : (string)$row['TABLE_COLLATION'];
+            $charset = $collation === null ? null : (explode('_', $collation, 2)[0] ?: null);
+            $options = trim((string)($row['CREATE_OPTIONS'] ?? ''));
+            $observed['tables'][$name] = [
+                'name'=>$name,
+                'engine'=>$row['ENGINE'] === null ? null : (string)$row['ENGINE'],
+                'charset'=>$charset,
+                'collation'=>$collation,
+                'options'=>$options === '' ? null : $options,
+            ];
+        }
+
+        foreach ($this->columnMetadata() as $row) {
+            if (!isset($row['table'], $row['COLUMN_NAME'])) continue;
+            $table = (string)$row['table'];
+            $name = (string)$row['COLUMN_NAME'];
+            $nullable = strtoupper((string)($row['IS_NULLABLE'] ?? 'NO')) === 'YES';
+            $rawDefault = $row['COLUMN_DEFAULT'] ?? null;
+            $defaultIsSqlNull = (bool)($row['COLUMN_DEFAULT_IS_NULL'] ?? false);
+            if ($defaultIsSqlNull || ($nullable && is_string($rawDefault) && strtoupper(trim($rawDefault)) === 'NULL')) {
+                $default = null;
+            } else {
+                $default = $rawDefault;
+            }
+            $extra = strtolower((string)($row['EXTRA'] ?? ''));
+            $generatedExpression = trim((string)($row['GENERATION_EXPRESSION'] ?? ''));
+            $observed['columns'][$table][$name] = [
+                'name'=>$name,
+                'ordinal_position'=>(int)$row['ORDINAL_POSITION'],
+                'type'=>strtolower((string)$row['COLUMN_TYPE']),
+                'nullable'=>$nullable,
+                'default'=>$default,
+                'default_expression'=>null,
+                'auto_increment'=>str_contains($extra, 'auto_increment'),
+                'generated'=>$generatedExpression === '' ? null : $generatedExpression,
+                'comment'=>null,
+            ];
+        }
+
+        foreach ($this->indexMetadata() as $row) {
+            if (!isset($row['table'], $row['INDEX_NAME'], $row['COLUMN_NAME'])) continue;
+            $table = (string)$row['table'];
+            $name = (string)$row['INDEX_NAME'];
+            $observed['indexes'][$table][$name]['name'] = $name;
+            $observed['indexes'][$table][$name]['columns'][] = [
+                'name'=>(string)$row['COLUMN_NAME'],
+                'sequence'=>(int)$row['SEQ_IN_INDEX'],
+                'prefix_length'=>$row['SUB_PART'] === null ? null : (int)$row['SUB_PART'],
+                'direction'=>strtoupper((string)($row['COLLATION'] ?? 'A')) === 'D' ? 'DESC' : 'ASC',
+            ];
+            $observed['indexes'][$table][$name]['unique'] = (int)$row['NON_UNIQUE'] === 0;
+            $observed['indexes'][$table][$name]['type'] = strtoupper((string)$row['INDEX_TYPE']);
+        }
+        foreach ($observed['indexes'] as &$tableIndexes) {
+            foreach ($tableIndexes as &$index) {
+                usort($index['columns'], static fn(array $a, array $b): int => $a['sequence'] <=> $b['sequence']);
+            }
+            unset($index);
+        }
+        unset($tableIndexes);
+
+        $foreignRows = $this->foreignKeys();
+        $foreignKeyVisible = $this->absenceProof
+            && !($foreignRows !== [] && isset($foreignRows[0]['state']) && $foreignRows[0]['state'] === 'UNKNOWN');
+        foreach ($foreignRows as $row) {
+            if (!isset($row['TABLE_NAME'], $row['CONSTRAINT_NAME'], $row['COLUMN_NAME'], $row['REFERENCED_TABLE_NAME'], $row['REFERENCED_COLUMN_NAME'])) continue;
+            $table = (string)$row['TABLE_NAME'];
+            $name = (string)$row['CONSTRAINT_NAME'];
+            $observed['foreign_keys'][$table][$name]['name'] = $name;
+            $observed['foreign_keys'][$table][$name]['source_columns'][] = (string)$row['COLUMN_NAME'];
+            $observed['foreign_keys'][$table][$name]['referenced_table'] = (string)$row['REFERENCED_TABLE_NAME'];
+            $observed['foreign_keys'][$table][$name]['referenced_columns'][] = (string)$row['REFERENCED_COLUMN_NAME'];
+            $observed['foreign_keys'][$table][$name]['on_delete'] = strtoupper((string)$row['DELETE_RULE']);
+            $observed['foreign_keys'][$table][$name]['on_update'] = strtoupper((string)$row['UPDATE_RULE']);
+            $observed['foreign_keys'][$table][$name]['_sequence'][] = (int)($row['ORDINAL_POSITION'] ?? 1);
+        }
+        foreach ($observed['foreign_keys'] as &$tableKeys) {
+            foreach ($tableKeys as &$foreignKey) {
+                array_multisort($foreignKey['_sequence'], SORT_ASC, $foreignKey['source_columns'], $foreignKey['referenced_columns']);
+                unset($foreignKey['_sequence']);
+            }
+            unset($foreignKey);
+        }
+        unset($tableKeys);
+
+        $triggerStates = [];
+        foreach ($this->triggerReconciliation() as $row) {
+            if (isset($row['name'])) $triggerStates[$row['name']] = $row;
+        }
+        $manifestPath = dirname(__DIR__, 2).'/database/schema-contract/phase1d2b-final-schema-manifest.json';
+        $manifest = is_file($manifestPath) ? json_decode((string)file_get_contents($manifestPath), true) : [];
+        foreach (($manifest['tables'] ?? []) as $table => $contract) {
+            foreach (($contract['triggers'] ?? []) as $expectedTrigger) {
+                $name = (string)($expectedTrigger['name'] ?? '');
+                if ($name === '' || !isset($triggerStates[$name])) continue;
+                $state = $triggerStates[$name]['state'] ?? 'UNKNOWN';
+                if ($state === 'PASS') {
+                    $observed['triggers'][$table][$name] = $expectedTrigger;
+                } elseif ($state === 'FAIL') {
+                    $actual = $expectedTrigger;
+                    $actual['body_contract'] = 'MISMATCH';
+                    $observed['triggers'][$table][$name] = $actual;
+                }
+            }
+        }
+
+        return [
+            'observed'=>$observed,
+            'visibility'=>[
+                'tables'=>$this->absenceProof,
+                'columns'=>$this->absenceProof && $this->columnErrors === [],
+                'indexes'=>$this->absenceProof && $this->indexErrors === [],
+                'foreign_keys'=>$foreignKeyVisible,
+                'triggers'=>$this->triggerAbsenceProof,
+            ],
+        ];
     }
 
     private function inventory(): void
@@ -604,7 +734,7 @@ final class Phase1CReadOnlyDiagnostic
         foreach(self::TABLES as $t) {
             if(!isset($this->tables[$t])) continue;
             try {
-                $q=$this->pdo->prepare('SELECT COLUMN_NAME,ORDINAL_POSITION,COLUMN_DEFAULT,IS_NULLABLE,DATA_TYPE,COLUMN_TYPE,CHARACTER_MAXIMUM_LENGTH,CHARACTER_OCTET_LENGTH,NUMERIC_PRECISION,NUMERIC_SCALE,DATETIME_PRECISION,CHARACTER_SET_NAME,COLLATION_NAME,COLUMN_KEY,EXTRA,PRIVILEGES,COLUMN_COMMENT,GENERATION_EXPRESSION FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? ORDER BY ORDINAL_POSITION');
+                $q=$this->pdo->prepare('SELECT COLUMN_NAME,ORDINAL_POSITION,COLUMN_DEFAULT,COLUMN_DEFAULT IS NULL AS COLUMN_DEFAULT_IS_NULL,IS_NULLABLE,DATA_TYPE,COLUMN_TYPE,CHARACTER_MAXIMUM_LENGTH,CHARACTER_OCTET_LENGTH,NUMERIC_PRECISION,NUMERIC_SCALE,DATETIME_PRECISION,CHARACTER_SET_NAME,COLLATION_NAME,COLUMN_KEY,EXTRA,PRIVILEGES,COLUMN_COMMENT,GENERATION_EXPRESSION FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? ORDER BY ORDINAL_POSITION');
                 $q->execute([$t]);
                 foreach($q->fetchAll() as $r) { $r['COLUMN_DEFAULT']=$this->safeDefault((string)$r['COLUMN_NAME'],$r['COLUMN_DEFAULT']); unset($r['PRIVILEGES'],$r['COLUMN_COMMENT']); $out[]=['table'=>$t]+$r; }
             } catch(Throwable $e) {$this->columnErrors[$t]=$this->safeError($e);$out[]=['table'=>$t,'state'=>'UNKNOWN','error'=>$this->safeError($e)];}
