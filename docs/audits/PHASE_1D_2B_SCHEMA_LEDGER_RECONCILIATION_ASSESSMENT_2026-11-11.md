@@ -137,6 +137,14 @@ Regression:
 
 Important limitation: this inventory is a creation-target/scope discovery artifact, not the final-state schema manifest. It does not yet encode complete final column definitions, indexes, foreign keys, triggers, table options or every subsequent alteration. Those definitions must be reconstructed from all applicable source migrations before any schema-equivalence PASS can be emitted.
 
+## 6.3 Alteration provenance and source-scan regression
+
+The expanded scope inventory now includes an `alteration_migrations` list for 28 application tables based on inspected `Schema::table`, `MigrationSchemaGuard` and append-only / monitoring checkpoint migration sources. The original 38-table provenance artifact now links to the expanded 63-entry scope artifact and explicitly warns that its legacy `tables` object is not the complete application scope.
+
+The scope regression was strengthened to scan all 97 migration PHP files for literal `Schema::create`, `createTableIfMissing`, raw `CREATE TABLE`, and constant-backed `Schema::create(self::TABLE, ...)` targets, then compare the discovered set to the inventory. It also verifies every mapped alteration source path and its table reference.
+
+The first run of this stronger scan failed because the test recognizer expected the constant-backed `Schema::create(self::TABLE)` call to close immediately; the real migration correctly passes a Blueprint closure after the constant. The failure was in the test recognizer, not the migration. The recognizer was corrected to accept the closure argument. Exact-head rerun is pending; no assertion has been removed or weakened.
+
 ## 6. Remaining blockers before Phase 1D.2B acceptance
 
 The source-backed full schema definition manifest and comparison engine are not yet complete. The existing table metadata PASS remains a successful metadata-read state, not proof of source equivalence. A complete definition manifest must cover the 62 application-owned table creation targets in the expanded scope inventory (plus the Laravel migrations ledger), using the provenance map and authoritative migration history. Observed definitions must be compared across all columns, table options, indexes, foreign keys and trigger contracts.
