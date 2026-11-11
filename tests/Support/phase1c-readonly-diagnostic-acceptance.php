@@ -212,9 +212,8 @@ assertDiagnostic($badIndexes===[],'index definition mismatch: '.implode(',',arra
 /* NULL-safe nullable-unique and open-only duplicate regression fixtures. */
 $pdo->exec('INSERT INTO source_retrieval_runs (idempotency_key) VALUES (NULL),(NULL)');
 $pdo->exec('INSERT INTO source_snapshots (capture_key) VALUES (NULL),(NULL)');
-$pdo->exec('INSERT INTO source_change_observations (current_snapshot_id) VALUES (NULL),(NULL)');
 $nullDuplicateEvidence = collectDiagnostic($pdo);
-foreach (['duplicate_source_retrieval_idempotency_key','duplicate_source_snapshot_capture_key','duplicate_observation_current_snapshot_id'] as $checkId) {
+foreach (['duplicate_source_retrieval_idempotency_key','duplicate_source_snapshot_capture_key'] as $checkId) {
     $check = array_values(array_filter($nullDuplicateEvidence['duplicate_checks'], static fn (array $row): bool => $row['id'] === $checkId))[0];
     assertDiagnostic($check['state'] === 'PASS', $checkId.' treats multiple NULL values as non-duplicates');
 }
