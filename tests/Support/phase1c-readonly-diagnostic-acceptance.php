@@ -210,8 +210,9 @@ assertDiagnostic($sourceContract['contract']==='phase1d2b-schema-comparison/v1' 
 assertDiagnostic($sourceContract['state']==='UNKNOWN' && $sourceContract['complete_table_count']===0 && $sourceContract['schema_equivalence_proven']===false && $sourceContract['observed_metadata_collected']===false,'unobserved source objects cannot be reported as missing or equivalent');
 assertDiagnostic(count($sourceContract['results'])===63,'per-table source comparison statuses are present');
 foreach($sourceContract['results'] as $tableName => $tableResult) {
-    $expectedState = $tableName === 'migrations' ? 'UNKNOWN' : 'NOT_CHECKED';
-    assertDiagnostic($tableResult['state']===$expectedState,'application definitions remain NOT_CHECKED and unobserved framework objects remain UNKNOWN');
+    assertDiagnostic($tableResult['state']==='UNKNOWN','unobserved metadata must remain UNKNOWN when source objects are inventoried');
+    assertDiagnostic(($tableResult['objects']['table']['state'] ?? null)==='NOT_CHECKED','table-level comparison remains NOT_CHECKED while source table options are conditional or incomplete');
+    assertDiagnostic($tableResult['state']!=='PASS','unobserved source objects must never produce schema-equivalence PASS');
 }
 $fullSource=$one['full_source_migration_reconciliation'];
 assertDiagnostic($fullSource['source_count']===97 && count($fullSource['migration_object_reconciliation'])===97,'all 97 source migrations receive ledger/object reconciliation rows');
