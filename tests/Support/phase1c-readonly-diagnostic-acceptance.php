@@ -212,7 +212,12 @@ assertDiagnostic(count($sourceContract['results'])===63,'per-table source compar
 foreach($sourceContract['results'] as $tableResult) assertDiagnostic($tableResult['state']==='NOT_CHECKED','unreconstructed table definitions remain NOT_CHECKED');
 $fullSource=$one['full_source_migration_reconciliation'];
 assertDiagnostic($fullSource['source_count']===97 && count($fullSource['migration_object_reconciliation'])===97,'all 97 source migrations receive ledger/object reconciliation rows');
-assertDiagnostic($fullSource['object_mapping_state']==='NOT_CHECKED','unverified migration object provenance remains NOT_CHECKED');
+$targetMigrationNames=$expectedMigrations;
+$unverifiedMigrationObjects=array_values(array_filter(
+    $fullSource['migration_object_reconciliation'],
+    static fn(array $row): bool => !in_array($row['migration'],$targetMigrationNames,true) && $row['object_state']==='NOT_CHECKED'
+));
+assertDiagnostic(count($unverifiedMigrationObjects)===79,'all 79 migrations outside the 18-target object registry remain NOT_CHECKED');
 assertDiagnostic($one['registry_counts']['tables']===39 && $one['registry_counts']['expected_indexes']===23 && $one['registry_counts']['expected_columns']===50 && $one['registry_counts']['expected_foreign_keys']===23 && $one['registry_counts']['expected_triggers']===24 && $one['registry_counts']['expected_migrations']===18 && $one['registry_counts']['orphan_checks']===18 && $one['registry_counts']['duplicate_checks']===14,'registry sizes');
 assertDiagnostic(count($one['tables'])===39 && count($one['expected_index_reconciliation'])===23,'complete table/index metadata');
 assertDiagnostic(count($one['expected_column_reconciliation'])===50 && count($one['expected_foreign_key_reconciliation'])===23 && count($one['expected_trigger_reconciliation'])===24 && count($one['migration_ledger_reconciliation'])===18,'complete reconciliation sections');
