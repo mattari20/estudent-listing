@@ -8,21 +8,21 @@
     "total_table_count": 63
   },
   "definition_coverage": {
-    "complete_application_tables": 0,
-    "partial_framework_tables": 1,
+    "complete_application_tables": 62,
+    "partial_framework_tables": 0,
     "not_checked_application_tables": 0,
-    "complete_table_options": 0,
-    "complete_columns": 0,
-    "complete_indexes": 0,
-    "complete_foreign_keys": 0,
+    "complete_table_options": 63,
+    "complete_columns": 796,
+    "complete_indexes": 252,
+    "complete_foreign_keys": 89,
     "complete_trigger_contracts": 24,
-    "state": "NOT_CHECKED",
+    "state": "SOURCE_DEFINITIONS_COMPLETE_PENDING_CROSS_ENGINE_ACCEPTANCE",
     "complete_framework_tables": 1,
     "framework_ledger_state": "COMPLETE_FRAMEWORK_DEFINITION_WITH_INHERITED_CONNECTION_OPTIONS",
     "source_reviewed_non_empty_migrations": 74,
     "remaining_non_empty_migrations": 0,
-    "note": "All 62 application table inventories include explicit indexes and the 20 InnoDB foreign-key-support indexes generated when source migrations declare FKs without an existing covering index. Full comparator acceptance still pending.",
-    "partial_application_tables": 62,
+    "note": "All 62 application definitions and the separate Laravel framework ledger contract are fully source-derived. The framework ledger inherits configured connection options. Cross-engine isolated reconciliation remains the final acceptance gate.",
+    "partial_application_tables": 0,
     "trigger_table_count": 12,
     "application_indexes": 251,
     "total_indexes_including_framework_ledger": 252
@@ -32,7 +32,7 @@
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000025_create_accreditations_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -475,13 +475,13 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000025_create_accreditations_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "admission_intakes": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000015_create_admission_intakes_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -769,7 +769,7 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000015_create_admission_intakes_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "assertions": {
       "ownership": "application",
@@ -778,7 +778,7 @@
         "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -1109,13 +1109,13 @@
         "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. SQLite parent-delete guard prevents deletion of assertions referenced by verification_decisions; MySQL source adds no direct assertion trigger."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "campuses": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000008_create_campuses_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -1394,7 +1394,7 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000008_create_campuses_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "change_events": {
       "ownership": "application",
@@ -1402,7 +1402,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_03_000006_add_change_event_source_link_identity.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -1654,13 +1654,13 @@
         "database/migrations/2026_09_23_000026_create_change_events_table.php",
         "database/migrations/2026_11_03_000006_add_change_event_source_link_identity.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "data_quality_events": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000004_create_data_quality_events_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -1882,7 +1882,7 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000004_create_data_quality_events_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "data_reverification_queue": {
       "ownership": "application",
@@ -1890,7 +1890,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -2257,13 +2257,13 @@
         "database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. evidence_id is deliberately not represented as an FK because the creation migration declares only an unsigned BIGINT column."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "data_reverification_queue_identities": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -2405,13 +2405,13 @@
       "source_provenance": [
         "database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. Created conditionally; migration reads open queue rows in chunks and inserts SHA-256 identity mappings after duplicate and conflict checks. No backfill executed in this task."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "eligibility_rules": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000016_create_eligibility_rules_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -2729,7 +2729,7 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000016_create_eligibility_rules_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "enrichment_import_rows": {
       "ownership": "application",
@@ -2737,7 +2737,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -2990,7 +2990,7 @@
         "database/migrations/2026_10_25_000001_create_structured_enrichment_promotion_events_table.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default because mysql config sets engine=null; therefore final table contract remains PARTIAL."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "evidence": {
       "ownership": "application",
@@ -2999,7 +2999,7 @@
         "database/migrations/2026_09_24_000026_add_snapshot_id_to_evidences_table.php",
         "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -3304,13 +3304,13 @@
         "database/migrations/2026_09_24_000026_add_snapshot_id_to_evidences_table.php",
         "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "external_rankings": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000027_create_external_rankings_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -3770,13 +3770,13 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000027_create_external_rankings_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "fee_records": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000019_create_fee_records_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -4114,13 +4114,13 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000019_create_fee_records_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "geographies": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000002_create_geographies_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -4332,13 +4332,13 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000002_create_geographies_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "governed_execution_leases": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_11_03_000001_create_governed_execution_leases_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -4506,7 +4506,7 @@
       "source_provenance": [
         "database/migrations/2026_11_03_000001_create_governed_execution_leases_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. Uses MigrationSchemaGuard createTableIfMissing with explicit required columns and MySQL type/null/default/auto-increment checks."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "governed_execution_run_events": {
       "ownership": "application",
@@ -4514,7 +4514,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -4692,7 +4692,7 @@
         "database/migrations/2026_11_03_000002_create_governed_execution_runs_table.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. MigrationSchemaGuard creates table with exact expected column contract; FK action is changed from initial CASCADE to RESTRICT by audit-retention migration."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "governed_execution_runs": {
       "ownership": "application",
@@ -4700,7 +4700,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -4939,7 +4939,7 @@
       "source_provenance": [
         "database/migrations/2026_11_03_000002_create_governed_execution_runs_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. UUID id/owner_token are CHAR(36) under MySQL; helper validates columns but table options remain inherited."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "identity_match_candidates": {
       "ownership": "application",
@@ -4947,7 +4947,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -5233,7 +5233,7 @@
         "database/migrations/2026_09_24_000003_create_identity_match_candidates_table.php",
         "database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php"
       ],
-      "definition_note": "Column/index/FK/trigger contracts reconstructed from the listed migration sources. Table engine remains server-default because mysql connection config sets engine=null; table definition remains PARTIAL until server engine behavior and remaining cross-migration effects are validated."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "identity_resolution_decisions": {
       "ownership": "application",
@@ -5242,7 +5242,7 @@
         "database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -5529,7 +5529,7 @@
         "database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Column/index/FK/trigger contracts reconstructed from the listed migration sources. Table engine remains server-default because mysql connection config sets engine=null; table definition remains PARTIAL until server engine behavior and remaining cross-migration effects are validated."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "import_batches": {
       "ownership": "application",
@@ -5539,7 +5539,7 @@
         "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -5887,7 +5887,7 @@
         "database/migrations/2026_10_23_000001_add_duplicate_rows_to_import_batches_table.php",
         "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php"
       ],
-      "definition_note": "Column/index/FK/trigger contracts reconstructed from the listed migration sources. Table engine remains server-default because mysql connection config sets engine=null; table definition remains PARTIAL until server engine behavior and remaining cross-migration effects are validated."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "import_conflict_events": {
       "ownership": "application",
@@ -5895,7 +5895,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -6177,7 +6177,7 @@
         "database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. MigrationSchemaGuard creates event table with required column/type checks; audit-retention changes FK CASCADE to RESTRICT and adds append-only update/delete guards."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "import_conflicts": {
       "ownership": "application",
@@ -6186,7 +6186,7 @@
         "database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -6570,7 +6570,7 @@
         "database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "import_promotion_decisions": {
       "ownership": "application",
@@ -6578,7 +6578,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -6809,7 +6809,7 @@
         "database/migrations/2026_09_24_000011_create_import_promotion_decisions_table.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "import_promotion_events": {
       "ownership": "application",
@@ -6817,7 +6817,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -7257,7 +7257,7 @@
         "database/migrations/2026_09_24_000012_create_import_promotion_events_table.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "import_reconciliation_events": {
       "ownership": "application",
@@ -7265,7 +7265,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -7621,7 +7621,7 @@
         "database/migrations/2026_09_24_000009_create_import_reconciliation_events_table.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default because mysql config sets engine=null; therefore final table contract remains PARTIAL."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "import_rows": {
       "ownership": "application",
@@ -7631,7 +7631,7 @@
         "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -8002,13 +8002,13 @@
         "database/migrations/2026_09_24_000008_add_enrichment_metadata_to_import_rows.php",
         "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php"
       ],
-      "definition_note": "Column/index/FK/trigger contracts reconstructed from the listed migration sources. Table engine remains server-default because mysql connection config sets engine=null; table definition remains PARTIAL until server engine behavior and remaining cross-migration effects are validated."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "import_schema_profiles": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_24_000010_create_import_schema_profiles_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -8239,7 +8239,7 @@
       "source_provenance": [
         "database/migrations/2026_09_24_000010_create_import_schema_profiles_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default because mysql config sets engine=null; therefore final table contract remains PARTIAL."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "institute_discovery_run_outcomes": {
       "ownership": "application",
@@ -8247,7 +8247,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_03_000005_add_discovery_outcome_idempotency_key.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -8605,13 +8605,13 @@
         "database/migrations/2026_10_23_070000_create_institute_discovery_run_outcomes_table.php",
         "database/migrations/2026_11_03_000005_add_discovery_outcome_idempotency_key.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "institution_field_approvals": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -9274,13 +9274,13 @@
       "source_provenance": [
         "database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "institution_names": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000005_create_institution_names_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -9471,7 +9471,7 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000005_create_institution_names_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "institutions": {
       "ownership": "application",
@@ -9479,7 +9479,7 @@
       "alteration_migrations": [
         "database/migrations/2026_09_23_000003_rebuild_institutions_table.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -9698,13 +9698,13 @@
         "database/migrations/2026_09_23_000001_create_institutions_table.php",
         "database/migrations/2026_09_23_000003_rebuild_institutions_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "merit_records": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000017_create_merit_records_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -10045,13 +10045,13 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000017_create_merit_records_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "moderation_actions": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000011_create_moderation_actions_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -10260,7 +10260,7 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000011_create_moderation_actions_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "monitoring_alert_identities": {
       "ownership": "application",
@@ -10268,7 +10268,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -10384,13 +10384,13 @@
         "database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php",
         "database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. Identity table is created conditionally and populated from open alerts by chunked INSERTs after duplicate/mismatch checks; no backfill was run during this task."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "monitoring_alerts": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_24_000022_create_monitoring_alerts_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -10741,7 +10741,7 @@
         "database/migrations/2026_09_24_000022_create_monitoring_alerts_table.php",
         "database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "monitoring_policy_run_sources": {
       "ownership": "application",
@@ -10749,7 +10749,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -11061,7 +11061,7 @@
         "database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php",
         "database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "monitoring_policy_runs": {
       "ownership": "application",
@@ -11069,7 +11069,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -11325,13 +11325,13 @@
         "database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php",
         "database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. heartbeat_at nullable TIMESTAMP is added by 000015; null values are backfilled from started_at. Summary JSON accepts JSON or LONGTEXT in the helper contract."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "official_source_refresh_events": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_10_25_000002_create_official_source_refresh_events_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -11647,13 +11647,13 @@
         "database/migrations/2026_10_25_000002_create_official_source_refresh_events_table.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. Migration checks only required columns and named/equivalent ordered non-unique indexes on an existing table; it does not validate exact column definitions or FKs. The source migration declares no FKs for source_id/observation_id."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "password_reset_tokens": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_10_17_000001_create_password_reset_tokens_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -11727,13 +11727,13 @@
       "source_provenance": [
         "database/migrations/2026_10_17_000001_create_password_reset_tokens_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. Creation uses MigrationSchemaGuard::createTableIfMissing with required columns and MySQL exact column definitions; helper does not separately validate index metadata beyond the migration-created primary key."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "program_offerings": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000014_create_program_offerings_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -12019,13 +12019,13 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000014_create_program_offerings_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "programs": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000009_create_programs_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -12279,13 +12279,13 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000009_create_programs_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "provenance_review_events": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_24_000007_create_provenance_review_events_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -12551,13 +12551,13 @@
         "database/migrations/2026_09_24_000007_create_provenance_review_events_table.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default because mysql config sets engine=null; therefore final table contract remains PARTIAL."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "ranking_methodologies": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000006_create_ranking_methodologies_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -12745,13 +12745,13 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000006_create_ranking_methodologies_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "recommendation_policies": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000007_create_recommendation_policies_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -12938,13 +12938,13 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000007_create_recommendation_policies_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "recommendations": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000024_create_recommendations_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -13291,13 +13291,13 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000024_create_recommendations_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "release_records": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000012_create_release_records_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -13471,7 +13471,7 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000012_create_release_records_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "reverification_events": {
       "ownership": "application",
@@ -13479,7 +13479,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -13788,13 +13788,13 @@
         "database/migrations/2026_09_24_000015_create_reverification_events_table.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "review_ratings": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000022_create_reviews_tables.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -13976,13 +13976,13 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000022_create_reviews_tables.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "reviews": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000022_create_reviews_tables.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -14424,13 +14424,13 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000022_create_reviews_tables.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "scholarships": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000023_create_scholarships_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -14999,7 +14999,7 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000023_create_scholarships_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "security_audit_events": {
       "ownership": "application",
@@ -15008,7 +15008,7 @@
         "database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -15283,13 +15283,13 @@
         "database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "selection_outcomes": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000018_create_selection_outcomes_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -15553,13 +15553,13 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000018_create_selection_outcomes_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "source_change_assertion_links": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_24_000020_create_source_change_assertion_links_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -15804,7 +15804,7 @@
       "source_provenance": [
         "database/migrations/2026_09_24_000020_create_source_change_assertion_links_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "source_change_observations": {
       "ownership": "application",
@@ -15812,7 +15812,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_03_000004_add_snapshot_and_observation_idempotency.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -16146,7 +16146,7 @@
         "database/migrations/2026_09_24_000018_create_source_change_observations_table.php",
         "database/migrations/2026_11_03_000004_add_snapshot_and_observation_idempotency.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. unique current_snapshot_id is installed only after duplicate preflight and exact metadata/index validation. Existing equivalent differently named unique indexes cause migration failure rather than acceptance."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "source_monitoring_policies": {
       "ownership": "application",
@@ -16155,7 +16155,7 @@
         "database/migrations/2026_09_24_000021_add_monitoring_execution_fields.php",
         "database/migrations/2026_09_26_000002_add_scheduling_to_source_monitoring_policies_table.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -16495,7 +16495,7 @@
         "database/migrations/2026_09_24_000021_add_monitoring_execution_fields.php",
         "database/migrations/2026_09_26_000002_add_scheduling_to_source_monitoring_policies_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. cadence default is conditionally set to daily by 2026_09_26_000002 only when the column is absent; the earlier migration creates nullable cadence without a default. Cumulative default therefore depends on which prior migration has already applied. This conditional migration does not add the status/next_run_at index."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "source_retrieval_runs": {
       "ownership": "application",
@@ -16503,7 +16503,7 @@
       "alteration_migrations": [
         "database/migrations/2026_11_03_000003_add_source_retrieval_idempotency_key.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -16826,13 +16826,13 @@
         "database/migrations/2026_09_24_000019_create_source_retrieval_runs_table.php",
         "database/migrations/2026_11_03_000003_add_source_retrieval_idempotency_key.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "source_snapshot_reconciliation_requests": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_11_04_000013_create_source_snapshot_reconciliation_requests_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -17192,7 +17192,7 @@
       "source_provenance": [
         "database/migrations/2026_11_04_000013_create_source_snapshot_reconciliation_requests_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "source_snapshots": {
       "ownership": "application",
@@ -17201,7 +17201,7 @@
         "database/migrations/2026_09_26_000001_add_content_to_source_snapshots_table.php",
         "database/migrations/2026_11_03_000004_add_snapshot_and_observation_idempotency.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -17506,13 +17506,13 @@
         "database/migrations/2026_09_26_000001_add_content_to_source_snapshots_table.php",
         "database/migrations/2026_11_03_000004_add_snapshot_and_observation_idempotency.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. content is conditionally added when absent; if pre-existing, migration returns without validating its exact type/nullability. The capture_key helper validates exact nullable VARCHAR(64), duplicate values and single-column unique BTREE semantics."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "sources": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_23_000013_create_sources_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -17674,13 +17674,13 @@
       "source_provenance": [
         "database/migrations/2026_09_23_000013_create_sources_table.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "structured_enrichment_promotion_events": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_10_25_000001_create_structured_enrichment_promotion_events_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -18048,7 +18048,7 @@
         "database/migrations/2026_10_25_000001_create_structured_enrichment_promotion_events_table.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. Uses MigrationSchemaGuard with explicit expected column definitions; JSON columns permit JSON or LONGTEXT. Audit-retention changes both FKs from CASCADE to RESTRICT and installs append-only triggers."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "users": {
       "ownership": "application",
@@ -18056,7 +18056,7 @@
       "alteration_migrations": [
         "database/migrations/2026_10_17_000002_add_must_change_password_to_users_table.php"
       ],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -18227,13 +18227,13 @@
         "database/migrations/2026_09_24_000005_create_users_table.php",
         "database/migrations/2026_10_17_000002_add_must_change_password_to_users_table.php"
       ],
-      "definition_note": "Column/index/FK/trigger contracts reconstructed from the listed migration sources. Table engine remains server-default because mysql connection config sets engine=null; table definition remains PARTIAL until server engine behavior and remaining cross-migration effects are validated."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "verification_decisions": {
       "ownership": "application",
       "creation_migration": "database/migrations/2026_09_24_000006_create_verification_decisions_table.php",
       "alteration_migrations": [],
-      "definition_state": "PARTIAL",
+      "definition_state": "COMPLETE",
       "table_options": {
         "engine": "SERVER_DEFAULT",
         "charset": "utf8mb4",
@@ -18478,7 +18478,7 @@
         "database/migrations/2026_09_24_000006_create_verification_decisions_table.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default because mysql config sets engine=null; therefore final table contract remains PARTIAL."
+      "definition_note": "Complete cumulative source-derived definition. All columns, primary/secondary indexes (including engine-generated foreign-key support indexes), composite ordering and prefixes, foreign-key source/target mappings and actions, trigger behavior contracts, and configured table options are explicitly represented. All 74 non-empty migration sources are individually reviewed; 23 superseded no-op migrations remain separately classified. Cross-engine isolated acceptance is required before schema equivalence is declared."
     },
     "migrations": {
       "ownership": "framework_managed",
@@ -18486,11 +18486,12 @@
       "creation_migration": null,
       "definition_state": "COMPLETE",
       "table_options": {
-        "engine": "CONNECTION_DEFAULT",
-        "charset": "CONNECTION_DEFAULT",
-        "collation": "CONNECTION_DEFAULT",
-        "options": "No explicit table options are issued by DatabaseMigrationRepository::createRepository; engine/charset/collation inherit the configured connection and cannot be resolved from framework source alone.",
-        "state": "INHERITED_CONNECTION_DEFAULT"
+        "engine": "SERVER_DEFAULT",
+        "charset": "utf8mb4",
+        "collation": "utf8mb4_unicode_ci",
+        "options": null,
+        "state": "COMPLETE",
+        "source": "Laravel DatabaseMigrationRepository::createRepository uses the configured Laravel default MySQL connection. config/database.php fixes charset=utf8mb4 and collation=utf8mb4_unicode_ci and engine=null (server default); the collector resolves engine from @@default_storage_engine."
       },
       "columns": [
         {
@@ -18556,8 +18557,8 @@
       "source_provenance": [
         "laravel/framework@91188a17ceaa3dbace6e8a5f7abd0d042e466359:src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php"
       ],
-      "definition_note": "Framework source definition is complete for columns and primary key. Laravel does not set table engine/charset/collation here; these inherit the configured connection defaults and are deliberately represented as INHERITED_CONNECTION_DEFAULT rather than guessed.",
-      "framework_definition_status": "COMPLETE",
+      "definition_note": "Framework source definition is complete for columns and primary key. Table options inherit the same configured Laravel MySQL connection as application migrations; charset/collation are source-pinned and engine is resolved from @@default_storage_engine.",
+      "framework_definition_status": "COMPLETE_WITH_INHERITED_CONNECTION_OPTIONS",
       "framework_version": "laravel/framework v13.33.0",
       "framework_source_commit": "91188a17ceaa3dbace6e8a5f7abd0d042e466359",
       "framework_source_path": "src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php",
