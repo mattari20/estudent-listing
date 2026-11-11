@@ -45,7 +45,7 @@ class EvidenceTransferTests(unittest.TestCase):
             "schema_version": "phase1c-readonly-diagnostic/v3",
             "database": {"engine": "mysql", "server_version": "8.4-fixture", "identity_verified": True},
             "metadata_visibility": {"complete": True, "triggers_complete": True},
-            "tables": [{"table": f"fixture_{i}", "state": "PASS"} for i in range(39)],
+            "tables": [{"table": f"fixture_{i}", "state": "PASS"} for i in range(63)],
             "columns": [],
             "indexes": [],
             "expected_index_reconciliation": [
@@ -106,7 +106,7 @@ class EvidenceTransferTests(unittest.TestCase):
             "orphan_checks": [{"id": f"orphan_{i}", "state": "PASS"} for i in range(18)],
             "duplicate_checks": [{"id": f"duplicate_{i}", "state": "PASS"} for i in range(14)],
             "registry_counts": {
-                "tables": 39, "expected_indexes": 23, "expected_columns": 50,
+                "tables": 63, "expected_indexes": 23, "expected_columns": 50,
                 "expected_foreign_keys": 23, "expected_triggers": 24,
                 "expected_migrations": 18, "orphan_checks": 18, "duplicate_checks": 14,
             },

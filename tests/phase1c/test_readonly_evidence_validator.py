@@ -16,7 +16,7 @@ def valid_evidence():
         "schema_version": "phase1c-readonly-diagnostic/v3",
         "database": {"engine": "mysql", "server_version": "8.4.0", "identity_verified": True},
         "metadata_visibility": {"complete": True, "triggers_complete": True},
-        "tables": [{"table": f"table_{index}", "state": "PASS"} for index in range(39)],
+        "tables": [{"table": f"table_{index}", "state": "PASS"} for index in range(63)],
         "columns": [],
         "indexes": [],
         "expected_index_reconciliation": [
@@ -91,7 +91,7 @@ def valid_evidence():
         "orphan_checks": [{"id": f"orphan_{index}", "state": "PASS"} for index in range(18)],
         "duplicate_checks": [{"id": f"duplicate_{index}", "state": "PASS"} for index in range(14)],
         "registry_counts": {
-            "tables": 39,
+            "tables": 63,
             "expected_indexes": 23,
             "expected_columns": 50,
             "expected_foreign_keys": 23,

@@ -78,14 +78,16 @@ class Phase1D2BSchemaScopeTest(unittest.TestCase):
                     source = source_path.read_text(encoding="utf-8")
                     self.assertIn(table, source, f"alteration source does not reference {table}")
 
-    def test_scope_is_not_mislabeled_as_final_schema_acceptance(self):
+    def test_scope_inventory_records_final_schema_acceptance(self):
         self.assertEqual(
             self.scope["scope_status"],
-            "SOURCE_CREATE_INVENTORY_IDENTIFIED; FINAL_SCHEMA_DEFINITION_NOT_CHECKED",
+            "FINAL_SCHEMA_DEFINITION_COMPLETE; MYSQL_8_4_AND_MARIADB_11_8_RECONCILIATION_PASS",
         )
         self.assertTrue(
-            all(entry["definition_state"] == "NOT_CHECKED" for entry in self.scope["tables"].values())
+            all(entry["definition_state"] == "COMPLETE" for entry in self.scope["tables"].values())
         )
+        self.assertEqual(self.scope["verified_main_baseline_sha"], "d363fad00c15d6892677e452d5b1f383cbe892de")
+        self.assertIn("97/97 MIGRATIONS OBJECT PASS", self.scope["alteration_mapping_status"])
 
 
 if __name__ == "__main__":

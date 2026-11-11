@@ -32,12 +32,39 @@ final class Phase1D2BSchemaContractComparator
 
         $expectedValue = self::canonical($kind, self::withoutControlFields($expected));
         $observedValue = self::canonical($kind, self::withoutControlFields($observed));
-        $matches = $expectedValue === $observedValue;
+        $canonicalKind = match ($kind) {
+            'columns' => 'column',
+            'indexes' => 'index',
+            'foreign_keys' => 'foreign_key',
+            'triggers' => 'trigger',
+            default => $kind,
+        };
+        $typeMatches = true;
+        if ($canonicalKind === 'column' && is_array($expectedValue['type'] ?? null)) {
+            $allowedTypes = $expectedValue['type'];
+            $actualType = $observedValue['type'] ?? null;
+            $typeMatches = in_array($actualType, $allowedTypes, true);
+            unset($expectedValue['type'], $observedValue['type']);
+        }
+        $matches = $typeMatches && $expectedValue === $observedValue;
+        $mismatchFields = [];
+        if (!$matches) {
+            if (!$typeMatches) $mismatchFields[] = 'type';
+            foreach (array_unique(array_merge(array_keys($expectedValue), array_keys($observedValue))) as $field) {
+                if (($expectedValue[$field] ?? null) !== ($observedValue[$field] ?? null)
+                    || array_key_exists($field, $expectedValue) !== array_key_exists($field, $observedValue)) {
+                    $mismatchFields[] = $field;
+                }
+            }
+            $mismatchFields = array_values(array_unique($mismatchFields));
+        }
 
         return [
             'kind' => $kind,
             'object' => $identity,
             'state' => $matches ? 'PASS' : 'FAIL',
+            'reason' => $matches ? null : 'OBJECT_DEFINITION_MISMATCH',
+            'mismatch_fields' => $mismatchFields,
             'expected' => $expectedValue,
             'observed' => $observedValue,
         ];
@@ -46,7 +73,9 @@ final class Phase1D2BSchemaContractComparator
     public static function reconcileManifest(array $manifest, array $observed, array $visibility): array
     {
         $results = [];
+        $expectedTableNames = [];
         foreach (($manifest['tables'] ?? []) as $table => $contract) {
+            $expectedTableNames[$table] = true;
             $tableVisible = ($visibility['tables'] ?? false) === true;
             $actualTable = $observed['tables'][$table] ?? null;
             $tableContract = [
@@ -60,18 +89,66 @@ final class Phase1D2BSchemaContractComparator
             $tableComplete = ($contract['definition_state'] ?? 'NOT_CHECKED') === 'COMPLETE'
                 && ($contract['table_options']['state'] ?? 'NOT_CHECKED') === 'COMPLETE';
             $tableContract['definition_state'] = $tableComplete ? 'COMPLETE' : 'NOT_CHECKED';
+            if (($tableContract['engine'] ?? null) === 'SERVER_DEFAULT') {
+                $serverDefault = $observed['server_defaults']['engine'] ?? null;
+                if (is_string($serverDefault) && $serverDefault !== '') {
+                    $tableContract['engine'] = $serverDefault;
+                } else {
+                    $tableContract['definition_state'] = 'NOT_CHECKED';
+                }
+            }
             $tableResult = self::compareObject('table', $tableContract, $actualTable, $tableVisible);
             $objects = ['table' => $tableResult];
+
+            $optionsComplete = ($contract['table_options']['state'] ?? 'NOT_CHECKED') === 'COMPLETE';
+            $resolvedOptions = [
+                'name'=>$table,
+                'definition_state'=>$optionsComplete ? 'COMPLETE' : 'NOT_CHECKED',
+                'engine'=>$contract['table_options']['engine'] ?? null,
+                'charset'=>$contract['table_options']['charset'] ?? null,
+                'collation'=>$contract['table_options']['collation'] ?? null,
+                'options'=>$contract['table_options']['options'] ?? null,
+            ];
+            if (($resolvedOptions['engine'] ?? null) === 'SERVER_DEFAULT') {
+                $serverDefault = $observed['server_defaults']['engine'] ?? null;
+                if (is_string($serverDefault) && $serverDefault !== '') {
+                    $resolvedOptions['engine'] = $serverDefault;
+                } else {
+                    $resolvedOptions['definition_state'] = 'NOT_CHECKED';
+                }
+            }
+            $actualOptions = $actualTable === null ? null : [
+                'name'=>$table,
+                'engine'=>$actualTable['engine'] ?? null,
+                'charset'=>$actualTable['charset'] ?? null,
+                'collation'=>$actualTable['collation'] ?? null,
+                'options'=>$actualTable['options'] ?? null,
+            ];
+            $objects['table_options'] = self::compareObject('table_options', $resolvedOptions, $actualOptions, $tableVisible);
 
             foreach (['columns', 'indexes', 'foreign_keys', 'triggers'] as $kind) {
                 $visible = ($visibility[$kind] ?? false) === true;
                 $actual = $observed[$kind][$table] ?? [];
+                $expectedNames = [];
                 foreach (($contract[$kind] ?? []) as $expectedObject) {
                     $objectState = strtoupper((string)($expectedObject['definition_state'] ?? $expectedObject['state'] ?? 'COMPLETE'));
                     $expectedObject['definition_state'] = $objectState;
                     $key = (string)($expectedObject['name'] ?? '');
+                    $expectedNames[$key] = true;
                     $actualObject = $actual[$key] ?? null;
                     $objects[$kind][] = self::compareObject($kind, $expectedObject, $actualObject, $visible);
+                }
+                if ($visible) {
+                    foreach ($actual as $actualName => $actualObject) {
+                        if (!isset($expectedNames[$actualName])) {
+                            $objects[$kind][] = [
+                                'kind' => $kind,
+                                'object' => (string)$actualName,
+                                'state' => 'FAIL',
+                                'reason' => 'UNEXPECTED_OBJECT_PRESENT',
+                            ];
+                        }
+                    }
                 }
             }
             $states = [];
@@ -85,12 +162,23 @@ final class Phase1D2BSchemaContractComparator
                 : (in_array('NOT_CHECKED', $states, true) ? 'NOT_CHECKED' : 'PASS')));
             $results[$table] = ['table' => $table, 'state' => $state, 'objects' => $objects];
         }
+        $unexpectedTables = [];
+        if (($visibility['tables'] ?? false) === true) {
+            foreach (($observed['tables'] ?? []) as $observedTable => $_actualTable) {
+                if (!isset($expectedTableNames[$observedTable])) {
+                    $unexpectedTables[] = ['table'=>(string)$observedTable,'state'=>'FAIL','reason'=>'UNEXPECTED_TABLE_PRESENT'];
+                }
+            }
+        }
         ksort($results, SORT_STRING);
+        $overallStates = array_column($results, 'state');
+        if ($unexpectedTables !== []) $overallStates[] = 'FAIL';
         return [
             'contract' => 'phase1d2b-schema-comparison/v1',
-            'state' => self::aggregate(array_column($results, 'state')),
+            'state' => self::aggregate($overallStates),
             'table_count' => count($results),
             'complete_table_count' => count(array_filter($results, static fn(array $r): bool => $r['state'] === 'PASS')),
+            'unexpected_tables' => $unexpectedTables,
             'results' => $results,
         ];
     }
@@ -206,17 +294,44 @@ final class Phase1D2BSchemaContractComparator
 
     private static function withoutControlFields(array $value): array
     {
-        unset($value['definition_state'], $value['state'], $value['source_provenance'], $value['definition_note']);
+        unset($value['definition_state'], $value['state'], $value['source'], $value['source_provenance'], $value['definition_note'], $value['origin'], $value['generated_by_foreign_key']);
         return $value;
     }
 
     private static function canonical(string $kind, array $value): array
     {
-        if ($kind === 'table') {
+        $kind = match ($kind) {
+            'columns' => 'column',
+            'indexes' => 'index',
+            'foreign_keys' => 'foreign_key',
+            'triggers' => 'trigger',
+            default => $kind,
+        };
+        if ($kind === 'column') {
+            unset($value['length']); // The full type already carries character/binary length.
+            if (array_key_exists('default', $value) && $value['default'] !== null) {
+                $value['default'] = (string)$value['default'];
+            }
+        }
+        if ($kind === 'table' || $kind === 'table_options') {
             foreach (['engine', 'charset', 'collation'] as $key) if (isset($value[$key])) $value[$key] = strtolower((string)$value[$key]);
+            if (isset($value['options']) && $value['options'] === '') $value['options'] = null;
+        }
+        if ($kind === 'foreign_key') {
+            foreach (['on_delete', 'on_update'] as $key) {
+                if (!isset($value[$key])) continue;
+                $action = strtoupper((string)$value[$key]);
+                $value[$key] = $action === 'NO ACTION' ? 'RESTRICT' : $action;
+            }
         }
         if ($kind === 'column' && isset($value['type'])) {
-            $value['type'] = strtolower(preg_replace('/\\s+/', ' ', trim((string)$value['type'])));
+            $normalizeType = static function (string $type): string {
+                $type = strtolower(preg_replace('/\\s+/', ' ', trim($type)));
+                return preg_replace('/^(tinyint|smallint|mediumint|int|integer|bigint)\\(\\d+\\)/', '$1', $type) ?? $type;
+            };
+            $value['type'] = is_array($value['type'])
+                ? array_values(array_unique(array_map($normalizeType, $value['type'])))
+                : $normalizeType((string)$value['type']);
         }
         if ($kind === 'index') {
             if (isset($value['type'])) $value['type'] = strtoupper((string)$value['type']);

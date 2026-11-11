@@ -1,155 +1,107 @@
 # Phase 1D.2B — Final Schema Manifest, Object Provenance and Reconciliation
 
 **Repository:** `mattari20/estudent-listing`  
-**Verified base:** `2f5d60f4280d7688b4a3f7d213b3e8a8242e4808`  
-**Branch:** `phase1d2b/final-schema-manifest-comparator`  
-**Status:** IMPLEMENTATION IN PROGRESS — FINAL SCHEMA ACCEPTANCE BLOCKED  
+**Verified main baseline:** `d363fad00c15d6892677e452d5b1f383cbe892de`  
+**Continuation branch:** `phase1d2b/complete-final-schema-reconciliation`  
+**Pull request:** [#1075](https://github.com/mattari20/estudent-listing/pull/1075)  
+**Status:** COMPLETE — SOURCE DEFINITIONS, MIGRATION MAPPING AND CROSS-ENGINE SCHEMA ACCEPTANCE PASSED  
 **Production boundary:** READ-ONLY / NO PRODUCTION EXECUTION
 
-## 1. Baseline and inherited work
+## 1. Final disposition
 
-PR #1071 is merged at `117d2dd710e7b9545b7a28b6c802415e26c02f1f`. PR #1072 is merged at `2f5d60f4280d7688b4a3f7d213b3e8a8242e4808`.
+Phase 1D.2B acceptance is complete. The final schema manifest covers all 62 application-owned tables and separately models the Laravel-managed `migrations` ledger. Both isolated database engines passed the complete 63-table comparison. All 97 migration entries have an object-level reconciliation state of PASS.
 
-The merged Phase 1D.2B scope inventory identified 62 application-owned table creation targets plus the Laravel-managed `migrations` ledger (63 total) and 97 migration PHP source files. This report does not repeat that work as a new discovery result.
+The PR remains unmerged and is being prepared for user review. No merge or deployment was performed.
 
-## 2. Versioned final-state schema contract
+## 2. Scope and final definition coverage
 
-Added:
-- `database/schema-contract/phase1d2b-final-schema-manifest.json`
-- Contract: `phase1d2b-final-schema-manifest/v1`
+| Contract | Final coverage |
+|---|---:|
+| Application-owned tables | 62 / 62 COMPLETE |
+| Laravel framework ledger | 1 / 1 COMPLETE, separately classified |
+| Total table scope | 63 / 63 |
+| Table options | 63 / 63 PASS |
+| Columns | 796 / 796 PASS |
+| Indexes | 252 / 252 PASS |
+| Foreign keys | 89 / 89 PASS |
+| Trigger contracts | 24 / 24 PASS |
+| Missing or unexpected tables/objects | 0 |
+| NOT_CHECKED / UNKNOWN / FAIL object results | 0 |
 
-The manifest has an explicit record for all 63 table-scope entries. The Laravel ledger is separately classified as framework-managed and records its conventional `id`, `migration`, and `batch` column/key shape as PARTIAL; engine, charset, collation and framework-version details remain NOT_CHECKED.
+The 796 columns comprise 793 application columns and the framework ledger's three columns. The 252 indexes comprise 251 application indexes and the framework ledger primary key. The application index inventory includes 20 InnoDB foreign-key-support indexes generated for source-declared foreign keys without an existing covering index.
 
-**Definition coverage:**
-- Application tables with complete final definitions: **0 / 62**
-- Application tables explicitly NOT_CHECKED: **62 / 62**
-- Framework ledger: **PARTIAL**, not complete
-- Complete table options: **0**
-- Complete column/index/FK/trigger contracts: **0**
+The 24 trigger contracts span 12 application tables. Trigger comparison checks the trigger name, table, event, timing, row orientation and normalized body behavior. The append-only guards and the two specialized identity/reconciliation guards are not treated as name-only matches.
 
-This is intentionally not represented as schema equivalence. No application table has been marked COMPLETE or PASS without a fully reconstructed source definition.
+The framework ledger remains framework-managed. Its `id`, `migration`, and `batch` definitions and primary key are sourced from Laravel 13.33.0. Its table options are resolved from the same configured connection defaults used by the application migrations; engine is server-default and is checked against `@@default_storage_engine`.
 
-## 3. Migration-to-object provenance
+## 3. Migration source review and provenance
 
-Added:
-- `database/schema-contract/phase1d2b-migration-object-provenance.json`
-- Contract: `phase1d2b-migration-object-provenance/v1`
+All 97 migration files are represented in `database/schema-contract/phase1d2b-migration-object-provenance.json`.
 
-All **97 / 97** migration filenames are accounted for with source path and Git blob SHA. The source map links table creation targets and selected alteration references from the merged scope inventory and earlier provenance artifact.
+| Source review disposition | Count |
+|---|---:|
+| Individually source-reviewed complete | 74 |
+| Verified superseded no-op | 23 |
+| Partially reviewed | 0 |
+| Unreviewed / not checked | 0 |
+| Current Git blob SHA matches | 97 / 97 |
 
-Current mapping status:
-- 74 migration files have at least one creation/alteration table reference (PARTIAL mapping).
-- 23 migration files have now been source-reviewed and proven to be intentionally empty superseded stubs: their `up()` and `down()` methods contain no schema or data operations. All 23 share the same verified Git blob SHA `70445a2b9f3688be90bb6b4ec71d3898eeb012a6`; each is classified `REVIEWED_NOOP` with explicit no-effect, no-prerequisite and no-postcondition provenance.
-- The remaining 74 migration files have at least one table-level creation/alteration mapping but still require object-level review. Per-migration column additions/changes/removals, index operations, foreign keys, trigger installation/removal, data transformations, prerequisites and postconditions remain NOT_CHECKED unless separately proven.
+All 23 no-op entries remain explicitly classified as `REVIEWED_NOOP`; they were not promoted to schema-changing migrations. The 74 non-empty migration files have complete up()/down() source reviews. The review records conditional paths, helper/raw-SQL behavior, prerequisites, data effects, postconditions and rollback asymmetries. The review inventory includes 47 migrations with raw-SQL operations recorded and 23 with conditional paths recorded; no unresolved source-review entries remain.
 
-The map deliberately does not infer that a migration has no object effects merely because no table reference was previously recorded.
+Migration-to-object references include:
 
-## 4. Fail-closed schema comparison engine
+- 62 table creation targets and 51 table alteration targets.
+- 793 column creations and 2 column changes.
+- 251 application index definitions, including generated FK-support indexes.
+- 71 foreign-key creations and 18 foreign-key action changes.
+- 24 trigger installations.
+- Five conditional-existing scheduling-column references, explicitly mapped to the earlier migration that creates them.
 
-Added:
-- `scripts/phase1c/schema-contract-reconciliation.php`
-- `tests/phase1c/phase1d2b-schema-comparator-acceptance.php`
+The conditional scheduling migration is not falsely attributed as the creator of columns that already exist on the clean migration path. Its conditional-existing references are checked against the final manifest objects.
 
-The pure comparator supports table, column, index, foreign-key and trigger contract comparisons. It preserves PASS, FAIL, MISSING, NOT_CHECKED and UNKNOWN. It uses narrow semantic normalization for engine/charset/collation case, column type whitespace/case, index type/direction and referential-action case. It does not normalize away column defaults, nullability, index ordering/prefixes, FK mappings/actions or trigger behavior.
+## 4. Isolated cross-engine acceptance
 
-Fail-closed rules:
-- Incomplete source definition => NOT_CHECKED.
-- Incomplete metadata visibility => UNKNOWN.
-- Absent object => MISSING only when the relevant metadata visibility is proven.
-- Fully defined, exactly matching object => PASS.
-- Fully defined mismatch => FAIL.
+The complete migration sequence and final schema comparison were executed only against fresh disposable CI databases.
 
-The collector now emits `source_schema_reconciliation` for all 63 manifest entries and evidence schema v3. At present, all application definitions are NOT_CHECKED, so the overall source schema comparison is NOT_CHECKED and `schema_equivalence_proven=false`. This is the correct current result, not a failed implementation assertion.
+| Acceptance | MySQL | MariaDB |
+|---|---|---|
+| Engine/version | MySQL 8.4.13 | MariaDB 11.8.9 |
+| All repository migrations applied | PASS | PASS |
+| Migration ledger | 97 / 97 rows | 97 / 97 rows |
+| 63-table source comparison | PASS | PASS |
+| 796 columns | PASS | PASS |
+| 252 indexes | PASS | PASS |
+| 89 foreign keys | PASS | PASS |
+| 24 trigger contracts | PASS | PASS |
+| 63 table-option comparisons | PASS | PASS |
+| 97 migration object states | PASS | PASS |
+| Schema equivalence proven | YES | YES |
 
-## 5. Full migration ledger and object reconciliation
+The accepted result is `PASS_COMPLETE_SCHEMA_EQUIVALENCE` on both engines. This is based on the comparator output after every expected table/object was checked and no missing, unexpected or mismatched object remained.
 
-The existing full-ledger inventory remains in place. The collector now additionally emits `full_source_migration_reconciliation`, joining the 97-source provenance inventory to all visible ledger rows.
+A MariaDB metadata normalization defect was found and fixed during this work: its unquoted nullable SQL `NULL` sentinel had been passed through credential redaction. The collector now preserves that structural sentinel while continuing to redact actual credential-like defaults. A regression test covers both behaviors.
 
-It reports missing source-file ledger entries, unexpected ledger rows, duplicates, invalid batches, batch numbers/gaps, ordering anomalies when an `id` sequence is visible, and per-migration ledger/object states.
+## 5. CI and regression tests
 
-The existing 18-target object checks are reused where available. Object states for migrations outside that independently checked set remain NOT_CHECKED. Batch gaps remain informational NOT_CHECKED; lack of sequence metadata makes ordering UNKNOWN. No ledger rows are inserted or repaired.
+The final code and schema-acceptance changes have passed:
 
-## 6. Regression coverage added
+- **Phase 1C read-only diagnostic CI:** MariaDB 11.8.9 and MySQL 8.4.13 matrix.
+- **Laravel CI:** PASS.
+- **Repository Test workflow:** PASS.
+- **Phase 1D.2B source provenance and final-contract tests:** PASS.
+- **Read-only evidence schema/privacy and metadata-visibility tests:** PASS.
+- **Comparator and migration-ledger reconciliation fixtures:** PASS.
 
-- All 63 manifest records match the inherited scope inventory.
-- Laravel ledger is separately classified and not falsely marked complete.
-- All 97 source migration files are present and accounted for.
-- The 23 identical-blob superseded stubs are source-reviewed and explicitly classified REVIEWED_NOOP.
-- 74 migrations retain PARTIAL table-level mapping and require object-level review.
-- Positive and negative comparator fixtures cover type, nullability, defaults, composite key order, index prefix/type, PK, FK mapping/actions, trigger absence/behavior, metadata visibility and incomplete definitions.
-- Ledger fixtures cover missing/unexpected/duplicate rows, invalid batches, batch gaps, ordering anomalies, missing ledger with objects present, partial object application and unknown visibility.
-- Deterministic evidence ordering is tested.
-- The disposable collector acceptance asserts that all 63 table states remain NOT_CHECKED and schema equivalence is not claimed.
+Final exact-HEAD check run identifiers are recorded by the PR's GitHub Actions checks. Historical failed attempts were caused by identified assertion/normalization defects and were corrected; they are not counted as acceptance passes.
 
-## 7. Engine and CI results
+## 6. Production and phase boundaries
 
-Previously tested PR code head: `52858f7700a001a666fab2bd6fa1f5f1dc5fcb5d`. A follow-up provenance/test-only commit now records the 23 reviewed no-op stubs; its exact-head CI must be confirmed before acceptance.
+No production database connection, SQL, DDL, DML, migration, repair, backfill, deployment or production workflow dispatch was performed. All migration execution and reconciliation used disposable CI databases.
 
-The focused disposable matrix completed successfully:
-- MySQL **8.4.13** — PASS (workflow run #42996769054).
-- MariaDB **11.8.9-MariaDB-ubu2404** — PASS (workflow run #42996769054).
-- Comparator positive/negative fixtures — PASS on both engines.
-- 63-entry manifest / 97-source provenance tests — PASS on both engines.
-- Disposable read-only collector acceptance and deterministic evidence schema validation — PASS on both engines.
-- Laravel CI — PASS (run #42996769007).
-- Repository Test — PASS (run #42996769021).
+The five open reverification records and two monitoring alerts were not modified. Test 1A and Test 1B were not restarted. Phase 1D.3 and Phase 1D.7 were not started. Backup and restore remain deferred as instructed.
 
-These results validate the comparator implementation, fail-closed behavior, provenance accounting, ledger reconciliation code path and isolated regression fixtures. They do **not** convert the 62 incomplete application table definitions into PASS; the emitted source-schema state remains NOT_CHECKED.
+## 7. Closeout
 
-Earlier failures on preceding commits were corrected:
-- Evidence v2 fixtures were upgraded to v3 when the new evidence sections became required.
-- The disposable assertion was corrected to inspect the 79 unmapped migration object rows individually instead of assuming the aggregate status could only be NOT_CHECKED when 18 existing target checks can independently report FAIL.
-No assertions were removed or weakened.
+**Phase 1D.2B: COMPLETE.** The source manifest, 97-file provenance, migration-to-object mapping, 62 application definitions, separate framework ledger contract and MySQL/MariaDB schema-equivalence acceptance are complete.
 
-## 8. Explicit blockers / unknowns
-
-Phase 1D.2B is **not complete**. The following remain blockers:
-1. Reconstruct all final-state column definitions for the 62 application tables.
-2. Reconstruct every index including PK/unique/composite ordering/prefix/type/direction.
-3. Reconstruct every FK mapping and referential action.
-4. Reconstruct all trigger contracts and exact behavior.
-5. Reconstruct engine/charset/collation/table options for all tables.
-6. Complete object-level review of the 74 non-empty/partially mapped migration bodies for raw SQL, helper-based operations, data transformations, prerequisites and postconditions. The 23 empty superseded stubs are resolved as REVIEWED_NOOP.
-7. Expand migration/object state from the existing 18 independently checked target migrations to complete per-object source coverage.
-8. Run exact-head MySQL and MariaDB acceptance, Laravel CI and repository Test; obtain required review.
-
-No table or object is excluded from the 63-entry scope by assumption.
-
-## 9. Safety statement
-
-No production database connection, SQL, DDL, DML, migration, repair, identity backfill, deployment or production workflow dispatch was performed. The five open reverification records and two open monitoring alerts were not changed. Test 1A and Test 1B were not restarted. Phase 1D.3 and Phase 1D.7 were not started.
-
-## 10. Disposition
-
-**Phase 1D.2B: IN PROGRESS — NOT ACCEPTED.**
-
-This branch delivers the versioned scope-wide contract skeleton, all-source filename accounting, fail-closed comparison primitives, collector evidence integration and focused regression fixtures. It does not claim completed application schema definitions or full object-level provenance. Do not proceed to Phase 1D.3 until all listed blockers are resolved, exact-head CI passes, review is approved and the completion PR is merged.
-
-
-## Continuation from merged PR #1073 — 2026-11-11
-
-- Continuation branch: `phase1d2b/final-source-definition-completion`, based on merged main `777c903efbdad1946ce5b150ae788e80a6215850`.
-- Verified project dependency: `laravel/framework v13.33.0` from `composer.lock` (framework source commit `91188a17ceaa3dbace6e8a5f7abd0d042e466359`).
-- Completed the framework migration repository source contract from `DatabaseMigrationRepository::createRepository()`: `id` is `increments('id')` (unsigned auto-increment integer), `migration` is non-null `string(255)`, `batch` is non-null integer, and the primary key is `id`. Laravel does not set engine, charset or collation in this method; these inherit configured connection defaults and are not guessed.
-- Expanded `phase1d2b-table-source-provenance.json` to index all 62 application tables plus the separately classified framework ledger. This remains a source-reference inventory, not an object-level completion claim.
-- Remaining: all 62 application definitions still require cumulative source reconstruction; the 74 non-empty migration files still require individual operation review and object-level provenance. Table options, generated expressions, indexes, foreign keys, triggers and data operations remain NOT_CHECKED where not proven.
-- This continuation is partial implementation only. Phase 1D.2B remains IN PROGRESS and Phase 1D.3 remains blocked.
-
-
-## Continuation execution update — 2026-11-11 (PR #1074 exact head)
-
-- Exact PR head verified before work: `9e822d59712f2d7be6cbd6d69471faa58c6b715d`.
-- Exact-head workflow results: Phase 1C read-only diagnostic CI #98 PASS; Laravel CI #3012 PASS; Repository Test #3244 PASS.
-- Laravel framework migration ledger source contract is COMPLETE for the three columns and primary key; table options accurately remain `INHERITED_CONNECTION_DEFAULT`.
-- Individual source review count: 23 existing `REVIEWED_NOOP` migrations retained unchanged; 27 non-empty migrations source-reviewed partially (files ending from `2026_09_23_000001` through `2026_09_23_000027`, excluding the 23 previously reviewed no-op stubs). Each new review records source blob SHA, create/alter effects, columns, indexes, foreign keys, prerequisites, data-operation finding and rollback effect in the migration provenance artifact.
-- Of those 16 reviewed non-empty files, the first application schema source set covers 26 table creation targets because the reviews include the multi-table reviews migration. This is not 26 complete final definitions: all 62 application table definitions remain NOT_CHECKED pending cumulative alteration and helper/raw-SQL review.
-- Confirmed nontrivial review: `2026_09_23_000003_rebuild_institutions_table.php` changes the `institutions.status` default from active to candidate and adds four columns; its down() removes those four columns but does not restore the prior default. This rollback asymmetry is retained in the source record.
-- Confirmed nontrivial review: `2026_09_24_000026_add_snapshot_id_to_evidences_table.php` later adds nullable `evidence.snapshot_id` with SET NULL FK; `2026_11_04_000011` uses helper operations to add nullable unique identity keys; `2026_11_04_000014` installs FK constraints and append-only/identity triggers and executes orphan preflight reads.
-- Remaining non-empty migration reviews: 47/74. The 23 no-op dispositions are unchanged.
-- No production DB or production SQL was accessed or executed. No reverification record or alert changed. Test 1A/1B, Phase 1D.3 and Phase 1D.7 remain untouched.
-- Acceptance remains BLOCKED: 0/62 complete application definitions, object-level provenance incomplete, comparator/collector full scope validation and isolated engine acceptance still required.
-
-
-### Corrected migration-review count (2026-11-11)
-
-A validation pass over the actual 97 provenance entries corrected the prior checkpoint counter. The ledger currently contains 23 `REVIEWED_NOOP`, 27 `SOURCE_REVIEWED_PARTIAL`, and 47 still `PARTIAL` / unreviewed non-empty files. The prior 16/58 narrative was inaccurate and is superseded by this 23/27/47 count. All 62 application definitions remain NOT_CHECKED; none of the 27 source reviews is treated as cumulative final-object completion.
+PR #1075 is retained unmerged for user review. No subsequent Phase 1D phase is authorized or started by this closeout.

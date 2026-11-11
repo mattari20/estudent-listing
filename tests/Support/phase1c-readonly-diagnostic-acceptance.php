@@ -207,22 +207,34 @@ assertDiagnostic(json_encode($one,JSON_UNESCAPED_SLASHES)===json_encode($two,JSO
 assertDiagnostic($one['schema_version']==='phase1c-readonly-diagnostic/v3','versioned schema comparator evidence');
 $sourceContract=$one['source_schema_reconciliation'];
 assertDiagnostic($sourceContract['contract']==='phase1d2b-schema-comparison/v1' && $sourceContract['table_count']===63,'all 63 source schema scope entries represented');
-assertDiagnostic($sourceContract['state']==='UNKNOWN' && $sourceContract['complete_table_count']===0 && $sourceContract['schema_equivalence_proven']===false && $sourceContract['observed_metadata_collected']===false,'unobserved source objects cannot be reported as missing or equivalent');
-assertDiagnostic(count($sourceContract['results'])===63,'per-table source comparison statuses are present');
+assertDiagnostic($sourceContract['state']!=='PASS' && $sourceContract['schema_equivalence_proven']===false && $sourceContract['observed_metadata_collected']===true,'incomplete disposable fixture must not claim complete schema equivalence');
+assertDiagnostic(count($sourceContract['results'])===63,'all 63 source table comparison statuses are present');
+assertDiagnostic(count($sourceContract['unexpected_tables'])>=0,'unexpected table inventory is explicitly represented');
+$sourceMissingObjectCount=0;
 foreach($sourceContract['results'] as $tableName => $tableResult) {
-    $expectedState = $tableName === 'migrations' ? 'UNKNOWN' : 'NOT_CHECKED';
-    assertDiagnostic($tableResult['state']===$expectedState,'application definitions remain NOT_CHECKED and unobserved framework objects remain UNKNOWN');
+    assertDiagnostic(in_array($tableResult['state'], ['FAIL','NOT_CHECKED','UNKNOWN'], true),'partial disposable schema cannot produce a table-level PASS');
+    assertDiagnostic(in_array(($tableResult['objects']['table']['state'] ?? null), ['PASS','FAIL','MISSING','UNKNOWN'], true),'complete source table definitions are compared rather than left NOT_CHECKED');
+    foreach(['columns','indexes','foreign_keys','triggers'] as $kind) {
+        foreach(($tableResult['objects'][$kind] ?? []) as $objectResult) {
+            if($objectResult['state']==='MISSING') $sourceMissingObjectCount++;
+        }
+    }
 }
+assertDiagnostic($sourceMissingObjectCount>0,'known absent objects in a fully visible disposable schema are reported MISSING');
 $fullSource=$one['full_source_migration_reconciliation'];
 assertDiagnostic($fullSource['source_count']===97 && count($fullSource['migration_object_reconciliation'])===97,'all 97 source migrations receive ledger/object reconciliation rows');
-$targetMigrationNames=$expectedMigrations;
-$unverifiedMigrationObjects=array_values(array_filter(
-    $fullSource['migration_object_reconciliation'],
-    static fn(array $row): bool => !in_array($row['migration'],$targetMigrationNames,true) && $row['object_state']==='NOT_CHECKED'
-));
-assertDiagnostic(count($unverifiedMigrationObjects)===79,'all 79 migrations outside the 18-target object registry remain NOT_CHECKED');
-assertDiagnostic($one['registry_counts']['tables']===39 && $one['registry_counts']['expected_indexes']===23 && $one['registry_counts']['expected_columns']===50 && $one['registry_counts']['expected_foreign_keys']===23 && $one['registry_counts']['expected_triggers']===24 && $one['registry_counts']['expected_migrations']===18 && $one['registry_counts']['orphan_checks']===18 && $one['registry_counts']['duplicate_checks']===14,'registry sizes');
-assertDiagnostic(count($one['tables'])===39 && count($one['expected_index_reconciliation'])===23,'complete table/index metadata');
+$fullObjectStates=array_count_values(array_column($fullSource['migration_object_reconciliation'],'object_state'));
+assertDiagnostic(array_sum($fullObjectStates)===97,'all 97 migrations receive one object state');
+assertDiagnostic(($fullSource['source_review_state_counts']['REVIEWED_NOOP'] ?? 0)===23,'all 23 no-op source dispositions remain preserved');
+assertDiagnostic(($fullSource['source_review_state_counts']['SOURCE_REVIEWED_COMPLETE'] ?? 0)===74,'all 74 individually completed source reviews remain separately classified');
+assertDiagnostic(($fullSource['source_review_state_counts']['SOURCE_REVIEWED_PARTIAL'] ?? 0)===0,'all 0 unresolved source reviews remain partial');
+foreach($fullSource['migration_object_reconciliation'] as $row) {
+    if($row['source_review_state']==='REVIEWED_NOOP') assertDiagnostic($row['object_state']==='PASS','reviewed no-op must remain object-neutral: '.$row['migration']);
+    if($row['source_review_state']==='SOURCE_REVIEWED_COMPLETE') assertDiagnostic(in_array($row['object_state'],['PASS','FAIL','UNKNOWN'],true),'fully mapped source review must not be silently NOT_CHECKED: '.$row['migration']);
+    if($row['source_review_state']==='SOURCE_REVIEWED_PARTIAL') assertDiagnostic($row['object_state']!=='PASS','partial source review cannot claim object PASS: '.$row['migration']);
+}
+assertDiagnostic($one['registry_counts']['tables']===63 && $one['registry_counts']['expected_indexes']===23 && $one['registry_counts']['expected_columns']===50 && $one['registry_counts']['expected_foreign_keys']===23 && $one['registry_counts']['expected_triggers']===24 && $one['registry_counts']['expected_migrations']===18 && $one['registry_counts']['orphan_checks']===18 && $one['registry_counts']['duplicate_checks']===14,'registry sizes');
+assertDiagnostic(count($one['tables'])===63 && count($one['expected_index_reconciliation'])===23,'complete table/index metadata');
 assertDiagnostic(count($one['expected_column_reconciliation'])===50 && count($one['expected_foreign_key_reconciliation'])===23 && count($one['expected_trigger_reconciliation'])===24 && count($one['migration_ledger_reconciliation'])===18,'complete reconciliation sections');
 assertDiagnostic(count($one['orphan_checks'])===18 && count($one['duplicate_checks'])===14,'individual check reporting');
 

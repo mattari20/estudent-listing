@@ -74,8 +74,8 @@
     },
     "tables": {
       "type": "array",
-      "minItems": 39,
-      "maxItems": 39,
+      "minItems": 63,
+      "maxItems": 63,
       "items": {
         "type": "object",
         "required": [
@@ -807,7 +807,7 @@
       ],
       "properties": {
         "tables": {
-          "const": 39
+          "const": 63
         },
         "expected_indexes": {
           "const": 23
