@@ -4,7 +4,7 @@
 **Execution scope:** Phase 1D.2B through Phase 1D.6  
 **Excluded:** Phase 1D.7 backup and restore  
 **Production boundary:** READ-ONLY / NO PRODUCTION EXECUTION  
-**Last verified main SHA:** `00cfce7d73ed8647b07d3f185aa16be081913d08` (2026-11-11)
+**Last verified main SHA:** `117d2dd710e7b9545b7a28b6c802415e26c02f1f` (2026-11-11)
 
 ## Authoritative completed baseline
 
@@ -21,7 +21,7 @@ PR #1070 final focused MySQL 8.4 / MariaDB 11.8.9 matrix passed (run #4297721454
 
 | Phase | Status | Branch | PR | Commit | MySQL | MariaDB | Blockers / next action |
 |---|---|---|---|---|---|---|---|
-| 1D.2B full schema and migration-ledger reconciliation | IN PROGRESS — DRAFT PR; FULL SCHEMA CONTRACT OPEN | `phase1d2b/full-schema-ledger-reconciliation` | [#1071](https://github.com/mattari20/estudent-listing/pull/1071) (draft) | `1ba091bda53631a4a035800fdb7e49e77fcf9be1` (latest tracker/report update) | NOT RUN | NOT RUN | Full-ledger inventory and target migration/object matrix implemented; initial source provenance map added for the 38 application tables in the 39-entry allowlist (`database/schema-contract/phase1d2b-table-source-provenance.json`); provenance regression added (`tests/phase1c/test_phase1d2b_source_provenance.py`). Complete column/index/FK/trigger/table-option definitions and comparator remain open. MySQL 8.4 and MariaDB 11.8.9 matrix passed in #42982039978; review pending. |
+| 1D.2B full schema and migration-ledger reconciliation | IN PROGRESS — CONTINUATION BRANCH; FINAL SCHEMA CONTRACT OPEN | `phase1d2b/complete-source-schema-reconciliation` | Pending | `117d2dd710e7b9545b7a28b6c802415e26c02f1f` baseline | Pending | Pending | PR #1071 foundation merged. Expanded source creation inventory now identifies 62 application-owned table creation targets plus Laravel migrations ledger (63 total). New scope artifact and CI regression added. Complete final-state columns/indexes/FKs/triggers/table options, comparator, migration-to-object coverage and full isolated regression remain open. |
 | 1D.3 existing production data compatibility | NOT STARTED | — | — | — | — | — | Must wait for 1D.2B formal acceptance; production row-level evidence remains unavailable and must stay NOT_CHECKED. |
 | 1D.4 controlled recovery implementation | NOT STARTED | — | — | — | — | — | Must use accepted 1D.2B/1D.3 results; no production execution. |
 | 1D.5 isolated recovery testing | NOT STARTED | — | — | — | NOT RUN | NOT RUN | Must test disposable MariaDB 11.8.9 and MySQL 8.4 without restarting Test 1A/1B. |
@@ -50,4 +50,4 @@ PR #1070 final focused MySQL 8.4 / MariaDB 11.8.9 matrix passed (run #4297721454
 
 ## Current next action
 
-Complete the source-derived definition manifest for the 38 application tables (plus explicit migrations-ledger contract), implement full observed-vs-source comparison, then obtain exact-head CI and review for draft PR #1071. Do not start Phase 1D.3 until 1D.2B is formally accepted. Phase 1D.3 must not begin until Phase 1D.2B is formally merged and accepted.
+Complete the final-state source-derived definition manifest for all 62 application-owned table creation targets plus the framework ledger, implement observed-vs-source comparison and full migration/object reconciliation, then open and validate the completion PR. Do not start Phase 1D.3 before formal acceptance. Do not start Phase 1D.3 until 1D.2B is formally accepted. Phase 1D.3 must not begin until Phase 1D.2B is formally merged and accepted.
