@@ -178,3 +178,12 @@ A validation pass over the actual 97 provenance entries corrected the prior chec
 - Trigger contracts: deterministic names for the 22 append-only guards are computed from the first 16 hex characters of SHA-256(table name); two identity-decision guards have fixed names. `import_reconciliation_events` update guard permits only nullable row detachment. These remain to be validated against isolated metadata and exact action statements.
 - Structural manifest check: every application table has columns and source provenance; no index refers to an absent column and no FK refers to an absent source column. This is a structural check, not engine acceptance or schema-equivalence PASS.
 - No production DB connection or SQL/DDL/DML/migrations/backfills/repairs/deployment/production workflow dispatch. No reverification records or monitoring alerts changed. Test 1A/1B not restarted; Phase 1D.3 and 1D.7 remain excluded.
+
+
+## Clean migration acceptance progress — 2026-11-11
+
+- Added a dedicated CI acceptance script that applies the complete repository migration set to a fresh disposable database and reconciles all 63 manifest tables against observed metadata. It performs no production access.
+- MariaDB 11.8.9 successfully applied all repository migrations in the disposable schema. The first source-comparison attempt stopped at a test count assertion: the expected application-only totals (793 columns / 231 indexes) omitted the framework ledger's 3 columns and 1 primary index. The acceptance count is corrected to 796 columns / 232 indexes for all 63 scope entries.
+- A second partial-fixture assertion expected every partial non-target migration to remain NOT_CHECKED. That was too broad: when metadata visibility proves an expected object is absent, the migration object state must be FAIL; only incomplete evidence stays NOT_CHECKED/UNKNOWN. The acceptance assertion now requires 23 no-op object PASS rows and all 74 partial migration rows to remain non-PASS, preserving the distinction between MISSING/FAIL and NOT_CHECKED.
+- The full clean-schema acceptance will require 62 application table-options PASS results, one framework-ledger options NOT_CHECKED result, 796 column comparisons, 232 index comparisons, 89 FK comparisons and 24 trigger comparisons. Table definitions remain PARTIAL until conditional migration behavior and exact source-to-object reconciliation are accepted.
+- Exact-head CI for the newest commit is pending; previous historical runs are not counted as final acceptance.
