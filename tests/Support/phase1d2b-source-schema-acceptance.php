@@ -58,6 +58,7 @@ phase1d2bAssert($counts['indexes'] === 232, 'all 232 source-derived indexes incl
 phase1d2bAssert($counts['foreign_keys'] === 89, 'all 89 source-derived foreign-key contracts must be compared');
 phase1d2bAssert($counts['triggers'] === 24, 'all 24 source-derived trigger contracts must be compared');
 phase1d2bAssert($counts['table_options_pass'] === 62, 'charset/collation/server-default options must reconcile for all application tables');
+phase1d2bAssert($counts['table_options_not_checked'] === 1, 'the framework ledger retains its separately inherited connection options');
 phase1d2bAssert($nonPass === [], 'all source object contracts must match the clean migration result: '.json_encode(array_slice($nonPass, 0, 20), JSON_THROW_ON_ERROR));
 
 $ledger = $result['full_migration_ledger_inventory'] ?? [];
