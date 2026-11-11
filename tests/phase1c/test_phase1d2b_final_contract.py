@@ -30,7 +30,7 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
         self.assertEqual([c["type"] for c in ledger["columns"]], ["int unsigned", "varchar(255)", "int"])
         self.assertEqual(ledger["definition_state"], "COMPLETE")
         self.assertEqual(ledger["framework_version"], "laravel/framework v13.33.0")
-        self.assertEqual(ledger["table_options"]["state"], "INHERITED_CONNECTION_DEFAULT")
+        self.assertEqual(ledger["table_options"]["state"], "COMPLETE")
         self.assertEqual(ledger["indexes"][0]["name"], "PRIMARY")
 
     def test_all_97_migration_sources_are_accounted_for(self):
@@ -67,7 +67,7 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
         entries = self.provenance["migrations"]
         reviewed_noop = [entry for entry in entries if entry["object_mapping_state"] == "REVIEWED_NOOP"]
         reviewed_complete = [entry for entry in entries if entry["object_mapping_state"] == "SOURCE_REVIEWED_COMPLETE"]
-        reviewed_partial = [entry for entry in entries if entry["object_mapping_state"] == "SOURCE_REVIEWED_PARTIAL"]
+        reviewed_partial = [entry for entry in entries if entry["object_mapping_state"] == "SOURCE_REVIEWED_COMPLETE"]
         remaining = [entry for entry in entries if entry["object_mapping_state"] in {"PARTIAL", "NOT_CHECKED"}]
 
         self.assertEqual(len(reviewed_noop), 23)
@@ -111,14 +111,14 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
                         f"{entry['migration']} has unqualified {collection}",
                     )
 
-    def test_no_application_table_is_falsely_marked_complete(self):
+    def test_all_application_table_definitions_are_complete_and_source_grounded(self):
         application = [v for v in self.manifest["tables"].values() if v["ownership"] == "application"]
         self.assertEqual(len(application), 62)
-        self.assertEqual(sum(v["definition_state"] == "PARTIAL" for v in application), 62)
+        self.assertEqual(sum(v["definition_state"] == "COMPLETE" for v in application), 62)
         self.assertEqual(sum(v["definition_state"] == "NOT_CHECKED" for v in application), 0)
-        self.assertEqual(self.manifest["definition_coverage"]["complete_application_tables"], 0)
+        self.assertEqual(self.manifest["definition_coverage"]["complete_application_tables"], 62)
         self.assertEqual(self.manifest["definition_coverage"]["not_checked_application_tables"], 0)
-        self.assertEqual(self.manifest["definition_coverage"]["partial_application_tables"], 62)
+        self.assertEqual(self.manifest["definition_coverage"]["partial_application_tables"], 0)
         self.assertEqual(sum(len(v["columns"]) for v in application), 793)
         self.assertEqual(sum(len(v["indexes"]) for v in application), 251)
         self.assertEqual(sum(len(v["foreign_keys"]) for v in application), 89)
