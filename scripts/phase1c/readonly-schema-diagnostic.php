@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__.'/schema-contract-reconciliation.php';
+
 /**
  * Standalone, allowlisted, read-only Phase 1C diagnostic.
  * No Laravel migration classes are loaded or invoked.
@@ -423,8 +425,9 @@ final class Phase1CReadOnlyDiagnostic
             $version=(string)$this->pdo->query('SELECT VERSION()')->fetchColumn();
             $this->inventory();
             $ledgerReconciliation = $this->migrationLedgerReconciliation();
+            $sourceSchemaReconciliation = $this->sourceSchemaReconciliation();
             $result=[
-                'schema_version'=>'phase1c-readonly-diagnostic/v2',
+                'schema_version'=>'phase1c-readonly-diagnostic/v3',
                 'database'=>['engine'=>stripos($version,'mariadb')!==false?'mariadb':'mysql','server_version'=>$version,'identity_verified'=>true],
                 'metadata_visibility'=>['complete'=>$this->absenceProof,'triggers_complete'=>$this->triggerAbsenceProof],
                 'tables'=>$this->tableMetadata(),
@@ -438,6 +441,7 @@ final class Phase1CReadOnlyDiagnostic
                 'migration_ledger_reconciliation'=>$ledgerReconciliation,
                 'migration_object_reconciliation'=>$this->migrationObjectReconciliation($ledgerReconciliation),
                 'full_migration_ledger_inventory'=>$this->fullMigrationLedgerInventory(),
+                'source_schema_reconciliation'=>$sourceSchemaReconciliation,
                 'queue_mapping'=>$this->queueMapping(),
                 'alert_mapping'=>$this->alertMapping(),
                 'orphan_checks'=>$this->orphanChecks(),
@@ -461,6 +465,36 @@ final class Phase1CReadOnlyDiagnostic
             throw $e;
         } finally {
             if($this->pdo->inTransaction()) $this->pdo->rollBack();
+        }
+    }
+
+    /**
+     * Emit the full source-manifest comparison state without converting
+     * incomplete source definitions into false PASS or MISSING outcomes.
+     * The existing collector remains allowlisted and read-only.
+     */
+    private function sourceSchemaReconciliation(): array
+    {
+        $path = dirname(__DIR__, 2).'/database/schema-contract/phase1d2b-final-schema-manifest.json';
+        if (!is_file($path) || !is_readable($path)) {
+            return ['state'=>'UNKNOWN','reason'=>'SOURCE_SCHEMA_MANIFEST_UNAVAILABLE','table_count'=>0,'complete_table_count'=>0,'results'=>[]];
+        }
+        try {
+            $manifest = json_decode((string)file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+            if (!is_array($manifest) || ($manifest['contract'] ?? null) !== 'phase1d2b-final-schema-manifest/v1') {
+                return ['state'=>'UNKNOWN','reason'=>'SOURCE_SCHEMA_MANIFEST_INVALID','table_count'=>0,'complete_table_count'=>0,'results'=>[]];
+            }
+            $comparison = Phase1D2BSchemaContractComparator::reconcileManifest(
+                $manifest,
+                [],
+                ['tables'=>$this->absenceProof,'columns'=>$this->absenceProof,'indexes'=>$this->absenceProof,'foreign_keys'=>$this->absenceProof,'triggers'=>$this->triggerAbsenceProof]
+            );
+            $comparison['definition_coverage'] = $manifest['definition_coverage'] ?? ['state'=>'UNKNOWN'];
+            $comparison['observed_metadata_collected'] = true;
+            $comparison['schema_equivalence_proven'] = false;
+            return $comparison;
+        } catch (Throwable $e) {
+            return ['state'=>'UNKNOWN','reason'=>'SOURCE_SCHEMA_MANIFEST_READ_FAILED','table_count'=>0,'complete_table_count'=>0,'results'=>[]];
         }
     }
 
