@@ -32,12 +32,16 @@ $schema = $result['source_schema_reconciliation'] ?? [];
 phase1d2bAssert(($schema['table_count'] ?? null) === 63, 'source comparator must cover all 63 scope entries');
 phase1d2bAssert(($schema['complete_table_count'] ?? null) === 63, 'all 63 application and framework table definitions must compare successfully');
 phase1d2bAssert(($schema['schema_equivalence_proven'] ?? false) === true && ($schema['state'] ?? null) === 'PASS', 'schema equivalence requires every source-defined object and table to compare successfully');
+$coverage = $schema['definition_coverage'] ?? [];
+phase1d2bAssert(($coverage['state'] ?? null) === 'COMPLETE' && ($coverage['complete_application_tables'] ?? null) === 62 && ($coverage['complete_framework_tables'] ?? null) === 1, 'manifest definition coverage must report 62 application tables plus the separate complete framework ledger');
+phase1d2bAssert(($coverage['complete_columns'] ?? null) === 796 && ($coverage['complete_indexes'] ?? null) === 252 && ($coverage['complete_foreign_keys'] ?? null) === 89 && ($coverage['complete_trigger_contracts'] ?? null) === 24, 'manifest object coverage counters must match the accepted object inventory');
 phase1d2bAssert(count($schema['results'] ?? []) === 63, 'all per-table results must be present');
 phase1d2bAssert(($schema['unexpected_tables'] ?? []) === [], 'fresh migration schema must contain no unexpected tables');
 
 $counts = ['columns'=>0,'indexes'=>0,'foreign_keys'=>0,'triggers'=>0,'table_options_pass'=>0,'table_options_not_checked'=>0];
 $nonPass = [];
 foreach ($schema['results'] as $table => $tableResult) {
+    phase1d2bAssert(($tableResult['state'] ?? null) === 'PASS', $table.' complete table contract must aggregate to PASS');
     phase1d2bAssert(($tableResult['objects']['table']['state'] ?? null) === 'PASS', $table.' table definition and inherited engine/options must compare successfully');
     $optionState = $tableResult['objects']['table_options']['state'] ?? 'UNKNOWN';
     if ($optionState === 'PASS') $counts['table_options_pass']++;
@@ -69,8 +73,16 @@ phase1d2bAssert(($ledger['ledger_row_count'] ?? null) === 97, 'fresh ledger must
 $full = $result['full_source_migration_reconciliation'] ?? [];
 phase1d2bAssert(count($full['migration_object_reconciliation'] ?? []) === 97, 'all 97 migrations must have object reconciliation rows');
 $objectStates = $full['object_state_counts'] ?? [];
+phase1d2bAssert(($full['state'] ?? null) === 'PASS' && ($full['object_mapping_state'] ?? null) === 'PASS', 'full migration ledger and object reconciliation must aggregate to PASS');
 phase1d2bAssert(($objectStates['PASS'] ?? 0) === 97, 'all 97 reviewed migrations must reconcile to object PASS');
-phase1d2bAssert(($objectStates['NOT_CHECKED'] ?? 0) === 0, 'no migration object mapping may remain NOT_CHECKED on a clean fully migrated schema');
+phase1d2bAssert(($objectStates['NOT_CHECKED'] ?? 0) === 0 && ($objectStates['FAIL'] ?? 0) === 0 && ($objectStates['UNKNOWN'] ?? 0) === 0, 'no migration object mapping may remain NOT_CHECKED, FAIL or UNKNOWN');
+$conditionalMigration = array_values(array_filter(
+    $full['migration_object_reconciliation'],
+    static fn(array $row): bool => $row['migration'] === '2026_09_26_000002_add_scheduling_to_source_monitoring_policies_table'
+));
+$conditionalObjects = $conditionalMigration[0]['objects'] ?? [];
+$conditionalExisting = array_values(array_filter($conditionalObjects, static fn(array $object): bool => ($object['relation'] ?? null) === 'CONDITIONAL_EXISTING' && ($object['state'] ?? null) === 'PASS'));
+phase1d2bAssert(count($conditionalExisting) === 5, 'five conditional-existing scheduling columns must reconcile without false creation attribution');
 
 echo json_encode([
     'engine'=>$result['database']['engine'] ?? 'UNKNOWN',
