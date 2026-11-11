@@ -58,7 +58,7 @@ class Phase1D2BSchemaScopeTest(unittest.TestCase):
             discovered.update(re.findall(r"createTableIfMissing\s*\(\s*['\\\"]([^'\\\"]+)", source))
             discovered.update(re.findall(r"CREATE TABLE(?: IF NOT EXISTS)?\s+\`?([a-zA-Z0-9_]+)", source, re.I))
 
-            if re.search(r"Schema::create\s*\(\s*self::TABLE\s*\)", source):
+            if re.search(r"Schema::create\s*\(\s*self::TABLE\s*,", source):
                 constant = re.search(r"private const TABLE\s*=\s*['\\\"]([^'\\\"]+)", source)
                 self.assertIsNotNone(constant, f"dynamic TABLE create needs a literal source constant: {source_path.name}")
                 discovered.add(constant.group(1))
