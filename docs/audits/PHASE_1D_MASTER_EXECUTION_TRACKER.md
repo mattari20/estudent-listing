@@ -88,3 +88,14 @@ Verified directly from all 97 provenance rows: 23 REVIEWED_NOOP + 27 SOURCE_REVI
 - Application table definitions: 0/62 complete; framework Laravel migration ledger definition: complete for source-defined columns and PK, with inherited connection options.
 - Next: construct the cumulative final object registry and populate source-derived definitions for every application table; then extend comparator/collector reconciliation to all objects and run isolated MySQL/MariaDB acceptance.
 - Safety: no production database access or execution; no reverification record or monitoring alert changes; Test 1A/1B not restarted; Phase 1D.3 and 1D.7 not started.
+
+
+## PR #1075 — source reconstruction checkpoint (2026-11-11)
+
+- PR #1074 merged; main SHA verified as `d363fad00c15d6892677e452d5b1f383cbe892de`.
+- Continuation branch `phase1d2b/complete-final-schema-reconciliation`; PR #1075 open/draft.
+- Migration classifications: 23 REVIEWED_NOOP, 74 SOURCE_REVIEWED_PARTIAL, 0 unreviewed. No SOURCE_REVIEWED_COMPLETE claims.
+- Source-derived application object inventories: 62/62 table entries populated, 793 columns, 231 indexes, 89 FKs, 24 triggers across 12 tables. All 62 table definitions remain PARTIAL; 0 COMPLETE.
+- MySQL config source fixes charset/collation to utf8mb4/utf8mb4_unicode_ci but engine=null; engine is server-default. Do not infer InnoDB from source config alone.
+- Structural validation found no missing indexed source columns, FK source columns or table source references. Isolated engine tests, exact trigger-action comparison, cumulative object mapping and comparator/collector acceptance remain open.
+- Next: validate all manifest object contracts against disposable MySQL 8.4/MariaDB 11.8.9 metadata; repair genuine source or comparator mismatches; update per-migration object mapping from table-level source records; ensure all exact-head workflows pass.
