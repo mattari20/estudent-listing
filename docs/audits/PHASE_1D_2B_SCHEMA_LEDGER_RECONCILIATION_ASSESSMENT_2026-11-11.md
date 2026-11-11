@@ -98,9 +98,22 @@ Focused acceptance fixtures now cover complete, missing, unexpected, duplicate, 
 
 The evidence schema is versioned as `phase1c-readonly-diagnostic/v2`. A target migration/object consistency matrix is also included for all 18 target migrations. It distinguishes a valid ledger/object pair, a ledger row with missing target objects, target objects present without a ledger row, partial target-object presence, and UNKNOWN evidence. The Python privacy validator rejects false PASS combinations. This matrix covers the currently registered target objects; it is not a substitute for the full 39-table source manifest. No production database was queried by this implementation; all database acceptance remains in disposable CI services.
 
+## 6.1 Source-provenance inventory foundation
+
+The migration directory on this branch contains **97 PHP migration files**. The diagnostic's `TABLES` allowlist contains **39 entries**, of which 38 are application tables and one is Laravel's `migrations` ledger table. These counts must not be conflated: the number 39 is the current diagnostic allowlist size, not the number of migration files.
+
+A first provenance artifact has been committed:
+- `database/schema-contract/phase1d2b-table-source-provenance.json`
+- Contract: `phase1d2b-source-provenance/v1`
+- Commit: `227c8c1c686dd992a3326ad67cf40a031025f6c6`
+
+It maps each of the 38 application tables to the reviewed create-table migration(s) and later migration(s) that alter the table, add indexes/constraints/columns, or install append-only guards. The `migrations` ledger is explicitly marked as Laravel-migrator-managed rather than being attributed to an application migration.
+
+This artifact is **provenance only**. It deliberately does not claim to be the full schema definition manifest: column definitions, complete index contracts, foreign-key actions, trigger bodies and table options must still be encoded and compared. Source migrations that create tables outside the diagnostic allowlist remain outside this 1D.2B table contract unless the authoritative scope is expanded; they must not be silently omitted from a broader whole-database claim.
+
 ## 6. Remaining blockers before Phase 1D.2B acceptance
 
-The source-backed full schema definition manifest and comparison engine are not yet complete. The existing table metadata PASS remains a successful metadata-read state, not proof of source equivalence. A complete 39-table manifest must be derived from the authoritative migration source history, and the observed definitions must be compared across all columns, table options, indexes, foreign keys and trigger contracts.
+The source-backed full schema definition manifest and comparison engine are not yet complete. The existing table metadata PASS remains a successful metadata-read state, not proof of source equivalence. A complete definition manifest must cover the 38 application tables in the current 39-entry diagnostic allowlist (the 39th entry is the Laravel migrations ledger), using the new provenance map and authoritative migration history. Observed definitions must be compared across all columns, table options, indexes, foreign keys and trigger contracts.
 
 The current target migration/object matrix is implemented, but its object mapping must be expanded and source-verified as part of the complete schema manifest. It must not be treated as exhaustive for every table/column/index/constraint created by the 18 migrations.
 
