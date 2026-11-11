@@ -19,9 +19,9 @@
     "state": "NOT_CHECKED",
     "complete_framework_tables": 1,
     "framework_ledger_state": "COMPLETE_FRAMEWORK_DEFINITION_WITH_INHERITED_CONNECTION_OPTIONS",
-    "source_reviewed_non_empty_migrations": 27,
-    "remaining_non_empty_migrations": 47,
-    "note": "Individual source reviews have started, but final application table definitions remain NOT_CHECKED until cumulative migrations, helper/raw SQL side effects, options, all objects and rollback impacts are reconciled."
+    "source_reviewed_non_empty_migrations": 74,
+    "remaining_non_empty_migrations": 0,
+    "note": "All 74 non-noop migration files now have individual source-level partial reviews. Cumulative object reconciliation and all 62 final application table definitions remain incomplete."
   },
   "tables": {
     "accreditations": {
