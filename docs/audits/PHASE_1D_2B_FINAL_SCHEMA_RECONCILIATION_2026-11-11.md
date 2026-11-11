@@ -39,8 +39,8 @@ All **97 / 97** migration filenames are accounted for with source path and Git b
 
 Current mapping status:
 - 74 migration files have at least one creation/alteration table reference (PARTIAL mapping).
-- 23 migration files have no mapped table creation/alteration reference and remain NOT_CHECKED pending operation review.
-- Per-migration column additions/changes/removals, index operations, foreign keys, trigger installation/removal, data transformations, prerequisites and postconditions remain NOT_CHECKED.
+- 23 migration files have now been source-reviewed and proven to be intentionally empty superseded stubs: their `up()` and `down()` methods contain no schema or data operations. All 23 share the same verified Git blob SHA `70445a2b9f3688be90bb6b4ec71d3898eeb012a6`; each is classified `REVIEWED_NOOP` with explicit no-effect, no-prerequisite and no-postcondition provenance.
+- The remaining 74 migration files have at least one table-level creation/alteration mapping but still require object-level review. Per-migration column additions/changes/removals, index operations, foreign keys, trigger installation/removal, data transformations, prerequisites and postconditions remain NOT_CHECKED unless separately proven.
 
 The map deliberately does not infer that a migration has no object effects merely because no table reference was previously recorded.
 
@@ -74,7 +74,8 @@ The existing 18-target object checks are reused where available. Object states f
 - All 63 manifest records match the inherited scope inventory.
 - Laravel ledger is separately classified and not falsely marked complete.
 - All 97 source migration files are present and accounted for.
-- 74 partial mapping / 23 unmapped migration files are explicitly represented.
+- The 23 identical-blob superseded stubs are source-reviewed and explicitly classified REVIEWED_NOOP.
+- 74 migrations retain PARTIAL table-level mapping and require object-level review.
 - Positive and negative comparator fixtures cover type, nullability, defaults, composite key order, index prefix/type, PK, FK mapping/actions, trigger absence/behavior, metadata visibility and incomplete definitions.
 - Ledger fixtures cover missing/unexpected/duplicate rows, invalid batches, batch gaps, ordering anomalies, missing ledger with objects present, partial object application and unknown visibility.
 - Deterministic evidence ordering is tested.
@@ -82,7 +83,7 @@ The existing 18-target object checks are reused where available. Object states f
 
 ## 7. Engine and CI results
 
-Exact PR head tested: `52858f7700a001a666fab2bd6fa1f5f1dc5fcb5d`.
+Previously tested PR code head: `52858f7700a001a666fab2bd6fa1f5f1dc5fcb5d`. A follow-up provenance/test-only commit now records the 23 reviewed no-op stubs; its exact-head CI must be confirmed before acceptance.
 
 The focused disposable matrix completed successfully:
 - MySQL **8.4.13** — PASS (workflow run #42996769054).
@@ -108,7 +109,7 @@ Phase 1D.2B is **not complete**. The following remain blockers:
 3. Reconstruct every FK mapping and referential action.
 4. Reconstruct all trigger contracts and exact behavior.
 5. Reconstruct engine/charset/collation/table options for all tables.
-6. Review all 97 migration bodies for raw SQL, helper-based operations, data transformations, prerequisites and postconditions; 23 migration files currently have no mapped table create/alter reference.
+6. Complete object-level review of the 74 non-empty/partially mapped migration bodies for raw SQL, helper-based operations, data transformations, prerequisites and postconditions. The 23 empty superseded stubs are resolved as REVIEWED_NOOP.
 7. Expand migration/object state from the existing 18 independently checked target migrations to complete per-object source coverage.
 8. Run exact-head MySQL and MariaDB acceptance, Laravel CI and repository Test; obtain required review.
 
