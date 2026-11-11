@@ -9545,6 +9545,19 @@
           "ordinal_position": 4
         },
         {
+          "name": "description",
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "database/migrations/2026_09_23_000003_rebuild_institutions_table.php",
+          "state": "COMPLETE",
+          "ordinal_position": 5
+        },
+        {
           "name": "slug",
           "type": "varchar(255)",
           "nullable": false,
@@ -9556,7 +9569,7 @@
           "source": "database/migrations/2026_09_23_000001_create_institutions_table.php",
           "state": "COMPLETE",
           "length": 255,
-          "ordinal_position": 5
+          "ordinal_position": 6
         },
         {
           "name": "institution_type",
@@ -9570,19 +9583,6 @@
           "source": "database/migrations/2026_09_23_000001_create_institutions_table.php",
           "state": "COMPLETE",
           "length": 255,
-          "ordinal_position": 6
-        },
-        {
-          "name": "description",
-          "type": "text",
-          "nullable": true,
-          "default": null,
-          "default_expression": null,
-          "auto_increment": false,
-          "generated": null,
-          "comment": null,
-          "source": "database/migrations/2026_09_23_000003_rebuild_institutions_table.php",
-          "state": "COMPLETE",
           "ordinal_position": 7
         },
         {
@@ -9852,7 +9852,7 @@
         },
         {
           "name": "methodology",
-          "type": "varchar(255)",
+          "type": "text",
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -13009,8 +13009,8 @@
         {
           "name": "contributor_type",
           "type": "varchar(255)",
-          "nullable": false,
-          "default": "unverified",
+          "nullable": true,
+          "default": null,
           "default_expression": null,
           "auto_increment": false,
           "generated": null,
@@ -13023,7 +13023,7 @@
         {
           "name": "recommendation",
           "type": "varchar(255)",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "default_expression": null,
           "auto_increment": false,
