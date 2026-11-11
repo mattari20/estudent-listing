@@ -3,7 +3,7 @@
 **Repository:** `mattari20/estudent-listing`  
 **Verified base:** `main` at `00cfce7d73ed8647b07d3f185aa16be081913d08`  
 **Branch:** `phase1d2b/full-schema-ledger-reconciliation`  
-**Disposition:** SOURCE REVIEW / IMPLEMENTATION PREREQUISITE ASSESSMENT  
+**Disposition:** FULL-LEDGER IMPLEMENTATION FOUNDATION / FULL-SCHEMA CONTRACT STILL OPEN  
 **Production:** READ-ONLY; NO PRODUCTION EXECUTION
 
 ## 1. Baseline verification
@@ -71,7 +71,45 @@ Do not insert or modify ledger rows. Do not treat a missing ledger row as proof 
 
 The next implementation must record which migration source(s) define each expected object. Source-level mapping must be verified against actual migration files, including earlier baseline migrations and later alterations. Do not infer full definitions from object names, timestamps or historical production observations.
 
-## 4. Required implementation and test plan
+## 5. Implemented full-ledger inventory foundation
+
+The Phase 1D.2B branch now adds a version-two evidence contract and a full migration-ledger inventory to the existing read-only collector.
+
+Changed implementation paths:
+- `scripts/phase1c/readonly-schema-diagnostic.php`
+- `scripts/phase1c/readonly-diagnostic.schema.json`
+- `tests/Support/phase1c-readonly-diagnostic-acceptance.php`
+- `tests/phase1c/test_readonly_evidence_validator.py`
+- `tests/phase1c/test_evidence_transfer.py`
+
+The pure ledger analyzer and collector inventory now report:
+- Every deployed migration source filename and every row from the `migrations` ledger.
+- Source files not recorded in the ledger.
+- Ledger names without a matching source file.
+- Duplicate ledger rows.
+- Invalid/non-positive batch values.
+- Distinct batch numbers and gaps (gaps are informational / NOT_CHECKED, not automatically treated as corruption because rollback history can create gaps).
+- Within-batch filename ordering anomalies when a reliable `id` sequence column is available. Ordering is UNKNOWN when the sequence cannot be established.
+- A fail-closed UNKNOWN result if the migration source directory, ledger columns or full inventory query is unavailable.
+
+Focused acceptance fixtures now cover complete, missing, unexpected, duplicate, invalid-batch, ordering-anomaly, missing-sequence and batch-gap cases. The existing targeted 18-row reconciliation remains intact and separate from the full-ledger inventory.
+
+The evidence schema is versioned as `phase1c-readonly-diagnostic/v2`. No production database was queried by this implementation; all database acceptance remains in disposable CI services.
+
+## 6. Remaining blockers before Phase 1D.2B acceptance
+
+The source-backed full schema definition manifest and comparison engine are not yet complete. The existing table metadata PASS remains a successful metadata-read state, not proof of source equivalence. A complete 39-table manifest must be derived from the authoritative migration source history, and the observed definitions must be compared across all columns, table options, indexes, foreign keys and trigger contracts.
+
+The 18 target migrations also still need an explicit migration-to-object state matrix so the collector can distinguish:
+- Ledger entry plus all expected objects present.
+- Ledger entry with one or more expected objects missing.
+- Objects present while the ledger entry is absent.
+- Partial object application.
+- UNKNOWN / NOT_CHECKED when visibility or prerequisites are insufficient.
+
+Phase 1D.2B is therefore still IN PROGRESS. Do not begin Phase 1D.3.
+
+## 7. Required implementation and test plan
 
 The Phase 1D.2B implementation PR must:
 1. Add a versioned source-derived schema contract for the complete in-scope inventory.
@@ -85,13 +123,13 @@ The Phase 1D.2B implementation PR must:
 
 Focused tests must cover correct definitions and deliberately incorrect type, nullability, default, index order/prefix/type, FK mapping/actions, trigger behavior, missing/duplicate/unexpected ledger entries, missing source files, invalid batches, ordering uncertainty, inconsistent ledger/object states, metadata visibility failure and deterministic evidence.
 
-## 5. Production and protected-record boundary
+## 8. Production and protected-record boundary
 
 No production connection, query, SQL, DDL, DML, migration, repair, identity backfill, deployment or workflow dispatch was performed in this stage. The five open reverification records and two open monitoring alerts remain protected. Production row-level compatibility is not inferred from this source review.
 
 Phase 1D.7 backup/restore is excluded from the supplied execution scope and is not a prerequisite for this engineering stage.
 
-## 6. Current disposition
+## 9. Current disposition
 
 **Phase 1D.2B is IN PROGRESS and NOT ACCEPTED.** The current collector provides substantial observed metadata, but it does not yet prove complete source-to-live schema equivalence, and the JSON evidence does not yet expose full-ledger reconciliation and object/ledger partial-application states.
 
