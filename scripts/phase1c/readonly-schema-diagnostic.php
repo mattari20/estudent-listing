@@ -203,6 +203,20 @@ function phase1cClassifyMigrationObjectLedgerState(string $ledgerState, string $
     return ['state' => 'UNKNOWN', 'reason' => 'UNRECOGNIZED_LEDGER_STATE'];
 }
 
+function phase1cSafeMetadataDefault(string $column, mixed $value): mixed
+{
+    // MariaDB may expose an implicit nullable SQL NULL as the unquoted
+    // metadata sentinel "NULL". Preserve that sentinel for structural
+    // normalization; it is not a credential value.
+    $isSqlNullSentinel = is_string($value) && strtoupper(trim($value)) === 'NULL';
+    if ($column !== 'must_change_password' && $value !== null && !$isSqlNullSentinel
+        && preg_match('/password|secret|token|credential|private.?key|api.?key/i', $column)) {
+        return '[REDACTED]';
+    }
+
+    return $value;
+}
+
 function phase1cMysqlNullDefaultFromDefinition(?string $columnDefinition): ?bool
 {
     if ($columnDefinition === null || preg_match("/\\bDEFAULT\\s+(NULL|'(?:''|[^'])*')(?=\\s|,|$)/i", $columnDefinition, $matches) !== 1) {
@@ -671,7 +685,7 @@ final class Phase1CReadOnlyDiagnostic
                     $createSqlByTable[$table] = (string)($definition[1] ?? '');
                 }
                 $quotedColumn = '`'.str_replace('`', '``', $name).'`';
-                $literalNullPattern = '~^\\s*'.preg_quote($quotedColumn, '~').'\\s+.*?\\bDEFAULT\\s+'.chr(39).'NULL'.chr(39).'(?:\\s|,|$)~im';
+                $literalNullPattern = "~^\\s*".preg_quote($quotedColumn, "~")."\\s+.*?\\bDEFAULT\\s+'NULL'(?:\\s|,|$)~im";
                 $default = preg_match($literalNullPattern, $createSqlByTable[$table]) === 1 ? 'NULL' : null;
             } else {
                 $default = $rawDefault;
@@ -1634,8 +1648,7 @@ final class Phase1CReadOnlyDiagnostic
 
     private function safeDefault(string $column, mixed $value): mixed
     {
-        if ($column !== 'must_change_password' && $value !== null && preg_match('/password|secret|token|credential|private.?key|api.?key/i', $column)) return '[REDACTED]';
-        return $value;
+        return phase1cSafeMetadataDefault($column, $value);
     }
 
     private function sanitizeCreateSql(string $sql): string
