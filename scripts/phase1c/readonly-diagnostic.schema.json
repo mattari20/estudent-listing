@@ -24,11 +24,13 @@
     "registry_counts",
     "transaction",
     "full_migration_ledger_inventory",
-    "migration_object_reconciliation"
+    "migration_object_reconciliation",
+    "source_schema_reconciliation",
+    "full_source_migration_reconciliation"
   ],
   "properties": {
     "schema_version": {
-      "const": "phase1c-readonly-diagnostic/v2"
+      "const": "phase1c-readonly-diagnostic/v3"
     },
     "database": {
       "type": "object",
@@ -1081,6 +1083,174 @@
         },
         "additionalProperties": false
       }
+    },
+    "source_schema_reconciliation": {
+      "type": "object",
+      "required": [
+        "contract",
+        "state",
+        "table_count",
+        "complete_table_count",
+        "results",
+        "definition_coverage",
+        "observed_metadata_collected",
+        "schema_equivalence_proven"
+      ],
+      "properties": {
+        "contract": {
+          "const": "phase1d2b-schema-comparison/v1"
+        },
+        "state": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "MISSING",
+            "NOT_CHECKED",
+            "UNKNOWN"
+          ]
+        },
+        "table_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "complete_table_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "results": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "definition_coverage": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "observed_metadata_collected": {
+          "type": "boolean"
+        },
+        "schema_equivalence_proven": {
+          "const": false
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "full_source_migration_reconciliation": {
+      "type": "object",
+      "required": [
+        "state",
+        "source_count",
+        "ledger_row_count",
+        "source_files_not_recorded",
+        "ledger_entries_without_source_files",
+        "duplicate_ledger_entries",
+        "invalid_ledger_rows",
+        "batch_numbers",
+        "batch_gaps",
+        "batch_gap_state",
+        "ordering_state",
+        "migration_object_reconciliation",
+        "object_mapping_state"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "MISSING",
+            "NOT_CHECKED",
+            "UNKNOWN"
+          ]
+        },
+        "source_count": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "ledger_row_count": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "source_files_not_recorded": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ledger_entries_without_source_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "duplicate_ledger_entries": {
+          "type": "array"
+        },
+        "invalid_ledger_rows": {
+          "type": "array"
+        },
+        "batch_numbers": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "batch_gaps": {
+          "type": "array"
+        },
+        "batch_gap_state": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "MISSING",
+            "NOT_CHECKED",
+            "UNKNOWN"
+          ]
+        },
+        "ordering_state": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "MISSING",
+            "NOT_CHECKED",
+            "UNKNOWN"
+          ]
+        },
+        "ordering_anomalies": {
+          "type": "array"
+        },
+        "migration_object_reconciliation": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "object_mapping_state": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "MISSING",
+            "NOT_CHECKED",
+            "UNKNOWN"
+          ]
+        },
+        "provenance_mapping_state": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
     }
   }
 }
