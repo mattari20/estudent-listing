@@ -67,6 +67,7 @@ jobs:
           php -l tests/phase1c/phase1d2b-schema-comparator-acceptance.php
           php -l scripts/diagnostics/phase1c-migration-ledger-reconciliation.php
           php -l tests/Support/phase1c-readonly-diagnostic-acceptance.php
+          php -l tests/Support/phase1d2b-source-schema-acceptance.php
 
       - name: Install Laravel dependencies for isolated migration execution
         run: composer install --no-interaction --prefer-dist --no-progress
