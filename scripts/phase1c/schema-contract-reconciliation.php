@@ -66,12 +66,26 @@ final class Phase1D2BSchemaContractComparator
             foreach (['columns', 'indexes', 'foreign_keys', 'triggers'] as $kind) {
                 $visible = ($visibility[$kind] ?? false) === true;
                 $actual = $observed[$kind][$table] ?? [];
+                $expectedNames = [];
                 foreach (($contract[$kind] ?? []) as $expectedObject) {
                     $objectState = strtoupper((string)($expectedObject['definition_state'] ?? $expectedObject['state'] ?? 'COMPLETE'));
                     $expectedObject['definition_state'] = $objectState;
                     $key = (string)($expectedObject['name'] ?? '');
+                    $expectedNames[$key] = true;
                     $actualObject = $actual[$key] ?? null;
                     $objects[$kind][] = self::compareObject($kind, $expectedObject, $actualObject, $visible);
+                }
+                if ($visible) {
+                    foreach ($actual as $actualName => $actualObject) {
+                        if (!isset($expectedNames[$actualName])) {
+                            $objects[$kind][] = [
+                                'kind' => $kind,
+                                'object' => (string)$actualName,
+                                'state' => 'FAIL',
+                                'reason' => 'UNEXPECTED_OBJECT_PRESENT',
+                            ];
+                        }
+                    }
                 }
             }
             $states = [];
@@ -206,12 +220,22 @@ final class Phase1D2BSchemaContractComparator
 
     private static function withoutControlFields(array $value): array
     {
-        unset($value['definition_state'], $value['state'], $value['source_provenance'], $value['definition_note']);
+        unset($value['definition_state'], $value['state'], $value['source'], $value['source_provenance'], $value['definition_note']);
         return $value;
     }
 
     private static function canonical(string $kind, array $value): array
     {
+        $kind = match ($kind) {
+            'columns' => 'column',
+            'indexes' => 'index',
+            'foreign_keys' => 'foreign_key',
+            'triggers' => 'trigger',
+            default => $kind,
+        };
+        if ($kind === 'column') {
+            unset($value['length']); // The full type already carries character/binary length.
+        }
         if ($kind === 'table') {
             foreach (['engine', 'charset', 'collation'] as $key) if (isset($value[$key])) $value[$key] = strtolower((string)$value[$key]);
         }
