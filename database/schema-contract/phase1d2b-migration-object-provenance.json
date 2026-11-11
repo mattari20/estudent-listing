@@ -5722,14 +5722,28 @@
           "indexes_created": [],
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
-          "triggers_installed": []
+          "triggers_installed": [],
+          "conditional_existing_objects": [
+            "source_monitoring_policies.cadence",
+            "source_monitoring_policies.next_run_at",
+            "source_monitoring_policies.last_success_at",
+            "source_monitoring_policies.last_failure_at",
+            "source_monitoring_policies.consecutive_failures"
+          ]
         },
-        "conditional_paths": "Adds each scheduling column and index only when absent; an existing column is not revalidated for exact type/default. Down removes the scheduling columns/index.",
+        "conditional_paths": "Each of the five columns is added only if absent. In the clean full migration sequence, the earlier 2026_09_24_000021 migration has already created them, so this migration's up() path verifies their existence and performs no DDL. The references are mapped as conditional-existing objects, not as creations by this migration. The down() method still drops them if present; rollback is not a safe inverse for objects created by earlier migrations.",
         "rollback_review": "Down may remove pre-existing scheduling columns accepted by the conditional up path.",
-        "review_result": "Individually inspected full up()/down() source and relevant helper implementation; all declared, conditional, preflight, raw SQL and data effects are understood and mapped. Conditional behavior and rollback asymmetry are retained as explicit contract notes."
+        "review_result": "Full up()/down() source and conditional path reviewed. The five conditional column references are explicitly mapped to the existing manifest contracts and reconciled on the clean migration path."
       },
       "foreign_keys_changed": [],
-      "execution_order": 76
+      "execution_order": 76,
+      "conditional_existing_objects": [
+        "source_monitoring_policies.cadence",
+        "source_monitoring_policies.next_run_at",
+        "source_monitoring_policies.last_success_at",
+        "source_monitoring_policies.last_failure_at",
+        "source_monitoring_policies.consecutive_failures"
+      ]
     },
     {
       "migration": "2026_10_17_000001_create_password_reset_tokens_table",
