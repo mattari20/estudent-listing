@@ -53,10 +53,10 @@ foreach ($schema['results'] as $table => $tableResult) {
         }
     }
 }
-phase1d2bAssert($counts['columns'] === 796, 'all 796 source-derived column contracts including the 3-column framework ledger must be compared');
-phase1d2bAssert($counts['indexes'] === 232, 'all 232 source-derived indexes including the framework ledger primary key must be compared');
-phase1d2bAssert($counts['foreign_keys'] === 89, 'all 89 source-derived foreign-key contracts must be compared');
-phase1d2bAssert($counts['triggers'] === 24, 'all 24 source-derived trigger contracts must be compared');
+phase1d2bAssert($counts['columns'] === 796, 'expected 796 columns; observed '.$counts['columns'].'; mismatches='.json_encode(array_slice($nonPass, 0, 8), JSON_THROW_ON_ERROR));
+phase1d2bAssert($counts['indexes'] === 232, 'expected 232 indexes; observed '.$counts['indexes'].'; mismatches='.json_encode(array_slice($nonPass, 0, 8), JSON_THROW_ON_ERROR));
+phase1d2bAssert($counts['foreign_keys'] === 89, 'expected 89 foreign keys; observed '.$counts['foreign_keys'].'; mismatches='.json_encode(array_slice($nonPass, 0, 8), JSON_THROW_ON_ERROR));
+phase1d2bAssert($counts['triggers'] === 24, 'expected 24 triggers; observed '.$counts['triggers'].'; mismatches='.json_encode(array_slice($nonPass, 0, 8), JSON_THROW_ON_ERROR));
 phase1d2bAssert($counts['table_options_pass'] === 62, 'charset/collation/server-default options must reconcile for all application tables');
 phase1d2bAssert($counts['table_options_not_checked'] === 1, 'the framework ledger retains its separately inherited connection options');
 phase1d2bAssert($nonPass === [], 'all source object contracts must match the clean migration result: '.json_encode(array_slice($nonPass, 0, 20), JSON_THROW_ON_ERROR));
