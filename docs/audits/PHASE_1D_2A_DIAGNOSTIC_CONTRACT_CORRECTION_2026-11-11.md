@@ -111,3 +111,20 @@ Until both engine jobs and all required PR checks finish, Phase 1D.2A is **imple
 After successful CI and review, the next appropriate work is a separate **Phase 1D.2B planning/review** for full schema and migration-ledger evidence design. It must not start production evidence collection or production migrations without separate authorization and all required gates.
 
 **Final boundary:** this PR is limited to source-contract correction and disposable regression. Production remains untouched.
+
+
+## 8. Pull request and final CI record
+
+- PR: [#1070 — fix(phase1d.2a): align password reset diagnostic primary key](https://github.com/mattari20/estudent-listing/pull/1070)
+- Branch: `phase1d2a/diagnostic-contract-correction-2026-11-11`
+- Baseline: `4e8da700285ee2c09dddd742415d64dcb51ba3c0`
+- Head when the CI report was recorded: `6302cf4cdf25ab24b92cfde6d37229de543a6a04`
+- PR compare at that head: 5 commits ahead, 0 behind; exactly 3 changed files.
+- Focused diagnostic matrix: run #42977214545 — both MySQL and MariaDB jobs PASS.
+- Laravel CI: run #42977214577 — PASS.
+- Repository Test workflow: run #42977214725 — PASS.
+- First focused attempt: run #42977109265 — both engine jobs failed only at the over-broad fixture row-count assertion described above; the assertion was scoped correctly before the passing rerun.
+- PR review submissions and inline review threads at the time of inspection: none. No approval has been obtained.
+- PR remains OPEN and unmerged. Do not merge automatically.
+
+Production remains untouched. No Test 1A / Test 1B migration-chain rerun or production evidence collection was performed.
