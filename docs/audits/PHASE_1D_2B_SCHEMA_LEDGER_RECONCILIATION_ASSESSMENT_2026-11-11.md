@@ -106,7 +106,13 @@ The current target migration/object matrix is implemented, but its object mappin
 
 Phase 1D.2B is therefore still IN PROGRESS. Do not begin Phase 1D.3.
 
-## 7. Required implementation and test plan
+## 7. First CI regression and correction
+
+The first PR #1071 focused diagnostic matrix (run #42981392749) failed on both MySQL 8.4 and MariaDB 11.8.9 at the same pure acceptance assertion: the batch-gap fixture expected overall ledger state PASS while supplying only two of the three known source migration filenames. The analyzer correctly classified the absent third ledger record as MISSING; the test fixture was internally inconsistent.
+
+The fixture was corrected in commit `9391d6b60990c85c0b9e4c567b68eb9b83a3ec19` by including the third source migration in batch 3. This retains the intended gap (batch 2) while making source-to-ledger coverage complete. The implementation was not weakened. A new exact-head CI run #42982039978 was triggered for MySQL 8.4 and MariaDB 11.8.9; its final outcome must be verified before acceptance.
+
+## 8. Required implementation and test plan
 
 The Phase 1D.2B implementation PR must:
 1. Add a versioned source-derived schema contract for the complete in-scope inventory.
@@ -120,13 +126,13 @@ The Phase 1D.2B implementation PR must:
 
 Focused tests must cover correct definitions and deliberately incorrect type, nullability, default, index order/prefix/type, FK mapping/actions, trigger behavior, missing/duplicate/unexpected ledger entries, missing source files, invalid batches, ordering uncertainty, inconsistent ledger/object states, metadata visibility failure and deterministic evidence.
 
-## 8. Production and protected-record boundary
+## 9. Production and protected-record boundary
 
 No production connection, query, SQL, DDL, DML, migration, repair, identity backfill, deployment or workflow dispatch was performed in this stage. The five open reverification records and two open monitoring alerts remain protected. Production row-level compatibility is not inferred from this source review.
 
 Phase 1D.7 backup/restore is excluded from the supplied execution scope and is not a prerequisite for this engineering stage.
 
-## 9. Current disposition
+## 10. Current disposition
 
 **Phase 1D.2B is IN PROGRESS and NOT ACCEPTED.** The current branch provides full-ledger inventory and target-object/ledger consistency evidence, but it does not yet prove complete source-to-live schema equivalence for all 39 tables and every object. Full source-derived schema manifest/comparison and exact-head isolated CI/review remain outstanding.
 
