@@ -104,10 +104,13 @@ The migration directory on this branch contains **97 PHP migration files**. The 
 
 A first provenance artifact has been committed:
 - `database/schema-contract/phase1d2b-table-source-provenance.json`
+- `tests/phase1c/test_phase1d2b_source_provenance.py`
 - Contract: `phase1d2b-source-provenance/v1`
 - Commit: `227c8c1c686dd992a3326ad67cf40a031025f6c6`
 
 It maps each of the 38 application tables to the reviewed create-table migration(s) and later migration(s) that alter the table, add indexes/constraints/columns, or install append-only guards. The `migrations` ledger is explicitly marked as Laravel-migrator-managed rather than being attributed to an application migration.
+
+A dedicated Python regression test now checks that the provenance table set matches the diagnostic allowlist, all mapped source paths exist, create-source files contain a table-creation operation, and each alteration source references its mapped table.
 
 This artifact is **provenance only**. It deliberately does not claim to be the full schema definition manifest: column definitions, complete index contracts, foreign-key actions, trigger bodies and table options must still be encoded and compared. Source migrations that create tables outside the diagnostic allowlist remain outside this 1D.2B table contract unless the authoritative scope is expanded; they must not be silently omitted from a broader whole-database claim.
 
