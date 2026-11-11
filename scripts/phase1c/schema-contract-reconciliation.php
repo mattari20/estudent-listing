@@ -39,19 +39,32 @@ final class Phase1D2BSchemaContractComparator
             'triggers' => 'trigger',
             default => $kind,
         };
+        $typeMatches = true;
         if ($canonicalKind === 'column' && is_array($expectedValue['type'] ?? null)) {
             $allowedTypes = $expectedValue['type'];
             $actualType = $observedValue['type'] ?? null;
+            $typeMatches = in_array($actualType, $allowedTypes, true);
             unset($expectedValue['type'], $observedValue['type']);
-            $matches = in_array($actualType, $allowedTypes, true) && $expectedValue === $observedValue;
-        } else {
-            $matches = $expectedValue === $observedValue;
+        }
+        $matches = $typeMatches && $expectedValue === $observedValue;
+        $mismatchFields = [];
+        if (!$matches) {
+            if (!$typeMatches) $mismatchFields[] = 'type';
+            foreach (array_unique(array_merge(array_keys($expectedValue), array_keys($observedValue))) as $field) {
+                if (($expectedValue[$field] ?? null) !== ($observedValue[$field] ?? null)
+                    || array_key_exists($field, $expectedValue) !== array_key_exists($field, $observedValue)) {
+                    $mismatchFields[] = $field;
+                }
+            }
+            $mismatchFields = array_values(array_unique($mismatchFields));
         }
 
         return [
             'kind' => $kind,
             'object' => $identity,
             'state' => $matches ? 'PASS' : 'FAIL',
+            'reason' => $matches ? null : 'OBJECT_DEFINITION_MISMATCH',
+            'mismatch_fields' => $mismatchFields,
             'expected' => $expectedValue,
             'observed' => $observedValue,
         ];
