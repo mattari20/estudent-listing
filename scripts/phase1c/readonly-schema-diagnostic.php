@@ -426,6 +426,8 @@ final class Phase1CReadOnlyDiagnostic
             $this->inventory();
             $ledgerReconciliation = $this->migrationLedgerReconciliation();
             $sourceSchemaReconciliation = $this->sourceSchemaReconciliation();
+            $targetMigrationObjects = $this->migrationObjectReconciliation($ledgerReconciliation);
+            $fullSourceMigrationReconciliation = $this->fullSourceMigrationReconciliation($targetMigrationObjects);
             $result=[
                 'schema_version'=>'phase1c-readonly-diagnostic/v3',
                 'database'=>['engine'=>stripos($version,'mariadb')!==false?'mariadb':'mysql','server_version'=>$version,'identity_verified'=>true],
@@ -439,7 +441,8 @@ final class Phase1CReadOnlyDiagnostic
                 'expected_foreign_key_reconciliation'=>$this->foreignKeyReconciliation(),
                 'expected_trigger_reconciliation'=>$this->triggerReconciliation(),
                 'migration_ledger_reconciliation'=>$ledgerReconciliation,
-                'migration_object_reconciliation'=>$this->migrationObjectReconciliation($ledgerReconciliation),
+                'migration_object_reconciliation'=>$targetMigrationObjects,
+                'full_source_migration_reconciliation'=>$fullSourceMigrationReconciliation,
                 'full_migration_ledger_inventory'=>$this->fullMigrationLedgerInventory(),
                 'source_schema_reconciliation'=>$sourceSchemaReconciliation,
                 'queue_mapping'=>$this->queueMapping(),
@@ -465,6 +468,65 @@ final class Phase1CReadOnlyDiagnostic
             throw $e;
         } finally {
             if($this->pdo->inTransaction()) $this->pdo->rollBack();
+        }
+    }
+
+    /**
+     * Reconcile every migration source filename with the complete ledger.
+     * Object states outside the existing, independently checked 18-target
+     * registry remain NOT_CHECKED rather than being inferred from ledger rows.
+     */
+    private function fullSourceMigrationReconciliation(array $targetObjects): array
+    {
+        $unknown = ['state'=>'UNKNOWN','reason'=>'FULL_SOURCE_MIGRATION_RECONCILIATION_UNAVAILABLE','source_count'=>null,'ledger_row_count'=>null,'source_files_not_recorded'=>[],'ledger_entries_without_source_files'=>[],'duplicate_ledger_entries'=>[],'invalid_ledger_rows'=>[],'batch_numbers'=>[],'batch_gaps'=>[],'batch_gap_state'=>'UNKNOWN','ordering_state'=>'UNKNOWN','migration_object_reconciliation'=>[],'object_mapping_state'=>'NOT_CHECKED'];
+        if (!isset($this->tables['migrations']) || isset($this->columnErrors['migrations']) || !$this->has('migrations',['migration','batch'])) {
+            $unknown['reason'] = 'MIGRATION_LEDGER_OR_METADATA_UNAVAILABLE';
+            return $unknown;
+        }
+        try {
+            $path = dirname(__DIR__, 2).'/database/schema-contract/phase1d2b-migration-object-provenance.json';
+            if (!is_file($path) || !is_readable($path)) {
+                $unknown['reason'] = 'MIGRATION_OBJECT_PROVENANCE_UNAVAILABLE';
+                return $unknown;
+            }
+            $provenance = json_decode((string)file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+            $entries = $provenance['migrations'] ?? null;
+            if (!is_array($entries) || count($entries) !== 97) {
+                $unknown['reason'] = 'MIGRATION_OBJECT_PROVENANCE_INCOMPLETE';
+                return $unknown;
+            }
+            $hasId = isset($this->columns['migrations']['id']);
+            $rows = $this->pdo->query($hasId
+                ? 'SELECT id,migration,batch FROM migrations ORDER BY id'
+                : 'SELECT migration,batch FROM migrations ORDER BY batch,migration'
+            )->fetchAll(PDO::FETCH_ASSOC);
+            $targetStates = [];
+            foreach ($targetObjects as $target) {
+                if (isset($target['migration'], $target['object_state'])) $targetStates[$target['migration']] = [$target['object_state']];
+            }
+            $migrationObjects = [];
+            foreach ($entries as $entry) {
+                $name = (string)($entry['migration'] ?? '');
+                if ($name === '') continue;
+                $migrationObjects[$name] = $targetStates[$name] ?? ['NOT_CHECKED'];
+            }
+            $analysis = Phase1D2BSchemaContractComparator::reconcileMigrationLedger(
+                array_map(static fn(array $entry): string => (string)$entry['migration'], $entries),
+                $rows,
+                $migrationObjects,
+                true,
+                $hasId
+            );
+            $states = array_column($analysis['migration_object_reconciliation'], 'object_state');
+            $analysis['object_mapping_state'] = in_array('FAIL', $states, true) ? 'FAIL'
+                : (in_array('UNKNOWN', $states, true) ? 'UNKNOWN'
+                : (in_array('NOT_CHECKED', $states, true) ? 'NOT_CHECKED' : 'PASS'));
+            $analysis['provenance_mapping_state'] = (string)($provenance['coverage_state'] ?? 'NOT_CHECKED');
+            return $analysis;
+        } catch (Throwable $e) {
+            $unknown['reason'] = 'FULL_SOURCE_MIGRATION_RECONCILIATION_FAILED';
+            $unknown['error'] = $this->safeError($e);
+            return $unknown;
         }
     }
 
