@@ -24,11 +24,12 @@
     "registry_counts",
     "transaction",
     "full_migration_ledger_inventory",
-    "migration_object_reconciliation"
+    "migration_object_reconciliation",
+    "source_schema_reconciliation"
   ],
   "properties": {
     "schema_version": {
-      "const": "phase1c-readonly-diagnostic/v2"
+      "const": "phase1c-readonly-diagnostic/v3"
     },
     "database": {
       "type": "object",
@@ -1081,6 +1082,59 @@
         },
         "additionalProperties": false
       }
+    },
+    "source_schema_reconciliation": {
+      "type": "object",
+      "required": [
+        "contract",
+        "state",
+        "table_count",
+        "complete_table_count",
+        "results",
+        "definition_coverage",
+        "observed_metadata_collected",
+        "schema_equivalence_proven"
+      ],
+      "properties": {
+        "contract": {
+          "const": "phase1d2b-schema-comparison/v1"
+        },
+        "state": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "MISSING",
+            "NOT_CHECKED",
+            "UNKNOWN"
+          ]
+        },
+        "table_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "complete_table_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "results": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "definition_coverage": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "observed_metadata_collected": {
+          "type": "boolean"
+        },
+        "schema_equivalence_proven": {
+          "const": false
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
     }
   }
 }
