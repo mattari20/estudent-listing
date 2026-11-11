@@ -286,7 +286,7 @@ final class Phase1D2BSchemaContractComparator
 
     private static function withoutControlFields(array $value): array
     {
-        unset($value['definition_state'], $value['state'], $value['source'], $value['source_provenance'], $value['definition_note']);
+        unset($value['definition_state'], $value['state'], $value['source'], $value['source_provenance'], $value['definition_note'], $value['origin'], $value['generated_by_foreign_key']);
         return $value;
     }
 
