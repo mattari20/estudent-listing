@@ -656,6 +656,7 @@ final class Phase1CReadOnlyDiagnostic
             ];
         }
 
+        $createSqlByTable = [];
         foreach ($this->columnMetadata() as $row) {
             if (!isset($row['table'], $row['COLUMN_NAME'])) continue;
             $table = (string)$row['table'];
@@ -665,6 +666,15 @@ final class Phase1CReadOnlyDiagnostic
             $defaultIsSqlNull = (bool)($row['COLUMN_DEFAULT_IS_NULL'] ?? false);
             if ($defaultIsSqlNull) {
                 $default = null;
+            } elseif ($nullable && is_string($rawDefault) && strtoupper(trim($rawDefault)) === 'NULL') {
+                if (!array_key_exists($table, $createSqlByTable)) {
+                    $quotedTable = '`'.str_replace('`', '``', $table).'`';
+                    $definition = $this->pdo->query('SHOW CREATE TABLE '.$quotedTable)->fetch(PDO::FETCH_NUM);
+                    $createSqlByTable[$table] = (string)($definition[1] ?? '');
+                }
+                $quotedColumn = '`'.str_replace('`', '``', $name).'`';
+                $literalNullPattern = '~^\\s*'.preg_quote($quotedColumn, '~').'\\s+.*?\\bDEFAULT\\s+\\'NULL\\'(?:\\s|,|$)~im';
+                $default = preg_match($literalNullPattern, $createSqlByTable[$table]) === 1 ? 'NULL' : null;
             } else {
                 $default = $rawDefault;
             }
