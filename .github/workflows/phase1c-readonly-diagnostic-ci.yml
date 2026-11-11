@@ -63,6 +63,8 @@ jobs:
       - name: PHP syntax checks
         run: |
           php -l scripts/phase1c/readonly-schema-diagnostic.php
+          php -l scripts/phase1c/schema-contract-reconciliation.php
+          php -l tests/phase1c/phase1d2b-schema-comparator-acceptance.php
           php -l scripts/diagnostics/phase1c-migration-ledger-reconciliation.php
           php -l tests/Support/phase1c-readonly-diagnostic-acceptance.php
 
@@ -80,6 +82,12 @@ jobs:
 
       - name: Validate complete Phase 1D.2B migration-created schema scope
         run: python3 -m unittest discover -s tests/phase1c -p 'test_phase1d2b_schema_scope.py' -v
+
+      - name: Validate Phase 1D.2B final contract and 97-source provenance
+        run: python3 -m unittest discover -s tests/phase1c -p 'test_phase1d2b_final_contract.py' -v
+
+      - name: Run Phase 1D.2B comparator and ledger reconciliation fixtures
+        run: php tests/phase1c/phase1d2b-schema-comparator-acceptance.php
 
       - name: Run disposable database acceptance
         env:
