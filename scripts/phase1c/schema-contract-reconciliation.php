@@ -60,7 +60,9 @@ final class Phase1D2BSchemaContractComparator
     public static function reconcileManifest(array $manifest, array $observed, array $visibility): array
     {
         $results = [];
+        $expectedTableNames = [];
         foreach (($manifest['tables'] ?? []) as $table => $contract) {
+            $expectedTableNames[$table] = true;
             $tableVisible = ($visibility['tables'] ?? false) === true;
             $actualTable = $observed['tables'][$table] ?? null;
             $tableContract = [
@@ -113,12 +115,23 @@ final class Phase1D2BSchemaContractComparator
                 : (in_array('NOT_CHECKED', $states, true) ? 'NOT_CHECKED' : 'PASS')));
             $results[$table] = ['table' => $table, 'state' => $state, 'objects' => $objects];
         }
+        $unexpectedTables = [];
+        if (($visibility['tables'] ?? false) === true) {
+            foreach (($observed['tables'] ?? []) as $observedTable => $_actualTable) {
+                if (!isset($expectedTableNames[$observedTable])) {
+                    $unexpectedTables[] = ['table'=>(string)$observedTable,'state'=>'FAIL','reason'=>'UNEXPECTED_TABLE_PRESENT'];
+                }
+            }
+        }
         ksort($results, SORT_STRING);
+        $overallStates = array_column($results, 'state');
+        if ($unexpectedTables !== []) $overallStates[] = 'FAIL';
         return [
             'contract' => 'phase1d2b-schema-comparison/v1',
-            'state' => self::aggregate(array_column($results, 'state')),
+            'state' => self::aggregate($overallStates),
             'table_count' => count($results),
             'complete_table_count' => count(array_filter($results, static fn(array $r): bool => $r['state'] === 'PASS')),
+            'unexpected_tables' => $unexpectedTables,
             'results' => $results,
         ];
     }
