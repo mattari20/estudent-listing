@@ -432,7 +432,7 @@ final class Phase1CReadOnlyDiagnostic
             $ledgerReconciliation = $this->migrationLedgerReconciliation();
             $sourceSchemaReconciliation = $this->sourceSchemaReconciliation();
             $targetMigrationObjects = $this->migrationObjectReconciliation($ledgerReconciliation);
-            $fullSourceMigrationReconciliation = $this->fullSourceMigrationReconciliation($targetMigrationObjects);
+            $fullSourceMigrationReconciliation = $this->fullSourceMigrationReconciliation($targetMigrationObjects, $sourceSchemaReconciliation);
             $result=[
                 'schema_version'=>'phase1c-readonly-diagnostic/v3',
                 'database'=>['engine'=>stripos($version,'mariadb')!==false?'mariadb':'mysql','server_version'=>$version,'identity_verified'=>true],
@@ -481,7 +481,7 @@ final class Phase1CReadOnlyDiagnostic
      * Object states outside the existing, independently checked 18-target
      * registry remain NOT_CHECKED rather than being inferred from ledger rows.
      */
-    private function fullSourceMigrationReconciliation(array $targetObjects): array
+    private function fullSourceMigrationReconciliation(array $targetObjects, array $sourceSchema): array
     {
         $unknown = ['state'=>'UNKNOWN','reason'=>'FULL_SOURCE_MIGRATION_RECONCILIATION_UNAVAILABLE','source_count'=>null,'ledger_row_count'=>null,'source_files_not_recorded'=>[],'ledger_entries_without_source_files'=>[],'duplicate_ledger_entries'=>[],'invalid_ledger_rows'=>[],'batch_numbers'=>[],'batch_gaps'=>[],'batch_gap_state'=>'UNKNOWN','ordering_state'=>'UNKNOWN','migration_object_reconciliation'=>[],'object_mapping_state'=>'NOT_CHECKED'];
         if (!isset($this->tables['migrations']) || isset($this->columnErrors['migrations']) || !$this->has('migrations',['migration','batch'])) {
@@ -507,14 +507,66 @@ final class Phase1CReadOnlyDiagnostic
             )->fetchAll(PDO::FETCH_ASSOC);
             $targetStates = [];
             foreach ($targetObjects as $target) {
-                if (isset($target['migration'], $target['object_state'])) $targetStates[$target['migration']] = [$target['object_state']];
+                if (isset($target['migration'], $target['object_state'])) $targetStates[$target['migration']] = (string)$target['object_state'];
             }
+
+            $manifestObjectStates = [];
+            foreach (($sourceSchema['results'] ?? []) as $table => $tableResult) {
+                foreach (['columns','indexes','foreign_keys','triggers'] as $kind) {
+                    foreach (($tableResult['objects'][$kind] ?? []) as $objectResult) {
+                        if (isset($objectResult['object'], $objectResult['state'])) {
+                            $manifestObjectStates[$table.'.'.$objectResult['object']] = (string)$objectResult['state'];
+                        }
+                    }
+                }
+                $manifestObjectStates[$table.'.__table__'] = (string)($tableResult['objects']['table']['state'] ?? 'NOT_CHECKED');
+            }
+
             $migrationObjects = [];
+            $objectDetailsByMigration = [];
+            $reviewStatesByMigration = [];
             foreach ($entries as $entry) {
                 $name = (string)($entry['migration'] ?? '');
                 if ($name === '') continue;
-                $migrationObjects[$name] = $targetStates[$name] ?? ['NOT_CHECKED'];
+                $reviewState = (string)($entry['object_mapping_state'] ?? 'NOT_CHECKED');
+                $reviewStatesByMigration[$name] = $reviewState;
+                if ($reviewState === 'REVIEWED_NOOP') {
+                    $objectState = 'PASS';
+                    $objectDetailsByMigration[$name] = [];
+                } else {
+                    $objectRefs = [];
+                    foreach ([
+                        'columns_created'=>'columns','columns_changed'=>'columns',
+                        'indexes_created'=>'indexes',
+                        'foreign_keys_created'=>'foreign_keys','foreign_keys_changed'=>'foreign_keys',
+                        'triggers_installed'=>'triggers',
+                    ] as $field => $kind) {
+                        foreach (($entry[$field] ?? []) as $qualified) {
+                            $parts = explode('.', (string)$qualified, 2);
+                            if (count($parts) === 2) $objectRefs[] = ['table'=>$parts[0],'kind'=>$kind,'name'=>$parts[1]];
+                        }
+                    }
+                    foreach (array_merge($entry['tables_created'] ?? [], $entry['tables_altered'] ?? []) as $tableName) {
+                        $objectRefs[] = ['table'=>(string)$tableName,'kind'=>'table','name'=>'__table__'];
+                    }
+                    $objectStates = [];
+                    $objectDetails = [];
+                    foreach ($objectRefs as $ref) {
+                        $key = $ref['table'].'.'.$ref['name'];
+                        $state = $manifestObjectStates[$key] ?? 'NOT_CHECKED';
+                        $objectStates[] = $state;
+                        $objectDetails[] = ['object'=>$ref['kind'].':'.$key,'state'=>$state];
+                    }
+                    $objectDetailsByMigration[$name] = $objectDetails;
+                    $targetState = $targetStates[$name] ?? null;
+                    if ($targetState !== null) $objectStates[] = $targetState;
+                    $objectState = in_array('FAIL', $objectStates, true) || in_array('MISSING', $objectStates, true) ? 'FAIL'
+                        : (in_array('UNKNOWN', $objectStates, true) ? 'UNKNOWN'
+                        : 'NOT_CHECKED');
+                }
+                $migrationObjects[$name] = [$objectState];
             }
+
             $analysis = Phase1D2BSchemaContractComparator::reconcileMigrationLedger(
                 array_map(static fn(array $entry): string => (string)$entry['migration'], $entries),
                 $rows,
@@ -522,10 +574,18 @@ final class Phase1CReadOnlyDiagnostic
                 true,
                 $hasId
             );
+            foreach ($analysis['migration_object_reconciliation'] as &$migrationResult) {
+                $name = (string)$migrationResult['migration'];
+                $migrationResult['source_review_state'] = $reviewStatesByMigration[$name] ?? 'NOT_CHECKED';
+                $migrationResult['objects'] = $objectDetailsByMigration[$name] ?? [];
+            }
+            unset($migrationResult);
             $states = array_column($analysis['migration_object_reconciliation'], 'object_state');
             $analysis['object_mapping_state'] = in_array('FAIL', $states, true) ? 'FAIL'
                 : (in_array('UNKNOWN', $states, true) ? 'UNKNOWN'
                 : (in_array('NOT_CHECKED', $states, true) ? 'NOT_CHECKED' : 'PASS'));
+            $analysis['object_state_counts'] = array_count_values($states);
+            $analysis['source_review_state_counts'] = array_count_values(array_values($reviewStatesByMigration));
             $analysis['provenance_mapping_state'] = (string)($provenance['coverage_state'] ?? 'NOT_CHECKED');
             return $analysis;
         } catch (Throwable $e) {
