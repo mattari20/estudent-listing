@@ -262,6 +262,9 @@ final class Phase1D2BSchemaContractComparator
         };
         if ($kind === 'column') {
             unset($value['length']); // The full type already carries character/binary length.
+            if (array_key_exists('default', $value) && $value['default'] !== null) {
+                $value['default'] = (string)$value['default'];
+            }
         }
         if ($kind === 'table') {
             foreach (['engine', 'charset', 'collation'] as $key) if (isset($value[$key])) $value[$key] = strtolower((string)$value[$key]);
