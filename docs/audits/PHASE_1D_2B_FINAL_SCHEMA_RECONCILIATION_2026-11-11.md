@@ -134,3 +134,17 @@ This branch delivers the versioned scope-wide contract skeleton, all-source file
 - Expanded `phase1d2b-table-source-provenance.json` to index all 62 application tables plus the separately classified framework ledger. This remains a source-reference inventory, not an object-level completion claim.
 - Remaining: all 62 application definitions still require cumulative source reconstruction; the 74 non-empty migration files still require individual operation review and object-level provenance. Table options, generated expressions, indexes, foreign keys, triggers and data operations remain NOT_CHECKED where not proven.
 - This continuation is partial implementation only. Phase 1D.2B remains IN PROGRESS and Phase 1D.3 remains blocked.
+
+
+## Continuation execution update — 2026-11-11 (PR #1074 exact head)
+
+- Exact PR head verified before work: `9e822d59712f2d7be6cbd6d69471faa58c6b715d`.
+- Exact-head workflow results: Phase 1C read-only diagnostic CI #98 PASS; Laravel CI #3012 PASS; Repository Test #3244 PASS.
+- Laravel framework migration ledger source contract is COMPLETE for the three columns and primary key; table options accurately remain `INHERITED_CONNECTION_DEFAULT`.
+- Individual source review count: 23 existing `REVIEWED_NOOP` migrations retained unchanged; 16 non-empty migrations source-reviewed in detail (files ending from `2026_09_23_000001` through `2026_09_23_000027`, excluding the 23 previously reviewed no-op stubs). Each new review records source blob SHA, create/alter effects, columns, indexes, foreign keys, prerequisites, data-operation finding and rollback effect in the migration provenance artifact.
+- Of those 16 reviewed non-empty files, the first application schema source set covers 26 table creation targets because the reviews include the multi-table reviews migration. This is not 26 complete final definitions: all 62 application table definitions remain NOT_CHECKED pending cumulative alteration and helper/raw-SQL review.
+- Confirmed nontrivial review: `2026_09_23_000003_rebuild_institutions_table.php` changes the `institutions.status` default from active to candidate and adds four columns; its down() removes those four columns but does not restore the prior default. This rollback asymmetry is retained in the source record.
+- Confirmed nontrivial review: `2026_09_24_000026_add_snapshot_id_to_evidences_table.php` later adds nullable `evidence.snapshot_id` with SET NULL FK; `2026_11_04_000011` uses helper operations to add nullable unique identity keys; `2026_11_04_000014` installs FK constraints and append-only/identity triggers and executes orphan preflight reads.
+- Remaining non-empty migration reviews: 58/74. The 23 no-op dispositions are unchanged.
+- No production DB or production SQL was accessed or executed. No reverification record or alert changed. Test 1A/1B, Phase 1D.3 and Phase 1D.7 remain untouched.
+- Acceptance remains BLOCKED: 0/62 complete application definitions, object-level provenance incomplete, comparator/collector full scope validation and isolated engine acceptance still required.
