@@ -21,7 +21,7 @@ PR #1070 final focused MySQL 8.4 / MariaDB 11.8.9 matrix passed (run #4297721454
 
 | Phase | Status | Branch | PR | Commit | MySQL | MariaDB | Blockers / next action |
 |---|---|---|---|---|---|---|---|
-| 1D.2B full schema and migration-ledger reconciliation | IN PROGRESS — SOURCE CONTRACT GAP REVIEW | `phase1d2b/full-schema-ledger-reconciliation` | Pending | Pending | NOT RUN | NOT RUN | Complete source-derived definition manifest and full-ledger state model; add isolated regression tests. |
+| 1D.2B full schema and migration-ledger reconciliation | IN PROGRESS — FULL LEDGER FOUNDATION IMPLEMENTED; FULL SCHEMA CONTRACT OPEN | `phase1d2b/full-schema-ledger-reconciliation` | Pending | Pending | NOT RUN | NOT RUN | Full-ledger inventory implemented on branch; finish complete source-derived schema manifest/comparator and migration-object partial-application reconciliation; run isolated regression. |
 | 1D.3 existing production data compatibility | NOT STARTED | — | — | — | — | — | Must wait for 1D.2B formal acceptance; production row-level evidence remains unavailable and must stay NOT_CHECKED. |
 | 1D.4 controlled recovery implementation | NOT STARTED | — | — | — | — | — | Must use accepted 1D.2B/1D.3 results; no production execution. |
 | 1D.5 isolated recovery testing | NOT STARTED | — | — | — | NOT RUN | NOT RUN | Must test disposable MariaDB 11.8.9 and MySQL 8.4 without restarting Test 1A/1B. |
@@ -34,7 +34,7 @@ PR #1070 final focused MySQL 8.4 / MariaDB 11.8.9 matrix passed (run #4297721454
 - A successful metadata read is currently reported as table metadata collection success; it is not a comparison against a complete source-derived table-definition manifest.
 - The 50-column, 23-index, 23-FK and 24-trigger registries are targeted contracts, not a complete definition manifest for all columns and indexes across all 39 tables.
 - The existing full-ledger inventory script reads all ledger rows and compares source filenames, but does not yet provide the complete batch/order/duplicate/partial-application state model required by Phase 1D.2B.
-- The 18 target ledger rows are currently reconciled independently; full unexpected-entry and source-file mismatch evidence is not part of the JSON evidence contract.
+- A Phase 1D.2B branch change now adds a versioned v2 full-ledger evidence object: all migration source filenames, all ledger rows, missing source records, ledger entries without source files, duplicates, invalid batch values, batch gaps and order anomalies (UNKNOWN when no sequence id exists). Full migration-object partial-application reconciliation remains open.
 - Metadata visibility must remain distinct from absence. A denied or incomplete metadata query is UNKNOWN / NOT_CHECKED, never MISSING.
 
 ## Safety and acceptance rules
