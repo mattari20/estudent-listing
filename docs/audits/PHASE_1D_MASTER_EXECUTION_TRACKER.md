@@ -48,6 +48,30 @@ PR #1070 final focused MySQL 8.4 / MariaDB 11.8.9 matrix passed (run #4297721454
 - Do not merge a PR without required checks and review approval.
 - Stop after Phase 1D.6. Do not begin Phase 1D.7.
 
+## Continuation status — source-definition completion
+
+- Latest verified merged main baseline: `777c903efbdad1946ce5b150ae788e80a6215850`.
+- Continuation branch: `phase1d2b/final-source-definition-completion`.
+- Laravel framework version pinned from `composer.lock`: `v13.33.0`. The framework-managed migration ledger source definition is now complete for `id` (`increments`, unsigned auto-increment integer primary key), `migration` (`string(255)`, non-null), and `batch` (`integer`, non-null). Engine/charset/collation are inherited from connection defaults and are not hardcoded.
+- Expanded table source provenance index now covers 62 application tables plus the separate framework ledger; object-level mapping remains NOT_CHECKED.
+- 62/62 application definitions remain NOT_CHECKED; 74 non-empty migrations remain PARTIAL pending individual operation review. Phase 1D.2B is not accepted.
+
 ## Current next action
 
 Complete all 62 application table definitions and every table/index/FK/trigger object contract; finish object-level mapping for the 74 non-empty/partially mapped migrations, including raw SQL and data operations; the 23 empty superseded stubs are resolved as REVIEWED_NOOP; expand object reconciliation beyond the 18 current target migrations; pass exact-head MySQL/MariaDB/Laravel/Test CI and obtain review approval. Do not start Phase 1D.3 until Phase 1D.2B is formally accepted and merged.
+
+
+## PR #1074 exact-head execution checkpoint — 2026-11-11
+
+- PR #1074 remains open and draft. Branch `phase1d2b/final-source-definition-completion`; verified exact head at session start: `9e822d59712f2d7be6cbd6d69471faa58c6b715d`.
+- Exact-head CI: Laravel CI #3012 PASS; Repository Test #3244 PASS; Phase 1C read-only diagnostic CI #98 PASS.
+- Framework `migrations` ledger definition is COMPLETE for Laravel 13.33.0 source columns and primary key; engine/charset/collation inherit connection defaults.
+- Individual source reviews: 23/23 existing no-op migrations retained as `REVIEWED_NOOP`; 16/74 non-empty migrations individually source-reviewed with effect/object inventory, source blob SHA, prerequisites, postconditions and rollback notes.
+- Remaining non-empty individual reviews: 58/74. Final application table definitions complete: 0/62; all remain NOT_CHECKED pending cumulative source reconstruction, helper/raw-SQL coverage, table options and complete object registry.
+- Next unfinished batch: continue reviewing remaining non-empty migration files in filename order; inspect helper implementation effects (especially `MigrationSchemaGuard`) and append-only migration triggers/FKs; then build cumulative final manifest for affected tables. Do not mark any table COMPLETE from a creation migration alone.
+- Safety exclusions held: no production connection or execution; no reverification records/monitoring alerts changed; no Test 1A/1B restart; no Phase 1D.3 or 1D.7.
+
+
+### Corrected source review totals — 2026-11-11
+
+Verified directly from all 97 provenance rows: 23 REVIEWED_NOOP + 27 SOURCE_REVIEWED_PARTIAL + 47 remaining PARTIAL = 97. Previous 16/58 checkpoint figures were inaccurate and are superseded. Final application definitions: 0/62 complete.

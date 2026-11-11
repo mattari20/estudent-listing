@@ -18,14 +18,26 @@ class Phase1D2BSourceProvenanceTest(unittest.TestCase):
         cls.diagnostic = DIAGNOSTIC_PATH.read_text(encoding="utf-8")
         cls.migration_dir = ROOT / "database/migrations"
 
-    def test_manifest_scope_matches_diagnostic_allowlist(self):
+    def test_expanded_manifest_contains_diagnostic_allowlist(self):
         match = re.search(r"private const TABLES = \[(.*?)\];", self.diagnostic, re.S)
         self.assertIsNotNone(match, "diagnostic TABLES allowlist must remain discoverable")
         allowlist = set(re.findall(r"'([a-zA-Z0-9_]+)'", match.group(1)))
-        self.assertEqual(set(self.manifest["tables"]), allowlist)
-        self.assertEqual(self.manifest["table_count"], len(allowlist))
-        self.assertEqual(self.manifest["application_table_count"], len(allowlist) - 1)
-        self.assertEqual(self.manifest["tables"]["migrations"]["managed_by"], "Laravel migrator; not created by an application migration in this directory")
+        manifest_tables = set(self.manifest["tables"])
+
+        # The diagnostic allowlist is intentionally narrower than the
+        # expanded source-provenance inventory. It must be fully represented,
+        # but the expanded inventory must not be reduced to the old allowlist.
+        self.assertTrue(allowlist, "diagnostic TABLES allowlist must not be empty")
+        self.assertTrue(allowlist.issubset(manifest_tables))
+        self.assertEqual(self.manifest["table_count"], 63)
+        self.assertEqual(self.manifest["application_table_count"], 62)
+        self.assertEqual(self.manifest["framework_managed_table_count"], 1)
+        self.assertEqual(len(manifest_tables), 63)
+
+        ledger = self.manifest["tables"]["migrations"]
+        self.assertEqual(ledger["managed_by"], "Laravel DatabaseMigrationRepository")
+        self.assertEqual(ledger["create"], [])
+        self.assertEqual(ledger["alter"], [])
 
     def test_every_provenance_source_file_exists(self):
         for table, provenance in self.manifest["tables"].items():

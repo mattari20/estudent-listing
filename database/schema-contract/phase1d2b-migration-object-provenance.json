@@ -8,7 +8,7 @@
   "application_table_scope_count": 62,
   "framework_managed_ledger": "migrations",
   "framework_managed_ledger_source": "Laravel DatabaseMigrationRepository",
-  "coverage_state": "PARTIAL_OBJECT_MAPPING; 23 EMPTY SUPERSEDED MIGRATIONS SOURCE-REVIEWED AS NO-OP; 74 MIGRATIONS STILL REQUIRE OBJECT-LEVEL REVIEW",
+  "coverage_state": "PARTIAL_OBJECT_MAPPING; 23 EMPTY SUPERSEDED MIGRATIONS SOURCE-REVIEWED AS NO-OP; 27 NON-EMPTY MIGRATIONS SOURCE-REVIEWED PARTIALLY; 47 NON-EMPTY MIGRATIONS STILL REQUIRE INDIVIDUAL REVIEW",
   "migrations": [
     {
       "migration": "2026_09_23_000001_create_institutions_table",
@@ -18,20 +18,46 @@
         "institutions"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "institutions.id",
+        "institutions.name",
+        "institutions.slug",
+        "institutions.institution_type",
+        "institutions.status",
+        "institutions.created_at",
+        "institutions.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "institutions.PRIMARY",
+        "institutions.institutions_slug_unique",
+        "institutions.institutions_status_name_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "None declared.",
+      "expected_postconditions": "CREATES institutions: id BIGINT unsigned auto-increment PK; name/slug/institution_type/status VARCHAR(255) defaults; timestamps; unique slug; BTREE(status,name).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES institutions: id BIGINT unsigned auto-increment PK; name/slug/institution_type/status VARCHAR(255) defaults; timestamps; unique slug; BTREE(status,name).",
+        "down_effect": "DROP TABLE IF EXISTS institutions.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000001_create_institutions_table.php; Git blob 384a34170e89c2f33fa883d43dea28f91a9c957a.",
+        "related_objects": [
+          "institutions"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "None declared.",
+        "postconditions": "CREATES institutions: id BIGINT unsigned auto-increment PK; name/slug/institution_type/status VARCHAR(255) defaults; timestamps; unique slug; BTREE(status,name).",
+        "rollback_considerations": "DROP TABLE IF EXISTS institutions."
+      }
     },
     {
       "migration": "2026_09_23_000002_create_geographies_table",
@@ -41,20 +67,62 @@
         "geographies"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "geographies.id",
+        "geographies.parent_id",
+        "geographies.name",
+        "geographies.slug",
+        "geographies.type",
+        "geographies.code",
+        "geographies.status",
+        "geographies.created_at",
+        "geographies.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "geographies.PRIMARY",
+        "geographies.geographies_parent_id_slug_unique",
+        "geographies.geographies_type_status_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "geographies_parent_id_foreign",
+          "source_table": "geographies",
+          "source_columns": [
+            "parent_id"
+          ],
+          "referenced_table": "geographies",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "Self-referencing FK; parent_id nullable.",
+      "expected_postconditions": "CREATES geographies: id BIGINT unsigned auto-increment PK; parent_id nullable BIGINT unsigned FK to geographies.id ON DELETE SET NULL; name/slug/type VARCHAR(255), code nullable VARCHAR(255), status VARCHAR(255) default active, timestamps; unique(parent_id,slug), BTREE(type,status).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES geographies: id BIGINT unsigned auto-increment PK; parent_id nullable BIGINT unsigned FK to geographies.id ON DELETE SET NULL; name/slug/type VARCHAR(255), code nullable VARCHAR(255), status VARCHAR(255) default active, timestamps; unique(parent_id,slug), BTREE(type,status).",
+        "down_effect": "DROP TABLE IF EXISTS geographies.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000002_create_geographies_table.php; Git blob d77fdee1c22432315aefa093c362b813d0804ebc.",
+        "related_objects": [
+          "geographies"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "Self-referencing FK; parent_id nullable.",
+        "postconditions": "CREATES geographies: id BIGINT unsigned auto-increment PK; parent_id nullable BIGINT unsigned FK to geographies.id ON DELETE SET NULL; name/slug/type VARCHAR(255), code nullable VARCHAR(255), status VARCHAR(255) default active, timestamps; unique(parent_id,slug), BTREE(type,status).",
+        "rollback_considerations": "DROP TABLE IF EXISTS geographies."
+      }
     },
     {
       "migration": "2026_09_23_000003_rebuild_institutions_table",
@@ -64,8 +132,16 @@
       "tables_altered": [
         "institutions"
       ],
-      "columns_created": [],
-      "columns_changed": [],
+      "columns_created": [
+        "institutions.official_name",
+        "institutions.short_name",
+        "institutions.description",
+        "institutions.verified_at"
+      ],
+      "columns_changed": [
+        "institutions.institution_type",
+        "institutions.status"
+      ],
       "columns_removed": [],
       "indexes_created": [],
       "indexes_removed": [],
@@ -73,11 +149,25 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "institutions table from prior migration.",
+      "expected_postconditions": "ALTERS institutions: adds official_name VARCHAR(255) nullable after name; changes status default active -> candidate (keeps non-null); adds short_name VARCHAR(255) nullable, description TEXT nullable, verified_at TIMESTAMP nullable. institution_type is reaffirmed as nullable VARCHAR(255), no effective definition change.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "ALTERS institutions: adds official_name VARCHAR(255) nullable after name; changes status default active -> candidate (keeps non-null); adds short_name VARCHAR(255) nullable, description TEXT nullable, verified_at TIMESTAMP nullable. institution_type is reaffirmed as nullable VARCHAR(255), no effective definition change.",
+        "down_effect": "Drops official_name, short_name, description, verified_at; does not restore status default from candidate to active (rollback is therefore not a full inverse for the status default).",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000003_rebuild_institutions_table.php; Git blob 83164b4df28cb36eb169f2f1be83551a3a319b3f.",
+        "related_objects": [
+          "institutions"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "institutions table from prior migration.",
+        "postconditions": "ALTERS institutions: adds official_name VARCHAR(255) nullable after name; changes status default active -> candidate (keeps non-null); adds short_name VARCHAR(255) nullable, description TEXT nullable, verified_at TIMESTAMP nullable. institution_type is reaffirmed as nullable VARCHAR(255), no effective definition change.",
+        "rollback_considerations": "Drops official_name, short_name, description, verified_at; does not restore status default from candidate to active (rollback is therefore not a full inverse for the status default)."
+      }
     },
     {
       "migration": "2026_09_23_000004_create_data_quality_events_table",
@@ -87,20 +177,50 @@
         "data_quality_events"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "data_quality_events.id",
+        "data_quality_events.subject_type",
+        "data_quality_events.subject_id",
+        "data_quality_events.dimension",
+        "data_quality_events.state",
+        "data_quality_events.severity",
+        "data_quality_events.description",
+        "data_quality_events.observed_at",
+        "data_quality_events.resolved_at",
+        "data_quality_events.created_at",
+        "data_quality_events.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "data_quality_events.PRIMARY",
+        "data_quality_events.data_quality_events_subject_type_subject_id_index",
+        "data_quality_events.data_quality_events_dimension_state_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "None declared.",
+      "expected_postconditions": "CREATES data_quality_events: id BIGINT unsigned AI PK; subject_type VARCHAR(255), subject_id nullable BIGINT unsigned; dimension VARCHAR(255); state VARCHAR(255) default open; severity VARCHAR(255) default info; description TEXT nullable; observed_at/resolved_at TIMESTAMP nullable; timestamps; BTREE(subject_type,subject_id), BTREE(dimension,state).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES data_quality_events: id BIGINT unsigned AI PK; subject_type VARCHAR(255), subject_id nullable BIGINT unsigned; dimension VARCHAR(255); state VARCHAR(255) default open; severity VARCHAR(255) default info; description TEXT nullable; observed_at/resolved_at TIMESTAMP nullable; timestamps; BTREE(subject_type,subject_id), BTREE(dimension,state).",
+        "down_effect": "DROP TABLE IF EXISTS data_quality_events.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000004_create_data_quality_events_table.php; Git blob e738836b906d2b90603cee343ce3f709359f18b5.",
+        "related_objects": [
+          "data_quality_events"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "None declared.",
+        "postconditions": "CREATES data_quality_events: id BIGINT unsigned AI PK; subject_type VARCHAR(255), subject_id nullable BIGINT unsigned; dimension VARCHAR(255); state VARCHAR(255) default open; severity VARCHAR(255) default info; description TEXT nullable; observed_at/resolved_at TIMESTAMP nullable; timestamps; BTREE(subject_type,subject_id), BTREE(dimension,state).",
+        "rollback_considerations": "DROP TABLE IF EXISTS data_quality_events."
+      }
     },
     {
       "migration": "2026_09_23_000004_create_institution_names_table",
@@ -209,20 +329,61 @@
         "institution_names"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "institution_names.id",
+        "institution_names.institution_id",
+        "institution_names.name",
+        "institution_names.name_type",
+        "institution_names.language",
+        "institution_names.is_current",
+        "institution_names.created_at",
+        "institution_names.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "institution_names.PRIMARY",
+        "institution_names.institution_names_institution_id_name_type_index",
+        "institution_names.institution_names_name_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "institution_names_institution_id_foreign",
+          "source_table": "institution_names",
+          "source_columns": [
+            "institution_id"
+          ],
+          "referenced_table": "institutions",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "CASCADE",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "institutions table.",
+      "expected_postconditions": "CREATES institution_names: id BIGINT unsigned AI PK; institution_id BIGINT unsigned NOT NULL FK institutions.id CASCADE; name/name_type VARCHAR(255), language nullable VARCHAR(255), is_current BOOLEAN default false, timestamps; BTREE(institution_id,name_type), BTREE(name).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES institution_names: id BIGINT unsigned AI PK; institution_id BIGINT unsigned NOT NULL FK institutions.id CASCADE; name/name_type VARCHAR(255), language nullable VARCHAR(255), is_current BOOLEAN default false, timestamps; BTREE(institution_id,name_type), BTREE(name).",
+        "down_effect": "DROP TABLE IF EXISTS institution_names.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000005_create_institution_names_table.php; Git blob 36c76d74c1a65b7fe289ee02cf73dd74df258d86.",
+        "related_objects": [
+          "institution_names"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "institutions table.",
+        "postconditions": "CREATES institution_names: id BIGINT unsigned AI PK; institution_id BIGINT unsigned NOT NULL FK institutions.id CASCADE; name/name_type VARCHAR(255), language nullable VARCHAR(255), is_current BOOLEAN default false, timestamps; BTREE(institution_id,name_type), BTREE(name).",
+        "rollback_considerations": "DROP TABLE IF EXISTS institution_names."
+      }
     },
     {
       "migration": "2026_09_23_000005_create_recommendation_policies_table",
@@ -298,20 +459,48 @@
         "ranking_methodologies"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "ranking_methodologies.id",
+        "ranking_methodologies.name",
+        "ranking_methodologies.version",
+        "ranking_methodologies.status",
+        "ranking_methodologies.scope",
+        "ranking_methodologies.methodology_text",
+        "ranking_methodologies.effective_from",
+        "ranking_methodologies.effective_until",
+        "ranking_methodologies.created_at",
+        "ranking_methodologies.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "ranking_methodologies.PRIMARY",
+        "ranking_methodologies.ranking_methodologies_name_version_unique"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "None declared.",
+      "expected_postconditions": "CREATES ranking_methodologies: id BIGINT unsigned AI PK; name/version VARCHAR(255); status VARCHAR(255) default draft; scope VARCHAR(255) nullable; methodology_text TEXT nullable; effective_from/effective_until DATE nullable; timestamps; unique(name,version).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES ranking_methodologies: id BIGINT unsigned AI PK; name/version VARCHAR(255); status VARCHAR(255) default draft; scope VARCHAR(255) nullable; methodology_text TEXT nullable; effective_from/effective_until DATE nullable; timestamps; unique(name,version).",
+        "down_effect": "DROP TABLE IF EXISTS ranking_methodologies.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000006_create_ranking_methodologies_table.php; Git blob 8c02b75943a2758f99cc02042da170d5d8214782.",
+        "related_objects": [
+          "ranking_methodologies"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "None declared.",
+        "postconditions": "CREATES ranking_methodologies: id BIGINT unsigned AI PK; name/version VARCHAR(255); status VARCHAR(255) default draft; scope VARCHAR(255) nullable; methodology_text TEXT nullable; effective_from/effective_until DATE nullable; timestamps; unique(name,version).",
+        "rollback_considerations": "DROP TABLE IF EXISTS ranking_methodologies."
+      }
     },
     {
       "migration": "2026_09_23_000006_create_security_audit_events_table",
@@ -420,20 +609,48 @@
         "recommendation_policies"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "recommendation_policies.id",
+        "recommendation_policies.name",
+        "recommendation_policies.version",
+        "recommendation_policies.status",
+        "recommendation_policies.description",
+        "recommendation_policies.eligibility_rules",
+        "recommendation_policies.effective_from",
+        "recommendation_policies.effective_until",
+        "recommendation_policies.created_at",
+        "recommendation_policies.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "recommendation_policies.PRIMARY",
+        "recommendation_policies.recommendation_policies_name_version_unique"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "None declared.",
+      "expected_postconditions": "CREATES recommendation_policies: id BIGINT unsigned AI PK; name/version VARCHAR(255); status VARCHAR(255) default draft; description/eligibility_rules TEXT nullable; effective_from/effective_until DATE nullable; timestamps; unique(name,version).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES recommendation_policies: id BIGINT unsigned AI PK; name/version VARCHAR(255); status VARCHAR(255) default draft; description/eligibility_rules TEXT nullable; effective_from/effective_until DATE nullable; timestamps; unique(name,version).",
+        "down_effect": "DROP TABLE IF EXISTS recommendation_policies.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000007_create_recommendation_policies_table.php; Git blob 41a3a27eba41ae37125c58fb4e40cc9a0795986a.",
+        "related_objects": [
+          "recommendation_policies"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "None declared.",
+        "postconditions": "CREATES recommendation_policies: id BIGINT unsigned AI PK; name/version VARCHAR(255); status VARCHAR(255) default draft; description/eligibility_rules TEXT nullable; effective_from/effective_until DATE nullable; timestamps; unique(name,version).",
+        "rollback_considerations": "DROP TABLE IF EXISTS recommendation_policies."
+      }
     },
     {
       "migration": "2026_09_23_000008_create_campuses_table",
@@ -443,20 +660,79 @@
         "campuses"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "campuses.id",
+        "campuses.institution_id",
+        "campuses.geography_id",
+        "campuses.name",
+        "campuses.slug",
+        "campuses.campus_type",
+        "campuses.status",
+        "campuses.address",
+        "campuses.postal_code",
+        "campuses.latitude",
+        "campuses.longitude",
+        "campuses.created_at",
+        "campuses.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "campuses.PRIMARY",
+        "campuses.campuses_institution_id_slug_unique",
+        "campuses.campuses_geography_id_status_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "campuses_institution_id_foreign",
+          "source_table": "campuses",
+          "source_columns": [
+            "institution_id"
+          ],
+          "referenced_table": "institutions",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "CASCADE",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "campuses_geography_id_foreign",
+          "source_table": "campuses",
+          "source_columns": [
+            "geography_id"
+          ],
+          "referenced_table": "geographies",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "institutions and geographies.",
+      "expected_postconditions": "CREATES campuses: id BIGINT unsigned AI PK; institution_id BIGINT unsigned FK institutions.id CASCADE; geography_id nullable BIGINT unsigned FK geographies.id SET NULL; name/slug/campus_type/status/address/postal_code VARCHAR(255) with campus_type default campus and status default candidate; latitude/longitude DECIMAL(10,7) nullable; timestamps; unique(institution_id,slug), BTREE(geography_id,status).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES campuses: id BIGINT unsigned AI PK; institution_id BIGINT unsigned FK institutions.id CASCADE; geography_id nullable BIGINT unsigned FK geographies.id SET NULL; name/slug/campus_type/status/address/postal_code VARCHAR(255) with campus_type default campus and status default candidate; latitude/longitude DECIMAL(10,7) nullable; timestamps; unique(institution_id,slug), BTREE(geography_id,status).",
+        "down_effect": "DROP TABLE IF EXISTS campuses.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000008_create_campuses_table.php; Git blob dca6cef8519b72eabb16d43ed0857e82cea55908.",
+        "related_objects": [
+          "campuses"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "institutions and geographies.",
+        "postconditions": "CREATES campuses: id BIGINT unsigned AI PK; institution_id BIGINT unsigned FK institutions.id CASCADE; geography_id nullable BIGINT unsigned FK geographies.id SET NULL; name/slug/campus_type/status/address/postal_code VARCHAR(255) with campus_type default campus and status default candidate; latitude/longitude DECIMAL(10,7) nullable; timestamps; unique(institution_id,slug), BTREE(geography_id,status).",
+        "rollback_considerations": "DROP TABLE IF EXISTS campuses."
+      }
     },
     {
       "migration": "2026_09_23_000008_create_release_records_table",
@@ -631,20 +907,65 @@
         "programs"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "programs.id",
+        "programs.institution_id",
+        "programs.name",
+        "programs.slug",
+        "programs.program_level",
+        "programs.award",
+        "programs.discipline",
+        "programs.status",
+        "programs.description",
+        "programs.created_at",
+        "programs.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "programs.PRIMARY",
+        "programs.programs_institution_id_slug_unique",
+        "programs.programs_program_level_status_index",
+        "programs.programs_discipline_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "programs_institution_id_foreign",
+          "source_table": "programs",
+          "source_columns": [
+            "institution_id"
+          ],
+          "referenced_table": "institutions",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "CASCADE",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "institutions.",
+      "expected_postconditions": "CREATES programs: id BIGINT unsigned AI PK; institution_id BIGINT unsigned FK institutions.id CASCADE; name/slug/program_level/award/discipline/status VARCHAR(255), optional fields nullable, status default candidate; description TEXT nullable; timestamps; unique(institution_id,slug), BTREE(program_level,status), BTREE(discipline).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES programs: id BIGINT unsigned AI PK; institution_id BIGINT unsigned FK institutions.id CASCADE; name/slug/program_level/award/discipline/status VARCHAR(255), optional fields nullable, status default candidate; description TEXT nullable; timestamps; unique(institution_id,slug), BTREE(program_level,status), BTREE(discipline).",
+        "down_effect": "DROP TABLE IF EXISTS programs.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000009_create_programs_table.php; Git blob 69d545c3457203de2b395d541d012071df1b1da9.",
+        "related_objects": [
+          "programs"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "institutions.",
+        "postconditions": "CREATES programs: id BIGINT unsigned AI PK; institution_id BIGINT unsigned FK institutions.id CASCADE; name/slug/program_level/award/discipline/status VARCHAR(255), optional fields nullable, status default candidate; description TEXT nullable; timestamps; unique(institution_id,slug), BTREE(program_level,status), BTREE(discipline).",
+        "rollback_considerations": "DROP TABLE IF EXISTS programs."
+      }
     },
     {
       "migration": "2026_09_23_000010_create_assertions_table",
@@ -720,20 +1041,50 @@
         "security_audit_events"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "security_audit_events.id",
+        "security_audit_events.event_type",
+        "security_audit_events.actor_type",
+        "security_audit_events.actor_id",
+        "security_audit_events.subject_type",
+        "security_audit_events.subject_id",
+        "security_audit_events.severity",
+        "security_audit_events.description",
+        "security_audit_events.request_id",
+        "security_audit_events.created_at",
+        "security_audit_events.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "security_audit_events.PRIMARY",
+        "security_audit_events.security_audit_events_event_type_severity_index",
+        "security_audit_events.security_audit_events_subject_type_subject_id_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "None.",
+      "expected_postconditions": "CREATES security_audit_events: id BIGINT unsigned AI PK; event_type VARCHAR(255); actor_type nullable VARCHAR(255), actor_id nullable BIGINT unsigned; subject_type nullable VARCHAR(255), subject_id nullable BIGINT unsigned; severity VARCHAR(255) default info; description TEXT nullable; request_id VARCHAR(255) nullable; timestamps; BTREE(event_type,severity), BTREE(subject_type,subject_id). Later migration 2026_11_04_000014 installs append-only update/delete guards on this table; table definition otherwise unchanged.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES security_audit_events: id BIGINT unsigned AI PK; event_type VARCHAR(255); actor_type nullable VARCHAR(255), actor_id nullable BIGINT unsigned; subject_type nullable VARCHAR(255), subject_id nullable BIGINT unsigned; severity VARCHAR(255) default info; description TEXT nullable; request_id VARCHAR(255) nullable; timestamps; BTREE(event_type,severity), BTREE(subject_type,subject_id). Later migration 2026_11_04_000014 installs append-only update/delete guards on this table; table definition otherwise unchanged.",
+        "down_effect": "DROP TABLE IF EXISTS security_audit_events; later append-only guard migration down() drops its own triggers.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000010_create_security_audit_events_table.php; Git blob 41faf527df57b4b1f40b11ab872fb1c14c1c5ed2.",
+        "related_objects": [
+          "security_audit_events"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "None.",
+        "postconditions": "CREATES security_audit_events: id BIGINT unsigned AI PK; event_type VARCHAR(255); actor_type nullable VARCHAR(255), actor_id nullable BIGINT unsigned; subject_type nullable VARCHAR(255), subject_id nullable BIGINT unsigned; severity VARCHAR(255) default info; description TEXT nullable; request_id VARCHAR(255) nullable; timestamps; BTREE(event_type,severity), BTREE(subject_type,subject_id). Later migration 2026_11_04_000014 installs append-only update/delete guards on this table; table definition otherwise unchanged.",
+        "rollback_considerations": "DROP TABLE IF EXISTS security_audit_events; later append-only guard migration down() drops its own triggers."
+      }
     },
     {
       "migration": "2026_09_23_000011_create_change_events_table",
@@ -776,20 +1127,49 @@
         "moderation_actions"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "moderation_actions.id",
+        "moderation_actions.target_type",
+        "moderation_actions.target_id",
+        "moderation_actions.action",
+        "moderation_actions.reason",
+        "moderation_actions.actor_type",
+        "moderation_actions.actor_id",
+        "moderation_actions.notes",
+        "moderation_actions.created_at",
+        "moderation_actions.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "moderation_actions.PRIMARY",
+        "moderation_actions.moderation_actions_target_type_target_id_index",
+        "moderation_actions.moderation_actions_action_created_at_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "None.",
+      "expected_postconditions": "CREATES moderation_actions: id BIGINT unsigned AI PK; target_type VARCHAR(255), target_id BIGINT unsigned, action VARCHAR(255), reason/actor_type VARCHAR(255) nullable, actor_id BIGINT unsigned nullable, notes TEXT nullable, timestamps; BTREE(target_type,target_id), BTREE(action,created_at).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES moderation_actions: id BIGINT unsigned AI PK; target_type VARCHAR(255), target_id BIGINT unsigned, action VARCHAR(255), reason/actor_type VARCHAR(255) nullable, actor_id BIGINT unsigned nullable, notes TEXT nullable, timestamps; BTREE(target_type,target_id), BTREE(action,created_at).",
+        "down_effect": "DROP TABLE IF EXISTS moderation_actions.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000011_create_moderation_actions_table.php; Git blob 203cbca322238cb205287ce10e4fe0a46bcd6fa6.",
+        "related_objects": [
+          "moderation_actions"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "None.",
+        "postconditions": "CREATES moderation_actions: id BIGINT unsigned AI PK; target_type VARCHAR(255), target_id BIGINT unsigned, action VARCHAR(255), reason/actor_type VARCHAR(255) nullable, actor_id BIGINT unsigned nullable, notes TEXT nullable, timestamps; BTREE(target_type,target_id), BTREE(action,created_at).",
+        "rollback_considerations": "DROP TABLE IF EXISTS moderation_actions."
+      }
     },
     {
       "migration": "2026_09_23_000012_create_admission_intakes_table",
@@ -832,20 +1212,47 @@
         "release_records"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "release_records.id",
+        "release_records.version",
+        "release_records.environment",
+        "release_records.status",
+        "release_records.summary",
+        "release_records.rollback_notes",
+        "release_records.released_at",
+        "release_records.created_at",
+        "release_records.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "release_records.PRIMARY",
+        "release_records.release_records_environment_status_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "None.",
+      "expected_postconditions": "CREATES release_records: id BIGINT unsigned AI PK; version/environment/status VARCHAR(255), environment default production, status default planned, summary/rollback_notes TEXT nullable, released_at TIMESTAMP nullable, timestamps; BTREE(environment,status).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES release_records: id BIGINT unsigned AI PK; version/environment/status VARCHAR(255), environment default production, status default planned, summary/rollback_notes TEXT nullable, released_at TIMESTAMP nullable, timestamps; BTREE(environment,status).",
+        "down_effect": "DROP TABLE IF EXISTS release_records.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000012_create_release_records_table.php; Git blob ad85dfb0f567b98f49de5006405c540716b4211f.",
+        "related_objects": [
+          "release_records"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "None.",
+        "postconditions": "CREATES release_records: id BIGINT unsigned AI PK; version/environment/status VARCHAR(255), environment default production, status default planned, summary/rollback_notes TEXT nullable, released_at TIMESTAMP nullable, timestamps; BTREE(environment,status).",
+        "rollback_considerations": "DROP TABLE IF EXISTS release_records."
+      }
     },
     {
       "migration": "2026_09_23_000013_create_eligibility_rules_table",
@@ -888,20 +1295,46 @@
         "sources"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "sources.id",
+        "sources.source_type",
+        "sources.name",
+        "sources.url",
+        "sources.authority_scope",
+        "sources.status",
+        "sources.created_at",
+        "sources.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "sources.PRIMARY",
+        "sources.sources_source_type_status_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "None.",
+      "expected_postconditions": "CREATES sources: id BIGINT unsigned AI PK; source_type/name/status VARCHAR(255), status default active; url TEXT nullable, authority_scope VARCHAR(255) nullable; timestamps; BTREE(source_type,status).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES sources: id BIGINT unsigned AI PK; source_type/name/status VARCHAR(255), status default active; url TEXT nullable, authority_scope VARCHAR(255) nullable; timestamps; BTREE(source_type,status).",
+        "down_effect": "DROP TABLE IF EXISTS sources.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000013_create_sources_table.php; Git blob 81d8aefb62ef53e07b03ffaa6f535e9ff602649a.",
+        "related_objects": [
+          "sources"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "None.",
+        "postconditions": "CREATES sources: id BIGINT unsigned AI PK; source_type/name/status VARCHAR(255), status default active; url TEXT nullable, authority_scope VARCHAR(255) nullable; timestamps; BTREE(source_type,status).",
+        "rollback_considerations": "DROP TABLE IF EXISTS sources."
+      }
     },
     {
       "migration": "2026_09_23_000014_create_merit_records_table",
@@ -944,20 +1377,79 @@
         "program_offerings"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "program_offerings.id",
+        "program_offerings.program_id",
+        "program_offerings.campus_id",
+        "program_offerings.delivery_mode",
+        "program_offerings.status",
+        "program_offerings.intake_label",
+        "program_offerings.duration",
+        "program_offerings.availability",
+        "program_offerings.effective_from",
+        "program_offerings.effective_until",
+        "program_offerings.created_at",
+        "program_offerings.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "program_offerings.PRIMARY",
+        "program_offerings.program_offerings_campus_id_status_index",
+        "program_offerings.program_offerings_program_id_status_index",
+        "program_offerings.program_offerings_delivery_mode_availability_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "program_offerings_program_id_foreign",
+          "source_table": "program_offerings",
+          "source_columns": [
+            "program_id"
+          ],
+          "referenced_table": "programs",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "CASCADE",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "program_offerings_campus_id_foreign",
+          "source_table": "program_offerings",
+          "source_columns": [
+            "campus_id"
+          ],
+          "referenced_table": "campuses",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "programs and campuses.",
+      "expected_postconditions": "CREATES program_offerings: id BIGINT unsigned AI PK; program_id BIGINT unsigned FK programs.id CASCADE; campus_id nullable BIGINT unsigned FK campuses.id SET NULL; delivery_mode/status/availability VARCHAR(255) defaults on_campus/candidate/unknown; intake_label/duration VARCHAR(255) nullable; effective_from/effective_until DATE nullable; timestamps; indexes (campus_id,status), (program_id,status), (delivery_mode,availability).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES program_offerings: id BIGINT unsigned AI PK; program_id BIGINT unsigned FK programs.id CASCADE; campus_id nullable BIGINT unsigned FK campuses.id SET NULL; delivery_mode/status/availability VARCHAR(255) defaults on_campus/candidate/unknown; intake_label/duration VARCHAR(255) nullable; effective_from/effective_until DATE nullable; timestamps; indexes (campus_id,status), (program_id,status), (delivery_mode,availability).",
+        "down_effect": "DROP TABLE IF EXISTS program_offerings.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000014_create_program_offerings_table.php; Git blob 32bc28a2fd362e2621ca69aaf61ef8bd52105b9d.",
+        "related_objects": [
+          "program_offerings"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "programs and campuses.",
+        "postconditions": "CREATES program_offerings: id BIGINT unsigned AI PK; program_id BIGINT unsigned FK programs.id CASCADE; campus_id nullable BIGINT unsigned FK campuses.id SET NULL; delivery_mode/status/availability VARCHAR(255) defaults on_campus/candidate/unknown; intake_label/duration VARCHAR(255) nullable; effective_from/effective_until DATE nullable; timestamps; indexes (campus_id,status), (program_id,status), (delivery_mode,availability).",
+        "rollback_considerations": "DROP TABLE IF EXISTS program_offerings."
+      }
     },
     {
       "migration": "2026_09_23_000015_create_admission_intakes_table",
@@ -967,20 +1459,68 @@
         "admission_intakes"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "admission_intakes.id",
+        "admission_intakes.program_offering_id",
+        "admission_intakes.label",
+        "admission_intakes.status",
+        "admission_intakes.application_open_at",
+        "admission_intakes.application_close_at",
+        "admission_intakes.test_date",
+        "admission_intakes.selection_date",
+        "admission_intakes.enrollment_start_at",
+        "admission_intakes.enrollment_end_at",
+        "admission_intakes.seat_capacity",
+        "admission_intakes.application_url",
+        "admission_intakes.notes",
+        "admission_intakes.created_at",
+        "admission_intakes.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "admission_intakes.PRIMARY",
+        "admission_intakes.admission_intakes_program_offering_id_status_index",
+        "admission_intakes.admission_intakes_application_open_at_application_close_at_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "admission_intakes_program_offering_id_foreign",
+          "source_table": "admission_intakes",
+          "source_columns": [
+            "program_offering_id"
+          ],
+          "referenced_table": "program_offerings",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "CASCADE",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "program_offerings.",
+      "expected_postconditions": "CREATES admission_intakes: id BIGINT unsigned AI PK; program_offering_id BIGINT unsigned FK program_offerings.id CASCADE; label/status VARCHAR(255), status default planned; application_open_at/application_close_at/test_date/selection_date/enrollment_start_at/enrollment_end_at DATE nullable; seat_capacity INT unsigned nullable; application_url VARCHAR(255) nullable; notes TEXT nullable; timestamps; indexes (program_offering_id,status), (application_open_at,application_close_at).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES admission_intakes: id BIGINT unsigned AI PK; program_offering_id BIGINT unsigned FK program_offerings.id CASCADE; label/status VARCHAR(255), status default planned; application_open_at/application_close_at/test_date/selection_date/enrollment_start_at/enrollment_end_at DATE nullable; seat_capacity INT unsigned nullable; application_url VARCHAR(255) nullable; notes TEXT nullable; timestamps; indexes (program_offering_id,status), (application_open_at,application_close_at).",
+        "down_effect": "DROP TABLE IF EXISTS admission_intakes.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000015_create_admission_intakes_table.php; Git blob 03cc5b7aee7d4d47fbce4d6e45d171452cf073b9.",
+        "related_objects": [
+          "admission_intakes"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "program_offerings.",
+        "postconditions": "CREATES admission_intakes: id BIGINT unsigned AI PK; program_offering_id BIGINT unsigned FK program_offerings.id CASCADE; label/status VARCHAR(255), status default planned; application_open_at/application_close_at/test_date/selection_date/enrollment_start_at/enrollment_end_at DATE nullable; seat_capacity INT unsigned nullable; application_url VARCHAR(255) nullable; notes TEXT nullable; timestamps; indexes (program_offering_id,status), (application_open_at,application_close_at).",
+        "rollback_considerations": "DROP TABLE IF EXISTS admission_intakes."
+      }
     },
     {
       "migration": "2026_09_23_000015_create_selection_outcomes_table",
@@ -1023,20 +1563,70 @@
         "eligibility_rules"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "eligibility_rules.id",
+        "eligibility_rules.admission_intake_id",
+        "eligibility_rules.rule_type",
+        "eligibility_rules.applicant_category",
+        "eligibility_rules.qualification",
+        "eligibility_rules.requirement",
+        "eligibility_rules.minimum_marks",
+        "eligibility_rules.minimum_marks_type",
+        "eligibility_rules.required_subject",
+        "eligibility_rules.entry_test_required",
+        "eligibility_rules.domicile_requirement",
+        "eligibility_rules.minimum_age",
+        "eligibility_rules.maximum_age",
+        "eligibility_rules.experience_requirement",
+        "eligibility_rules.status",
+        "eligibility_rules.created_at",
+        "eligibility_rules.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "eligibility_rules.PRIMARY",
+        "eligibility_rules.eligibility_rules_admission_intake_id_rule_type_index",
+        "eligibility_rules.eligibility_rules_applicant_category_status_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "eligibility_rules_admission_intake_id_foreign",
+          "source_table": "eligibility_rules",
+          "source_columns": [
+            "admission_intake_id"
+          ],
+          "referenced_table": "admission_intakes",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "CASCADE",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "admission_intakes.",
+      "expected_postconditions": "CREATES eligibility_rules: id BIGINT unsigned AI PK; admission_intake_id BIGINT unsigned FK admission_intakes.id CASCADE; rule_type VARCHAR(255), applicant_category/qualification VARCHAR(255) nullable, requirement TEXT nullable; minimum_marks DECIMAL(8,2) nullable; minimum_marks_type/required_subject VARCHAR(255) nullable; entry_test_required BOOLEAN nullable; domicile_requirement VARCHAR(255) nullable; minimum_age/maximum_age INT unsigned nullable; experience_requirement TEXT nullable; status VARCHAR(255) default current; timestamps; indexes (admission_intake_id,rule_type), (applicant_category,status).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES eligibility_rules: id BIGINT unsigned AI PK; admission_intake_id BIGINT unsigned FK admission_intakes.id CASCADE; rule_type VARCHAR(255), applicant_category/qualification VARCHAR(255) nullable, requirement TEXT nullable; minimum_marks DECIMAL(8,2) nullable; minimum_marks_type/required_subject VARCHAR(255) nullable; entry_test_required BOOLEAN nullable; domicile_requirement VARCHAR(255) nullable; minimum_age/maximum_age INT unsigned nullable; experience_requirement TEXT nullable; status VARCHAR(255) default current; timestamps; indexes (admission_intake_id,rule_type), (applicant_category,status).",
+        "down_effect": "DROP TABLE IF EXISTS eligibility_rules.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000016_create_eligibility_rules_table.php; Git blob 2b57b4c8259ad5047b82694e550f08177231f2a8.",
+        "related_objects": [
+          "eligibility_rules"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "admission_intakes.",
+        "postconditions": "CREATES eligibility_rules: id BIGINT unsigned AI PK; admission_intake_id BIGINT unsigned FK admission_intakes.id CASCADE; rule_type VARCHAR(255), applicant_category/qualification VARCHAR(255) nullable, requirement TEXT nullable; minimum_marks DECIMAL(8,2) nullable; minimum_marks_type/required_subject VARCHAR(255) nullable; entry_test_required BOOLEAN nullable; domicile_requirement VARCHAR(255) nullable; minimum_age/maximum_age INT unsigned nullable; experience_requirement TEXT nullable; status VARCHAR(255) default current; timestamps; indexes (admission_intake_id,rule_type), (applicant_category,status).",
+        "rollback_considerations": "DROP TABLE IF EXISTS eligibility_rules."
+      }
     },
     {
       "migration": "2026_09_23_000016_create_fee_records_table",
@@ -1079,20 +1669,71 @@
         "merit_records"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "merit_records.id",
+        "merit_records.admission_intake_id",
+        "merit_records.stage",
+        "merit_records.merit_type",
+        "merit_records.applicant_category",
+        "merit_records.campus_context",
+        "merit_records.value",
+        "merit_records.score",
+        "merit_records.position",
+        "merit_records.unit",
+        "merit_records.methodology",
+        "merit_records.list_label",
+        "merit_records.list_number",
+        "merit_records.status",
+        "merit_records.effective_date",
+        "merit_records.created_at",
+        "merit_records.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "merit_records.PRIMARY",
+        "merit_records.merit_records_admission_intake_id_merit_type_index",
+        "merit_records.merit_records_applicant_category_status_index",
+        "merit_records.merit_records_stage_list_number_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "merit_records_admission_intake_id_foreign",
+          "source_table": "merit_records",
+          "source_columns": [
+            "admission_intake_id"
+          ],
+          "referenced_table": "admission_intakes",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "CASCADE",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "admission_intakes.",
+      "expected_postconditions": "CREATES merit_records: id BIGINT unsigned AI PK; admission_intake_id BIGINT unsigned FK admission_intakes.id CASCADE; stage VARCHAR(255) default published; merit_type VARCHAR(255), applicant_category/campus_context/value/unit/methodology/list_label VARCHAR(255) nullable; score DECIMAL(10,4) nullable; position DECIMAL(12,4) nullable; list_number INT unsigned nullable; status VARCHAR(255) default current; effective_date DATE nullable; timestamps; indexes (admission_intake_id,merit_type), (applicant_category,status), (stage,list_number).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES merit_records: id BIGINT unsigned AI PK; admission_intake_id BIGINT unsigned FK admission_intakes.id CASCADE; stage VARCHAR(255) default published; merit_type VARCHAR(255), applicant_category/campus_context/value/unit/methodology/list_label VARCHAR(255) nullable; score DECIMAL(10,4) nullable; position DECIMAL(12,4) nullable; list_number INT unsigned nullable; status VARCHAR(255) default current; effective_date DATE nullable; timestamps; indexes (admission_intake_id,merit_type), (applicant_category,status), (stage,list_number).",
+        "down_effect": "DROP TABLE IF EXISTS merit_records.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000017_create_merit_records_table.php; Git blob b3a61eb32c604f075e13177324c0efc21e2d7eaf.",
+        "related_objects": [
+          "merit_records"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "admission_intakes.",
+        "postconditions": "CREATES merit_records: id BIGINT unsigned AI PK; admission_intake_id BIGINT unsigned FK admission_intakes.id CASCADE; stage VARCHAR(255) default published; merit_type VARCHAR(255), applicant_category/campus_context/value/unit/methodology/list_label VARCHAR(255) nullable; score DECIMAL(10,4) nullable; position DECIMAL(12,4) nullable; list_number INT unsigned nullable; status VARCHAR(255) default current; effective_date DATE nullable; timestamps; indexes (admission_intake_id,merit_type), (applicant_category,status), (stage,list_number).",
+        "rollback_considerations": "DROP TABLE IF EXISTS merit_records."
+      }
     },
     {
       "migration": "2026_09_23_000018_create_recommendations_table",
@@ -1135,20 +1776,66 @@
         "selection_outcomes"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "selection_outcomes.id",
+        "selection_outcomes.admission_intake_id",
+        "selection_outcomes.outcome_type",
+        "selection_outcomes.applicant_category",
+        "selection_outcomes.status",
+        "selection_outcomes.threshold_value",
+        "selection_outcomes.threshold_score",
+        "selection_outcomes.unit",
+        "selection_outcomes.list_number",
+        "selection_outcomes.notes",
+        "selection_outcomes.effective_date",
+        "selection_outcomes.created_at",
+        "selection_outcomes.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "selection_outcomes.PRIMARY",
+        "selection_outcomes.selection_outcomes_admission_intake_id_outcome_type_index",
+        "selection_outcomes.selection_outcomes_applicant_category_status_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "selection_outcomes_admission_intake_id_foreign",
+          "source_table": "selection_outcomes",
+          "source_columns": [
+            "admission_intake_id"
+          ],
+          "referenced_table": "admission_intakes",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "CASCADE",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "admission_intakes.",
+      "expected_postconditions": "CREATES selection_outcomes: id BIGINT unsigned AI PK; admission_intake_id BIGINT unsigned FK admission_intakes.id CASCADE; outcome_type VARCHAR(255), applicant_category VARCHAR(255) nullable, status VARCHAR(255) default published, threshold_value VARCHAR(255) nullable, threshold_score DECIMAL(10,4) nullable, unit VARCHAR(255) nullable, list_number INT unsigned nullable, notes TEXT nullable, effective_date DATE nullable; timestamps; indexes (admission_intake_id,outcome_type), (applicant_category,status).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES selection_outcomes: id BIGINT unsigned AI PK; admission_intake_id BIGINT unsigned FK admission_intakes.id CASCADE; outcome_type VARCHAR(255), applicant_category VARCHAR(255) nullable, status VARCHAR(255) default published, threshold_value VARCHAR(255) nullable, threshold_score DECIMAL(10,4) nullable, unit VARCHAR(255) nullable, list_number INT unsigned nullable, notes TEXT nullable, effective_date DATE nullable; timestamps; indexes (admission_intake_id,outcome_type), (applicant_category,status).",
+        "down_effect": "DROP TABLE IF EXISTS selection_outcomes.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000018_create_selection_outcomes_table.php; Git blob 40033c751f07af101d76fbb05b74d25f5025172d.",
+        "related_objects": [
+          "selection_outcomes"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "admission_intakes.",
+        "postconditions": "CREATES selection_outcomes: id BIGINT unsigned AI PK; admission_intake_id BIGINT unsigned FK admission_intakes.id CASCADE; outcome_type VARCHAR(255), applicant_category VARCHAR(255) nullable, status VARCHAR(255) default published, threshold_value VARCHAR(255) nullable, threshold_score DECIMAL(10,4) nullable, unit VARCHAR(255) nullable, list_number INT unsigned nullable, notes TEXT nullable, effective_date DATE nullable; timestamps; indexes (admission_intake_id,outcome_type), (applicant_category,status).",
+        "rollback_considerations": "DROP TABLE IF EXISTS selection_outcomes."
+      }
     },
     {
       "migration": "2026_09_23_000019_create_fee_records_table",
@@ -1158,20 +1845,83 @@
         "fee_records"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "fee_records.id",
+        "fee_records.program_offering_id",
+        "fee_records.admission_intake_id",
+        "fee_records.fee_type",
+        "fee_records.amount_type",
+        "fee_records.amount",
+        "fee_records.minimum_amount",
+        "fee_records.maximum_amount",
+        "fee_records.currency",
+        "fee_records.frequency",
+        "fee_records.status",
+        "fee_records.effective_from",
+        "fee_records.effective_until",
+        "fee_records.notes",
+        "fee_records.created_at",
+        "fee_records.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "fee_records.PRIMARY",
+        "fee_records.fee_records_program_offering_id_fee_type_index",
+        "fee_records.fee_records_admission_intake_id_status_index",
+        "fee_records.fee_records_effective_from_effective_until_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "fee_records_program_offering_id_foreign",
+          "source_table": "fee_records",
+          "source_columns": [
+            "program_offering_id"
+          ],
+          "referenced_table": "program_offerings",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "fee_records_admission_intake_id_foreign",
+          "source_table": "fee_records",
+          "source_columns": [
+            "admission_intake_id"
+          ],
+          "referenced_table": "admission_intakes",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "program_offerings, admission_intakes.",
+      "expected_postconditions": "CREATES fee_records: id BIGINT unsigned AI PK; program_offering_id nullable BIGINT unsigned FK program_offerings.id SET NULL; admission_intake_id nullable BIGINT unsigned FK admission_intakes.id SET NULL; fee_type VARCHAR(255), amount_type VARCHAR(255) default fixed; amount/minimum_amount/maximum_amount DECIMAL(14,2) nullable; currency VARCHAR(3) default PKR; frequency VARCHAR(255) nullable; status VARCHAR(255) default known; effective_from/effective_until DATE nullable; notes TEXT nullable; timestamps; indexes (program_offering_id,fee_type), (admission_intake_id,status), (effective_from,effective_until).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES fee_records: id BIGINT unsigned AI PK; program_offering_id nullable BIGINT unsigned FK program_offerings.id SET NULL; admission_intake_id nullable BIGINT unsigned FK admission_intakes.id SET NULL; fee_type VARCHAR(255), amount_type VARCHAR(255) default fixed; amount/minimum_amount/maximum_amount DECIMAL(14,2) nullable; currency VARCHAR(3) default PKR; frequency VARCHAR(255) nullable; status VARCHAR(255) default known; effective_from/effective_until DATE nullable; notes TEXT nullable; timestamps; indexes (program_offering_id,fee_type), (admission_intake_id,status), (effective_from,effective_until).",
+        "down_effect": "DROP TABLE IF EXISTS fee_records.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000019_create_fee_records_table.php; Git blob f8f4d0ccd3a6cc4c5e5f978e3064ccdc9fc6b248.",
+        "related_objects": [
+          "fee_records"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "program_offerings, admission_intakes.",
+        "postconditions": "CREATES fee_records: id BIGINT unsigned AI PK; program_offering_id nullable BIGINT unsigned FK program_offerings.id SET NULL; admission_intake_id nullable BIGINT unsigned FK admission_intakes.id SET NULL; fee_type VARCHAR(255), amount_type VARCHAR(255) default fixed; amount/minimum_amount/maximum_amount DECIMAL(14,2) nullable; currency VARCHAR(3) default PKR; frequency VARCHAR(255) nullable; status VARCHAR(255) default known; effective_from/effective_until DATE nullable; notes TEXT nullable; timestamps; indexes (program_offering_id,fee_type), (admission_intake_id,status), (effective_from,effective_until).",
+        "rollback_considerations": "DROP TABLE IF EXISTS fee_records."
+      }
     },
     {
       "migration": "2026_09_23_000020_create_evidences_table",
@@ -1181,20 +1931,64 @@
         "evidence"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "evidence.id",
+        "evidence.source_id",
+        "evidence.reference",
+        "evidence.excerpt",
+        "evidence.content_hash",
+        "evidence.observed_at",
+        "evidence.published_at",
+        "evidence.expires_at",
+        "evidence.status",
+        "evidence.created_at",
+        "evidence.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "evidence.PRIMARY",
+        "evidence.evidence_source_id_status_index",
+        "evidence.evidence_observed_at_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "evidence_source_id_foreign",
+          "source_table": "evidence",
+          "source_columns": [
+            "source_id"
+          ],
+          "referenced_table": "sources",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "CASCADE",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "sources; source_snapshots must exist before the later snapshot alteration migration.",
+      "expected_postconditions": "CREATES evidence (singular): id BIGINT unsigned AI PK; source_id BIGINT unsigned NOT NULL FK sources.id CASCADE; reference VARCHAR(255) nullable; excerpt TEXT nullable; content_hash VARCHAR(255) nullable; observed_at/published_at/expires_at TIMESTAMP nullable; status VARCHAR(255) default active; timestamps; indexes (source_id,status), (observed_at). Later migration adds nullable snapshot_id BIGINT unsigned FK source_snapshots.id ON DELETE SET NULL.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES evidence (singular): id BIGINT unsigned AI PK; source_id BIGINT unsigned NOT NULL FK sources.id CASCADE; reference VARCHAR(255) nullable; excerpt TEXT nullable; content_hash VARCHAR(255) nullable; observed_at/published_at/expires_at TIMESTAMP nullable; status VARCHAR(255) default active; timestamps; indexes (source_id,status), (observed_at). Later migration adds nullable snapshot_id BIGINT unsigned FK source_snapshots.id ON DELETE SET NULL.",
+        "down_effect": "DROP TABLE IF EXISTS evidence. Later snapshot alteration down() drops its FK and column.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000020_create_evidences_table.php; Git blob d747f98b4a46a9a30c275b21cd06c1cb57aff84e.",
+        "related_objects": [
+          "evidence"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "sources; source_snapshots must exist before the later snapshot alteration migration.",
+        "postconditions": "CREATES evidence (singular): id BIGINT unsigned AI PK; source_id BIGINT unsigned NOT NULL FK sources.id CASCADE; reference VARCHAR(255) nullable; excerpt TEXT nullable; content_hash VARCHAR(255) nullable; observed_at/published_at/expires_at TIMESTAMP nullable; status VARCHAR(255) default active; timestamps; indexes (source_id,status), (observed_at). Later migration adds nullable snapshot_id BIGINT unsigned FK source_snapshots.id ON DELETE SET NULL.",
+        "rollback_considerations": "DROP TABLE IF EXISTS evidence. Later snapshot alteration down() drops its FK and column."
+      }
     },
     {
       "migration": "2026_09_23_000021_create_assertions_table",
@@ -1204,44 +1998,196 @@
         "assertions"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "assertions.id",
+        "assertions.evidence_id",
+        "assertions.subject_type",
+        "assertions.subject_id",
+        "assertions.attribute",
+        "assertions.value",
+        "assertions.verification_state",
+        "assertions.confidence",
+        "assertions.valid_from",
+        "assertions.valid_until",
+        "assertions.verified_at",
+        "assertions.created_at",
+        "assertions.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "assertions.PRIMARY",
+        "assertions.assertions_subject_type_subject_id_index",
+        "assertions.assertions_attribute_verification_state_index",
+        "assertions.assertions_valid_from_valid_until_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "assertions_evidence_id_foreign",
+          "source_table": "assertions",
+          "source_columns": [
+            "evidence_id"
+          ],
+          "referenced_table": "evidence",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "evidence.",
+      "expected_postconditions": "CREATES assertions: id BIGINT unsigned AI PK; evidence_id nullable BIGINT unsigned FK evidence.id SET NULL; subject_type VARCHAR(255), subject_id BIGINT unsigned, attribute VARCHAR(255), value TEXT nullable, verification_state VARCHAR(255) default discovered, confidence DECIMAL(5,4) nullable, valid_from/valid_until/verified_at TIMESTAMP nullable; timestamps; indexes (subject_type,subject_id), (attribute,verification_state), (valid_from,valid_until). Later migrations add nullable unique discovery_identity_key VARCHAR(64) and append-only update/delete guards (final migration state includes those; exact key/index source needs operation record).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES assertions: id BIGINT unsigned AI PK; evidence_id nullable BIGINT unsigned FK evidence.id SET NULL; subject_type VARCHAR(255), subject_id BIGINT unsigned, attribute VARCHAR(255), value TEXT nullable, verification_state VARCHAR(255) default discovered, confidence DECIMAL(5,4) nullable, valid_from/valid_until/verified_at TIMESTAMP nullable; timestamps; indexes (subject_type,subject_id), (attribute,verification_state), (valid_from,valid_until). Later migrations add nullable unique discovery_identity_key VARCHAR(64) and append-only update/delete guards (final migration state includes those; exact key/index source needs operation record).",
+        "down_effect": "DROP TABLE IF EXISTS assertions.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000021_create_assertions_table.php; Git blob 2f72a7aef54099b1d829a69fa9196421d2af1c37.",
+        "related_objects": [
+          "assertions"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "evidence.",
+        "postconditions": "CREATES assertions: id BIGINT unsigned AI PK; evidence_id nullable BIGINT unsigned FK evidence.id SET NULL; subject_type VARCHAR(255), subject_id BIGINT unsigned, attribute VARCHAR(255), value TEXT nullable, verification_state VARCHAR(255) default discovered, confidence DECIMAL(5,4) nullable, valid_from/valid_until/verified_at TIMESTAMP nullable; timestamps; indexes (subject_type,subject_id), (attribute,verification_state), (valid_from,valid_until). Later migrations add nullable unique discovery_identity_key VARCHAR(64) and append-only update/delete guards (final migration state includes those; exact key/index source needs operation record).",
+        "rollback_considerations": "DROP TABLE IF EXISTS assertions."
+      }
     },
     {
       "migration": "2026_09_23_000022_create_reviews_tables",
       "source_file": "database/migrations/2026_09_23_000022_create_reviews_tables.php",
       "git_blob_sha": "4d4b71be370b73b01c54c31ee5176feebcac100b",
       "tables_created": [
-        "review_ratings",
-        "reviews"
+        "reviews",
+        "review_ratings"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "reviews.id",
+        "reviews.institution_id",
+        "reviews.campus_id",
+        "reviews.program_id",
+        "reviews.reviewer_type",
+        "reviews.target_type",
+        "reviews.title",
+        "reviews.body",
+        "reviews.overall_rating",
+        "reviews.experience_period",
+        "reviews.status",
+        "reviews.verification_state",
+        "reviews.institution_response_allowed",
+        "reviews.institution_response",
+        "reviews.published_at",
+        "reviews.moderated_at",
+        "reviews.created_at",
+        "reviews.updated_at",
+        "review_ratings.id",
+        "review_ratings.review_id",
+        "review_ratings.dimension",
+        "review_ratings.rating",
+        "review_ratings.notes",
+        "review_ratings.created_at",
+        "review_ratings.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "reviews.PRIMARY",
+        "reviews.reviews_institution_id_status_index",
+        "reviews.reviews_campus_id_status_index",
+        "reviews.reviews_program_id_status_index",
+        "reviews.reviews_reviewer_type_status_index",
+        "reviews.reviews_target_type_status_index",
+        "reviews.reviews_verification_state_status_index",
+        "review_ratings.PRIMARY",
+        "review_ratings.review_ratings_review_id_dimension_unique",
+        "review_ratings.review_ratings_dimension_rating_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "reviews_institution_id_foreign",
+          "source_table": "reviews",
+          "source_columns": [
+            "institution_id"
+          ],
+          "referenced_table": "institutions",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "reviews_campus_id_foreign",
+          "source_table": "reviews",
+          "source_columns": [
+            "campus_id"
+          ],
+          "referenced_table": "campuses",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "reviews_program_id_foreign",
+          "source_table": "reviews",
+          "source_columns": [
+            "program_id"
+          ],
+          "referenced_table": "programs",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "review_ratings_review_id_foreign",
+          "source_table": "review_ratings",
+          "source_columns": [
+            "review_id"
+          ],
+          "referenced_table": "reviews",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "CASCADE",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "institutions, campuses, programs.",
+      "expected_postconditions": "CREATES reviews and review_ratings. reviews: id BIGINT unsigned AI PK; institution_id/campus_id/program_id nullable BIGINT unsigned FKs SET NULL; reviewer_type VARCHAR(40) nullable; target_type VARCHAR(40) default institution; title VARCHAR(200) nullable; body TEXT NOT NULL; overall_rating TINYINT unsigned nullable; experience_period VARCHAR(50) nullable; status VARCHAR(40) default pending; verification_state VARCHAR(40) default unverified; institution_response_allowed BOOLEAN default true; institution_response TEXT nullable; published_at/moderated_at TIMESTAMP nullable; timestamps; six BTREE two-column indexes for institution/campus/program/reviewer/target/verification with status. review_ratings: id BIGINT unsigned AI PK; review_id BIGINT unsigned NOT NULL FK reviews.id CASCADE; dimension VARCHAR(80); rating TINYINT unsigned nullable; notes TEXT nullable; timestamps; unique(review_id,dimension), index(dimension,rating).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES reviews and review_ratings. reviews: id BIGINT unsigned AI PK; institution_id/campus_id/program_id nullable BIGINT unsigned FKs SET NULL; reviewer_type VARCHAR(40) nullable; target_type VARCHAR(40) default institution; title VARCHAR(200) nullable; body TEXT NOT NULL; overall_rating TINYINT unsigned nullable; experience_period VARCHAR(50) nullable; status VARCHAR(40) default pending; verification_state VARCHAR(40) default unverified; institution_response_allowed BOOLEAN default true; institution_response TEXT nullable; published_at/moderated_at TIMESTAMP nullable; timestamps; six BTREE two-column indexes for institution/campus/program/reviewer/target/verification with status. review_ratings: id BIGINT unsigned AI PK; review_id BIGINT unsigned NOT NULL FK reviews.id CASCADE; dimension VARCHAR(80); rating TINYINT unsigned nullable; notes TEXT nullable; timestamps; unique(review_id,dimension), index(dimension,rating).",
+        "down_effect": "Drops review_ratings then reviews.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000022_create_reviews_tables.php; Git blob 4d4b71be370b73b01c54c31ee5176feebcac100b.",
+        "related_objects": [
+          "reviews",
+          "review_ratings"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "institutions, campuses, programs.",
+        "postconditions": "CREATES reviews and review_ratings. reviews: id BIGINT unsigned AI PK; institution_id/campus_id/program_id nullable BIGINT unsigned FKs SET NULL; reviewer_type VARCHAR(40) nullable; target_type VARCHAR(40) default institution; title VARCHAR(200) nullable; body TEXT NOT NULL; overall_rating TINYINT unsigned nullable; experience_period VARCHAR(50) nullable; status VARCHAR(40) default pending; verification_state VARCHAR(40) default unverified; institution_response_allowed BOOLEAN default true; institution_response TEXT nullable; published_at/moderated_at TIMESTAMP nullable; timestamps; six BTREE two-column indexes for institution/campus/program/reviewer/target/verification with status. review_ratings: id BIGINT unsigned AI PK; review_id BIGINT unsigned NOT NULL FK reviews.id CASCADE; dimension VARCHAR(80); rating TINYINT unsigned nullable; notes TEXT nullable; timestamps; unique(review_id,dimension), index(dimension,rating).",
+        "rollback_considerations": "Drops review_ratings then reviews."
+      }
     },
     {
       "migration": "2026_09_23_000023_create_scholarships_table",
@@ -1251,20 +2197,133 @@
         "scholarships"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "scholarships.id",
+        "scholarships.institution_id",
+        "scholarships.program_id",
+        "scholarships.program_offering_id",
+        "scholarships.campus_id",
+        "scholarships.admission_intake_id",
+        "scholarships.name",
+        "scholarships.scholarship_type",
+        "scholarships.eligibility_basis",
+        "scholarships.eligibility_description",
+        "scholarships.benefit_type",
+        "scholarships.amount_min",
+        "scholarships.amount_max",
+        "scholarships.currency",
+        "scholarships.benefit_frequency",
+        "scholarships.duration",
+        "scholarships.renewal_condition",
+        "scholarships.application_open",
+        "scholarships.application_close",
+        "scholarships.data_state",
+        "scholarships.status",
+        "scholarships.effective_from",
+        "scholarships.effective_until",
+        "scholarships.notes",
+        "scholarships.created_at",
+        "scholarships.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "scholarships.PRIMARY",
+        "scholarships.scholarships_institution_id_status_index",
+        "scholarships.scholarships_program_offering_id_status_index",
+        "scholarships.scholarships_admission_intake_id_status_index",
+        "scholarships.scholarships_data_state_effective_from_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "scholarships_institution_id_foreign",
+          "source_table": "scholarships",
+          "source_columns": [
+            "institution_id"
+          ],
+          "referenced_table": "institutions",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "scholarships_program_id_foreign",
+          "source_table": "scholarships",
+          "source_columns": [
+            "program_id"
+          ],
+          "referenced_table": "programs",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "scholarships_program_offering_id_foreign",
+          "source_table": "scholarships",
+          "source_columns": [
+            "program_offering_id"
+          ],
+          "referenced_table": "program_offerings",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "scholarships_campus_id_foreign",
+          "source_table": "scholarships",
+          "source_columns": [
+            "campus_id"
+          ],
+          "referenced_table": "campuses",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "scholarships_admission_intake_id_foreign",
+          "source_table": "scholarships",
+          "source_columns": [
+            "admission_intake_id"
+          ],
+          "referenced_table": "admission_intakes",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "institutions, programs, program_offerings, campuses, admission_intakes.",
+      "expected_postconditions": "CREATES scholarships: id BIGINT unsigned AI PK; institution_id/program_id/program_offering_id/campus_id/admission_intake_id nullable BIGINT unsigned FKs SET NULL; name VARCHAR(200), scholarship_type VARCHAR(60) nullable, eligibility_basis VARCHAR(100) nullable, eligibility_description TEXT nullable, benefit_type VARCHAR(80) nullable, amount_min/amount_max DECIMAL(14,2) nullable, currency CHAR(3) default PKR, benefit_frequency VARCHAR(50) nullable, duration VARCHAR(100) nullable, renewal_condition VARCHAR(200) nullable, application_open/application_close DATE nullable, data_state/status VARCHAR(40) defaults unknown/candidate, effective_from/effective_until DATE nullable, notes TEXT nullable, timestamps; indexes institution/status, program_offering/status, admission_intake/status, data_state/effective_from. ",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES scholarships: id BIGINT unsigned AI PK; institution_id/program_id/program_offering_id/campus_id/admission_intake_id nullable BIGINT unsigned FKs SET NULL; name VARCHAR(200), scholarship_type VARCHAR(60) nullable, eligibility_basis VARCHAR(100) nullable, eligibility_description TEXT nullable, benefit_type VARCHAR(80) nullable, amount_min/amount_max DECIMAL(14,2) nullable, currency CHAR(3) default PKR, benefit_frequency VARCHAR(50) nullable, duration VARCHAR(100) nullable, renewal_condition VARCHAR(200) nullable, application_open/application_close DATE nullable, data_state/status VARCHAR(40) defaults unknown/candidate, effective_from/effective_until DATE nullable, notes TEXT nullable, timestamps; indexes institution/status, program_offering/status, admission_intake/status, data_state/effective_from. ",
+        "down_effect": "DROP TABLE IF EXISTS scholarships.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000023_create_scholarships_table.php; Git blob 8a17709f202bbc9a3a1482e60888b34c6e9473dc.",
+        "related_objects": [
+          "scholarships"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "institutions, programs, program_offerings, campuses, admission_intakes.",
+        "postconditions": "CREATES scholarships: id BIGINT unsigned AI PK; institution_id/program_id/program_offering_id/campus_id/admission_intake_id nullable BIGINT unsigned FKs SET NULL; name VARCHAR(200), scholarship_type VARCHAR(60) nullable, eligibility_basis VARCHAR(100) nullable, eligibility_description TEXT nullable, benefit_type VARCHAR(80) nullable, amount_min/amount_max DECIMAL(14,2) nullable, currency CHAR(3) default PKR, benefit_frequency VARCHAR(50) nullable, duration VARCHAR(100) nullable, renewal_condition VARCHAR(200) nullable, application_open/application_close DATE nullable, data_state/status VARCHAR(40) defaults unknown/candidate, effective_from/effective_until DATE nullable, notes TEXT nullable, timestamps; indexes institution/status, program_offering/status, admission_intake/status, data_state/effective_from. ",
+        "rollback_considerations": "DROP TABLE IF EXISTS scholarships."
+      }
     },
     {
       "migration": "2026_09_23_000024_create_recommendations_table",
@@ -1274,20 +2333,95 @@
         "recommendations"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "recommendations.id",
+        "recommendations.institution_id",
+        "recommendations.campus_id",
+        "recommendations.program_id",
+        "recommendations.contributor_type",
+        "recommendations.recommendation",
+        "recommendations.rating",
+        "recommendations.experience_period",
+        "recommendations.verification_state",
+        "recommendations.status",
+        "recommendations.comment",
+        "recommendations.notes",
+        "recommendations.created_at",
+        "recommendations.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "recommendations.PRIMARY",
+        "recommendations.recommendations_institution_id_status_index",
+        "recommendations.recommendations_campus_id_status_index",
+        "recommendations.recommendations_program_id_status_index",
+        "recommendations.recommendations_contributor_type_verification_state_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "recommendations_institution_id_foreign",
+          "source_table": "recommendations",
+          "source_columns": [
+            "institution_id"
+          ],
+          "referenced_table": "institutions",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "recommendations_campus_id_foreign",
+          "source_table": "recommendations",
+          "source_columns": [
+            "campus_id"
+          ],
+          "referenced_table": "campuses",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "recommendations_program_id_foreign",
+          "source_table": "recommendations",
+          "source_columns": [
+            "program_id"
+          ],
+          "referenced_table": "programs",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "institutions, campuses, programs.",
+      "expected_postconditions": "CREATES recommendations: id BIGINT unsigned AI PK; institution_id/campus_id/program_id nullable BIGINT unsigned FKs SET NULL; contributor_type/recommendation/experience_period/verification_state/status VARCHAR(255) defaults unverified/pending and nullable fields; rating TINYINT unsigned nullable; comment/notes TEXT nullable; timestamps; indexes institution/status, campus/status, program/status, contributor_type/verification_state.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES recommendations: id BIGINT unsigned AI PK; institution_id/campus_id/program_id nullable BIGINT unsigned FKs SET NULL; contributor_type/recommendation/experience_period/verification_state/status VARCHAR(255) defaults unverified/pending and nullable fields; rating TINYINT unsigned nullable; comment/notes TEXT nullable; timestamps; indexes institution/status, campus/status, program/status, contributor_type/verification_state.",
+        "down_effect": "DROP TABLE IF EXISTS recommendations.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000024_create_recommendations_table.php; Git blob eabf69314f278451df922cb10b091dbafec9c946.",
+        "related_objects": [
+          "recommendations"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "institutions, campuses, programs.",
+        "postconditions": "CREATES recommendations: id BIGINT unsigned AI PK; institution_id/campus_id/program_id nullable BIGINT unsigned FKs SET NULL; contributor_type/recommendation/experience_period/verification_state/status VARCHAR(255) defaults unverified/pending and nullable fields; rating TINYINT unsigned nullable; comment/notes TEXT nullable; timestamps; indexes institution/status, campus/status, program/status, contributor_type/verification_state.",
+        "rollback_considerations": "DROP TABLE IF EXISTS recommendations."
+      }
     },
     {
       "migration": "2026_09_23_000025_create_accreditations_table",
@@ -1297,20 +2431,113 @@
         "accreditations"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "accreditations.id",
+        "accreditations.institution_id",
+        "accreditations.program_id",
+        "accreditations.program_offering_id",
+        "accreditations.campus_id",
+        "accreditations.name",
+        "accreditations.recognition_type",
+        "accreditations.authority_name",
+        "accreditations.scope_type",
+        "accreditations.reference_identifier",
+        "accreditations.status",
+        "accreditations.effective_from",
+        "accreditations.effective_until",
+        "accreditations.last_verified_at",
+        "accreditations.notes",
+        "accreditations.created_at",
+        "accreditations.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "accreditations.PRIMARY",
+        "accreditations.accreditations_institution_id_status_index",
+        "accreditations.accreditations_program_id_status_index",
+        "accreditations.accreditations_program_offering_id_status_index",
+        "accreditations.accreditations_campus_id_status_index",
+        "accreditations.accreditations_recognition_type_status_index",
+        "accreditations.accreditations_authority_name_status_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "accreditations_institution_id_foreign",
+          "source_table": "accreditations",
+          "source_columns": [
+            "institution_id"
+          ],
+          "referenced_table": "institutions",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "accreditations_program_id_foreign",
+          "source_table": "accreditations",
+          "source_columns": [
+            "program_id"
+          ],
+          "referenced_table": "programs",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "accreditations_program_offering_id_foreign",
+          "source_table": "accreditations",
+          "source_columns": [
+            "program_offerings"
+          ],
+          "referenced_table": "program_offerings",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "accreditations_campus_id_foreign",
+          "source_table": "accreditations",
+          "source_columns": [
+            "campus_id"
+          ],
+          "referenced_table": "campuses",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "institutions, programs, program_offerings, campuses.",
+      "expected_postconditions": "CREATES accreditations: id BIGINT unsigned AI PK; institution_id/program_id/program_offering_id/campus_id nullable BIGINT unsigned FKs SET NULL; name VARCHAR(200), recognition_type VARCHAR(80), authority_name VARCHAR(200) nullable, scope_type VARCHAR(80) nullable, reference_identifier VARCHAR(120) nullable, status VARCHAR(50) default candidate, effective_from/effective_until/last_verified_at DATE nullable, notes TEXT nullable; timestamps; six BTREE indexes (institution_id,status),(program_id,status),(program_offering_id,status),(campus_id,status),(recognition_type,status),(authority_name,status).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES accreditations: id BIGINT unsigned AI PK; institution_id/program_id/program_offering_id/campus_id nullable BIGINT unsigned FKs SET NULL; name VARCHAR(200), recognition_type VARCHAR(80), authority_name VARCHAR(200) nullable, scope_type VARCHAR(80) nullable, reference_identifier VARCHAR(120) nullable, status VARCHAR(50) default candidate, effective_from/effective_until/last_verified_at DATE nullable, notes TEXT nullable; timestamps; six BTREE indexes (institution_id,status),(program_id,status),(program_offering_id,status),(campus_id,status),(recognition_type,status),(authority_name,status).",
+        "down_effect": "DROP TABLE IF EXISTS accreditations.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000025_create_accreditations_table.php; Git blob cc0316561124fb10b8ae95a7efe2ec2d34b5e503.",
+        "related_objects": [
+          "accreditations"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "institutions, programs, program_offerings, campuses.",
+        "postconditions": "CREATES accreditations: id BIGINT unsigned AI PK; institution_id/program_id/program_offering_id/campus_id nullable BIGINT unsigned FKs SET NULL; name VARCHAR(200), recognition_type VARCHAR(80), authority_name VARCHAR(200) nullable, scope_type VARCHAR(80) nullable, reference_identifier VARCHAR(120) nullable, status VARCHAR(50) default candidate, effective_from/effective_until/last_verified_at DATE nullable, notes TEXT nullable; timestamps; six BTREE indexes (institution_id,status),(program_id,status),(program_offering_id,status),(campus_id,status),(recognition_type,status),(authority_name,status).",
+        "rollback_considerations": "DROP TABLE IF EXISTS accreditations."
+      }
     },
     {
       "migration": "2026_09_23_000026_create_change_events_table",
@@ -1320,20 +2547,50 @@
         "change_events"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "change_events.id",
+        "change_events.subject_type",
+        "change_events.subject_id",
+        "change_events.event_type",
+        "change_events.materiality",
+        "change_events.actor_type",
+        "change_events.status",
+        "change_events.summary",
+        "change_events.detected_at",
+        "change_events.created_at",
+        "change_events.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "change_events.PRIMARY",
+        "change_events.change_events_subject_type_subject_id_index",
+        "change_events.change_events_event_type_materiality_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "None.",
+      "expected_postconditions": "CREATES change_events: id BIGINT unsigned AI PK; subject_type VARCHAR(255), subject_id BIGINT unsigned, event_type VARCHAR(255), materiality VARCHAR(255) default normal, actor_type VARCHAR(255) nullable, status VARCHAR(255) default recorded, summary TEXT nullable, detected_at TIMESTAMP nullable; timestamps; indexes (subject_type,subject_id),(event_type,materiality). Later migration adds nullable unique BIGINT unsigned source_change_assertion_link_id.",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES change_events: id BIGINT unsigned AI PK; subject_type VARCHAR(255), subject_id BIGINT unsigned, event_type VARCHAR(255), materiality VARCHAR(255) default normal, actor_type VARCHAR(255) nullable, status VARCHAR(255) default recorded, summary TEXT nullable, detected_at TIMESTAMP nullable; timestamps; indexes (subject_type,subject_id),(event_type,materiality). Later migration adds nullable unique BIGINT unsigned source_change_assertion_link_id.",
+        "down_effect": "DROP TABLE IF EXISTS change_events; later identity migration down drops named unique key then column.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000026_create_change_events_table.php; Git blob c040f2d1c65d101d5db0e1ed7492e3af0efb615a.",
+        "related_objects": [
+          "change_events"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "None.",
+        "postconditions": "CREATES change_events: id BIGINT unsigned AI PK; subject_type VARCHAR(255), subject_id BIGINT unsigned, event_type VARCHAR(255), materiality VARCHAR(255) default normal, actor_type VARCHAR(255) nullable, status VARCHAR(255) default recorded, summary TEXT nullable, detected_at TIMESTAMP nullable; timestamps; indexes (subject_type,subject_id),(event_type,materiality). Later migration adds nullable unique BIGINT unsigned source_change_assertion_link_id.",
+        "rollback_considerations": "DROP TABLE IF EXISTS change_events; later identity migration down drops named unique key then column."
+      }
     },
     {
       "migration": "2026_09_23_000027_create_external_rankings_table",
@@ -1343,20 +2600,91 @@
         "external_rankings"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "external_rankings.id",
+        "external_rankings.institution_id",
+        "external_rankings.program_id",
+        "external_rankings.publisher_name",
+        "external_rankings.ranking_name",
+        "external_rankings.edition",
+        "external_rankings.methodology_summary",
+        "external_rankings.scope_type",
+        "external_rankings.geography_scope",
+        "external_rankings.discipline_scope",
+        "external_rankings.year",
+        "external_rankings.rank_value",
+        "external_rankings.rank_label",
+        "external_rankings.score",
+        "external_rankings.percentile",
+        "external_rankings.signal_type",
+        "external_rankings.status",
+        "external_rankings.effective_from",
+        "external_rankings.effective_until",
+        "external_rankings.source_url",
+        "external_rankings.notes",
+        "external_rankings.created_at",
+        "external_rankings.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "external_rankings.PRIMARY",
+        "external_rankings.external_rankings_institution_id_status_index",
+        "external_rankings.external_rankings_program_id_status_index",
+        "external_rankings.external_rankings_publisher_name_ranking_name_year_index",
+        "external_rankings.external_rankings_year_signal_type_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        {
+          "name": "external_rankings_institution_id_foreign",
+          "source_table": "external_rankings",
+          "source_columns": [
+            "institution_id"
+          ],
+          "referenced_table": "institutions",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        },
+        {
+          "name": "external_rankings_program_id_foreign",
+          "source_table": "external_rankings",
+          "source_columns": [
+            "program_id"
+          ],
+          "referenced_table": "programs",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT"
+        }
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "PARTIAL",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "institutions, programs.",
+      "expected_postconditions": "CREATES external_rankings: id BIGINT unsigned AI PK; institution_id/program_id nullable BIGINT unsigned FKs SET NULL; publisher_name/ranking_name VARCHAR(255), edition VARCHAR(255) nullable, methodology_summary TEXT nullable, scope_type/geography_scope/discipline_scope VARCHAR(255) nullable, year SMALLINT unsigned nullable, rank_value INT unsigned nullable, rank_label VARCHAR(255) nullable, score DECIMAL(12,4) nullable, percentile DECIMAL(7,4) nullable, signal_type VARCHAR(255) default ranking, status VARCHAR(255) default candidate, effective_from/effective_until DATE nullable, source_url/notes TEXT nullable; timestamps; indexes (institution_id,status),(program_id,status),(publisher_name,ranking_name,year),(year,signal_type).",
+      "object_mapping_state": "SOURCE_REVIEWED_PARTIAL",
+      "unmapped_operation_review": "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING",
+      "operation_review": {
+        "state": "REVIEWED_SOURCE_EFFECTS",
+        "up_effect": "CREATES external_rankings: id BIGINT unsigned AI PK; institution_id/program_id nullable BIGINT unsigned FKs SET NULL; publisher_name/ranking_name VARCHAR(255), edition VARCHAR(255) nullable, methodology_summary TEXT nullable, scope_type/geography_scope/discipline_scope VARCHAR(255) nullable, year SMALLINT unsigned nullable, rank_value INT unsigned nullable, rank_label VARCHAR(255) nullable, score DECIMAL(12,4) nullable, percentile DECIMAL(7,4) nullable, signal_type VARCHAR(255) default ranking, status VARCHAR(255) default candidate, effective_from/effective_until DATE nullable, source_url/notes TEXT nullable; timestamps; indexes (institution_id,status),(program_id,status),(publisher_name,ranking_name,year),(year,signal_type).",
+        "down_effect": "DROP TABLE IF EXISTS external_rankings.",
+        "operation_order": 1,
+        "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000027_create_external_rankings_table.php; Git blob 0704d502bcdc9e43c0ae306649987bd7696caa90.",
+        "related_objects": [
+          "external_rankings"
+        ],
+        "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
+        "prerequisites": "institutions, programs.",
+        "postconditions": "CREATES external_rankings: id BIGINT unsigned AI PK; institution_id/program_id nullable BIGINT unsigned FKs SET NULL; publisher_name/ranking_name VARCHAR(255), edition VARCHAR(255) nullable, methodology_summary TEXT nullable, scope_type/geography_scope/discipline_scope VARCHAR(255) nullable, year SMALLINT unsigned nullable, rank_value INT unsigned nullable, rank_label VARCHAR(255) nullable, score DECIMAL(12,4) nullable, percentile DECIMAL(7,4) nullable, signal_type VARCHAR(255) default ranking, status VARCHAR(255) default candidate, effective_from/effective_until DATE nullable, source_url/notes TEXT nullable; timestamps; indexes (institution_id,status),(program_id,status),(publisher_name,ranking_name,year),(year,signal_type).",
+        "rollback_considerations": "DROP TABLE IF EXISTS external_rankings."
+      }
     },
     {
       "migration": "2026_09_24_000001_create_import_batches_table",
@@ -2504,5 +3832,12 @@
       "object_mapping_state": "PARTIAL",
       "unmapped_operation_review": "REQUIRED"
     }
-  ]
+  ],
+  "source_review_counts": {
+    "migration_file_count": 97,
+    "reviewed_noop_count": 23,
+    "reviewed_non_empty_count": 27,
+    "remaining_non_empty_count": 47,
+    "application_tables_with_final_definition_complete": 0
+  }
 }

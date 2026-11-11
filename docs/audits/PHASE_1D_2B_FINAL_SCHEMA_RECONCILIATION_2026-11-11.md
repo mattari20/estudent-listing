@@ -124,3 +124,32 @@ No production database connection, SQL, DDL, DML, migration, repair, identity ba
 **Phase 1D.2B: IN PROGRESS — NOT ACCEPTED.**
 
 This branch delivers the versioned scope-wide contract skeleton, all-source filename accounting, fail-closed comparison primitives, collector evidence integration and focused regression fixtures. It does not claim completed application schema definitions or full object-level provenance. Do not proceed to Phase 1D.3 until all listed blockers are resolved, exact-head CI passes, review is approved and the completion PR is merged.
+
+
+## Continuation from merged PR #1073 — 2026-11-11
+
+- Continuation branch: `phase1d2b/final-source-definition-completion`, based on merged main `777c903efbdad1946ce5b150ae788e80a6215850`.
+- Verified project dependency: `laravel/framework v13.33.0` from `composer.lock` (framework source commit `91188a17ceaa3dbace6e8a5f7abd0d042e466359`).
+- Completed the framework migration repository source contract from `DatabaseMigrationRepository::createRepository()`: `id` is `increments('id')` (unsigned auto-increment integer), `migration` is non-null `string(255)`, `batch` is non-null integer, and the primary key is `id`. Laravel does not set engine, charset or collation in this method; these inherit configured connection defaults and are not guessed.
+- Expanded `phase1d2b-table-source-provenance.json` to index all 62 application tables plus the separately classified framework ledger. This remains a source-reference inventory, not an object-level completion claim.
+- Remaining: all 62 application definitions still require cumulative source reconstruction; the 74 non-empty migration files still require individual operation review and object-level provenance. Table options, generated expressions, indexes, foreign keys, triggers and data operations remain NOT_CHECKED where not proven.
+- This continuation is partial implementation only. Phase 1D.2B remains IN PROGRESS and Phase 1D.3 remains blocked.
+
+
+## Continuation execution update — 2026-11-11 (PR #1074 exact head)
+
+- Exact PR head verified before work: `9e822d59712f2d7be6cbd6d69471faa58c6b715d`.
+- Exact-head workflow results: Phase 1C read-only diagnostic CI #98 PASS; Laravel CI #3012 PASS; Repository Test #3244 PASS.
+- Laravel framework migration ledger source contract is COMPLETE for the three columns and primary key; table options accurately remain `INHERITED_CONNECTION_DEFAULT`.
+- Individual source review count: 23 existing `REVIEWED_NOOP` migrations retained unchanged; 27 non-empty migrations source-reviewed partially (files ending from `2026_09_23_000001` through `2026_09_23_000027`, excluding the 23 previously reviewed no-op stubs). Each new review records source blob SHA, create/alter effects, columns, indexes, foreign keys, prerequisites, data-operation finding and rollback effect in the migration provenance artifact.
+- Of those 16 reviewed non-empty files, the first application schema source set covers 26 table creation targets because the reviews include the multi-table reviews migration. This is not 26 complete final definitions: all 62 application table definitions remain NOT_CHECKED pending cumulative alteration and helper/raw-SQL review.
+- Confirmed nontrivial review: `2026_09_23_000003_rebuild_institutions_table.php` changes the `institutions.status` default from active to candidate and adds four columns; its down() removes those four columns but does not restore the prior default. This rollback asymmetry is retained in the source record.
+- Confirmed nontrivial review: `2026_09_24_000026_add_snapshot_id_to_evidences_table.php` later adds nullable `evidence.snapshot_id` with SET NULL FK; `2026_11_04_000011` uses helper operations to add nullable unique identity keys; `2026_11_04_000014` installs FK constraints and append-only/identity triggers and executes orphan preflight reads.
+- Remaining non-empty migration reviews: 47/74. The 23 no-op dispositions are unchanged.
+- No production DB or production SQL was accessed or executed. No reverification record or alert changed. Test 1A/1B, Phase 1D.3 and Phase 1D.7 remain untouched.
+- Acceptance remains BLOCKED: 0/62 complete application definitions, object-level provenance incomplete, comparator/collector full scope validation and isolated engine acceptance still required.
+
+
+### Corrected migration-review count (2026-11-11)
+
+A validation pass over the actual 97 provenance entries corrected the prior checkpoint counter. The ledger currently contains 23 `REVIEWED_NOOP`, 27 `SOURCE_REVIEWED_PARTIAL`, and 47 still `PARTIAL` / unreviewed non-empty files. The prior 16/58 narrative was inaccurate and is superseded by this 23/27/47 count. All 62 application definitions remain NOT_CHECKED; none of the 27 source reviews is treated as cumulative final-object completion.
