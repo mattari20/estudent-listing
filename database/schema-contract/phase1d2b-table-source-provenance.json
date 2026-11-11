@@ -577,5 +577,14 @@
       "managed_by": "Laravel DatabaseMigrationRepository",
       "source_review_state": "FRAMEWORK_MANAGED_SEPARATE_CONTRACT"
     }
+  },
+  "cumulative_manifest_coverage": {
+    "application_tables": 62,
+    "source_derived_column_contracts": 62,
+    "source_derived_index_contracts": 62,
+    "source_derived_foreign_key_contracts": 62,
+    "source_derived_trigger_contracts": 62,
+    "definition_state": "PARTIAL",
+    "note": "The final manifest contains 62 application table object inventories; none is COMPLETE pending server-default engine, conditional migration, exact trigger naming and comparator reconciliation."
   }
 }
