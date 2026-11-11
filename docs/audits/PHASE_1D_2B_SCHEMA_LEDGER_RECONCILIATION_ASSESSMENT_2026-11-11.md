@@ -3,6 +3,7 @@
 **Repository:** `mattari20/estudent-listing`  
 **Verified base:** `main` at `00cfce7d73ed8647b07d3f185aa16be081913d08`  
 **Branch:** `phase1d2b/full-schema-ledger-reconciliation`  
+**Draft PR:** [#1071 — full migration-ledger reconciliation foundation](https://github.com/mattari20/estudent-listing/pull/1071)  
 **Disposition:** FULL-LEDGER IMPLEMENTATION FOUNDATION / FULL-SCHEMA CONTRACT STILL OPEN  
 **Production:** READ-ONLY; NO PRODUCTION EXECUTION
 
