@@ -520,8 +520,8 @@ No unknown is converted to PASS by this report.
 - [x] Define dependency graph, proposed waves, per-migration preconditions and stop conditions.
 - [x] Keep backup/restore explicitly NOT_CHECKED and deferred.
 - [x] Keep production untouched; no migrations, SQL, DDL, DML, backfills or workflow dispatch.
-- [ ] Validate all report links and matrix counts on the branch.
-- [ ] Create the Phase 1D.2 PR and inspect actual CI checks.
+- [x] Validate all report links and matrix counts on the branch: 32 unique relative source paths resolved; matrices contain 18 orphan rows, 14 duplicate rows and 18 migration prerequisite rows.
+- [x] Create PR #1069 and query the head commit's workflow runs and combined status.
 - [ ] Obtain review and merge approval separately; do not auto-merge.
 
 ## 15. Exact next phase recommendation
@@ -578,3 +578,18 @@ Only after source-contract correction and isolated regression acceptance should 
 - [Composer dependency declaration](../../composer.json)
 - [Phase 1C source review](PHASE_1C_TEST_1B_ALL_18_MIGRATION_SOURCE_REVIEW_2026-11-06.md)
 - [Phase 1C sessions 1–4 reconciliation](PHASE_1C_SESSIONS_1_TO_4_SCHEMA_RECONCILIATION_2026-11-06.md)
+
+
+## 16. GitHub delivery status
+
+- PR: [#1069 — docs(phase1d.2): add production recovery readiness investigation](https://github.com/mattari20/estudent-listing/pull/1069)
+- Base: `main` at `d7b39232f251b80a10d74c0749dec79536da64c2`
+- Branch: `phase1d2/production-recovery-readiness-investigation-2026-11-11`
+- Head at initial PR creation: `d2631959f8be3cda547cca7790e76ff28a3f222e`
+- Initial compare: one commit ahead, zero behind; one added report; 580 additions, zero deletions.
+- Link validation: all 32 unique relative source paths resolved on the branch.
+- Matrix validation: 18 orphan checks, 14 duplicate checks, 18 migration rows.
+- PR state at initial inspection: OPEN, unmerged, mergeable.
+- CI inspection at initial PR creation: the commit workflow-run query returned no PR-triggered runs, and the combined status query returned no status contexts. Therefore CI is **not yet reported as passed**; no test result is claimed by this report.
+
+This PR is documentation-only and is intentionally not merged automatically. Recheck its head and checks after GitHub Actions has had time to start.
