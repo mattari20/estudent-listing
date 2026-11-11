@@ -47,6 +47,28 @@ class Phase1D2BSchemaScopeTest(unittest.TestCase):
                     f"no supported table creation operation found for {table}",
                 )
 
+    def test_migration_directory_create_targets_are_fully_accounted_for(self):
+        migration_files = sorted(self.migration_dir.glob("*.php"))
+        self.assertEqual(len(migration_files), self.scope["migration_directory_file_count"])
+        discovered = set()
+
+        for source_path in migration_files:
+            source = source_path.read_text(encoding="utf-8")
+            discovered.update(re.findall(r"Schema::create\\s*\\(\\s*['\\\"]([^'\\\"]+)", source))
+            discovered.update(re.findall(r"createTableIfMissing\\s*\\(\\s*['\\\"]([^'\\\"]+)", source))
+            discovered.update(re.findall(r"CREATE TABLE(?: IF NOT EXISTS)?\\s+\`?([a-zA-Z0-9_]+)", source, re.I))
+
+            if re.search(r"Schema::create\\s*\\(\\s*self::TABLE\\s*\\)", source):
+                constant = re.search(r"private const TABLE\\s*=\\s*['\\\"]([^'\\\"]+)", source)
+                self.assertIsNotNone(constant, f"dynamic TABLE create needs a literal source constant: {source_path.name}")
+                discovered.add(constant.group(1))
+
+        expected = {
+            table for table, entry in self.scope["tables"].items()
+            if entry["ownership"] == "application"
+        }
+        self.assertEqual(discovered, expected, "migration-created tables must match the reviewed source scope inventory")
+
     def test_alteration_migration_paths_exist_and_reference_their_table(self):
         for table, entry in self.scope["tables"].items():
             for migration in entry.get("alteration_migrations", []):
