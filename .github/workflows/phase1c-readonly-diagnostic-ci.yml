@@ -5,9 +5,11 @@ on:
     paths:
       - ".github/workflows/phase1c-readonly-diagnostic-ci.yml"
       - "scripts/phase1c/**"
+      - "database/schema-contract/**"
       - "scripts/diagnostics/phase1c-migration-ledger-reconciliation.php"
       - "tests/phase1c/**"
       - "tests/Support/phase1c-readonly-diagnostic-acceptance.php"
+      - "tests/Support/phase1d2b-source-schema-acceptance.php"
   workflow_dispatch:
 
 permissions:
