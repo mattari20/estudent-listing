@@ -195,7 +195,7 @@ final class Phase1CReadOnlyDiagnostic
     ];
 
     private const INDEXES = [
-        ['password_reset_tokens','PRIMARY',['id'],true],
+        ['password_reset_tokens','PRIMARY',['email'],true],
         ['governed_execution_leases','governed_execution_leases_task_key_unique',['task_key'],true],
         ['governed_execution_leases','governed_execution_leases_expires_at_index',['expires_at'],false],
         ['source_retrieval_runs','source_retrieval_runs_idempotency_key_unique',['idempotency_key'],true],
