@@ -181,7 +181,7 @@ Table PRESENT is not a substitute for exact table-definition equivalence. The ev
 | 26 | monitoring_alert_identities.dedupe_key | MISSING | #12 |
 | 27 | monitoring_alert_identities.active_alert_id | MISSING | #12 |
 | 28 | security_audit_events.monitoring_idempotency_key | MISSING | #12 |
-| 29 | monitoring_policy_runs.heartbeat_at | MISSING | #13 / #18 |
+| 29 | monitoring_policy_runs.heartbeat_at | MISSING | #18 |
 | 30 | monitoring_policy_runs.source_monitoring_policy_id | MISSING | #13 |
 | 31 | monitoring_policy_runs.execution_run_id | MISSING | #13 |
 | 32 | monitoring_policy_runs.started_at | MISSING | #13 |
@@ -204,13 +204,13 @@ Table PRESENT is not a substitute for exact table-definition equivalence. The ev
 | 49 | source_snapshot_reconciliation_requests.expected_previous_snapshot_id | MISSING | #16 |
 | 50 | source_snapshot_reconciliation_requests.recorded_previous_snapshot_id | MISSING | #16 |
 
-The two PRESENT columns are `import_batches.duplicate_rows` and `source_change_observations.current_snapshot_id`. The artifact's per-column state is based on the definition-level comparator; do not infer that the remaining 48 are all missing from present parent tables—many are reported as MISSING because their parent table is absent.
+The two PRESENT columns are `import_batches.duplicate_rows` and `source_change_observations.current_snapshot_id`. **Independent review correction:** `monitoring_policy_runs.heartbeat_at` is introduced only by migration #18 (`2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php`); migration #13 creates the monitoring policy/checkpoint tables but does not define this heartbeat column. The artifact's per-column state is based on the definition-level comparator; do not infer that the remaining 48 are all missing from present parent tables—many are reported as MISSING because their parent table is absent.
 
 ### 4.3 Named indexes — 23
 
 | # | Table | Expected index | Columns | Unique | State | Source |
 |---:|---|---|---|---|---|---|
-| 1 | password_reset_tokens | PRIMARY | id | yes | MISSING | #1 |
+| 1 | password_reset_tokens | PRIMARY | email | yes | MISSING | #1 |
 | 2 | governed_execution_leases | governed_execution_leases_task_key_unique | task_key | yes | MISSING | #5 |
 | 3 | governed_execution_leases | governed_execution_leases_expires_at_index | expires_at | no | MISSING | #5 |
 | 4 | source_retrieval_runs | source_retrieval_runs_idempotency_key_unique | idempotency_key | yes | MISSING | #7 |
@@ -234,7 +234,7 @@ The two PRESENT columns are `import_batches.duplicate_rows` and `source_change_o
 | 22 | import_conflict_events | import_conflict_events_import_conflict_id_occurred_at_index | import_conflict_id, occurred_at | no | MISSING | #15 |
 | 23 | monitoring_policy_run_sources | monitoring_policy_source_status_idx | source_id, status | no | MISSING | #13 |
 
-Index MISSING means the named expected index was absent in complete metadata. The 23 entries are the diagnostic's explicit named-index reconciliation registry, not an exhaustive count of every primary/secondary index created inside all 18 migration table definitions (for example, #4–#6 and #13 also define indexes as part of table creation). It does not authorize blindly creating an index: source definitions, uniqueness preconditions and current data must be revalidated immediately before a separately approved migration.
+Index MISSING means the named expected index was absent in complete metadata. The 23 entries are the diagnostic's explicit named-index reconciliation registry, not an exhaustive count of every primary/secondary index created inside all 18 migration table definitions (for example, #4–#6 and #13 also define indexes as part of table creation). It does not authorize blindly creating an index: source definitions, uniqueness preconditions and current data must be revalidated immediately before a separately approved migration. **Independent review correction:** the diagnostic's expected index registry lists `password_reset_tokens.PRIMARY(id)`, but migration #1 defines `email` as the primary key and defines no `id` column. The registry and production evidence were not changed; this inventory row now follows the authoritative migration source (`PRIMARY(email)`). This discrepancy must be resolved in a separately reviewed registry/diagnostic change, not by changing the migration.
 
 ### 4.4 Foreign keys — 23
 
