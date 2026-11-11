@@ -8,7 +8,7 @@
   "application_table_scope_count": 62,
   "framework_managed_ledger": "migrations",
   "framework_managed_ledger_source": "Laravel DatabaseMigrationRepository",
-  "coverage_state": "SOURCE_REVIEWED_PARTIAL FOR ALL NON-NOOP MIGRATIONS; OBJECT-LEVEL FINAL DEFINITION AND CUMULATIVE RECONCILIATION PENDING",
+  "coverage_state": "SOURCE_REVIEWED_PARTIAL FOR ALL NON-NOOP MIGRATIONS; OBJECT-LEVEL SOURCE-TO-MANIFEST MAPPING POPULATED; FINAL RECONCILIATION PENDING",
   "migrations": [
     {
       "migration": "2026_09_23_000001_create_institutions_table",
@@ -19,12 +19,12 @@
       ],
       "tables_altered": [],
       "columns_created": [
+        "institutions.created_at",
         "institutions.id",
+        "institutions.institution_type",
         "institutions.name",
         "institutions.slug",
-        "institutions.institution_type",
         "institutions.status",
-        "institutions.created_at",
         "institutions.updated_at"
       ],
       "columns_changed": [],
@@ -56,8 +56,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "None declared.",
         "postconditions": "CREATES institutions: id BIGINT unsigned auto-increment PK; name/slug/institution_type/status VARCHAR(255) defaults; timestamps; unique slug; BTREE(status,name).",
-        "rollback_considerations": "DROP TABLE IF EXISTS institutions."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS institutions.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000002_create_geographies_table",
@@ -68,14 +71,14 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "geographies.id",
-        "geographies.parent_id",
-        "geographies.name",
-        "geographies.slug",
-        "geographies.type",
         "geographies.code",
-        "geographies.status",
         "geographies.created_at",
+        "geographies.id",
+        "geographies.name",
+        "geographies.parent_id",
+        "geographies.slug",
+        "geographies.status",
+        "geographies.type",
         "geographies.updated_at"
       ],
       "columns_changed": [],
@@ -87,19 +90,7 @@
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "geographies_parent_id_foreign",
-          "source_table": "geographies",
-          "source_columns": [
-            "parent_id"
-          ],
-          "referenced_table": "geographies",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        }
+        "geographies.geographies_parent_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -121,8 +112,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "Self-referencing FK; parent_id nullable.",
         "postconditions": "CREATES geographies: id BIGINT unsigned auto-increment PK; parent_id nullable BIGINT unsigned FK to geographies.id ON DELETE SET NULL; name/slug/type VARCHAR(255), code nullable VARCHAR(255), status VARCHAR(255) default active, timestamps; unique(parent_id,slug), BTREE(type,status).",
-        "rollback_considerations": "DROP TABLE IF EXISTS geographies."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS geographies.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000003_rebuild_institutions_table",
@@ -133,15 +127,12 @@
         "institutions"
       ],
       "columns_created": [
+        "institutions.description",
         "institutions.official_name",
         "institutions.short_name",
-        "institutions.description",
         "institutions.verified_at"
       ],
-      "columns_changed": [
-        "institutions.institution_type",
-        "institutions.status"
-      ],
+      "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [],
       "indexes_removed": [],
@@ -166,8 +157,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "institutions table from prior migration.",
         "postconditions": "ALTERS institutions: adds official_name VARCHAR(255) nullable after name; changes status default active -> candidate (keeps non-null); adds short_name VARCHAR(255) nullable, description TEXT nullable, verified_at TIMESTAMP nullable. institution_type is reaffirmed as nullable VARCHAR(255), no effective definition change.",
-        "rollback_considerations": "Drops official_name, short_name, description, verified_at; does not restore status default from candidate to active (rollback is therefore not a full inverse for the status default)."
-      }
+        "rollback_considerations": "Drops official_name, short_name, description, verified_at; does not restore status default from candidate to active (rollback is therefore not a full inverse for the status default).",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000004_create_data_quality_events_table",
@@ -178,24 +172,24 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "data_quality_events.id",
-        "data_quality_events.subject_type",
-        "data_quality_events.subject_id",
-        "data_quality_events.dimension",
-        "data_quality_events.state",
-        "data_quality_events.severity",
+        "data_quality_events.created_at",
         "data_quality_events.description",
+        "data_quality_events.dimension",
+        "data_quality_events.id",
         "data_quality_events.observed_at",
         "data_quality_events.resolved_at",
-        "data_quality_events.created_at",
+        "data_quality_events.severity",
+        "data_quality_events.state",
+        "data_quality_events.subject_id",
+        "data_quality_events.subject_type",
         "data_quality_events.updated_at"
       ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [
         "data_quality_events.PRIMARY",
-        "data_quality_events.data_quality_events_subject_type_subject_id_index",
-        "data_quality_events.data_quality_events_dimension_state_index"
+        "data_quality_events.data_quality_events_dimension_state_index",
+        "data_quality_events.data_quality_events_subject_type_subject_id_index"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [],
@@ -219,8 +213,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "None declared.",
         "postconditions": "CREATES data_quality_events: id BIGINT unsigned AI PK; subject_type VARCHAR(255), subject_id nullable BIGINT unsigned; dimension VARCHAR(255); state VARCHAR(255) default open; severity VARCHAR(255) default info; description TEXT nullable; observed_at/resolved_at TIMESTAMP nullable; timestamps; BTREE(subject_type,subject_id), BTREE(dimension,state).",
-        "rollback_considerations": "DROP TABLE IF EXISTS data_quality_events."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS data_quality_events.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000004_create_institution_names_table",
@@ -253,7 +250,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000004_create_ranking_methodologies_table",
@@ -286,7 +284,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000005_create_campuses_table",
@@ -319,7 +318,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000005_create_institution_names_table",
@@ -330,13 +330,13 @@
       ],
       "tables_altered": [],
       "columns_created": [
+        "institution_names.created_at",
         "institution_names.id",
         "institution_names.institution_id",
+        "institution_names.is_current",
+        "institution_names.language",
         "institution_names.name",
         "institution_names.name_type",
-        "institution_names.language",
-        "institution_names.is_current",
-        "institution_names.created_at",
         "institution_names.updated_at"
       ],
       "columns_changed": [],
@@ -348,19 +348,7 @@
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "institution_names_institution_id_foreign",
-          "source_table": "institution_names",
-          "source_columns": [
-            "institution_id"
-          ],
-          "referenced_table": "institutions",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "CASCADE",
-          "on_update": "RESTRICT"
-        }
+        "institution_names.institution_names_institution_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -382,8 +370,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "institutions table.",
         "postconditions": "CREATES institution_names: id BIGINT unsigned AI PK; institution_id BIGINT unsigned NOT NULL FK institutions.id CASCADE; name/name_type VARCHAR(255), language nullable VARCHAR(255), is_current BOOLEAN default false, timestamps; BTREE(institution_id,name_type), BTREE(name).",
-        "rollback_considerations": "DROP TABLE IF EXISTS institution_names."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS institution_names.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000005_create_recommendation_policies_table",
@@ -416,7 +407,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000006_create_programs_table",
@@ -449,7 +441,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000006_create_ranking_methodologies_table",
@@ -460,16 +453,16 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "ranking_methodologies.id",
-        "ranking_methodologies.name",
-        "ranking_methodologies.version",
-        "ranking_methodologies.status",
-        "ranking_methodologies.scope",
-        "ranking_methodologies.methodology_text",
+        "ranking_methodologies.created_at",
         "ranking_methodologies.effective_from",
         "ranking_methodologies.effective_until",
-        "ranking_methodologies.created_at",
-        "ranking_methodologies.updated_at"
+        "ranking_methodologies.id",
+        "ranking_methodologies.methodology_text",
+        "ranking_methodologies.name",
+        "ranking_methodologies.scope",
+        "ranking_methodologies.status",
+        "ranking_methodologies.updated_at",
+        "ranking_methodologies.version"
       ],
       "columns_changed": [],
       "columns_removed": [],
@@ -499,8 +492,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "None declared.",
         "postconditions": "CREATES ranking_methodologies: id BIGINT unsigned AI PK; name/version VARCHAR(255); status VARCHAR(255) default draft; scope VARCHAR(255) nullable; methodology_text TEXT nullable; effective_from/effective_until DATE nullable; timestamps; unique(name,version).",
-        "rollback_considerations": "DROP TABLE IF EXISTS ranking_methodologies."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS ranking_methodologies.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000006_create_security_audit_events_table",
@@ -533,7 +529,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000007_create_moderation_actions_table",
@@ -566,7 +563,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000007_create_program_offerings_table",
@@ -599,7 +597,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000007_create_recommendation_policies_table",
@@ -610,16 +609,16 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "recommendation_policies.id",
-        "recommendation_policies.name",
-        "recommendation_policies.version",
-        "recommendation_policies.status",
+        "recommendation_policies.created_at",
         "recommendation_policies.description",
-        "recommendation_policies.eligibility_rules",
         "recommendation_policies.effective_from",
         "recommendation_policies.effective_until",
-        "recommendation_policies.created_at",
-        "recommendation_policies.updated_at"
+        "recommendation_policies.eligibility_rules",
+        "recommendation_policies.id",
+        "recommendation_policies.name",
+        "recommendation_policies.status",
+        "recommendation_policies.updated_at",
+        "recommendation_policies.version"
       ],
       "columns_changed": [],
       "columns_removed": [],
@@ -649,8 +648,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "None declared.",
         "postconditions": "CREATES recommendation_policies: id BIGINT unsigned AI PK; name/version VARCHAR(255); status VARCHAR(255) default draft; description/eligibility_rules TEXT nullable; effective_from/effective_until DATE nullable; timestamps; unique(name,version).",
-        "rollback_considerations": "DROP TABLE IF EXISTS recommendation_policies."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS recommendation_policies.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000008_create_campuses_table",
@@ -661,55 +663,31 @@
       ],
       "tables_altered": [],
       "columns_created": [
+        "campuses.address",
+        "campuses.campus_type",
+        "campuses.created_at",
+        "campuses.geography_id",
         "campuses.id",
         "campuses.institution_id",
-        "campuses.geography_id",
-        "campuses.name",
-        "campuses.slug",
-        "campuses.campus_type",
-        "campuses.status",
-        "campuses.address",
-        "campuses.postal_code",
         "campuses.latitude",
         "campuses.longitude",
-        "campuses.created_at",
+        "campuses.name",
+        "campuses.postal_code",
+        "campuses.slug",
+        "campuses.status",
         "campuses.updated_at"
       ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [
         "campuses.PRIMARY",
-        "campuses.campuses_institution_id_slug_unique",
-        "campuses.campuses_geography_id_status_index"
+        "campuses.campuses_geography_id_status_index",
+        "campuses.campuses_institution_id_slug_unique"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "campuses_institution_id_foreign",
-          "source_table": "campuses",
-          "source_columns": [
-            "institution_id"
-          ],
-          "referenced_table": "institutions",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "CASCADE",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "campuses_geography_id_foreign",
-          "source_table": "campuses",
-          "source_columns": [
-            "geography_id"
-          ],
-          "referenced_table": "geographies",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        }
+        "campuses.campuses_geography_id_foreign",
+        "campuses.campuses_institution_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -731,8 +709,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "institutions and geographies.",
         "postconditions": "CREATES campuses: id BIGINT unsigned AI PK; institution_id BIGINT unsigned FK institutions.id CASCADE; geography_id nullable BIGINT unsigned FK geographies.id SET NULL; name/slug/campus_type/status/address/postal_code VARCHAR(255) with campus_type default campus and status default candidate; latitude/longitude DECIMAL(10,7) nullable; timestamps; unique(institution_id,slug), BTREE(geography_id,status).",
-        "rollback_considerations": "DROP TABLE IF EXISTS campuses."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS campuses.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000008_create_release_records_table",
@@ -765,7 +746,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000008_create_scholarships_table",
@@ -798,7 +780,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000008_create_sources_table",
@@ -831,7 +814,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000009_create_accreditations_table",
@@ -864,7 +848,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000009_create_evidences_table",
@@ -897,7 +882,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000009_create_programs_table",
@@ -908,41 +894,29 @@
       ],
       "tables_altered": [],
       "columns_created": [
+        "programs.award",
+        "programs.created_at",
+        "programs.description",
+        "programs.discipline",
         "programs.id",
         "programs.institution_id",
         "programs.name",
-        "programs.slug",
         "programs.program_level",
-        "programs.award",
-        "programs.discipline",
+        "programs.slug",
         "programs.status",
-        "programs.description",
-        "programs.created_at",
         "programs.updated_at"
       ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [
         "programs.PRIMARY",
+        "programs.programs_discipline_index",
         "programs.programs_institution_id_slug_unique",
-        "programs.programs_program_level_status_index",
-        "programs.programs_discipline_index"
+        "programs.programs_program_level_status_index"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "programs_institution_id_foreign",
-          "source_table": "programs",
-          "source_columns": [
-            "institution_id"
-          ],
-          "referenced_table": "institutions",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "CASCADE",
-          "on_update": "RESTRICT"
-        }
+        "programs.programs_institution_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -964,8 +938,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "institutions.",
         "postconditions": "CREATES programs: id BIGINT unsigned AI PK; institution_id BIGINT unsigned FK institutions.id CASCADE; name/slug/program_level/award/discipline/status VARCHAR(255), optional fields nullable, status default candidate; description TEXT nullable; timestamps; unique(institution_id,slug), BTREE(program_level,status), BTREE(discipline).",
-        "rollback_considerations": "DROP TABLE IF EXISTS programs."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS programs.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000010_create_assertions_table",
@@ -998,7 +975,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000010_create_reviews_tables",
@@ -1031,7 +1009,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000010_create_security_audit_events_table",
@@ -1042,16 +1021,16 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "security_audit_events.id",
-        "security_audit_events.event_type",
-        "security_audit_events.actor_type",
         "security_audit_events.actor_id",
-        "security_audit_events.subject_type",
-        "security_audit_events.subject_id",
-        "security_audit_events.severity",
-        "security_audit_events.description",
-        "security_audit_events.request_id",
+        "security_audit_events.actor_type",
         "security_audit_events.created_at",
+        "security_audit_events.description",
+        "security_audit_events.event_type",
+        "security_audit_events.id",
+        "security_audit_events.request_id",
+        "security_audit_events.severity",
+        "security_audit_events.subject_id",
+        "security_audit_events.subject_type",
         "security_audit_events.updated_at"
       ],
       "columns_changed": [],
@@ -1083,8 +1062,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "None.",
         "postconditions": "CREATES security_audit_events: id BIGINT unsigned AI PK; event_type VARCHAR(255); actor_type nullable VARCHAR(255), actor_id nullable BIGINT unsigned; subject_type nullable VARCHAR(255), subject_id nullable BIGINT unsigned; severity VARCHAR(255) default info; description TEXT nullable; request_id VARCHAR(255) nullable; timestamps; BTREE(event_type,severity), BTREE(subject_type,subject_id). Later migration 2026_11_04_000014 installs append-only update/delete guards on this table; table definition otherwise unchanged.",
-        "rollback_considerations": "DROP TABLE IF EXISTS security_audit_events; later append-only guard migration down() drops its own triggers."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS security_audit_events; later append-only guard migration down() drops its own triggers.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000011_create_change_events_table",
@@ -1117,7 +1099,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000011_create_moderation_actions_table",
@@ -1128,23 +1111,23 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "moderation_actions.id",
-        "moderation_actions.target_type",
-        "moderation_actions.target_id",
         "moderation_actions.action",
-        "moderation_actions.reason",
-        "moderation_actions.actor_type",
         "moderation_actions.actor_id",
-        "moderation_actions.notes",
+        "moderation_actions.actor_type",
         "moderation_actions.created_at",
+        "moderation_actions.id",
+        "moderation_actions.notes",
+        "moderation_actions.reason",
+        "moderation_actions.target_id",
+        "moderation_actions.target_type",
         "moderation_actions.updated_at"
       ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [
         "moderation_actions.PRIMARY",
-        "moderation_actions.moderation_actions_target_type_target_id_index",
-        "moderation_actions.moderation_actions_action_created_at_index"
+        "moderation_actions.moderation_actions_action_created_at_index",
+        "moderation_actions.moderation_actions_target_type_target_id_index"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [],
@@ -1168,8 +1151,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "None.",
         "postconditions": "CREATES moderation_actions: id BIGINT unsigned AI PK; target_type VARCHAR(255), target_id BIGINT unsigned, action VARCHAR(255), reason/actor_type VARCHAR(255) nullable, actor_id BIGINT unsigned nullable, notes TEXT nullable, timestamps; BTREE(target_type,target_id), BTREE(action,created_at).",
-        "rollback_considerations": "DROP TABLE IF EXISTS moderation_actions."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS moderation_actions.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000012_create_admission_intakes_table",
@@ -1202,7 +1188,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000012_create_release_records_table",
@@ -1213,15 +1200,15 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "release_records.id",
-        "release_records.version",
+        "release_records.created_at",
         "release_records.environment",
+        "release_records.id",
+        "release_records.released_at",
+        "release_records.rollback_notes",
         "release_records.status",
         "release_records.summary",
-        "release_records.rollback_notes",
-        "release_records.released_at",
-        "release_records.created_at",
-        "release_records.updated_at"
+        "release_records.updated_at",
+        "release_records.version"
       ],
       "columns_changed": [],
       "columns_removed": [],
@@ -1251,8 +1238,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "None.",
         "postconditions": "CREATES release_records: id BIGINT unsigned AI PK; version/environment/status VARCHAR(255), environment default production, status default planned, summary/rollback_notes TEXT nullable, released_at TIMESTAMP nullable, timestamps; BTREE(environment,status).",
-        "rollback_considerations": "DROP TABLE IF EXISTS release_records."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS release_records.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000013_create_eligibility_rules_table",
@@ -1285,7 +1275,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000013_create_sources_table",
@@ -1296,14 +1287,14 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "sources.id",
-        "sources.source_type",
-        "sources.name",
-        "sources.url",
         "sources.authority_scope",
-        "sources.status",
         "sources.created_at",
-        "sources.updated_at"
+        "sources.id",
+        "sources.name",
+        "sources.source_type",
+        "sources.status",
+        "sources.updated_at",
+        "sources.url"
       ],
       "columns_changed": [],
       "columns_removed": [],
@@ -1333,8 +1324,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "None.",
         "postconditions": "CREATES sources: id BIGINT unsigned AI PK; source_type/name/status VARCHAR(255), status default active; url TEXT nullable, authority_scope VARCHAR(255) nullable; timestamps; BTREE(source_type,status).",
-        "rollback_considerations": "DROP TABLE IF EXISTS sources."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS sources.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000014_create_merit_records_table",
@@ -1367,7 +1361,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000014_create_program_offerings_table",
@@ -1378,17 +1373,17 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "program_offerings.id",
-        "program_offerings.program_id",
-        "program_offerings.campus_id",
-        "program_offerings.delivery_mode",
-        "program_offerings.status",
-        "program_offerings.intake_label",
-        "program_offerings.duration",
         "program_offerings.availability",
+        "program_offerings.campus_id",
+        "program_offerings.created_at",
+        "program_offerings.delivery_mode",
+        "program_offerings.duration",
         "program_offerings.effective_from",
         "program_offerings.effective_until",
-        "program_offerings.created_at",
+        "program_offerings.id",
+        "program_offerings.intake_label",
+        "program_offerings.program_id",
+        "program_offerings.status",
         "program_offerings.updated_at"
       ],
       "columns_changed": [],
@@ -1396,37 +1391,13 @@
       "indexes_created": [
         "program_offerings.PRIMARY",
         "program_offerings.program_offerings_campus_id_status_index",
-        "program_offerings.program_offerings_program_id_status_index",
-        "program_offerings.program_offerings_delivery_mode_availability_index"
+        "program_offerings.program_offerings_delivery_mode_availability_index",
+        "program_offerings.program_offerings_program_id_status_index"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "program_offerings_program_id_foreign",
-          "source_table": "program_offerings",
-          "source_columns": [
-            "program_id"
-          ],
-          "referenced_table": "programs",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "CASCADE",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "program_offerings_campus_id_foreign",
-          "source_table": "program_offerings",
-          "source_columns": [
-            "campus_id"
-          ],
-          "referenced_table": "campuses",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        }
+        "program_offerings.program_offerings_campus_id_foreign",
+        "program_offerings.program_offerings_program_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -1448,8 +1419,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "programs and campuses.",
         "postconditions": "CREATES program_offerings: id BIGINT unsigned AI PK; program_id BIGINT unsigned FK programs.id CASCADE; campus_id nullable BIGINT unsigned FK campuses.id SET NULL; delivery_mode/status/availability VARCHAR(255) defaults on_campus/candidate/unknown; intake_label/duration VARCHAR(255) nullable; effective_from/effective_until DATE nullable; timestamps; indexes (campus_id,status), (program_id,status), (delivery_mode,availability).",
-        "rollback_considerations": "DROP TABLE IF EXISTS program_offerings."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS program_offerings.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000015_create_admission_intakes_table",
@@ -1460,44 +1434,32 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "admission_intakes.id",
-        "admission_intakes.program_offering_id",
-        "admission_intakes.label",
-        "admission_intakes.status",
-        "admission_intakes.application_open_at",
         "admission_intakes.application_close_at",
-        "admission_intakes.test_date",
-        "admission_intakes.selection_date",
-        "admission_intakes.enrollment_start_at",
-        "admission_intakes.enrollment_end_at",
-        "admission_intakes.seat_capacity",
+        "admission_intakes.application_open_at",
         "admission_intakes.application_url",
-        "admission_intakes.notes",
         "admission_intakes.created_at",
+        "admission_intakes.enrollment_end_at",
+        "admission_intakes.enrollment_start_at",
+        "admission_intakes.id",
+        "admission_intakes.label",
+        "admission_intakes.notes",
+        "admission_intakes.program_offering_id",
+        "admission_intakes.seat_capacity",
+        "admission_intakes.selection_date",
+        "admission_intakes.status",
+        "admission_intakes.test_date",
         "admission_intakes.updated_at"
       ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [
         "admission_intakes.PRIMARY",
-        "admission_intakes.admission_intakes_program_offering_id_status_index",
-        "admission_intakes.admission_intakes_application_open_at_application_close_at_index"
+        "admission_intakes.admission_intakes_application_open_at_application_close_at_index",
+        "admission_intakes.admission_intakes_program_offering_id_status_index"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "admission_intakes_program_offering_id_foreign",
-          "source_table": "admission_intakes",
-          "source_columns": [
-            "program_offering_id"
-          ],
-          "referenced_table": "program_offerings",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "CASCADE",
-          "on_update": "RESTRICT"
-        }
+        "admission_intakes.admission_intakes_program_offering_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -1519,8 +1481,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "program_offerings.",
         "postconditions": "CREATES admission_intakes: id BIGINT unsigned AI PK; program_offering_id BIGINT unsigned FK program_offerings.id CASCADE; label/status VARCHAR(255), status default planned; application_open_at/application_close_at/test_date/selection_date/enrollment_start_at/enrollment_end_at DATE nullable; seat_capacity INT unsigned nullable; application_url VARCHAR(255) nullable; notes TEXT nullable; timestamps; indexes (program_offering_id,status), (application_open_at,application_close_at).",
-        "rollback_considerations": "DROP TABLE IF EXISTS admission_intakes."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS admission_intakes.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000015_create_selection_outcomes_table",
@@ -1553,7 +1518,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000016_create_eligibility_rules_table",
@@ -1564,22 +1530,22 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "eligibility_rules.id",
         "eligibility_rules.admission_intake_id",
-        "eligibility_rules.rule_type",
         "eligibility_rules.applicant_category",
-        "eligibility_rules.qualification",
-        "eligibility_rules.requirement",
+        "eligibility_rules.created_at",
+        "eligibility_rules.domicile_requirement",
+        "eligibility_rules.entry_test_required",
+        "eligibility_rules.experience_requirement",
+        "eligibility_rules.id",
+        "eligibility_rules.maximum_age",
+        "eligibility_rules.minimum_age",
         "eligibility_rules.minimum_marks",
         "eligibility_rules.minimum_marks_type",
+        "eligibility_rules.qualification",
         "eligibility_rules.required_subject",
-        "eligibility_rules.entry_test_required",
-        "eligibility_rules.domicile_requirement",
-        "eligibility_rules.minimum_age",
-        "eligibility_rules.maximum_age",
-        "eligibility_rules.experience_requirement",
+        "eligibility_rules.requirement",
+        "eligibility_rules.rule_type",
         "eligibility_rules.status",
-        "eligibility_rules.created_at",
         "eligibility_rules.updated_at"
       ],
       "columns_changed": [],
@@ -1591,19 +1557,7 @@
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "eligibility_rules_admission_intake_id_foreign",
-          "source_table": "eligibility_rules",
-          "source_columns": [
-            "admission_intake_id"
-          ],
-          "referenced_table": "admission_intakes",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "CASCADE",
-          "on_update": "RESTRICT"
-        }
+        "eligibility_rules.eligibility_rules_admission_intake_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -1625,8 +1579,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "admission_intakes.",
         "postconditions": "CREATES eligibility_rules: id BIGINT unsigned AI PK; admission_intake_id BIGINT unsigned FK admission_intakes.id CASCADE; rule_type VARCHAR(255), applicant_category/qualification VARCHAR(255) nullable, requirement TEXT nullable; minimum_marks DECIMAL(8,2) nullable; minimum_marks_type/required_subject VARCHAR(255) nullable; entry_test_required BOOLEAN nullable; domicile_requirement VARCHAR(255) nullable; minimum_age/maximum_age INT unsigned nullable; experience_requirement TEXT nullable; status VARCHAR(255) default current; timestamps; indexes (admission_intake_id,rule_type), (applicant_category,status).",
-        "rollback_considerations": "DROP TABLE IF EXISTS eligibility_rules."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS eligibility_rules.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000016_create_fee_records_table",
@@ -1659,7 +1616,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000017_create_merit_records_table",
@@ -1670,23 +1628,23 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "merit_records.id",
         "merit_records.admission_intake_id",
-        "merit_records.stage",
-        "merit_records.merit_type",
         "merit_records.applicant_category",
         "merit_records.campus_context",
-        "merit_records.value",
-        "merit_records.score",
-        "merit_records.position",
-        "merit_records.unit",
-        "merit_records.methodology",
+        "merit_records.created_at",
+        "merit_records.effective_date",
+        "merit_records.id",
         "merit_records.list_label",
         "merit_records.list_number",
+        "merit_records.merit_type",
+        "merit_records.methodology",
+        "merit_records.position",
+        "merit_records.score",
+        "merit_records.stage",
         "merit_records.status",
-        "merit_records.effective_date",
-        "merit_records.created_at",
-        "merit_records.updated_at"
+        "merit_records.unit",
+        "merit_records.updated_at",
+        "merit_records.value"
       ],
       "columns_changed": [],
       "columns_removed": [],
@@ -1698,19 +1656,7 @@
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "merit_records_admission_intake_id_foreign",
-          "source_table": "merit_records",
-          "source_columns": [
-            "admission_intake_id"
-          ],
-          "referenced_table": "admission_intakes",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "CASCADE",
-          "on_update": "RESTRICT"
-        }
+        "merit_records.merit_records_admission_intake_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -1732,8 +1678,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "admission_intakes.",
         "postconditions": "CREATES merit_records: id BIGINT unsigned AI PK; admission_intake_id BIGINT unsigned FK admission_intakes.id CASCADE; stage VARCHAR(255) default published; merit_type VARCHAR(255), applicant_category/campus_context/value/unit/methodology/list_label VARCHAR(255) nullable; score DECIMAL(10,4) nullable; position DECIMAL(12,4) nullable; list_number INT unsigned nullable; status VARCHAR(255) default current; effective_date DATE nullable; timestamps; indexes (admission_intake_id,merit_type), (applicant_category,status), (stage,list_number).",
-        "rollback_considerations": "DROP TABLE IF EXISTS merit_records."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS merit_records.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000018_create_recommendations_table",
@@ -1766,7 +1715,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000018_create_selection_outcomes_table",
@@ -1777,18 +1727,18 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "selection_outcomes.id",
         "selection_outcomes.admission_intake_id",
-        "selection_outcomes.outcome_type",
         "selection_outcomes.applicant_category",
-        "selection_outcomes.status",
-        "selection_outcomes.threshold_value",
-        "selection_outcomes.threshold_score",
-        "selection_outcomes.unit",
+        "selection_outcomes.created_at",
+        "selection_outcomes.effective_date",
+        "selection_outcomes.id",
         "selection_outcomes.list_number",
         "selection_outcomes.notes",
-        "selection_outcomes.effective_date",
-        "selection_outcomes.created_at",
+        "selection_outcomes.outcome_type",
+        "selection_outcomes.status",
+        "selection_outcomes.threshold_score",
+        "selection_outcomes.threshold_value",
+        "selection_outcomes.unit",
         "selection_outcomes.updated_at"
       ],
       "columns_changed": [],
@@ -1800,19 +1750,7 @@
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "selection_outcomes_admission_intake_id_foreign",
-          "source_table": "selection_outcomes",
-          "source_columns": [
-            "admission_intake_id"
-          ],
-          "referenced_table": "admission_intakes",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "CASCADE",
-          "on_update": "RESTRICT"
-        }
+        "selection_outcomes.selection_outcomes_admission_intake_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -1834,8 +1772,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "admission_intakes.",
         "postconditions": "CREATES selection_outcomes: id BIGINT unsigned AI PK; admission_intake_id BIGINT unsigned FK admission_intakes.id CASCADE; outcome_type VARCHAR(255), applicant_category VARCHAR(255) nullable, status VARCHAR(255) default published, threshold_value VARCHAR(255) nullable, threshold_score DECIMAL(10,4) nullable, unit VARCHAR(255) nullable, list_number INT unsigned nullable, notes TEXT nullable, effective_date DATE nullable; timestamps; indexes (admission_intake_id,outcome_type), (applicant_category,status).",
-        "rollback_considerations": "DROP TABLE IF EXISTS selection_outcomes."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS selection_outcomes.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000019_create_fee_records_table",
@@ -1846,59 +1787,35 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "fee_records.id",
-        "fee_records.program_offering_id",
         "fee_records.admission_intake_id",
-        "fee_records.fee_type",
-        "fee_records.amount_type",
         "fee_records.amount",
-        "fee_records.minimum_amount",
-        "fee_records.maximum_amount",
+        "fee_records.amount_type",
+        "fee_records.created_at",
         "fee_records.currency",
-        "fee_records.frequency",
-        "fee_records.status",
         "fee_records.effective_from",
         "fee_records.effective_until",
+        "fee_records.fee_type",
+        "fee_records.frequency",
+        "fee_records.id",
+        "fee_records.maximum_amount",
+        "fee_records.minimum_amount",
         "fee_records.notes",
-        "fee_records.created_at",
+        "fee_records.program_offering_id",
+        "fee_records.status",
         "fee_records.updated_at"
       ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [
         "fee_records.PRIMARY",
-        "fee_records.fee_records_program_offering_id_fee_type_index",
         "fee_records.fee_records_admission_intake_id_status_index",
-        "fee_records.fee_records_effective_from_effective_until_index"
+        "fee_records.fee_records_effective_from_effective_until_index",
+        "fee_records.fee_records_program_offering_id_fee_type_index"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "fee_records_program_offering_id_foreign",
-          "source_table": "fee_records",
-          "source_columns": [
-            "program_offering_id"
-          ],
-          "referenced_table": "program_offerings",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "fee_records_admission_intake_id_foreign",
-          "source_table": "fee_records",
-          "source_columns": [
-            "admission_intake_id"
-          ],
-          "referenced_table": "admission_intakes",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        }
+        "fee_records.fee_records_admission_intake_id_foreign",
+        "fee_records.fee_records_program_offering_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -1920,8 +1837,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "program_offerings, admission_intakes.",
         "postconditions": "CREATES fee_records: id BIGINT unsigned AI PK; program_offering_id nullable BIGINT unsigned FK program_offerings.id SET NULL; admission_intake_id nullable BIGINT unsigned FK admission_intakes.id SET NULL; fee_type VARCHAR(255), amount_type VARCHAR(255) default fixed; amount/minimum_amount/maximum_amount DECIMAL(14,2) nullable; currency VARCHAR(3) default PKR; frequency VARCHAR(255) nullable; status VARCHAR(255) default known; effective_from/effective_until DATE nullable; notes TEXT nullable; timestamps; indexes (program_offering_id,fee_type), (admission_intake_id,status), (effective_from,effective_until).",
-        "rollback_considerations": "DROP TABLE IF EXISTS fee_records."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS fee_records.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000020_create_evidences_table",
@@ -1932,40 +1852,29 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "evidence.id",
-        "evidence.source_id",
-        "evidence.reference",
-        "evidence.excerpt",
         "evidence.content_hash",
+        "evidence.created_at",
+        "evidence.excerpt",
+        "evidence.expires_at",
+        "evidence.id",
         "evidence.observed_at",
         "evidence.published_at",
-        "evidence.expires_at",
+        "evidence.reference",
+        "evidence.source_id",
         "evidence.status",
-        "evidence.created_at",
         "evidence.updated_at"
       ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [
         "evidence.PRIMARY",
-        "evidence.evidence_source_id_status_index",
-        "evidence.evidence_observed_at_index"
+        "evidence.evidence_observed_at_index",
+        "evidence.evidence_source_id_status_index"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "evidence_source_id_foreign",
-          "source_table": "evidence",
-          "source_columns": [
-            "source_id"
-          ],
-          "referenced_table": "sources",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "CASCADE",
-          "on_update": "RESTRICT"
-        }
+        "evidence.evidence_snapshot_id_foreign",
+        "evidence.evidence_source_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -1987,8 +1896,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "sources; source_snapshots must exist before the later snapshot alteration migration.",
         "postconditions": "CREATES evidence (singular): id BIGINT unsigned AI PK; source_id BIGINT unsigned NOT NULL FK sources.id CASCADE; reference VARCHAR(255) nullable; excerpt TEXT nullable; content_hash VARCHAR(255) nullable; observed_at/published_at/expires_at TIMESTAMP nullable; status VARCHAR(255) default active; timestamps; indexes (source_id,status), (observed_at). Later migration adds nullable snapshot_id BIGINT unsigned FK source_snapshots.id ON DELETE SET NULL.",
-        "rollback_considerations": "DROP TABLE IF EXISTS evidence. Later snapshot alteration down() drops its FK and column."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS evidence. Later snapshot alteration down() drops its FK and column.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000021_create_assertions_table",
@@ -1999,43 +1911,31 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "assertions.id",
-        "assertions.evidence_id",
-        "assertions.subject_type",
-        "assertions.subject_id",
         "assertions.attribute",
-        "assertions.value",
-        "assertions.verification_state",
         "assertions.confidence",
+        "assertions.created_at",
+        "assertions.evidence_id",
+        "assertions.id",
+        "assertions.subject_id",
+        "assertions.subject_type",
+        "assertions.updated_at",
         "assertions.valid_from",
         "assertions.valid_until",
-        "assertions.verified_at",
-        "assertions.created_at",
-        "assertions.updated_at"
+        "assertions.value",
+        "assertions.verification_state",
+        "assertions.verified_at"
       ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [
         "assertions.PRIMARY",
-        "assertions.assertions_subject_type_subject_id_index",
         "assertions.assertions_attribute_verification_state_index",
+        "assertions.assertions_subject_type_subject_id_index",
         "assertions.assertions_valid_from_valid_until_index"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "assertions_evidence_id_foreign",
-          "source_table": "assertions",
-          "source_columns": [
-            "evidence_id"
-          ],
-          "referenced_table": "evidence",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        }
+        "assertions.assertions_evidence_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -2057,113 +1957,68 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "evidence.",
         "postconditions": "CREATES assertions: id BIGINT unsigned AI PK; evidence_id nullable BIGINT unsigned FK evidence.id SET NULL; subject_type VARCHAR(255), subject_id BIGINT unsigned, attribute VARCHAR(255), value TEXT nullable, verification_state VARCHAR(255) default discovered, confidence DECIMAL(5,4) nullable, valid_from/valid_until/verified_at TIMESTAMP nullable; timestamps; indexes (subject_type,subject_id), (attribute,verification_state), (valid_from,valid_until). Later migrations add nullable unique discovery_identity_key VARCHAR(64) and append-only update/delete guards (final migration state includes those; exact key/index source needs operation record).",
-        "rollback_considerations": "DROP TABLE IF EXISTS assertions."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS assertions.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000022_create_reviews_tables",
       "source_file": "database/migrations/2026_09_23_000022_create_reviews_tables.php",
       "git_blob_sha": "4d4b71be370b73b01c54c31ee5176feebcac100b",
       "tables_created": [
-        "reviews",
-        "review_ratings"
+        "review_ratings",
+        "reviews"
       ],
       "tables_altered": [],
       "columns_created": [
+        "review_ratings.created_at",
+        "review_ratings.dimension",
+        "review_ratings.id",
+        "review_ratings.notes",
+        "review_ratings.rating",
+        "review_ratings.review_id",
+        "review_ratings.updated_at",
+        "reviews.body",
+        "reviews.campus_id",
+        "reviews.created_at",
+        "reviews.experience_period",
         "reviews.id",
         "reviews.institution_id",
-        "reviews.campus_id",
+        "reviews.institution_response",
+        "reviews.institution_response_allowed",
+        "reviews.moderated_at",
+        "reviews.overall_rating",
         "reviews.program_id",
+        "reviews.published_at",
         "reviews.reviewer_type",
+        "reviews.status",
         "reviews.target_type",
         "reviews.title",
-        "reviews.body",
-        "reviews.overall_rating",
-        "reviews.experience_period",
-        "reviews.status",
-        "reviews.verification_state",
-        "reviews.institution_response_allowed",
-        "reviews.institution_response",
-        "reviews.published_at",
-        "reviews.moderated_at",
-        "reviews.created_at",
         "reviews.updated_at",
-        "review_ratings.id",
-        "review_ratings.review_id",
-        "review_ratings.dimension",
-        "review_ratings.rating",
-        "review_ratings.notes",
-        "review_ratings.created_at",
-        "review_ratings.updated_at"
+        "reviews.verification_state"
       ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [
+        "review_ratings.PRIMARY",
+        "review_ratings.review_ratings_dimension_rating_index",
+        "review_ratings.review_ratings_review_id_dimension_unique",
         "reviews.PRIMARY",
-        "reviews.reviews_institution_id_status_index",
         "reviews.reviews_campus_id_status_index",
+        "reviews.reviews_institution_id_status_index",
         "reviews.reviews_program_id_status_index",
         "reviews.reviews_reviewer_type_status_index",
         "reviews.reviews_target_type_status_index",
-        "reviews.reviews_verification_state_status_index",
-        "review_ratings.PRIMARY",
-        "review_ratings.review_ratings_review_id_dimension_unique",
-        "review_ratings.review_ratings_dimension_rating_index"
+        "reviews.reviews_verification_state_status_index"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "reviews_institution_id_foreign",
-          "source_table": "reviews",
-          "source_columns": [
-            "institution_id"
-          ],
-          "referenced_table": "institutions",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "reviews_campus_id_foreign",
-          "source_table": "reviews",
-          "source_columns": [
-            "campus_id"
-          ],
-          "referenced_table": "campuses",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "reviews_program_id_foreign",
-          "source_table": "reviews",
-          "source_columns": [
-            "program_id"
-          ],
-          "referenced_table": "programs",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "review_ratings_review_id_foreign",
-          "source_table": "review_ratings",
-          "source_columns": [
-            "review_id"
-          ],
-          "referenced_table": "reviews",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "CASCADE",
-          "on_update": "RESTRICT"
-        }
+        "review_ratings.review_ratings_review_id_foreign",
+        "reviews.reviews_campus_id_foreign",
+        "reviews.reviews_institution_id_foreign",
+        "reviews.reviews_program_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -2180,14 +2035,17 @@
         "operation_order": 1,
         "source_evidence": "Reviewed complete migration source at database/migrations/2026_09_23_000022_create_reviews_tables.php; Git blob 4d4b71be370b73b01c54c31ee5176feebcac100b.",
         "related_objects": [
-          "reviews",
-          "review_ratings"
+          "review_ratings",
+          "reviews"
         ],
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "institutions, campuses, programs.",
         "postconditions": "CREATES reviews and review_ratings. reviews: id BIGINT unsigned AI PK; institution_id/campus_id/program_id nullable BIGINT unsigned FKs SET NULL; reviewer_type VARCHAR(40) nullable; target_type VARCHAR(40) default institution; title VARCHAR(200) nullable; body TEXT NOT NULL; overall_rating TINYINT unsigned nullable; experience_period VARCHAR(50) nullable; status VARCHAR(40) default pending; verification_state VARCHAR(40) default unverified; institution_response_allowed BOOLEAN default true; institution_response TEXT nullable; published_at/moderated_at TIMESTAMP nullable; timestamps; six BTREE two-column indexes for institution/campus/program/reviewer/target/verification with status. review_ratings: id BIGINT unsigned AI PK; review_id BIGINT unsigned NOT NULL FK reviews.id CASCADE; dimension VARCHAR(80); rating TINYINT unsigned nullable; notes TEXT nullable; timestamps; unique(review_id,dimension), index(dimension,rating).",
-        "rollback_considerations": "Drops review_ratings then reviews."
-      }
+        "rollback_considerations": "Drops review_ratings then reviews.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000023_create_scholarships_table",
@@ -2198,109 +2056,49 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "scholarships.id",
-        "scholarships.institution_id",
-        "scholarships.program_id",
-        "scholarships.program_offering_id",
-        "scholarships.campus_id",
         "scholarships.admission_intake_id",
-        "scholarships.name",
-        "scholarships.scholarship_type",
-        "scholarships.eligibility_basis",
-        "scholarships.eligibility_description",
-        "scholarships.benefit_type",
-        "scholarships.amount_min",
         "scholarships.amount_max",
-        "scholarships.currency",
-        "scholarships.benefit_frequency",
-        "scholarships.duration",
-        "scholarships.renewal_condition",
-        "scholarships.application_open",
+        "scholarships.amount_min",
         "scholarships.application_close",
+        "scholarships.application_open",
+        "scholarships.benefit_frequency",
+        "scholarships.benefit_type",
+        "scholarships.campus_id",
+        "scholarships.created_at",
+        "scholarships.currency",
         "scholarships.data_state",
-        "scholarships.status",
+        "scholarships.duration",
         "scholarships.effective_from",
         "scholarships.effective_until",
+        "scholarships.eligibility_basis",
+        "scholarships.eligibility_description",
+        "scholarships.id",
+        "scholarships.institution_id",
+        "scholarships.name",
         "scholarships.notes",
-        "scholarships.created_at",
+        "scholarships.program_id",
+        "scholarships.program_offering_id",
+        "scholarships.renewal_condition",
+        "scholarships.scholarship_type",
+        "scholarships.status",
         "scholarships.updated_at"
       ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [
         "scholarships.PRIMARY",
-        "scholarships.scholarships_institution_id_status_index",
-        "scholarships.scholarships_program_offering_id_status_index",
         "scholarships.scholarships_admission_intake_id_status_index",
-        "scholarships.scholarships_data_state_effective_from_index"
+        "scholarships.scholarships_data_state_effective_from_index",
+        "scholarships.scholarships_institution_id_status_index",
+        "scholarships.scholarships_program_offering_id_status_index"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "scholarships_institution_id_foreign",
-          "source_table": "scholarships",
-          "source_columns": [
-            "institution_id"
-          ],
-          "referenced_table": "institutions",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "scholarships_program_id_foreign",
-          "source_table": "scholarships",
-          "source_columns": [
-            "program_id"
-          ],
-          "referenced_table": "programs",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "scholarships_program_offering_id_foreign",
-          "source_table": "scholarships",
-          "source_columns": [
-            "program_offering_id"
-          ],
-          "referenced_table": "program_offerings",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "scholarships_campus_id_foreign",
-          "source_table": "scholarships",
-          "source_columns": [
-            "campus_id"
-          ],
-          "referenced_table": "campuses",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "scholarships_admission_intake_id_foreign",
-          "source_table": "scholarships",
-          "source_columns": [
-            "admission_intake_id"
-          ],
-          "referenced_table": "admission_intakes",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        }
+        "scholarships.scholarships_admission_intake_id_foreign",
+        "scholarships.scholarships_campus_id_foreign",
+        "scholarships.scholarships_institution_id_foreign",
+        "scholarships.scholarships_program_id_foreign",
+        "scholarships.scholarships_program_offering_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -2322,8 +2120,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "institutions, programs, program_offerings, campuses, admission_intakes.",
         "postconditions": "CREATES scholarships: id BIGINT unsigned AI PK; institution_id/program_id/program_offering_id/campus_id/admission_intake_id nullable BIGINT unsigned FKs SET NULL; name VARCHAR(200), scholarship_type VARCHAR(60) nullable, eligibility_basis VARCHAR(100) nullable, eligibility_description TEXT nullable, benefit_type VARCHAR(80) nullable, amount_min/amount_max DECIMAL(14,2) nullable, currency CHAR(3) default PKR, benefit_frequency VARCHAR(50) nullable, duration VARCHAR(100) nullable, renewal_condition VARCHAR(200) nullable, application_open/application_close DATE nullable, data_state/status VARCHAR(40) defaults unknown/candidate, effective_from/effective_until DATE nullable, notes TEXT nullable, timestamps; indexes institution/status, program_offering/status, admission_intake/status, data_state/effective_from. ",
-        "rollback_considerations": "DROP TABLE IF EXISTS scholarships."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS scholarships.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000024_create_recommendations_table",
@@ -2334,71 +2135,35 @@
       ],
       "tables_altered": [],
       "columns_created": [
+        "recommendations.campus_id",
+        "recommendations.comment",
+        "recommendations.contributor_type",
+        "recommendations.created_at",
+        "recommendations.experience_period",
         "recommendations.id",
         "recommendations.institution_id",
-        "recommendations.campus_id",
-        "recommendations.program_id",
-        "recommendations.contributor_type",
-        "recommendations.recommendation",
-        "recommendations.rating",
-        "recommendations.experience_period",
-        "recommendations.verification_state",
-        "recommendations.status",
-        "recommendations.comment",
         "recommendations.notes",
-        "recommendations.created_at",
-        "recommendations.updated_at"
+        "recommendations.program_id",
+        "recommendations.rating",
+        "recommendations.recommendation",
+        "recommendations.status",
+        "recommendations.updated_at",
+        "recommendations.verification_state"
       ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [
         "recommendations.PRIMARY",
-        "recommendations.recommendations_institution_id_status_index",
         "recommendations.recommendations_campus_id_status_index",
-        "recommendations.recommendations_program_id_status_index",
-        "recommendations.recommendations_contributor_type_verification_state_index"
+        "recommendations.recommendations_contributor_type_verification_state_index",
+        "recommendations.recommendations_institution_id_status_index",
+        "recommendations.recommendations_program_id_status_index"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "recommendations_institution_id_foreign",
-          "source_table": "recommendations",
-          "source_columns": [
-            "institution_id"
-          ],
-          "referenced_table": "institutions",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "recommendations_campus_id_foreign",
-          "source_table": "recommendations",
-          "source_columns": [
-            "campus_id"
-          ],
-          "referenced_table": "campuses",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "recommendations_program_id_foreign",
-          "source_table": "recommendations",
-          "source_columns": [
-            "program_id"
-          ],
-          "referenced_table": "programs",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        }
+        "recommendations.recommendations_campus_id_foreign",
+        "recommendations.recommendations_institution_id_foreign",
+        "recommendations.recommendations_program_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -2420,8 +2185,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "institutions, campuses, programs.",
         "postconditions": "CREATES recommendations: id BIGINT unsigned AI PK; institution_id/campus_id/program_id nullable BIGINT unsigned FKs SET NULL; contributor_type/recommendation/experience_period/verification_state/status VARCHAR(255) defaults unverified/pending and nullable fields; rating TINYINT unsigned nullable; comment/notes TEXT nullable; timestamps; indexes institution/status, campus/status, program/status, contributor_type/verification_state.",
-        "rollback_considerations": "DROP TABLE IF EXISTS recommendations."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS recommendations.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000025_create_accreditations_table",
@@ -2432,89 +2200,41 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "accreditations.id",
-        "accreditations.institution_id",
-        "accreditations.program_id",
-        "accreditations.program_offering_id",
-        "accreditations.campus_id",
-        "accreditations.name",
-        "accreditations.recognition_type",
         "accreditations.authority_name",
-        "accreditations.scope_type",
-        "accreditations.reference_identifier",
-        "accreditations.status",
+        "accreditations.campus_id",
+        "accreditations.created_at",
         "accreditations.effective_from",
         "accreditations.effective_until",
+        "accreditations.id",
+        "accreditations.institution_id",
         "accreditations.last_verified_at",
+        "accreditations.name",
         "accreditations.notes",
-        "accreditations.created_at",
+        "accreditations.program_id",
+        "accreditations.program_offering_id",
+        "accreditations.recognition_type",
+        "accreditations.reference_identifier",
+        "accreditations.scope_type",
+        "accreditations.status",
         "accreditations.updated_at"
       ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [
         "accreditations.PRIMARY",
+        "accreditations.accreditations_authority_name_status_index",
+        "accreditations.accreditations_campus_id_status_index",
         "accreditations.accreditations_institution_id_status_index",
         "accreditations.accreditations_program_id_status_index",
         "accreditations.accreditations_program_offering_id_status_index",
-        "accreditations.accreditations_campus_id_status_index",
-        "accreditations.accreditations_recognition_type_status_index",
-        "accreditations.accreditations_authority_name_status_index"
+        "accreditations.accreditations_recognition_type_status_index"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "accreditations_institution_id_foreign",
-          "source_table": "accreditations",
-          "source_columns": [
-            "institution_id"
-          ],
-          "referenced_table": "institutions",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "accreditations_program_id_foreign",
-          "source_table": "accreditations",
-          "source_columns": [
-            "program_id"
-          ],
-          "referenced_table": "programs",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "accreditations_program_offering_id_foreign",
-          "source_table": "accreditations",
-          "source_columns": [
-            "program_offerings"
-          ],
-          "referenced_table": "program_offerings",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "accreditations_campus_id_foreign",
-          "source_table": "accreditations",
-          "source_columns": [
-            "campus_id"
-          ],
-          "referenced_table": "campuses",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        }
+        "accreditations.accreditations_campus_id_foreign",
+        "accreditations.accreditations_institution_id_foreign",
+        "accreditations.accreditations_program_id_foreign",
+        "accreditations.accreditations_program_offering_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -2536,8 +2256,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "institutions, programs, program_offerings, campuses.",
         "postconditions": "CREATES accreditations: id BIGINT unsigned AI PK; institution_id/program_id/program_offering_id/campus_id nullable BIGINT unsigned FKs SET NULL; name VARCHAR(200), recognition_type VARCHAR(80), authority_name VARCHAR(200) nullable, scope_type VARCHAR(80) nullable, reference_identifier VARCHAR(120) nullable, status VARCHAR(50) default candidate, effective_from/effective_until/last_verified_at DATE nullable, notes TEXT nullable; timestamps; six BTREE indexes (institution_id,status),(program_id,status),(program_offering_id,status),(campus_id,status),(recognition_type,status),(authority_name,status).",
-        "rollback_considerations": "DROP TABLE IF EXISTS accreditations."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS accreditations.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000026_create_change_events_table",
@@ -2548,24 +2271,24 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "change_events.id",
-        "change_events.subject_type",
-        "change_events.subject_id",
-        "change_events.event_type",
-        "change_events.materiality",
         "change_events.actor_type",
-        "change_events.status",
-        "change_events.summary",
-        "change_events.detected_at",
         "change_events.created_at",
+        "change_events.detected_at",
+        "change_events.event_type",
+        "change_events.id",
+        "change_events.materiality",
+        "change_events.status",
+        "change_events.subject_id",
+        "change_events.subject_type",
+        "change_events.summary",
         "change_events.updated_at"
       ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [
         "change_events.PRIMARY",
-        "change_events.change_events_subject_type_subject_id_index",
-        "change_events.change_events_event_type_materiality_index"
+        "change_events.change_events_event_type_materiality_index",
+        "change_events.change_events_subject_type_subject_id_index"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [],
@@ -2589,8 +2312,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "None.",
         "postconditions": "CREATES change_events: id BIGINT unsigned AI PK; subject_type VARCHAR(255), subject_id BIGINT unsigned, event_type VARCHAR(255), materiality VARCHAR(255) default normal, actor_type VARCHAR(255) nullable, status VARCHAR(255) default recorded, summary TEXT nullable, detected_at TIMESTAMP nullable; timestamps; indexes (subject_type,subject_id),(event_type,materiality). Later migration adds nullable unique BIGINT unsigned source_change_assertion_link_id.",
-        "rollback_considerations": "DROP TABLE IF EXISTS change_events; later identity migration down drops named unique key then column."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS change_events; later identity migration down drops named unique key then column.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_23_000027_create_external_rankings_table",
@@ -2601,29 +2327,29 @@
       ],
       "tables_altered": [],
       "columns_created": [
-        "external_rankings.id",
-        "external_rankings.institution_id",
-        "external_rankings.program_id",
-        "external_rankings.publisher_name",
-        "external_rankings.ranking_name",
-        "external_rankings.edition",
-        "external_rankings.methodology_summary",
-        "external_rankings.scope_type",
-        "external_rankings.geography_scope",
+        "external_rankings.created_at",
         "external_rankings.discipline_scope",
-        "external_rankings.year",
-        "external_rankings.rank_value",
-        "external_rankings.rank_label",
-        "external_rankings.score",
-        "external_rankings.percentile",
-        "external_rankings.signal_type",
-        "external_rankings.status",
+        "external_rankings.edition",
         "external_rankings.effective_from",
         "external_rankings.effective_until",
-        "external_rankings.source_url",
+        "external_rankings.geography_scope",
+        "external_rankings.id",
+        "external_rankings.institution_id",
+        "external_rankings.methodology_summary",
         "external_rankings.notes",
-        "external_rankings.created_at",
-        "external_rankings.updated_at"
+        "external_rankings.percentile",
+        "external_rankings.program_id",
+        "external_rankings.publisher_name",
+        "external_rankings.rank_label",
+        "external_rankings.rank_value",
+        "external_rankings.ranking_name",
+        "external_rankings.scope_type",
+        "external_rankings.score",
+        "external_rankings.signal_type",
+        "external_rankings.source_url",
+        "external_rankings.status",
+        "external_rankings.updated_at",
+        "external_rankings.year"
       ],
       "columns_changed": [],
       "columns_removed": [],
@@ -2636,32 +2362,8 @@
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
-        {
-          "name": "external_rankings_institution_id_foreign",
-          "source_table": "external_rankings",
-          "source_columns": [
-            "institution_id"
-          ],
-          "referenced_table": "institutions",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        },
-        {
-          "name": "external_rankings_program_id_foreign",
-          "source_table": "external_rankings",
-          "source_columns": [
-            "program_id"
-          ],
-          "referenced_table": "programs",
-          "referenced_columns": [
-            "id"
-          ],
-          "on_delete": "SET NULL",
-          "on_update": "RESTRICT"
-        }
+        "external_rankings.external_rankings_institution_id_foreign",
+        "external_rankings.external_rankings_program_id_foreign"
       ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
@@ -2683,8 +2385,11 @@
         "data_transformations": "NO_DATA_TRANSFORMATION_IDENTIFIED_IN_UP_METHOD",
         "prerequisites": "institutions, programs.",
         "postconditions": "CREATES external_rankings: id BIGINT unsigned AI PK; institution_id/program_id nullable BIGINT unsigned FKs SET NULL; publisher_name/ranking_name VARCHAR(255), edition VARCHAR(255) nullable, methodology_summary TEXT nullable, scope_type/geography_scope/discipline_scope VARCHAR(255) nullable, year SMALLINT unsigned nullable, rank_value INT unsigned nullable, rank_label VARCHAR(255) nullable, score DECIMAL(12,4) nullable, percentile DECIMAL(7,4) nullable, signal_type VARCHAR(255) default ranking, status VARCHAR(255) default candidate, effective_from/effective_until DATE nullable, source_url/notes TEXT nullable; timestamps; indexes (institution_id,status),(program_id,status),(publisher_name,ranking_name,year),(year,signal_type).",
-        "rollback_considerations": "DROP TABLE IF EXISTS external_rankings."
-      }
+        "rollback_considerations": "DROP TABLE IF EXISTS external_rankings.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL",
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending."
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000001_create_import_batches_table",
@@ -2694,12 +2399,35 @@
         "import_batches"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "import_batches.batch_key",
+        "import_batches.candidate_rows",
+        "import_batches.completed_at",
+        "import_batches.created_at",
+        "import_batches.entity_type",
+        "import_batches.id",
+        "import_batches.invalid_rows",
+        "import_batches.notes",
+        "import_batches.received_at",
+        "import_batches.source_id",
+        "import_batches.source_type",
+        "import_batches.status",
+        "import_batches.total_rows",
+        "import_batches.updated_at",
+        "import_batches.valid_rows"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "import_batches.PRIMARY",
+        "import_batches.import_batches_batch_key_unique",
+        "import_batches.import_batches_entity_type_status_index",
+        "import_batches.import_batches_source_id_status_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "import_batches.import_batches_source_id_foreign"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -2723,8 +2451,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE import_batches",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000002_create_import_rows_table",
@@ -2734,12 +2464,33 @@
         "import_rows"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "import_rows.canonical_subject_id",
+        "import_rows.canonical_subject_type",
+        "import_rows.created_at",
+        "import_rows.id",
+        "import_rows.import_batch_id",
+        "import_rows.match_state",
+        "import_rows.normalized_payload",
+        "import_rows.notes",
+        "import_rows.payload",
+        "import_rows.row_number",
+        "import_rows.status",
+        "import_rows.updated_at",
+        "import_rows.validation_errors"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "import_rows.PRIMARY",
+        "import_rows.import_rows_canonical_subject_type_canonical_subject_id_index",
+        "import_rows.import_rows_import_batch_id_row_number_unique",
+        "import_rows.import_rows_import_batch_id_status_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "import_rows.import_rows_import_batch_id_foreign"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -2763,8 +2514,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE import_rows",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000003_create_identity_match_candidates_table",
@@ -2774,12 +2527,31 @@
         "identity_match_candidates"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "identity_match_candidates.confidence",
+        "identity_match_candidates.created_at",
+        "identity_match_candidates.id",
+        "identity_match_candidates.import_row_id",
+        "identity_match_candidates.institution_id",
+        "identity_match_candidates.match_type",
+        "identity_match_candidates.matched_at",
+        "identity_match_candidates.reason",
+        "identity_match_candidates.status",
+        "identity_match_candidates.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "identity_match_candidates.PRIMARY",
+        "identity_match_candidates.identity_match_candidates_import_row_id_status_index",
+        "identity_match_candidates.identity_match_candidates_institution_id_status_index",
+        "identity_match_candidates.identity_match_candidates_match_type_status_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "identity_match_candidates.identity_match_candidates_import_row_id_foreign",
+        "identity_match_candidates.identity_match_candidates_institution_id_foreign"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -2803,8 +2575,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE identity_match_candidates",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000004_create_identity_resolution_decisions_table",
@@ -2814,12 +2588,29 @@
         "identity_resolution_decisions"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "identity_resolution_decisions.actor_id",
+        "identity_resolution_decisions.actor_type",
+        "identity_resolution_decisions.created_at",
+        "identity_resolution_decisions.decided_at",
+        "identity_resolution_decisions.decision",
+        "identity_resolution_decisions.id",
+        "identity_resolution_decisions.import_row_id",
+        "identity_resolution_decisions.institution_id",
+        "identity_resolution_decisions.reason",
+        "identity_resolution_decisions.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "identity_resolution_decisions.PRIMARY",
+        "identity_resolution_decisions.identity_resolution_decisions_import_row_id_decision_index",
+        "identity_resolution_decisions.identity_resolution_decisions_institution_id_decision_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "identity_resolution_decisions.identity_resolution_decisions_institution_id_foreign"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -2843,8 +2634,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE identity_resolution_decisions",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000005_create_users_table",
@@ -2854,10 +2647,22 @@
         "users"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "users.created_at",
+        "users.email",
+        "users.id",
+        "users.name",
+        "users.password",
+        "users.remember_token",
+        "users.role",
+        "users.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "users.PRIMARY",
+        "users.users_email_unique"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -2883,8 +2688,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE users",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000006_create_verification_decisions_table",
@@ -2894,10 +2701,25 @@
         "verification_decisions"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "verification_decisions.actor_id",
+        "verification_decisions.actor_type",
+        "verification_decisions.assertion_id",
+        "verification_decisions.created_at",
+        "verification_decisions.decided_at",
+        "verification_decisions.id",
+        "verification_decisions.new_state",
+        "verification_decisions.previous_state",
+        "verification_decisions.reason",
+        "verification_decisions.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "verification_decisions.PRIMARY",
+        "verification_decisions.verification_decisions_actor_type_actor_id_index",
+        "verification_decisions.verification_decisions_assertion_id_new_state_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -2923,8 +2745,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE verification_decisions",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000007_create_provenance_review_events_table",
@@ -2934,10 +2758,27 @@
         "provenance_review_events"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "provenance_review_events.actor_id",
+        "provenance_review_events.actor_type",
+        "provenance_review_events.created_at",
+        "provenance_review_events.event_type",
+        "provenance_review_events.id",
+        "provenance_review_events.metadata",
+        "provenance_review_events.occurred_at",
+        "provenance_review_events.reason",
+        "provenance_review_events.status",
+        "provenance_review_events.subject_id",
+        "provenance_review_events.subject_type",
+        "provenance_review_events.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "provenance_review_events.PRIMARY",
+        "provenance_review_events.provenance_review_events_status_idx",
+        "provenance_review_events.provenance_review_events_subject_idx"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -2963,8 +2804,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE provenance_review_events",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000008_add_enrichment_metadata_to_import_rows",
@@ -2974,10 +2817,15 @@
       "tables_altered": [
         "import_rows"
       ],
-      "columns_created": [],
+      "columns_created": [
+        "import_rows.parent_subject_id",
+        "import_rows.parent_subject_type"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "import_rows.import_rows_parent_subject_type_parent_subject_id_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -3003,8 +2851,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "Drops the new index and both columns",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000008_create_enrichment_import_rows_table",
@@ -3014,12 +2864,30 @@
         "enrichment_import_rows"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "enrichment_import_rows.canonical_subject_id",
+        "enrichment_import_rows.created_at",
+        "enrichment_import_rows.entity_type",
+        "enrichment_import_rows.id",
+        "enrichment_import_rows.import_batch_id",
+        "enrichment_import_rows.match_state",
+        "enrichment_import_rows.normalized_payload",
+        "enrichment_import_rows.payload",
+        "enrichment_import_rows.status",
+        "enrichment_import_rows.updated_at",
+        "enrichment_import_rows.validation_errors"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "enrichment_import_rows.PRIMARY",
+        "enrichment_import_rows.enrichment_import_rows_entity_type_canonical_subject_id_index",
+        "enrichment_import_rows.enrichment_import_rows_import_batch_id_entity_type_status_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "enrichment_import_rows.enrichment_import_rows_import_batch_id_foreign"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -3043,8 +2911,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE enrichment_import_rows",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000009_create_import_reconciliation_events_table",
@@ -3054,12 +2924,35 @@
         "import_reconciliation_events"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "import_reconciliation_events.actor_id",
+        "import_reconciliation_events.actor_type",
+        "import_reconciliation_events.created_at",
+        "import_reconciliation_events.description",
+        "import_reconciliation_events.event_type",
+        "import_reconciliation_events.id",
+        "import_reconciliation_events.import_batch_id",
+        "import_reconciliation_events.import_row_id",
+        "import_reconciliation_events.metadata",
+        "import_reconciliation_events.occurred_at",
+        "import_reconciliation_events.severity",
+        "import_reconciliation_events.state",
+        "import_reconciliation_events.subject_id",
+        "import_reconciliation_events.subject_type",
+        "import_reconciliation_events.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "import_reconciliation_events.PRIMARY",
+        "import_reconciliation_events.import_reconciliation_events_import_batch_id_state_index",
+        "import_reconciliation_events.import_reconciliation_events_import_row_id_event_type_index",
+        "import_reconciliation_events.import_reconciliation_events_subject_type_subject_id_state_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "import_reconciliation_events.import_reconciliation_events_import_row_id_foreign"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -3083,8 +2976,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE import_reconciliation_events",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000010_create_import_schema_profiles_table",
@@ -3094,10 +2989,26 @@
         "import_schema_profiles"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "import_schema_profiles.columns",
+        "import_schema_profiles.created_at",
+        "import_schema_profiles.description",
+        "import_schema_profiles.entity_type",
+        "import_schema_profiles.id",
+        "import_schema_profiles.normalization_rules",
+        "import_schema_profiles.profile_key",
+        "import_schema_profiles.required_columns",
+        "import_schema_profiles.status",
+        "import_schema_profiles.updated_at",
+        "import_schema_profiles.version"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "import_schema_profiles.PRIMARY",
+        "import_schema_profiles.import_schema_profiles_entity_type_status_index",
+        "import_schema_profiles.import_schema_profiles_profile_key_version_unique"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -3123,8 +3034,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE import_schema_profiles",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000011_create_import_promotion_decisions_table",
@@ -3134,10 +3047,24 @@
         "import_promotion_decisions"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "import_promotion_decisions.actor_id",
+        "import_promotion_decisions.actor_type",
+        "import_promotion_decisions.created_at",
+        "import_promotion_decisions.decided_at",
+        "import_promotion_decisions.decision",
+        "import_promotion_decisions.id",
+        "import_promotion_decisions.import_row_id",
+        "import_promotion_decisions.reason",
+        "import_promotion_decisions.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "import_promotion_decisions.PRIMARY",
+        "import_promotion_decisions.import_promotion_decisions_actor_type_actor_id_index",
+        "import_promotion_decisions.import_promotion_decisions_import_row_id_decision_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -3163,8 +3090,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE import_promotion_decisions",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000012_create_import_promotion_events_table",
@@ -3174,10 +3103,37 @@
         "import_promotion_events"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "import_promotion_events.actor_id",
+        "import_promotion_events.actor_type",
+        "import_promotion_events.canonical_subject_id",
+        "import_promotion_events.canonical_subject_type",
+        "import_promotion_events.created_at",
+        "import_promotion_events.decision_id",
+        "import_promotion_events.decision_type",
+        "import_promotion_events.entity_type",
+        "import_promotion_events.event_type",
+        "import_promotion_events.id",
+        "import_promotion_events.import_batch_id",
+        "import_promotion_events.import_row_id",
+        "import_promotion_events.metadata",
+        "import_promotion_events.new_match_state",
+        "import_promotion_events.new_status",
+        "import_promotion_events.occurred_at",
+        "import_promotion_events.previous_match_state",
+        "import_promotion_events.previous_status",
+        "import_promotion_events.reason",
+        "import_promotion_events.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "import_promotion_events.PRIMARY",
+        "import_promotion_events.import_promo_canonical_subject_idx",
+        "import_promotion_events.import_promotion_events_actor_type_actor_id_index",
+        "import_promotion_events.import_promotion_events_import_batch_id_event_type_index",
+        "import_promotion_events.import_promotion_events_import_row_id_occurred_at_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -3203,8 +3159,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE import_promotion_events",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000013_create_import_conflicts_table",
@@ -3214,12 +3172,38 @@
         "import_conflicts"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "import_conflicts.conflict_type",
+        "import_conflicts.created_at",
+        "import_conflicts.description",
+        "import_conflicts.details",
+        "import_conflicts.id",
+        "import_conflicts.import_batch_id",
+        "import_conflicts.import_row_id",
+        "import_conflicts.related_row_id",
+        "import_conflicts.related_subject_id",
+        "import_conflicts.related_subject_type",
+        "import_conflicts.resolution_reason",
+        "import_conflicts.resolved_at",
+        "import_conflicts.resolved_by_id",
+        "import_conflicts.resolved_by_type",
+        "import_conflicts.severity",
+        "import_conflicts.status",
+        "import_conflicts.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "import_conflicts.PRIMARY",
+        "import_conflicts.import_conflicts_conflict_type_status_index",
+        "import_conflicts.import_conflicts_import_batch_id_status_index",
+        "import_conflicts.import_conflicts_import_row_id_status_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "import_conflicts.import_conflicts_import_batch_id_foreign",
+        "import_conflicts.import_conflicts_import_row_id_foreign"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -3243,8 +3227,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE import_conflicts",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000014_create_data_reverification_queue_table",
@@ -3254,12 +3240,38 @@
         "data_reverification_queue"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "data_reverification_queue.assigned_to_id",
+        "data_reverification_queue.assigned_to_type",
+        "data_reverification_queue.attribute",
+        "data_reverification_queue.created_at",
+        "data_reverification_queue.due_at",
+        "data_reverification_queue.evidence_id",
+        "data_reverification_queue.id",
+        "data_reverification_queue.notes",
+        "data_reverification_queue.observed_at",
+        "data_reverification_queue.priority",
+        "data_reverification_queue.reason",
+        "data_reverification_queue.resolved_at",
+        "data_reverification_queue.source_id",
+        "data_reverification_queue.status",
+        "data_reverification_queue.subject_id",
+        "data_reverification_queue.subject_type",
+        "data_reverification_queue.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "data_reverification_queue.PRIMARY",
+        "data_reverification_queue.data_reverification_queue_due_at_status_index",
+        "data_reverification_queue.data_reverification_queue_priority_status_index",
+        "data_reverification_queue.data_reverification_queue_source_id_status_index",
+        "data_reverification_queue.data_reverification_queue_subject_type_subject_id_status_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "data_reverification_queue.data_reverification_queue_source_id_foreign"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -3283,8 +3295,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE data_reverification_queue",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000015_create_reverification_events_table",
@@ -3294,10 +3308,29 @@
         "reverification_events"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "reverification_events.actor_id",
+        "reverification_events.actor_type",
+        "reverification_events.created_at",
+        "reverification_events.event_type",
+        "reverification_events.evidence_id",
+        "reverification_events.id",
+        "reverification_events.metadata",
+        "reverification_events.new_status",
+        "reverification_events.occurred_at",
+        "reverification_events.previous_status",
+        "reverification_events.queue_id",
+        "reverification_events.reason",
+        "reverification_events.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "reverification_events.PRIMARY",
+        "reverification_events.reverification_events_actor_type_actor_id_index",
+        "reverification_events.reverification_events_event_type_occurred_at_index",
+        "reverification_events.reverification_events_queue_id_occurred_at_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -3323,8 +3356,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE reverification_events",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000016_create_source_monitoring_policies_table",
@@ -3334,12 +3369,31 @@
         "source_monitoring_policies"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "source_monitoring_policies.attribute",
+        "source_monitoring_policies.created_at",
+        "source_monitoring_policies.fresh_after_days",
+        "source_monitoring_policies.id",
+        "source_monitoring_policies.last_run_at",
+        "source_monitoring_policies.name",
+        "source_monitoring_policies.priority",
+        "source_monitoring_policies.source_id",
+        "source_monitoring_policies.stale_after_days",
+        "source_monitoring_policies.status",
+        "source_monitoring_policies.subject_type",
+        "source_monitoring_policies.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "source_monitoring_policies.PRIMARY",
+        "source_monitoring_policies.source_monitoring_policies_source_id_status_index",
+        "source_monitoring_policies.source_monitoring_policies_status_subject_type_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "source_monitoring_policies.source_monitoring_policies_source_id_foreign"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -3363,8 +3417,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE source_monitoring_policies",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000017_create_source_snapshots_table",
@@ -3374,12 +3430,31 @@
         "source_snapshots"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "source_snapshots.captured_at",
+        "source_snapshots.content_hash",
+        "source_snapshots.content_length",
+        "source_snapshots.content_type",
+        "source_snapshots.created_at",
+        "source_snapshots.id",
+        "source_snapshots.metadata",
+        "source_snapshots.reference",
+        "source_snapshots.source_id",
+        "source_snapshots.status",
+        "source_snapshots.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "source_snapshots.PRIMARY",
+        "source_snapshots.source_snapshots_source_id_captured_at_index",
+        "source_snapshots.source_snapshots_source_id_content_hash_index",
+        "source_snapshots.source_snapshots_status_captured_at_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "source_snapshots.source_snapshots_source_id_foreign"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -3403,8 +3478,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE source_snapshots",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000018_create_source_change_observations_table",
@@ -3414,12 +3491,34 @@
         "source_change_observations"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "source_change_observations.change_state",
+        "source_change_observations.created_at",
+        "source_change_observations.current_snapshot_id",
+        "source_change_observations.details",
+        "source_change_observations.id",
+        "source_change_observations.materiality",
+        "source_change_observations.observed_at",
+        "source_change_observations.previous_snapshot_id",
+        "source_change_observations.source_id",
+        "source_change_observations.status",
+        "source_change_observations.summary",
+        "source_change_observations.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "source_change_observations.PRIMARY",
+        "source_change_observations.source_change_observations_current_snapshot_id_index",
+        "source_change_observations.source_change_observations_materiality_status_index",
+        "source_change_observations.source_change_observations_source_id_change_state_status_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "source_change_observations.source_change_observations_current_snapshot_id_foreign",
+        "source_change_observations.source_change_observations_previous_snapshot_id_foreign",
+        "source_change_observations.source_change_observations_source_id_foreign"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -3443,8 +3542,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE source_change_observations",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000019_create_source_retrieval_runs_table",
@@ -3454,12 +3555,33 @@
         "source_retrieval_runs"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "source_retrieval_runs.completed_at",
+        "source_retrieval_runs.content_hash",
+        "source_retrieval_runs.content_length",
+        "source_retrieval_runs.content_type",
+        "source_retrieval_runs.created_at",
+        "source_retrieval_runs.error_message",
+        "source_retrieval_runs.http_status",
+        "source_retrieval_runs.id",
+        "source_retrieval_runs.snapshot_id",
+        "source_retrieval_runs.source_id",
+        "source_retrieval_runs.started_at",
+        "source_retrieval_runs.status",
+        "source_retrieval_runs.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "source_retrieval_runs.PRIMARY",
+        "source_retrieval_runs.source_retrieval_runs_source_id_status_index",
+        "source_retrieval_runs.source_retrieval_runs_status_started_at_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "source_retrieval_runs.source_retrieval_runs_snapshot_id_foreign",
+        "source_retrieval_runs.source_retrieval_runs_source_id_foreign"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -3483,8 +3605,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE source_retrieval_runs",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000020_create_source_change_assertion_links_table",
@@ -3494,12 +3618,30 @@
         "source_change_assertion_links"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "source_change_assertion_links.assertion_id",
+        "source_change_assertion_links.attribute",
+        "source_change_assertion_links.created_at",
+        "source_change_assertion_links.id",
+        "source_change_assertion_links.impact",
+        "source_change_assertion_links.reason",
+        "source_change_assertion_links.source_change_observation_id",
+        "source_change_assertion_links.status",
+        "source_change_assertion_links.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "source_change_assertion_links.PRIMARY",
+        "source_change_assertion_links.source_change_assertion_links_assertion_id_status_index",
+        "source_change_assertion_links.source_change_assertion_links_impact_status_index",
+        "source_change_assertion_links.source_change_assertion_unique"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "source_change_assertion_links.source_change_assertion_links_assertion_id_foreign",
+        "source_change_assertion_links.source_change_assertion_obs_fk"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -3523,8 +3665,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE source_change_assertion_links",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000021_add_monitoring_execution_fields",
@@ -3534,10 +3678,18 @@
       "tables_altered": [
         "source_monitoring_policies"
       ],
-      "columns_created": [],
+      "columns_created": [
+        "source_monitoring_policies.cadence",
+        "source_monitoring_policies.consecutive_failures",
+        "source_monitoring_policies.last_failure_at",
+        "source_monitoring_policies.last_success_at",
+        "source_monitoring_policies.next_run_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "source_monitoring_policies.source_monitoring_policies_status_next_run_at_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -3563,8 +3715,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "Drops index and five added columns",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000022_create_monitoring_alerts_table",
@@ -3574,12 +3728,36 @@
         "monitoring_alerts"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "monitoring_alerts.acknowledged_at",
+        "monitoring_alerts.alert_type",
+        "monitoring_alerts.created_at",
+        "monitoring_alerts.dedupe_key",
+        "monitoring_alerts.details",
+        "monitoring_alerts.first_detected_at",
+        "monitoring_alerts.id",
+        "monitoring_alerts.last_detected_at",
+        "monitoring_alerts.message",
+        "monitoring_alerts.resolved_at",
+        "monitoring_alerts.severity",
+        "monitoring_alerts.source_id",
+        "monitoring_alerts.source_monitoring_policy_id",
+        "monitoring_alerts.status",
+        "monitoring_alerts.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "monitoring_alerts.PRIMARY",
+        "monitoring_alerts.monitoring_alerts_dedupe_key_status_index",
+        "monitoring_alerts.monitoring_alerts_source_id_alert_type_status_index",
+        "monitoring_alerts.monitoring_alerts_status_severity_index"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "monitoring_alerts.monitoring_alerts_source_id_foreign",
+        "monitoring_alerts.monitoring_alerts_source_monitoring_policy_id_foreign"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -3603,8 +3781,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE monitoring_alerts",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_24_000026_add_snapshot_id_to_evidences_table",
@@ -3614,7 +3794,9 @@
       "tables_altered": [
         "evidence"
       ],
-      "columns_created": [],
+      "columns_created": [
+        "evidence.snapshot_id"
+      ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [],
@@ -3643,8 +3825,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "Drops FK and snapshot_id",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_25_000001_create_external_rankings_table",
@@ -3677,7 +3861,8 @@
         "prerequisites": "NONE",
         "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
         "rollback_considerations": "NONE; down() is intentionally empty."
-      }
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_26_000001_add_content_to_source_snapshots_table",
@@ -3687,7 +3872,9 @@
       "tables_altered": [
         "source_snapshots"
       ],
-      "columns_created": [],
+      "columns_created": [
+        "source_snapshots.content"
+      ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [],
@@ -3716,8 +3903,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "Conditionally drops content; asymmetric with up() early return and no type validation",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_09_26_000002_add_scheduling_to_source_monitoring_policies_table",
@@ -3756,8 +3945,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "Conditionally drops each of five columns independently; does not manage any index",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_10_17_000001_create_password_reset_tokens_table",
@@ -3767,10 +3958,16 @@
         "password_reset_tokens"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "password_reset_tokens.created_at",
+        "password_reset_tokens.email",
+        "password_reset_tokens.token"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "password_reset_tokens.PRIMARY"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -3796,8 +3993,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE password_reset_tokens",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_10_17_000002_add_must_change_password_to_users_table",
@@ -3807,7 +4006,9 @@
       "tables_altered": [
         "users"
       ],
-      "columns_created": [],
+      "columns_created": [
+        "users.must_change_password"
+      ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [],
@@ -3836,8 +4037,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "Conditionally drops must_change_password",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_10_23_000001_add_duplicate_rows_to_import_batches_table",
@@ -3847,7 +4050,9 @@
       "tables_altered": [
         "import_batches"
       ],
-      "columns_created": [],
+      "columns_created": [
+        "import_batches.duplicate_rows"
+      ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [],
@@ -3876,8 +4081,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "Conditionally drops duplicate_rows",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_10_23_070000_create_institute_discovery_run_outcomes_table",
@@ -3887,12 +4094,34 @@
         "institute_discovery_run_outcomes"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "institute_discovery_run_outcomes.candidate_count",
+        "institute_discovery_run_outcomes.created_at",
+        "institute_discovery_run_outcomes.details",
+        "institute_discovery_run_outcomes.failure_class",
+        "institute_discovery_run_outcomes.id",
+        "institute_discovery_run_outcomes.occurred_at",
+        "institute_discovery_run_outcomes.outcome",
+        "institute_discovery_run_outcomes.profile_key",
+        "institute_discovery_run_outcomes.review_package_status",
+        "institute_discovery_run_outcomes.snapshot_id",
+        "institute_discovery_run_outcomes.source_change_observation_id",
+        "institute_discovery_run_outcomes.source_id",
+        "institute_discovery_run_outcomes.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "institute_discovery_run_outcomes.PRIMARY",
+        "institute_discovery_run_outcomes.idrun_outcomes_outcome_time_idx",
+        "institute_discovery_run_outcomes.idrun_outcomes_source_time_idx"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "institute_discovery_run_outcomes.idrun_outcomes_observation_fk",
+        "institute_discovery_run_outcomes.idrun_outcomes_snapshot_fk",
+        "institute_discovery_run_outcomes.idrun_outcomes_source_fk"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -3916,8 +4145,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE institute_discovery_run_outcomes",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_10_25_000001_create_structured_enrichment_promotion_events_table",
@@ -3927,10 +4158,32 @@
         "structured_enrichment_promotion_events"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "structured_enrichment_promotion_events.actor_id",
+        "structured_enrichment_promotion_events.actor_type",
+        "structured_enrichment_promotion_events.after_snapshot",
+        "structured_enrichment_promotion_events.before_snapshot",
+        "structured_enrichment_promotion_events.canonical_id",
+        "structured_enrichment_promotion_events.canonical_type",
+        "structured_enrichment_promotion_events.created_at",
+        "structured_enrichment_promotion_events.enrichment_import_row_id",
+        "structured_enrichment_promotion_events.entity_type",
+        "structured_enrichment_promotion_events.event_type",
+        "structured_enrichment_promotion_events.id",
+        "structured_enrichment_promotion_events.import_batch_id",
+        "structured_enrichment_promotion_events.metadata",
+        "structured_enrichment_promotion_events.occurred_at",
+        "structured_enrichment_promotion_events.reason",
+        "structured_enrichment_promotion_events.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "structured_enrichment_promotion_events.PRIMARY",
+        "structured_enrichment_promotion_events.structured_enrichment_batch_event_idx",
+        "structured_enrichment_promotion_events.structured_enrichment_canonical_idx",
+        "structured_enrichment_promotion_events.structured_enrichment_row_event_idx"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -3956,8 +4209,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE structured_enrichment_promotion_events",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_10_25_000002_create_official_source_refresh_events_table",
@@ -3967,10 +4222,31 @@
         "official_source_refresh_events"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "official_source_refresh_events.after_value",
+        "official_source_refresh_events.before_value",
+        "official_source_refresh_events.canonical_id",
+        "official_source_refresh_events.canonical_type",
+        "official_source_refresh_events.content_fingerprint",
+        "official_source_refresh_events.created_at",
+        "official_source_refresh_events.evidence_excerpt",
+        "official_source_refresh_events.evidence_url",
+        "official_source_refresh_events.field_name",
+        "official_source_refresh_events.id",
+        "official_source_refresh_events.observed_at",
+        "official_source_refresh_events.occurred_at",
+        "official_source_refresh_events.source_change_observation_id",
+        "official_source_refresh_events.source_id",
+        "official_source_refresh_events.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "official_source_refresh_events.PRIMARY",
+        "official_source_refresh_events.official_refresh_canonical_field_idx",
+        "official_source_refresh_events.official_refresh_observation_idx",
+        "official_source_refresh_events.official_refresh_source_idx"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -3996,8 +4272,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE official_source_refresh_events",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_10_29_000001_create_institution_field_approvals_table",
@@ -4007,12 +4285,53 @@
         "institution_field_approvals"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "institution_field_approvals.application_outcome",
+        "institution_field_approvals.applied_at",
+        "institution_field_approvals.applied_refresh_event_id",
+        "institution_field_approvals.content_fingerprint",
+        "institution_field_approvals.created_at",
+        "institution_field_approvals.created_by",
+        "institution_field_approvals.decision_at",
+        "institution_field_approvals.decision_reason",
+        "institution_field_approvals.evidence_excerpt",
+        "institution_field_approvals.evidence_id",
+        "institution_field_approvals.evidence_observed_at",
+        "institution_field_approvals.evidence_url",
+        "institution_field_approvals.expected_current_value",
+        "institution_field_approvals.field_name",
+        "institution_field_approvals.id",
+        "institution_field_approvals.institution_id",
+        "institution_field_approvals.proposal_hash",
+        "institution_field_approvals.proposed_value",
+        "institution_field_approvals.reviewer_id",
+        "institution_field_approvals.source_change_observation_id",
+        "institution_field_approvals.source_id",
+        "institution_field_approvals.source_observed_at",
+        "institution_field_approvals.source_snapshot_id",
+        "institution_field_approvals.status",
+        "institution_field_approvals.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "institution_field_approvals.PRIMARY",
+        "institution_field_approvals.inst_field_approval_decision_idx",
+        "institution_field_approvals.inst_field_approval_source_idx",
+        "institution_field_approvals.inst_field_approval_state_idx",
+        "institution_field_approvals.institution_field_approvals_proposal_hash_unique"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "institution_field_approvals.institution_field_approvals_applied_refresh_event_id_foreign",
+        "institution_field_approvals.institution_field_approvals_created_by_foreign",
+        "institution_field_approvals.institution_field_approvals_evidence_id_foreign",
+        "institution_field_approvals.institution_field_approvals_institution_id_foreign",
+        "institution_field_approvals.institution_field_approvals_reviewer_id_foreign",
+        "institution_field_approvals.institution_field_approvals_source_change_observation_id_foreign",
+        "institution_field_approvals.institution_field_approvals_source_id_foreign",
+        "institution_field_approvals.institution_field_approvals_source_snapshot_id_foreign"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -4036,8 +4355,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE institution_field_approvals",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_11_03_000001_create_governed_execution_leases_table",
@@ -4047,10 +4368,23 @@
         "governed_execution_leases"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "governed_execution_leases.acquired_at",
+        "governed_execution_leases.created_at",
+        "governed_execution_leases.expires_at",
+        "governed_execution_leases.id",
+        "governed_execution_leases.owner_token",
+        "governed_execution_leases.run_id",
+        "governed_execution_leases.task_key",
+        "governed_execution_leases.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "governed_execution_leases.PRIMARY",
+        "governed_execution_leases.governed_execution_leases_expires_at_index",
+        "governed_execution_leases.governed_execution_leases_task_key_unique"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -4076,22 +4410,51 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE governed_execution_leases",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_11_03_000002_create_governed_execution_runs_table",
       "source_file": "database/migrations/2026_11_03_000002_create_governed_execution_runs_table.php",
       "git_blob_sha": "ea8d5aafb5863a3b5ec254fe1494ec1be19ae00b",
       "tables_created": [
-        "governed_execution_runs",
-        "governed_execution_run_events"
+        "governed_execution_run_events",
+        "governed_execution_runs"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "governed_execution_run_events.created_at",
+        "governed_execution_run_events.event_type",
+        "governed_execution_run_events.failure_code",
+        "governed_execution_run_events.id",
+        "governed_execution_run_events.occurred_at",
+        "governed_execution_run_events.run_id",
+        "governed_execution_run_events.updated_at",
+        "governed_execution_runs.application_revision",
+        "governed_execution_runs.created_at",
+        "governed_execution_runs.failure_code",
+        "governed_execution_runs.finished_at",
+        "governed_execution_runs.heartbeat_at",
+        "governed_execution_runs.id",
+        "governed_execution_runs.owner_token",
+        "governed_execution_runs.runner",
+        "governed_execution_runs.started_at",
+        "governed_execution_runs.status",
+        "governed_execution_runs.task_key",
+        "governed_execution_runs.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "governed_execution_run_events.PRIMARY",
+        "governed_execution_run_events.governed_execution_run_events_run_id_index",
+        "governed_execution_runs.PRIMARY",
+        "governed_execution_runs.governed_execution_runs_owner_token_index",
+        "governed_execution_runs.governed_execution_runs_status_index",
+        "governed_execution_runs.governed_execution_runs_task_key_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -4118,8 +4481,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "Drops events then runs",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_11_03_000003_add_source_retrieval_idempotency_key",
@@ -4129,10 +4494,14 @@
       "tables_altered": [
         "source_retrieval_runs"
       ],
-      "columns_created": [],
+      "columns_created": [
+        "source_retrieval_runs.idempotency_key"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "source_retrieval_runs.source_retrieval_runs_idempotency_key_unique"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -4158,8 +4527,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "If column exists drops named unique then column; may fail if index name/contract differs",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_11_03_000004_add_snapshot_and_observation_idempotency",
@@ -4167,13 +4538,18 @@
       "git_blob_sha": "f11de606de1fef11012a5314c4fe98069ee5c093",
       "tables_created": [],
       "tables_altered": [
-        "source_snapshots",
-        "source_change_observations"
+        "source_change_observations",
+        "source_snapshots"
       ],
-      "columns_created": [],
+      "columns_created": [
+        "source_snapshots.capture_key"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "source_change_observations.source_observations_current_snapshot_unique",
+        "source_snapshots.source_snapshots_capture_key_unique"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -4200,8 +4576,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "Drops named uniques and capture_key; destructive column removal",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_11_03_000005_add_discovery_outcome_idempotency_key",
@@ -4211,10 +4589,14 @@
       "tables_altered": [
         "institute_discovery_run_outcomes"
       ],
-      "columns_created": [],
+      "columns_created": [
+        "institute_discovery_run_outcomes.idempotency_key"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "institute_discovery_run_outcomes.institute_discovery_run_outcomes_idempotency_key_unique"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -4240,8 +4622,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "Drops unique and column if present",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_11_03_000006_add_change_event_source_link_identity",
@@ -4251,10 +4635,14 @@
       "tables_altered": [
         "change_events"
       ],
-      "columns_created": [],
+      "columns_created": [
+        "change_events.source_change_assertion_link_id"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "change_events.change_events_source_link_unique"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -4280,8 +4668,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "Drops named unique and column if present",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_11_03_000007_create_data_reverification_queue_identities_table",
@@ -4290,13 +4680,22 @@
       "tables_created": [
         "data_reverification_queue_identities"
       ],
-      "tables_altered": [
-        "data_reverification_queue"
+      "tables_altered": [],
+      "columns_created": [
+        "data_reverification_queue_identities.active_queue_id",
+        "data_reverification_queue_identities.attribute",
+        "data_reverification_queue_identities.created_at",
+        "data_reverification_queue_identities.identity_key",
+        "data_reverification_queue_identities.subject_id",
+        "data_reverification_queue_identities.subject_type",
+        "data_reverification_queue_identities.updated_at"
       ],
-      "columns_created": [],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "data_reverification_queue_identities.PRIMARY",
+        "data_reverification_queue_identities.data_reverification_queue_identities_active_queue_id_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -4314,7 +4713,6 @@
         "operation_order": "Migration filename ordering; see migration name and source file path",
         "source_evidence": "Complete migration source inspected from database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php; Git blob 36b528652da2441320fbb66669b3589f771a993b.",
         "related_objects": [
-          "data_reverification_queue",
           "data_reverification_queue_identities"
         ],
         "prerequisites": "data_reverification_queue",
@@ -4323,8 +4721,10 @@
         ],
         "data_effects": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
         "rollback_considerations": "DROP TABLE identity table; does not delete or reverse queue rows",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency",
@@ -4336,10 +4736,20 @@
       "tables_altered": [
         "security_audit_events"
       ],
-      "columns_created": [],
+      "columns_created": [
+        "monitoring_alert_identities.active_alert_id",
+        "monitoring_alert_identities.created_at",
+        "monitoring_alert_identities.dedupe_key",
+        "monitoring_alert_identities.updated_at",
+        "security_audit_events.monitoring_idempotency_key"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "monitoring_alert_identities.PRIMARY",
+        "monitoring_alert_identities.monitoring_alert_identities_active_alert_id_index",
+        "security_audit_events.security_audit_events_monitoring_idempotency_key_unique"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -4366,22 +4776,54 @@
         ],
         "data_effects": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
         "rollback_considerations": "Drops audit unique and column; drops monitoring_alert_identities (data loss of identity map)",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_11_04_000010_create_monitoring_policy_run_checkpoints",
       "source_file": "database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php",
       "git_blob_sha": "4cae07cf6f837e590c222d425e37cc2fa9106dd2",
       "tables_created": [
-        "monitoring_policy_runs",
-        "monitoring_policy_run_sources"
+        "monitoring_policy_run_sources",
+        "monitoring_policy_runs"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "monitoring_policy_run_sources.created_at",
+        "monitoring_policy_run_sources.failure_code",
+        "monitoring_policy_run_sources.finished_at",
+        "monitoring_policy_run_sources.id",
+        "monitoring_policy_run_sources.monitoring_policy_run_id",
+        "monitoring_policy_run_sources.observation_id",
+        "monitoring_policy_run_sources.retrieval_run_id",
+        "monitoring_policy_run_sources.source_id",
+        "monitoring_policy_run_sources.started_at",
+        "monitoring_policy_run_sources.status",
+        "monitoring_policy_run_sources.updated_at",
+        "monitoring_policy_runs.created_at",
+        "monitoring_policy_runs.execution_run_id",
+        "monitoring_policy_runs.failure_code",
+        "monitoring_policy_runs.finished_at",
+        "monitoring_policy_runs.id",
+        "monitoring_policy_runs.source_monitoring_policy_id",
+        "monitoring_policy_runs.started_at",
+        "monitoring_policy_runs.status",
+        "monitoring_policy_runs.summary",
+        "monitoring_policy_runs.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "monitoring_policy_run_sources.PRIMARY",
+        "monitoring_policy_run_sources.monitoring_policy_run_source_unique",
+        "monitoring_policy_run_sources.monitoring_policy_source_status_idx",
+        "monitoring_policy_runs.PRIMARY",
+        "monitoring_policy_runs.monitoring_policy_runs_execution_run_id_index",
+        "monitoring_policy_runs.monitoring_policy_runs_source_monitoring_policy_id_index",
+        "monitoring_policy_runs.monitoring_policy_runs_status_index"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -4408,8 +4850,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "Drops run_sources then runs",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_11_04_000011_add_discovery_candidate_persistence_identity_keys",
@@ -4417,15 +4861,25 @@
       "git_blob_sha": "030939e952e112ae5c453d0537569288ef484401",
       "tables_created": [],
       "tables_altered": [
-        "import_batches",
+        "assertions",
         "evidence",
-        "import_rows",
-        "assertions"
+        "import_batches",
+        "import_rows"
       ],
-      "columns_created": [],
+      "columns_created": [
+        "assertions.discovery_identity_key",
+        "evidence.discovery_identity_key",
+        "import_batches.discovery_identity_key",
+        "import_rows.discovery_identity_key"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "assertions.assertions_discovery_identity_unique",
+        "evidence.evidence_discovery_identity_unique",
+        "import_batches.import_batches_discovery_identity_unique",
+        "import_rows.import_rows_discovery_identity_unique"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -4454,8 +4908,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "For each table conditionally drops named unique and column",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_11_04_000012_add_identity_conflict_persistence_keys_and_events",
@@ -4469,10 +4925,34 @@
         "identity_resolution_decisions",
         "import_conflicts"
       ],
-      "columns_created": [],
+      "columns_created": [
+        "identity_match_candidates.identity_key",
+        "identity_resolution_decisions.decision_identity_key",
+        "import_conflict_events.actor_id",
+        "import_conflict_events.actor_type",
+        "import_conflict_events.created_at",
+        "import_conflict_events.event_type",
+        "import_conflict_events.id",
+        "import_conflict_events.idempotency_key",
+        "import_conflict_events.import_conflict_id",
+        "import_conflict_events.metadata",
+        "import_conflict_events.occurred_at",
+        "import_conflict_events.reason",
+        "import_conflict_events.status_after",
+        "import_conflict_events.status_before",
+        "import_conflict_events.updated_at",
+        "import_conflicts.identity_key"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "identity_match_candidates.identity_match_candidates_identity_key_unique",
+        "identity_resolution_decisions.identity_resolution_decisions_identity_key_unique",
+        "import_conflict_events.PRIMARY",
+        "import_conflict_events.import_conflict_events_idempotency_key_unique",
+        "import_conflict_events.import_conflict_events_import_conflict_id_occurred_at_index",
+        "import_conflicts.import_conflicts_identity_key_unique"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -4501,8 +4981,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "Drops event table then drops unique keys and three identity columns",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_11_04_000013_create_source_snapshot_reconciliation_requests_table",
@@ -4512,12 +4994,35 @@
         "source_snapshot_reconciliation_requests"
       ],
       "tables_altered": [],
-      "columns_created": [],
+      "columns_created": [
+        "source_snapshot_reconciliation_requests.created_at",
+        "source_snapshot_reconciliation_requests.current_snapshot_id",
+        "source_snapshot_reconciliation_requests.details",
+        "source_snapshot_reconciliation_requests.expected_previous_snapshot_id",
+        "source_snapshot_reconciliation_requests.id",
+        "source_snapshot_reconciliation_requests.identity_key",
+        "source_snapshot_reconciliation_requests.recorded_previous_snapshot_id",
+        "source_snapshot_reconciliation_requests.source_id",
+        "source_snapshot_reconciliation_requests.status",
+        "source_snapshot_reconciliation_requests.triggering_snapshot_id",
+        "source_snapshot_reconciliation_requests.updated_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "source_snapshot_reconciliation_requests.PRIMARY",
+        "source_snapshot_reconciliation_requests.snapshot_reconciliation_current_status_idx",
+        "source_snapshot_reconciliation_requests.snapshot_reconciliation_source_status_idx",
+        "source_snapshot_reconciliation_requests.source_snapshot_reconciliation_requests_identity_key_unique"
+      ],
       "indexes_removed": [],
-      "foreign_keys_created": [],
+      "foreign_keys_created": [
+        "source_snapshot_reconciliation_requests.ssr_current_snapshot_fk",
+        "source_snapshot_reconciliation_requests.ssr_expected_previous_fk",
+        "source_snapshot_reconciliation_requests.ssr_recorded_previous_fk",
+        "source_snapshot_reconciliation_requests.ssr_source_fk",
+        "source_snapshot_reconciliation_requests.ssr_triggering_snapshot_fk"
+      ],
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
@@ -4541,8 +5046,10 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "DROP TABLE source_snapshot_reconciliation_requests",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": []
     },
     {
       "migration": "2026_11_04_000014_enforce_append_only_audit_retention",
@@ -4550,15 +5057,21 @@
       "git_blob_sha": "dcbdba2cecff8dbeee00ef6cbf65ee236897e1de",
       "tables_created": [],
       "tables_altered": [
+        "assertions",
+        "data_reverification_queue",
+        "enrichment_import_rows",
+        "governed_execution_run_events",
+        "governed_execution_runs",
         "identity_resolution_decisions",
-        "verification_decisions",
-        "import_reconciliation_events",
+        "import_batches",
+        "import_conflict_events",
+        "import_conflicts",
         "import_promotion_decisions",
         "import_promotion_events",
+        "import_reconciliation_events",
+        "import_rows",
         "reverification_events",
-        "structured_enrichment_promotion_events",
-        "import_conflict_events",
-        "governed_execution_run_events"
+        "security_audit_events"
       ],
       "columns_created": [],
       "columns_changed": [],
@@ -4567,7 +5080,32 @@
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
-      "triggers_installed": [],
+      "triggers_installed": [
+        "governed_execution_run_events.audit_immut_0c11b0a7b877443d_d",
+        "governed_execution_run_events.audit_immut_0c11b0a7b877443d_u",
+        "identity_resolution_decisions.identity_decision_delete_guard",
+        "identity_resolution_decisions.identity_decision_update_guard",
+        "import_conflict_events.audit_immut_e6d938d7ffee7729_d",
+        "import_conflict_events.audit_immut_e6d938d7ffee7729_u",
+        "import_promotion_decisions.audit_immut_f9de606bfd4c935d_d",
+        "import_promotion_decisions.audit_immut_f9de606bfd4c935d_u",
+        "import_promotion_events.audit_immut_f8fe18d3e78fdef2_d",
+        "import_promotion_events.audit_immut_f8fe18d3e78fdef2_u",
+        "import_reconciliation_events.audit_immut_17f41e0249a768b1_d",
+        "import_reconciliation_events.audit_immut_17f41e0249a768b1_u",
+        "official_source_refresh_events.audit_immut_67d791570898e61c_d",
+        "official_source_refresh_events.audit_immut_67d791570898e61c_u",
+        "provenance_review_events.audit_immut_b04f820f0d4b68b3_d",
+        "provenance_review_events.audit_immut_b04f820f0d4b68b3_u",
+        "reverification_events.audit_immut_72992154e9e26525_d",
+        "reverification_events.audit_immut_72992154e9e26525_u",
+        "security_audit_events.audit_immut_5e1df25372fff553_d",
+        "security_audit_events.audit_immut_5e1df25372fff553_u",
+        "structured_enrichment_promotion_events.audit_immut_3ba3ddd28550296d_d",
+        "structured_enrichment_promotion_events.audit_immut_3ba3ddd28550296d_u",
+        "verification_decisions.audit_immut_493307493f91dfc1_d",
+        "verification_decisions.audit_immut_493307493f91dfc1_u"
+      ],
       "triggers_removed": [],
       "data_backfills_or_transformations": "No persistent data transformation identified in up() beyond metadata preflight reads.",
       "required_prerequisites": "audit tables and their parent tables; import_conflict_events and governed_execution_run_events must exist",
@@ -4581,15 +5119,21 @@
         "operation_order": "Migration filename ordering; see migration name and source file path",
         "source_evidence": "Complete migration source inspected from database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php; Git blob dcbdba2cecff8dbeee00ef6cbf65ee236897e1de.",
         "related_objects": [
+          "assertions",
+          "data_reverification_queue",
+          "enrichment_import_rows",
           "governed_execution_run_events",
+          "governed_execution_runs",
           "identity_resolution_decisions",
+          "import_batches",
           "import_conflict_events",
+          "import_conflicts",
           "import_promotion_decisions",
           "import_promotion_events",
           "import_reconciliation_events",
+          "import_rows",
           "reverification_events",
-          "structured_enrichment_promotion_events",
-          "verification_decisions"
+          "security_audit_events"
         ],
         "prerequisites": "audit tables and their parent tables; import_conflict_events and governed_execution_run_events must exist",
         "raw_sql_operations": [
@@ -4597,8 +5141,22 @@
         ],
         "data_effects": "No persistent data transformation identified in up() beyond metadata preflight reads.",
         "rollback_considerations": "Drops MySQL triggers and reverses 11 RESTRICT FKs to CASCADE; SQLite drops all append-only/identity/parent guards. Parent-FK rollback restores cascade deletion and is not semantically equivalent to retained-history protection",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": [
+        "governed_execution_run_events.governed_run_event_restrict_fk",
+        "identity_resolution_decisions.identity_decision_row_restrict_fk",
+        "import_conflict_events.import_conflict_event_restrict_fk",
+        "import_promotion_decisions.import_promotion_decision_row_restrict_fk",
+        "import_promotion_events.import_promotion_event_batch_restrict_fk",
+        "import_promotion_events.import_promotion_event_row_restrict_fk",
+        "import_reconciliation_events.import_reconciliation_batch_restrict_fk",
+        "reverification_events.reverification_event_queue_restrict_fk",
+        "structured_enrichment_promotion_events.structured_enrichment_batch_restrict_fk",
+        "structured_enrichment_promotion_events.structured_enrichment_row_restrict_fk",
+        "verification_decisions.verification_decision_assertion_restrict_fk"
+      ]
     },
     {
       "migration": "2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat",
@@ -4606,11 +5164,13 @@
       "git_blob_sha": "83577ba3cbcd5abe481fd50b4737da70499cbccd",
       "tables_created": [],
       "tables_altered": [
-        "monitoring_policy_runs",
+        "monitoring_alert_identities",
         "monitoring_policy_run_sources",
-        "monitoring_alert_identities"
+        "monitoring_policy_runs"
       ],
-      "columns_created": [],
+      "columns_created": [
+        "monitoring_policy_runs.heartbeat_at"
+      ],
       "columns_changed": [],
       "columns_removed": [],
       "indexes_created": [],
@@ -4641,8 +5201,18 @@
         ],
         "data_effects": "SOURCE CONTAINS DATA BACKFILL/UPDATE; no data operation executed during this review.",
         "rollback_considerations": "Drops 7 FKs and heartbeat_at; heartbeat values written by up() are discarded",
-        "unresolved": "Source effects recorded, but final cumulative object mapping, exact framework-generated SQL expansion and cross-migration reconciliation remain pending. Do not treat as SOURCE_REVIEWED_COMPLETE."
-      }
+        "unresolved": "Source-to-manifest object names now mapped. Exact SQL expansion/conditional migration state, full column/index/FK canonical comparison and rollback inverse verification still pending.",
+        "object_mapping_state": "SOURCE_TO_MANIFEST_MAPPED_PARTIAL"
+      },
+      "foreign_keys_changed": [
+        "monitoring_alert_identities.mai_active_alert_fk",
+        "monitoring_policy_run_sources.mp_source_observation_fk",
+        "monitoring_policy_run_sources.mp_source_retrieval_fk",
+        "monitoring_policy_run_sources.mp_source_run_fk",
+        "monitoring_policy_run_sources.mp_source_source_fk",
+        "monitoring_policy_runs.mp_run_exec_fk",
+        "monitoring_policy_runs.mp_run_policy_fk"
+      ]
     }
   ],
   "source_review_counts": {
