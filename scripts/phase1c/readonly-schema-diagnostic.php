@@ -557,10 +557,18 @@ final class Phase1CReadOnlyDiagnostic
                         'indexes_created'=>'indexes',
                         'foreign_keys_created'=>'foreign_keys','foreign_keys_changed'=>'foreign_keys',
                         'triggers_installed'=>'triggers',
+                        'conditional_existing_objects'=>'columns',
                     ] as $field => $kind) {
                         foreach (($entry[$field] ?? []) as $qualified) {
                             $parts = explode('.', (string)$qualified, 2);
-                            if (count($parts) === 2) $objectRefs[] = ['table'=>$parts[0],'kind'=>$kind,'name'=>$parts[1]];
+                            if (count($parts) === 2) {
+                                $objectRefs[] = [
+                                    'table'=>$parts[0],
+                                    'kind'=>$kind,
+                                    'name'=>$parts[1],
+                                    'relation'=>$field === 'conditional_existing_objects' ? 'CONDITIONAL_EXISTING' : 'SOURCE_OPERATION',
+                                ];
+                            }
                         }
                     }
                     $objectStates = [];
@@ -569,7 +577,7 @@ final class Phase1CReadOnlyDiagnostic
                         $key = $ref['table'].'.'.$ref['name'];
                         $state = $manifestObjectStates[$key] ?? 'NOT_CHECKED';
                         $objectStates[] = $state;
-                        $objectDetails[] = ['object'=>$ref['kind'].':'.$key,'state'=>$state];
+                        $objectDetails[] = ['object'=>$ref['kind'].':'.$key,'state'=>$state,'relation'=>$ref['relation'] ?? 'SOURCE_OPERATION'];
                     }
                     $objectDetailsByMigration[$name] = $objectDetails;
                     $targetState = $targetStates[$name] ?? null;
