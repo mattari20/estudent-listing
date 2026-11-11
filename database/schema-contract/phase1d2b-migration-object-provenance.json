@@ -8,7 +8,7 @@
   "application_table_scope_count": 62,
   "framework_managed_ledger": "migrations",
   "framework_managed_ledger_source": "Laravel DatabaseMigrationRepository",
-  "coverage_state": "23 REVIEWED_NOOP; 74 SOURCE_REVIEWED_COMPLETE; 0 SOURCE_REVIEWED_PARTIAL; ALL SOURCE OPERATIONS REVIEWED; OBJECT-LEVEL COMPARATOR ACCEPTANCE PENDING",
+  "coverage_state": "23 REVIEWED_NOOP; 74 SOURCE_REVIEWED_COMPLETE; 0 SOURCE_REVIEWED_PARTIAL; 0 NOT_CHECKED; ALL 97 MIGRATIONS OBJECT-RECONCILED PASS ON MYSQL 8.4.13 AND MARIADB 11.8.9",
   "migrations": [
     {
       "migration": "2026_09_23_000001_create_institutions_table",
@@ -7628,6 +7628,10 @@
     "reviewed_complete_count": 74,
     "reviewed_partial_count": 0,
     "not_checked_count": 0,
-    "application_tables_with_final_definition_complete": 0
+    "application_tables_with_final_definition_complete": 62,
+    "object_reconciled_pass_count": 97,
+    "object_reconciled_not_checked_count": 0,
+    "object_reconciled_fail_count": 0,
+    "object_reconciled_unknown_count": 0
   }
 }
