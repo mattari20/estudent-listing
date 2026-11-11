@@ -676,6 +676,9 @@ final class Phase1CReadOnlyDiagnostic
             } else {
                 $default = $rawDefault;
             }
+            if (is_string($default) && strlen($default) >= 2 && $default[0] === "'" && substr($default, -1) === "'") {
+                $default = str_replace(["''", "\\'", "\\\\"], ["'", "'", "\\"], substr($default, 1, -1));
+            }
             $extra = strtolower((string)($row['EXTRA'] ?? ''));
             $generatedExpression = trim((string)($row['GENERATION_EXPRESSION'] ?? ''));
             $observed['columns'][$table][$name] = [
@@ -1617,7 +1620,7 @@ final class Phase1CReadOnlyDiagnostic
 
     private function safeDefault(string $column, mixed $value): mixed
     {
-        if ($value !== null && preg_match('/password|secret|token|credential|private.?key|api.?key/i', $column)) return '[REDACTED]';
+        if ($column !== 'must_change_password' && $value !== null && preg_match('/password|secret|token|credential|private.?key|api.?key/i', $column)) return '[REDACTED]';
         return $value;
     }
 
