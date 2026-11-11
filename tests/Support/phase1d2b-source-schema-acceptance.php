@@ -30,15 +30,15 @@ $pdo = new PDO(
 $result = (new Phase1CReadOnlyDiagnostic($pdo))->collect($database);
 $schema = $result['source_schema_reconciliation'] ?? [];
 phase1d2bAssert(($schema['table_count'] ?? null) === 63, 'source comparator must cover all 63 scope entries');
-phase1d2bAssert(($schema['complete_table_count'] ?? null) === 0, 'partial source definitions must not be promoted to complete');
-phase1d2bAssert(($schema['schema_equivalence_proven'] ?? true) === false, 'conditional source definitions must not claim complete equivalence');
+phase1d2bAssert(($schema['complete_table_count'] ?? null) === 63, 'all 63 application and framework table definitions must compare successfully');
+phase1d2bAssert(($schema['schema_equivalence_proven'] ?? false) === true && ($schema['state'] ?? null) === 'PASS', 'schema equivalence requires every source-defined object and table to compare successfully');
 phase1d2bAssert(count($schema['results'] ?? []) === 63, 'all per-table results must be present');
 phase1d2bAssert(($schema['unexpected_tables'] ?? []) === [], 'fresh migration schema must contain no unexpected tables');
 
 $counts = ['columns'=>0,'indexes'=>0,'foreign_keys'=>0,'triggers'=>0,'table_options_pass'=>0,'table_options_not_checked'=>0];
 $nonPass = [];
 foreach ($schema['results'] as $table => $tableResult) {
-    phase1d2bAssert(($tableResult['objects']['table']['state'] ?? null) === 'NOT_CHECKED', $table.' table-level contract must remain NOT_CHECKED while source table definition is partial');
+    phase1d2bAssert(($tableResult['objects']['table']['state'] ?? null) === 'PASS', $table.' table definition and inherited engine/options must compare successfully');
     $optionState = $tableResult['objects']['table_options']['state'] ?? 'UNKNOWN';
     if ($optionState === 'PASS') $counts['table_options_pass']++;
     elseif ($optionState === 'NOT_CHECKED') $counts['table_options_not_checked']++;
@@ -57,8 +57,8 @@ phase1d2bAssert($counts['columns'] === 796, 'expected 796 columns; observed '.$c
 phase1d2bAssert($counts['indexes'] === 252, 'expected 252 indexes; observed '.$counts['indexes'].'; index mismatches='.json_encode(array_slice(array_values(array_filter($nonPass, static fn(array $x): bool => ($x['kind'] ?? '') === 'indexes')), 0, 20), JSON_THROW_ON_ERROR));
 phase1d2bAssert($counts['foreign_keys'] === 89, 'expected 89 foreign keys; observed '.$counts['foreign_keys'].'; mismatches='.json_encode(array_slice($nonPass, 0, 8), JSON_THROW_ON_ERROR));
 phase1d2bAssert($counts['triggers'] === 24, 'expected 24 triggers; observed '.$counts['triggers'].'; mismatches='.json_encode(array_slice($nonPass, 0, 8), JSON_THROW_ON_ERROR));
-phase1d2bAssert($counts['table_options_pass'] === 62, 'charset/collation/server-default options must reconcile for all application tables');
-phase1d2bAssert($counts['table_options_not_checked'] === 1, 'the framework ledger retains its separately inherited connection options');
+phase1d2bAssert($counts['table_options_pass'] === 63, 'charset/collation/server-default options must reconcile for all 62 application tables and the framework ledger');
+phase1d2bAssert($counts['table_options_not_checked'] === 0, 'no table options remain NOT_CHECKED after inherited connection defaults are resolved');
 phase1d2bAssert($nonPass === [], 'all source object contracts must match the clean migration result: '.json_encode(array_slice($nonPass, 0, 20), JSON_THROW_ON_ERROR));
 
 $ledger = $result['full_migration_ledger_inventory'] ?? [];
@@ -76,11 +76,12 @@ echo json_encode([
     'engine'=>$result['database']['engine'] ?? 'UNKNOWN',
     'server_version'=>$result['database']['server_version'] ?? 'UNKNOWN',
     'source_tables'=>63,
-    'complete_table_definitions'=>0,
-    'partial_table_definitions'=>62,
+    'complete_table_definitions'=>62,
+    'complete_framework_ledger_definition'=>1,
+    'partial_table_definitions'=>0,
     'object_contract_counts'=>$counts,
     'migration_ledger_rows'=>$ledger['ledger_row_count'] ?? null,
     'migration_object_states'=>$objectStates,
-    'schema_equivalence_proven'=>false,
-    'result'=>'PASS_SOURCE_OBJECT_RECONCILIATION_WITH_TABLE_DEFINITIONS_STILL_PARTIAL',
+    'schema_equivalence_proven'=>true,
+    'result'=>'PASS_COMPLETE_SCHEMA_EQUIVALENCE',
 ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR).PHP_EOL;
