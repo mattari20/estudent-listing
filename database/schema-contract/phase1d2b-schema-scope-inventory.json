@@ -1,0 +1,533 @@
+{
+  "contract": "phase1d2b-schema-scope-inventory/v1",
+  "repository": "mattari20/estudent-listing",
+  "baseline_main_sha": "117d2dd710e7b9545b7a28b6c802415e26c02f1f",
+  "migration_directory_file_count": 97,
+  "discovery_method": [
+    "GitHub code search for Schema::create in database/migrations",
+    "GitHub code search for MigrationSchemaGuard::createTableIfMissing in database/migrations",
+    "Manual source inspection for multi-table and conditional create migrations"
+  ],
+  "application_table_count": 62,
+  "framework_managed_table_count": 1,
+  "total_table_count": 63,
+  "scope_status": "SOURCE_CREATE_INVENTORY_IDENTIFIED; FINAL_SCHEMA_DEFINITION_NOT_CHECKED",
+  "tables": {
+    "accreditations": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000025_create_accreditations_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "admission_intakes": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000015_create_admission_intakes_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "assertions": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000021_create_assertions_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php",
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "campuses": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000008_create_campuses_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "change_events": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000026_create_change_events_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_03_000006_add_change_event_source_link_identity.php"
+      ]
+    },
+    "data_quality_events": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000004_create_data_quality_events_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "data_reverification_queue": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000014_create_data_reverification_queue_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "data_reverification_queue_identities": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "eligibility_rules": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000016_create_eligibility_rules_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "enrichment_import_rows": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000008_create_enrichment_import_rows_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "evidence": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000020_create_evidences_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_09_24_000026_add_snapshot_id_to_evidences_table.php",
+        "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php"
+      ]
+    },
+    "external_rankings": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000027_create_external_rankings_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "fee_records": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000019_create_fee_records_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "geographies": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000002_create_geographies_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "governed_execution_leases": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_11_03_000001_create_governed_execution_leases_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "governed_execution_run_events": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_11_03_000002_create_governed_execution_runs_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "governed_execution_runs": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_11_03_000002_create_governed_execution_runs_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "identity_match_candidates": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000003_create_identity_match_candidates_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php"
+      ]
+    },
+    "identity_resolution_decisions": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000004_create_identity_resolution_decisions_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php",
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "import_batches": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000001_create_import_batches_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_10_23_000001_add_duplicate_rows_to_import_batches_table.php",
+        "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php",
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "import_conflict_events": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "import_conflicts": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000013_create_import_conflicts_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php",
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "import_promotion_decisions": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000011_create_import_promotion_decisions_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "import_promotion_events": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000012_create_import_promotion_events_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "import_reconciliation_events": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000009_create_import_reconciliation_events_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "import_rows": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000002_create_import_rows_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_09_24_000008_add_enrichment_metadata_to_import_rows.php",
+        "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php",
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "import_schema_profiles": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000010_create_import_schema_profiles_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "institute_discovery_run_outcomes": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_10_23_070000_create_institute_discovery_run_outcomes_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_03_000005_add_discovery_outcome_idempotency_key.php"
+      ]
+    },
+    "institution_field_approvals": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "institution_names": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000005_create_institution_names_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "institutions": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000001_create_institutions_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_09_23_000003_rebuild_institutions_table.php"
+      ]
+    },
+    "merit_records": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000017_create_merit_records_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "moderation_actions": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000011_create_moderation_actions_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "monitoring_alert_identities": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php"
+      ]
+    },
+    "monitoring_alerts": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000022_create_monitoring_alerts_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "monitoring_policy_run_sources": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php"
+      ]
+    },
+    "monitoring_policy_runs": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php"
+      ]
+    },
+    "official_source_refresh_events": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_10_25_000002_create_official_source_refresh_events_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "password_reset_tokens": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_10_17_000001_create_password_reset_tokens_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "program_offerings": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000014_create_program_offerings_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "programs": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000009_create_programs_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "provenance_review_events": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000007_create_provenance_review_events_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "ranking_methodologies": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000006_create_ranking_methodologies_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "recommendation_policies": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000007_create_recommendation_policies_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "recommendations": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000024_create_recommendations_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "release_records": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000012_create_release_records_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "reverification_events": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000015_create_reverification_events_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "review_ratings": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000022_create_reviews_tables.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "reviews": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000022_create_reviews_tables.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "scholarships": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000023_create_scholarships_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "security_audit_events": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000010_create_security_audit_events_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php",
+        "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+      ]
+    },
+    "selection_outcomes": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000018_create_selection_outcomes_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "source_change_assertion_links": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000020_create_source_change_assertion_links_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "source_change_observations": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000018_create_source_change_observations_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_03_000004_add_snapshot_and_observation_idempotency.php"
+      ]
+    },
+    "source_monitoring_policies": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000016_create_source_monitoring_policies_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_09_24_000021_add_monitoring_execution_fields.php",
+        "database/migrations/2026_09_26_000002_add_scheduling_to_source_monitoring_policies_table.php"
+      ]
+    },
+    "source_retrieval_runs": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000019_create_source_retrieval_runs_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_11_03_000003_add_source_retrieval_idempotency_key.php"
+      ]
+    },
+    "source_snapshot_reconciliation_requests": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_11_04_000013_create_source_snapshot_reconciliation_requests_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "source_snapshots": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000017_create_source_snapshots_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_09_26_000001_add_content_to_source_snapshots_table.php",
+        "database/migrations/2026_11_03_000004_add_snapshot_and_observation_idempotency.php"
+      ]
+    },
+    "sources": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_23_000013_create_sources_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "structured_enrichment_promotion_events": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_10_25_000001_create_structured_enrichment_promotion_events_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "users": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000005_create_users_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": [
+        "database/migrations/2026_10_17_000002_add_must_change_password_to_users_table.php"
+      ]
+    },
+    "verification_decisions": {
+      "ownership": "application",
+      "creation_migration": "database/migrations/2026_09_24_000006_create_verification_decisions_table.php",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Creation source identified; complete final-state column/index/foreign-key/trigger definition remains to be reconstructed across all subsequent migrations.",
+      "alteration_migrations": []
+    },
+    "migrations": {
+      "ownership": "framework_managed",
+      "creation_migration": null,
+      "managed_by": "Laravel migrator",
+      "definition_state": "NOT_CHECKED",
+      "definition_note": "Framework-managed migration ledger; explicit framework schema contract still required."
+    }
+  },
+  "alteration_mapping_status": "PARTIAL_SOURCE_REFERENCES_CAPTURED; FULL_OBJECT_LEVEL_PROVENANCE_REVIEW_REQUIRED",
+  "notes": [
+    "Creation source paths identify source-level create targets, including multi-table and guarded create migrations.",
+    "Alteration migration paths are mapped for source-inspected Schema::table and MigrationSchemaGuard changes plus the reviewed append-only and monitoring checkpoint migrations.",
+    "Do not interpret an empty alteration_migrations array as proof that no later raw SQL or indirect object change exists; the final object-level source scan is still required.",
+    "Historical tables remain in current migration-created scope unless an explicit drop/rename or retirement contract proves otherwise.",
+    "Every definition_state remains NOT_CHECKED until complete final-state definitions and comparison are implemented."
+  ]
+}

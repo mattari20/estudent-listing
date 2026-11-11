@@ -307,5 +307,10 @@
         "2026_11_04_000014_enforce_append_only_audit_retention.php"
       ]
     }
-  }
+  },
+  "expanded_scope_inventory": "database/schema-contract/phase1d2b-schema-scope-inventory.json",
+  "expanded_scope_contract": "phase1d2b-schema-scope-inventory/v1",
+  "expanded_application_table_count": 62,
+  "expanded_total_table_count": 63,
+  "scope_note": "The tables object in this legacy provenance artifact remains the original 38-application-table diagnostic allowlist plus framework migrations ledger. The expanded 62-application-table source creation scope and its alteration references are maintained in expanded_scope_inventory; do not treat this legacy tables object as the complete application schema scope."
 }

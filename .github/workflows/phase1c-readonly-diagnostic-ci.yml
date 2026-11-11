@@ -78,6 +78,9 @@ jobs:
       - name: Validate Phase 1D.2B source migration provenance inventory
         run: python3 -m unittest discover -s tests/phase1c -p 'test_phase1d2b_source_provenance.py' -v
 
+      - name: Validate complete Phase 1D.2B migration-created schema scope
+        run: python3 -m unittest discover -s tests/phase1c -p 'test_phase1d2b_schema_scope.py' -v
+
       - name: Run disposable database acceptance
         env:
           DB_HOST: 127.0.0.1

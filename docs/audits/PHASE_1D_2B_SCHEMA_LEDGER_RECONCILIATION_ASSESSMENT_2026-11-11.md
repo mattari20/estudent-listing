@@ -114,9 +114,56 @@ A dedicated Python regression test now checks that the provenance table set matc
 
 This artifact is **provenance only**. It deliberately does not claim to be the full schema definition manifest: column definitions, complete index contracts, foreign-key actions, trigger bodies and table options must still be encoded and compared. Source migrations that create tables outside the diagnostic allowlist remain outside this 1D.2B table contract unless the authoritative scope is expanded; they must not be silently omitted from a broader whole-database claim.
 
+## 6.2 Expanded migration-created schema scope inventory
+
+Continuation branch `phase1d2b/complete-source-schema-reconciliation` was created from verified `main` SHA `117d2dd710e7b9545b7a28b6c802415e26c02f1f`.
+
+A source-level inventory of all 97 PHP files in `database/migrations` identified 62 distinct application-owned table creation targets, including multiple tables created by one migration and guarded `MigrationSchemaGuard::createTableIfMissing` operations. The Laravel `migrations` ledger is separately classified as framework-managed, giving 63 current table-scope entries in this inventory.
+
+New artifact:
+- `database/schema-contract/phase1d2b-schema-scope-inventory.json`
+- Contract: `phase1d2b-schema-scope-inventory/v1`
+- Application creation targets: 62
+- Framework-managed ledger: 1
+- Total entries: 63
+- Status: `SOURCE_CREATE_INVENTORY_IDENTIFIED; FINAL_SCHEMA_DEFINITION_NOT_CHECKED`
+
+The current 39-entry diagnostic allowlist is a subset of this expanded source inventory. This establishes that the previous 38-application-table inventory is not the complete migration-created application table scope.
+
+Regression:
+- `tests/phase1c/test_phase1d2b_schema_scope.py`
+- Checks scope counts, framework-ledger classification, allowlist inclusion, creation-source existence, recognized create operations and explicit NOT_CHECKED definition state.
+- Added to `phase1c-readonly-diagnostic-ci.yml`.
+
+Important limitation: this inventory is a creation-target/scope discovery artifact, not the final-state schema manifest. It does not yet encode complete final column definitions, indexes, foreign keys, triggers, table options or every subsequent alteration. Those definitions must be reconstructed from all applicable source migrations before any schema-equivalence PASS can be emitted.
+
+## 6.3 Alteration provenance and source-scan regression
+
+The expanded scope inventory now includes an `alteration_migrations` list for 28 application tables based on inspected `Schema::table`, `MigrationSchemaGuard` and append-only / monitoring checkpoint migration sources. The original 38-table provenance artifact now links to the expanded 63-entry scope artifact and explicitly warns that its legacy `tables` object is not the complete application scope.
+
+The scope regression was strengthened to scan all 97 migration PHP files for literal `Schema::create`, `createTableIfMissing`, raw `CREATE TABLE`, and constant-backed `Schema::create(self::TABLE, ...)` targets, then compare the discovered set to the inventory. It also verifies every mapped alteration source path and its table reference.
+
+The first run of this stronger scan failed because the test recognizer expected the constant-backed `Schema::create(self::TABLE)` call to close immediately; the real migration correctly passes a Blueprint closure after the constant. The failure was in the test recognizer, not the migration. The recognizer was corrected to accept the closure argument. Exact-head rerun is pending; no assertion has been removed or weakened.
+
+## 6.4 Exact-head scope inventory regression result
+
+At continuation commit `9360d713558c3455b19b20c161cd6d0a057c808e`, Phase 1C read-only diagnostic CI run **#42994466030** completed successfully.
+
+Both disposable database jobs passed:
+- MySQL 8.4 — PASS.
+- MariaDB 11.8.9 — PASS.
+
+Within each engine job:
+- Existing source provenance regression — PASS.
+- Expanded 63-entry schema scope regression — PASS, including the all-97-migration create-target scan and alteration-source path checks.
+- Existing disposable read-only diagnostic acceptance — PASS.
+- Sanitized evidence schema validation — PASS.
+
+This validates the new source-scope inventory and its test harness only. It does not validate final-state schema equivalence; the complete source-derived definition manifest and comparison engine remain open. Laravel CI and Repository Test for this exact head were still running at the time of this report update and must be rechecked on the final PR head.
+
 ## 6. Remaining blockers before Phase 1D.2B acceptance
 
-The source-backed full schema definition manifest and comparison engine are not yet complete. The existing table metadata PASS remains a successful metadata-read state, not proof of source equivalence. A complete definition manifest must cover the 38 application tables in the current 39-entry diagnostic allowlist (the 39th entry is the Laravel migrations ledger), using the new provenance map and authoritative migration history. Observed definitions must be compared across all columns, table options, indexes, foreign keys and trigger contracts.
+The source-backed full schema definition manifest and comparison engine are not yet complete. The existing table metadata PASS remains a successful metadata-read state, not proof of source equivalence. A complete definition manifest must cover the 62 application-owned table creation targets in the expanded scope inventory (plus the Laravel migrations ledger), using the provenance map and authoritative migration history. Observed definitions must be compared across all columns, table options, indexes, foreign keys and trigger contracts.
 
 The current target migration/object matrix is implemented, but its object mapping must be expanded and source-verified as part of the complete schema manifest. It must not be treated as exhaustive for every table/column/index/constraint created by the 18 migrations.
 
