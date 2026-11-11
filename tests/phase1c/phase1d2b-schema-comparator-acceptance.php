@@ -12,16 +12,16 @@ function expectState(array $result, string $state, string $label): void
 
 $column = ['name'=>'status','definition_state'=>'COMPLETE','type'=>'varchar(32)','nullable'=>false,'default'=>'active','default_expression'=>null,'auto_increment'=>false,'generated'=>null];
 expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,$column),'PASS','correct column');
-expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,$column+['type'=>'int']),'FAIL','wrong type');
-expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,$column+['nullable'=>true]),'FAIL','wrong nullability');
-expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,$column+['default'=>'inactive']),'FAIL','wrong default');
+expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,array_replace($column,['type'=>'int'])),'FAIL','wrong type');
+expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,array_replace($column,['nullable'=>true])),'FAIL','wrong nullability');
+expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,array_replace($column,['default'=>'inactive'])),'FAIL','wrong default');
 expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,null,true),'MISSING','missing column with complete visibility');
 expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column,null,false),'UNKNOWN','incomplete metadata visibility');
-expectState(Phase1D2BSchemaContractComparator::compareObject('column',$column+['definition_state'=>'NOT_CHECKED'],null,true),'NOT_CHECKED','incomplete source definition');
+expectState(Phase1D2BSchemaContractComparator::compareObject('column',array_replace($column,['definition_state'=>'NOT_CHECKED']),null,true),'NOT_CHECKED','incomplete source definition');
 
 $index = ['name'=>'PRIMARY','definition_state'=>'COMPLETE','unique'=>true,'type'=>'BTREE','columns'=>[['name'=>'tenant_id','sequence'=>1,'prefix_length'=>null,'direction'=>'ASC'],['name'=>'record_id','sequence'=>2,'prefix_length'=>null,'direction'=>'ASC']]];
 expectState(Phase1D2BSchemaContractComparator::compareObject('index',$index,$index),'PASS','correct composite primary key');
-expectState(Phase1D2BSchemaContractComparator::compareObject('index',$index,$index+['columns'=>array_reverse($index['columns'])]),'FAIL','wrong composite index order');
+expectState(Phase1D2BSchemaContractComparator::compareObject('index',$index,array_replace($index,['columns'=>array_reverse($index['columns'])])),'FAIL','wrong composite index order');
 $wrongPrefix=$index; $wrongPrefix['columns'][0]['prefix_length']=8;
 expectState(Phase1D2BSchemaContractComparator::compareObject('index',$index,$wrongPrefix),'FAIL','wrong index prefix');
 $wrongType=$index; $wrongType['type']='HASH';
