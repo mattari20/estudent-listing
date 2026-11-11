@@ -224,10 +224,15 @@ assertDiagnostic($sourceMissingObjectCount>0,'known absent objects in a fully vi
 $fullSource=$one['full_source_migration_reconciliation'];
 assertDiagnostic($fullSource['source_count']===97 && count($fullSource['migration_object_reconciliation'])===97,'all 97 source migrations receive ledger/object reconciliation rows');
 $fullObjectStates=array_count_values(array_column($fullSource['migration_object_reconciliation'],'object_state'));
-assertDiagnostic(($fullObjectStates['PASS'] ?? 0)===23,'23 reviewed no-op migrations remain object-neutral');
 assertDiagnostic(array_sum($fullObjectStates)===97,'all 97 migrations receive one object state');
-assertDiagnostic((($fullObjectStates['FAIL'] ?? 0)+($fullObjectStates['NOT_CHECKED'] ?? 0)+($fullObjectStates['UNKNOWN'] ?? 0))===74,'all 74 partial migrations remain non-PASS; missing observed objects fail and incomplete source mappings remain NOT_CHECKED');
-assertDiagnostic(($fullSource['source_review_state_counts']['REVIEWED_NOOP'] ?? 0)===23 && ($fullSource['source_review_state_counts']['SOURCE_REVIEWED_PARTIAL'] ?? 0)===74,'migration review states preserve 23 no-op and 74 partial dispositions');
+assertDiagnostic(($fullSource['source_review_state_counts']['REVIEWED_NOOP'] ?? 0)===23,'all 23 no-op source dispositions remain preserved');
+assertDiagnostic(($fullSource['source_review_state_counts']['SOURCE_REVIEWED_COMPLETE'] ?? 0)===24,'all 24 individually completed source reviews remain separately classified');
+assertDiagnostic(($fullSource['source_review_state_counts']['SOURCE_REVIEWED_PARTIAL'] ?? 0)===50,'all 50 unresolved source reviews remain partial');
+foreach($fullSource['migration_object_reconciliation'] as $row) {
+    if($row['source_review_state']==='REVIEWED_NOOP') assertDiagnostic($row['object_state']==='PASS','reviewed no-op must remain object-neutral: '.$row['migration']);
+    if($row['source_review_state']==='SOURCE_REVIEWED_COMPLETE') assertDiagnostic(in_array($row['object_state'],['PASS','FAIL','UNKNOWN'],true),'fully mapped source review must not be silently NOT_CHECKED: '.$row['migration']);
+    if($row['source_review_state']==='SOURCE_REVIEWED_PARTIAL') assertDiagnostic($row['object_state']!=='PASS','partial source review cannot claim object PASS: '.$row['migration']);
+}
 assertDiagnostic($one['registry_counts']['tables']===63 && $one['registry_counts']['expected_indexes']===23 && $one['registry_counts']['expected_columns']===50 && $one['registry_counts']['expected_foreign_keys']===23 && $one['registry_counts']['expected_triggers']===24 && $one['registry_counts']['expected_migrations']===18 && $one['registry_counts']['orphan_checks']===18 && $one['registry_counts']['duplicate_checks']===14,'registry sizes');
 assertDiagnostic(count($one['tables'])===63 && count($one['expected_index_reconciliation'])===23,'complete table/index metadata');
 assertDiagnostic(count($one['expected_column_reconciliation'])===50 && count($one['expected_foreign_key_reconciliation'])===23 && count($one['expected_trigger_reconciliation'])===24 && count($one['migration_ledger_reconciliation'])===18,'complete reconciliation sections');
