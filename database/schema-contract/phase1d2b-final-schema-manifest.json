@@ -21,7 +21,7 @@
     "framework_ledger_state": "COMPLETE_FRAMEWORK_DEFINITION_WITH_INHERITED_CONNECTION_OPTIONS_VERIFIED",
     "source_reviewed_non_empty_migrations": 74,
     "remaining_non_empty_migrations": 0,
-    "note": "Complete source-derived definitions for all 62 application tables and the separately classified Laravel framework ledger. Disposable MySQL 8.4.13 and MariaDB 11.8.9 acceptance both passed on PR #1075 exact-head workflow run #183: 63/63 tables, 796 columns, 252 indexes, 89 foreign keys, 24 trigger contracts, 63 table-option comparisons and 97/97 migration object states PASS. No production database was accessed.",
+    "note": "Complete source-derived definitions for all 62 application tables and the separately classified Laravel framework ledger. Disposable MySQL 8.4.13 and MariaDB 11.8.9 acceptance both passed: 63/63 tables, 796 columns, 252 indexes, 89 foreign keys, 24 trigger contracts, 63 table-option comparisons and 97/97 migration object states PASS. No production database was accessed; exact-head CI results are attached to PR #1075.",
     "partial_application_tables": 0,
     "trigger_table_count": 12,
     "application_indexes": 251,
