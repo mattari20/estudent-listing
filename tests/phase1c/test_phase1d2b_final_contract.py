@@ -111,6 +111,10 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
         self.assertEqual(self.manifest["definition_coverage"]["complete_application_tables"], 0)
         self.assertEqual(self.manifest["definition_coverage"]["not_checked_application_tables"], 0)
         self.assertEqual(self.manifest["definition_coverage"]["partial_application_tables"], 62)
+        self.assertEqual(sum(len(v["columns"]) for v in application), 793)
+        self.assertEqual(sum(len(v["indexes"]) for v in application), 231)
+        self.assertEqual(sum(len(v["foreign_keys"]) for v in application), 89)
+        self.assertEqual(sum(len(v["triggers"]) for v in application), 24)
         for table_name, contract in self.manifest["tables"].items():
             if contract["ownership"] != "application":
                 continue
