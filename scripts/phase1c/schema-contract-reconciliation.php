@@ -32,7 +32,21 @@ final class Phase1D2BSchemaContractComparator
 
         $expectedValue = self::canonical($kind, self::withoutControlFields($expected));
         $observedValue = self::canonical($kind, self::withoutControlFields($observed));
-        $matches = $expectedValue === $observedValue;
+        $canonicalKind = match ($kind) {
+            'columns' => 'column',
+            'indexes' => 'index',
+            'foreign_keys' => 'foreign_key',
+            'triggers' => 'trigger',
+            default => $kind,
+        };
+        if ($canonicalKind === 'column' && is_array($expectedValue['type'] ?? null)) {
+            $allowedTypes = $expectedValue['type'];
+            $actualType = $observedValue['type'] ?? null;
+            unset($expectedValue['type'], $observedValue['type']);
+            $matches = in_array($actualType, $allowedTypes, true) && $expectedValue === $observedValue;
+        } else {
+            $matches = $expectedValue === $observedValue;
+        }
 
         return [
             'kind' => $kind,
@@ -240,7 +254,13 @@ final class Phase1D2BSchemaContractComparator
             foreach (['engine', 'charset', 'collation'] as $key) if (isset($value[$key])) $value[$key] = strtolower((string)$value[$key]);
         }
         if ($kind === 'column' && isset($value['type'])) {
-            $value['type'] = strtolower(preg_replace('/\\s+/', ' ', trim((string)$value['type'])));
+            $normalizeType = static function (string $type): string {
+                $type = strtolower(preg_replace('/\\s+/', ' ', trim($type)));
+                return preg_replace('/^(tinyint|smallint|mediumint|int|integer|bigint)\\(\\d+\\)/', '$1', $type) ?? $type;
+            };
+            $value['type'] = is_array($value['type'])
+                ? array_values(array_unique(array_map($normalizeType, $value['type'])))
+                : $normalizeType((string)$value['type']);
         }
         if ($kind === 'index') {
             if (isset($value['type'])) $value['type'] = strtoupper((string)$value['type']);
