@@ -134,6 +134,22 @@ final class Phase1D2BSchemaContractComparator
         for ($i = 1; $i < count($distinct); $i++) {
             if ($distinct[$i] > $distinct[$i - 1] + 1) $gaps[] = [$distinct[$i - 1] + 1, $distinct[$i] - 1];
         }
+        $orderingAnomalies = [];
+        if ($ledgerVisible && $orderingVisible) {
+            $byBatch = [];
+            foreach ($ledgerRows as $row) {
+                if (isset($row['batch'], $row['id']) && is_numeric($row['batch']) && is_numeric($row['id'])) {
+                    $byBatch[(int)$row['batch']][] = $row;
+                }
+            }
+            foreach ($byBatch as $batch => $batchRows) {
+                usort($batchRows, static fn(array $a, array $b): int => (int)$a['id'] <=> (int)$b['id']);
+                $orderedNames = array_map(static fn(array $row): string => (string)($row['migration'] ?? ''), $batchRows);
+                $sortedNames = $orderedNames;
+                sort($sortedNames, SORT_STRING);
+                if ($orderedNames !== $sortedNames) $orderingAnomalies[] = ['batch' => $batch, 'reason' => 'MIGRATION_FILENAME_ORDER_DIFFERS_FROM_LEDGER_ID_ORDER'];
+            }
+        }
         $migrationResults = [];
         $names = array_keys($sources);
         sort($names, SORT_STRING);
@@ -167,7 +183,8 @@ final class Phase1D2BSchemaContractComparator
             'batch_numbers' => $ledgerVisible ? $distinct : [],
             'batch_gaps' => $ledgerVisible ? $gaps : [],
             'batch_gap_state' => $ledgerVisible ? 'NOT_CHECKED' : 'UNKNOWN',
-            'ordering_state' => $ledgerVisible && $orderingVisible ? 'NOT_CHECKED' : 'UNKNOWN',
+            'ordering_state' => !$ledgerVisible || !$orderingVisible ? 'UNKNOWN' : ($orderingAnomalies === [] ? 'PASS' : 'FAIL'),
+            'ordering_anomalies' => $ledgerVisible && $orderingVisible ? $orderingAnomalies : [],
             'migration_object_reconciliation' => $migrationResults,
         ];
     }
