@@ -31,7 +31,6 @@ class Phase1D2BSchemaScopeTest(unittest.TestCase):
         allowlist = set(re.findall(r"'([a-zA-Z0-9_]+)'", match.group(1)))
         self.assertTrue(allowlist)
         self.assertTrue(allowlist.issubset(set(self.scope["tables"])))
-        self.assertEqual(allowlist - {"migrations"} & set(self.scope["tables"]), allowlist - {"migrations"})
 
     def test_every_application_table_has_existing_creation_source(self):
         for table, entry in self.scope["tables"].items():
