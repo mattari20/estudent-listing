@@ -82,11 +82,23 @@ The existing 18-target object checks are reused where available. Object states f
 
 ## 7. Engine and CI results
 
-The existing isolated CI matrix is reused:
-- MySQL 8.4.
-- MariaDB 11.8.9.
+Exact PR head tested: `52858f7700a001a666fab2bd6fa1f5f1dc5fcb5d`.
 
-No result is claimed for this branch until the exact-head workflow runs complete. The previous PR #1072 matrix validates the inherited scope inventory only; it does not validate this new comparator or final-schema work.
+The focused disposable matrix completed successfully:
+- MySQL **8.4.13** — PASS (workflow run #42996769054).
+- MariaDB **11.8.9-MariaDB-ubu2404** — PASS (workflow run #42996769054).
+- Comparator positive/negative fixtures — PASS on both engines.
+- 63-entry manifest / 97-source provenance tests — PASS on both engines.
+- Disposable read-only collector acceptance and deterministic evidence schema validation — PASS on both engines.
+- Laravel CI — PASS (run #42996769007).
+- Repository Test — PASS (run #42996769021).
+
+These results validate the comparator implementation, fail-closed behavior, provenance accounting, ledger reconciliation code path and isolated regression fixtures. They do **not** convert the 62 incomplete application table definitions into PASS; the emitted source-schema state remains NOT_CHECKED.
+
+Earlier failures on preceding commits were corrected:
+- Evidence v2 fixtures were upgraded to v3 when the new evidence sections became required.
+- The disposable assertion was corrected to inspect the 79 unmapped migration object rows individually instead of assuming the aggregate status could only be NOT_CHECKED when 18 existing target checks can independently report FAIL.
+No assertions were removed or weakened.
 
 ## 8. Explicit blockers / unknowns
 
