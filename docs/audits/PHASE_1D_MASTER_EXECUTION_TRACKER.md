@@ -70,3 +70,8 @@ Complete all 62 application table definitions and every table/index/FK/trigger o
 - Remaining non-empty individual reviews: 58/74. Final application table definitions complete: 0/62; all remain NOT_CHECKED pending cumulative source reconstruction, helper/raw-SQL coverage, table options and complete object registry.
 - Next unfinished batch: continue reviewing remaining non-empty migration files in filename order; inspect helper implementation effects (especially `MigrationSchemaGuard`) and append-only migration triggers/FKs; then build cumulative final manifest for affected tables. Do not mark any table COMPLETE from a creation migration alone.
 - Safety exclusions held: no production connection or execution; no reverification records/monitoring alerts changed; no Test 1A/1B restart; no Phase 1D.3 or 1D.7.
+
+
+### Corrected source review totals — 2026-11-11
+
+Verified directly from all 97 provenance rows: 23 REVIEWED_NOOP + 27 SOURCE_REVIEWED_PARTIAL + 47 remaining PARTIAL = 97. Previous 16/58 checkpoint figures were inaccurate and are superseded. Final application definitions: 0/62 complete.
