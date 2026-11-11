@@ -68,6 +68,34 @@ if ($ledger['migration_object_reconciliation'][1]['consistency_state']!=='PASS')
 $missingLedger=Phase1D2BSchemaContractComparator::reconcileMigrationLedger($source,[['migration'=>'001_create_accounts','batch'=>1]],['001_create_accounts'=>['PASS'],'002_add_account_key'=>['PASS']],true,false);
 if (!in_array('002_add_account_key',$missingLedger['source_files_not_recorded'],true)) throw new RuntimeException('missing ledger entry not detected');
 if ($missingLedger['migration_object_reconciliation'][1]['consistency_state']!=='FAIL') throw new RuntimeException('objects present without ledger must fail');
+$orderCheck=Phase1D2BSchemaContractComparator::reconcileMigrationLedger(
+ ['001_first','002_second'],
+ [
+  ['migration'=>'002_second','batch'=>1,'id'=>1],
+  ['migration'=>'001_first','batch'=>1,'id'=>2],
+ ],
+ ['001_first'=>['PASS'],'002_second'=>['PASS']],
+ true,
+ true
+);
+expectState(['state'=>$orderCheck['ordering_state']],'FAIL','ledger ordering anomaly');
+if ($orderCheck['ordering_anomalies']===[]) throw new RuntimeException('ordering anomaly details missing');
+$gapCheck=Phase1D2BSchemaContractComparator::reconcileMigrationLedger(
+ ['001_first','003_third'],
+ [['migration'=>'001_first','batch'=>1,'id'=>1],['migration'=>'003_third','batch'=>3,'id'=>2]],
+ ['001_first'=>['PASS'],'003_third'=>['PASS']],
+ true,
+ true
+);
+if ($gapCheck['batch_gaps']!==[[2,2]] || $gapCheck['batch_gap_state']!=='NOT_CHECKED') throw new RuntimeException('batch gap must be recorded as informational NOT_CHECKED');
+$partial=Phase1D2BSchemaContractComparator::reconcileMigrationLedger(
+ ['001_partial'],
+ [['migration'=>'001_partial','batch'=>1,'id'=>1]],
+ ['001_partial'=>['PASS','MISSING']],
+ true,
+ true
+);
+if ($partial['migration_object_reconciliation'][0]['consistency_state']!=='FAIL') throw new RuntimeException('partially applied migration objects must fail');
 $unknown=Phase1D2BSchemaContractComparator::reconcileMigrationLedger($source,[],[],false,false);
 expectState(['state'=>$unknown['state']],'UNKNOWN','ledger visibility failure');
 if ($unknown['migration_object_reconciliation'][0]['ledger_state']!=='UNKNOWN') throw new RuntimeException('ledger permission failure must be UNKNOWN');
