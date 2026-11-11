@@ -207,9 +207,12 @@ assertDiagnostic(json_encode($one,JSON_UNESCAPED_SLASHES)===json_encode($two,JSO
 assertDiagnostic($one['schema_version']==='phase1c-readonly-diagnostic/v3','versioned schema comparator evidence');
 $sourceContract=$one['source_schema_reconciliation'];
 assertDiagnostic($sourceContract['contract']==='phase1d2b-schema-comparison/v1' && $sourceContract['table_count']===63,'all 63 source schema scope entries represented');
-assertDiagnostic($sourceContract['state']==='NOT_CHECKED' && $sourceContract['complete_table_count']===0 && $sourceContract['schema_equivalence_proven']===false,'incomplete source definitions cannot produce schema-equivalence PASS');
+assertDiagnostic($sourceContract['state']==='UNKNOWN' && $sourceContract['complete_table_count']===0 && $sourceContract['schema_equivalence_proven']===false && $sourceContract['observed_metadata_collected']===false,'unobserved source objects cannot be reported as missing or equivalent');
 assertDiagnostic(count($sourceContract['results'])===63,'per-table source comparison statuses are present');
-foreach($sourceContract['results'] as $tableResult) assertDiagnostic($tableResult['state']==='NOT_CHECKED','unreconstructed table definitions remain NOT_CHECKED');
+foreach($sourceContract['results'] as $tableName => $tableResult) {
+    $expectedState = $tableName === 'migrations' ? 'UNKNOWN' : 'NOT_CHECKED';
+    assertDiagnostic($tableResult['state']===$expectedState,'application definitions remain NOT_CHECKED and unobserved framework objects remain UNKNOWN');
+}
 $fullSource=$one['full_source_migration_reconciliation'];
 assertDiagnostic($fullSource['source_count']===97 && count($fullSource['migration_object_reconciliation'])===97,'all 97 source migrations receive ledger/object reconciliation rows');
 $targetMigrationNames=$expectedMigrations;
