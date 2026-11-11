@@ -21,9 +21,11 @@
     "framework_ledger_state": "COMPLETE_FRAMEWORK_DEFINITION_WITH_INHERITED_CONNECTION_OPTIONS",
     "source_reviewed_non_empty_migrations": 74,
     "remaining_non_empty_migrations": 0,
-    "note": "All 62 application tables have source-derived object inventories. Table options are complete as a conditional source contract (engine resolved from @@default_storage_engine; charset/collation pinned). Table definitions remain PARTIAL pending exact cumulative object reconciliation and conditional migration-path resolution.",
+    "note": "All 62 application table inventories include explicit indexes and the 20 InnoDB foreign-key-support indexes generated when source migrations declare FKs without an existing covering index. Full comparator acceptance still pending.",
     "partial_application_tables": 62,
-    "trigger_table_count": 12
+    "trigger_table_count": 12,
+    "application_indexes": 251,
+    "total_indexes_including_framework_ledger": 252
   },
   "tables": {
     "accreditations": {
@@ -1066,6 +1068,23 @@
           "type": "BTREE",
           "state": "COMPLETE",
           "source": "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php"
+        },
+        {
+          "name": "assertions_evidence_id_foreign",
+          "columns": [
+            {
+              "name": "evidence_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_09_23_000021_create_assertions_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "assertions_evidence_id_foreign"
         }
       ],
       "foreign_keys": [
@@ -3230,6 +3249,23 @@
           "type": "BTREE",
           "state": "COMPLETE",
           "source": "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php"
+        },
+        {
+          "name": "evidence_snapshot_id_foreign",
+          "columns": [
+            {
+              "name": "snapshot_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_09_24_000026_add_snapshot_id_to_evidences_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "evidence_snapshot_id_foreign"
         }
       ],
       "foreign_keys": [
@@ -8484,6 +8520,40 @@
           "type": "BTREE",
           "state": "COMPLETE",
           "source": "database/migrations/2026_11_03_000005_add_discovery_outcome_idempotency_key.php"
+        },
+        {
+          "name": "idrun_outcomes_observation_fk",
+          "columns": [
+            {
+              "name": "source_change_observation_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_10_23_070000_create_institute_discovery_run_outcomes_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "idrun_outcomes_observation_fk"
+        },
+        {
+          "name": "idrun_outcomes_snapshot_fk",
+          "columns": [
+            {
+              "name": "snapshot_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_10_23_070000_create_institute_discovery_run_outcomes_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "idrun_outcomes_snapshot_fk"
         }
       ],
       "foreign_keys": [
@@ -8982,6 +9052,108 @@
           "type": "BTREE",
           "state": "COMPLETE",
           "source": "database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php"
+        },
+        {
+          "name": "institution_field_approvals_source_change_observation_id_foreign",
+          "columns": [
+            {
+              "name": "source_change_observation_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "institution_field_approvals_source_change_observation_id_foreign"
+        },
+        {
+          "name": "institution_field_approvals_source_snapshot_id_foreign",
+          "columns": [
+            {
+              "name": "source_snapshot_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "institution_field_approvals_source_snapshot_id_foreign"
+        },
+        {
+          "name": "institution_field_approvals_evidence_id_foreign",
+          "columns": [
+            {
+              "name": "evidence_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "institution_field_approvals_evidence_id_foreign"
+        },
+        {
+          "name": "institution_field_approvals_created_by_foreign",
+          "columns": [
+            {
+              "name": "created_by",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "institution_field_approvals_created_by_foreign"
+        },
+        {
+          "name": "institution_field_approvals_reviewer_id_foreign",
+          "columns": [
+            {
+              "name": "reviewer_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "institution_field_approvals_reviewer_id_foreign"
+        },
+        {
+          "name": "institution_field_approvals_applied_refresh_event_id_foreign",
+          "columns": [
+            {
+              "name": "applied_refresh_event_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_10_29_000001_create_institution_field_approvals_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "institution_field_approvals_applied_refresh_event_id_foreign"
         }
       ],
       "foreign_keys": [
@@ -10515,6 +10687,23 @@
           "type": "BTREE",
           "state": "COMPLETE",
           "source": "database/migrations/2026_09_24_000022_create_monitoring_alerts_table.php"
+        },
+        {
+          "name": "monitoring_alerts_source_monitoring_policy_id_foreign",
+          "columns": [
+            {
+              "name": "source_monitoring_policy_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_09_24_000022_create_monitoring_alerts_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "monitoring_alerts_source_monitoring_policy_id_foreign"
         }
       ],
       "foreign_keys": [
@@ -10773,6 +10962,40 @@
           "type": "BTREE",
           "state": "COMPLETE",
           "source": "database/migrations/2026_11_04_000010_create_monitoring_policy_run_checkpoints.php"
+        },
+        {
+          "name": "mp_source_retrieval_fk",
+          "columns": [
+            {
+              "name": "retrieval_run_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "mp_source_retrieval_fk"
+        },
+        {
+          "name": "mp_source_observation_fk",
+          "columns": [
+            {
+              "name": "observation_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "mp_source_observation_fk"
         }
       ],
       "foreign_keys": [
@@ -14664,6 +14887,40 @@
           "type": "BTREE",
           "state": "COMPLETE",
           "source": "database/migrations/2026_09_23_000023_create_scholarships_table.php"
+        },
+        {
+          "name": "scholarships_program_id_foreign",
+          "columns": [
+            {
+              "name": "program_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_09_23_000023_create_scholarships_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "scholarships_program_id_foreign"
+        },
+        {
+          "name": "scholarships_campus_id_foreign",
+          "columns": [
+            {
+              "name": "campus_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_09_23_000023_create_scholarships_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "scholarships_campus_id_foreign"
         }
       ],
       "foreign_keys": [
@@ -15821,6 +16078,23 @@
           "type": "BTREE",
           "state": "COMPLETE",
           "source": "database/migrations/2026_11_03_000004_add_snapshot_and_observation_idempotency.php"
+        },
+        {
+          "name": "source_change_observations_previous_snapshot_id_foreign",
+          "columns": [
+            {
+              "name": "previous_snapshot_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_09_24_000018_create_source_change_observations_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "source_change_observations_previous_snapshot_id_foreign"
         }
       ],
       "foreign_keys": [
@@ -16498,6 +16772,23 @@
           "type": "BTREE",
           "state": "COMPLETE",
           "source": "database/migrations/2026_11_03_000003_add_source_retrieval_idempotency_key.php"
+        },
+        {
+          "name": "source_retrieval_runs_snapshot_id_foreign",
+          "columns": [
+            {
+              "name": "snapshot_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_09_24_000019_create_source_retrieval_runs_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "source_retrieval_runs_snapshot_id_foreign"
         }
       ],
       "foreign_keys": [
@@ -16772,6 +17063,57 @@
           "type": "BTREE",
           "state": "COMPLETE",
           "source": "database/migrations/2026_11_04_000013_create_source_snapshot_reconciliation_requests_table.php"
+        },
+        {
+          "name": "ssr_triggering_snapshot_fk",
+          "columns": [
+            {
+              "name": "triggering_snapshot_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_11_04_000013_create_source_snapshot_reconciliation_requests_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "ssr_triggering_snapshot_fk"
+        },
+        {
+          "name": "ssr_expected_previous_fk",
+          "columns": [
+            {
+              "name": "expected_previous_snapshot_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_11_04_000013_create_source_snapshot_reconciliation_requests_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "ssr_expected_previous_fk"
+        },
+        {
+          "name": "ssr_recorded_previous_fk",
+          "columns": [
+            {
+              "name": "recorded_previous_snapshot_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "database/migrations/2026_11_04_000013_create_source_snapshot_reconciliation_requests_table.php",
+          "origin": "ENGINE_GENERATED_FOREIGN_KEY_SUPPORT",
+          "generated_by_foreign_key": "ssr_recorded_previous_fk"
         }
       ],
       "foreign_keys": [
