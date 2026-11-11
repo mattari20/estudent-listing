@@ -106,9 +106,11 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
     def test_no_application_table_is_falsely_marked_complete(self):
         application = [v for v in self.manifest["tables"].values() if v["ownership"] == "application"]
         self.assertEqual(len(application), 62)
-        self.assertTrue(all(v["definition_state"] == "NOT_CHECKED" for v in application))
+        self.assertEqual(sum(v["definition_state"] == "PARTIAL" for v in application), 10)
+        self.assertEqual(sum(v["definition_state"] == "NOT_CHECKED" for v in application), 52)
         self.assertEqual(self.manifest["definition_coverage"]["complete_application_tables"], 0)
-        self.assertEqual(self.manifest["definition_coverage"]["not_checked_application_tables"], 62)
+        self.assertEqual(self.manifest["definition_coverage"]["not_checked_application_tables"], 52)
+        self.assertEqual(self.manifest["definition_coverage"]["partial_application_tables"], 10)
 
 
 if __name__ == "__main__":
