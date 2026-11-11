@@ -69,8 +69,8 @@ phase1d2bAssert(($ledger['ledger_row_count'] ?? null) === 97, 'fresh ledger must
 $full = $result['full_source_migration_reconciliation'] ?? [];
 phase1d2bAssert(count($full['migration_object_reconciliation'] ?? []) === 97, 'all 97 migrations must have object reconciliation rows');
 $objectStates = $full['object_state_counts'] ?? [];
-phase1d2bAssert(($objectStates['PASS'] ?? 0) === 23, 'the 23 reviewed no-op migrations must remain object-neutral');
-phase1d2bAssert(($objectStates['NOT_CHECKED'] ?? 0) === 74, 'the 74 partially reviewed migrations must remain NOT_CHECKED pending final cumulative acceptance');
+phase1d2bAssert(($objectStates['PASS'] ?? 0) === 47, '23 reviewed no-op and 24 fully reviewed migrations must reconcile to object PASS');
+phase1d2bAssert(($objectStates['NOT_CHECKED'] ?? 0) === 50, 'the 50 partially reviewed migrations must remain NOT_CHECKED pending final cumulative acceptance');
 
 echo json_encode([
     'engine'=>$result['database']['engine'] ?? 'UNKNOWN',
