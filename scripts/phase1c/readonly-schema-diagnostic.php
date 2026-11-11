@@ -477,12 +477,12 @@ final class Phase1CReadOnlyDiagnostic
     {
         $path = dirname(__DIR__, 2).'/database/schema-contract/phase1d2b-final-schema-manifest.json';
         if (!is_file($path) || !is_readable($path)) {
-            return ['state'=>'UNKNOWN','reason'=>'SOURCE_SCHEMA_MANIFEST_UNAVAILABLE','table_count'=>0,'complete_table_count'=>0,'results'=>[]];
+            return ['contract'=>'phase1d2b-schema-comparison/v1','state'=>'UNKNOWN','reason'=>'SOURCE_SCHEMA_MANIFEST_UNAVAILABLE','table_count'=>0,'complete_table_count'=>0,'results'=>[],'definition_coverage'=>['state'=>'UNKNOWN'],'observed_metadata_collected'=>false,'schema_equivalence_proven'=>false];
         }
         try {
             $manifest = json_decode((string)file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
             if (!is_array($manifest) || ($manifest['contract'] ?? null) !== 'phase1d2b-final-schema-manifest/v1') {
-                return ['state'=>'UNKNOWN','reason'=>'SOURCE_SCHEMA_MANIFEST_INVALID','table_count'=>0,'complete_table_count'=>0,'results'=>[]];
+                return ['contract'=>'phase1d2b-schema-comparison/v1','state'=>'UNKNOWN','reason'=>'SOURCE_SCHEMA_MANIFEST_INVALID','table_count'=>0,'complete_table_count'=>0,'results'=>[],'definition_coverage'=>['state'=>'UNKNOWN'],'observed_metadata_collected'=>false,'schema_equivalence_proven'=>false];
             }
             $comparison = Phase1D2BSchemaContractComparator::reconcileManifest(
                 $manifest,
@@ -494,7 +494,7 @@ final class Phase1CReadOnlyDiagnostic
             $comparison['schema_equivalence_proven'] = false;
             return $comparison;
         } catch (Throwable $e) {
-            return ['state'=>'UNKNOWN','reason'=>'SOURCE_SCHEMA_MANIFEST_READ_FAILED','table_count'=>0,'complete_table_count'=>0,'results'=>[]];
+            return ['contract'=>'phase1d2b-schema-comparison/v1','state'=>'UNKNOWN','reason'=>'SOURCE_SCHEMA_MANIFEST_READ_FAILED','table_count'=>0,'complete_table_count'=>0,'results'=>[],'definition_coverage'=>['state'=>'UNKNOWN'],'observed_metadata_collected'=>false,'schema_equivalence_proven'=>false];
         }
     }
 
