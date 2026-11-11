@@ -48,6 +48,14 @@ PR #1070 final focused MySQL 8.4 / MariaDB 11.8.9 matrix passed (run #4297721454
 - Do not merge a PR without required checks and review approval.
 - Stop after Phase 1D.6. Do not begin Phase 1D.7.
 
+## Continuation status — source-definition completion
+
+- Latest verified merged main baseline: `777c903efbdad1946ce5b150ae788e80a6215850`.
+- Continuation branch: `phase1d2b/final-source-definition-completion`.
+- Laravel framework version pinned from `composer.lock`: `v13.33.0`. The framework-managed migration ledger source definition is now complete for `id` (`increments`, unsigned auto-increment integer primary key), `migration` (`string(255)`, non-null), and `batch` (`integer`, non-null). Engine/charset/collation are inherited from connection defaults and are not hardcoded.
+- Expanded table source provenance index now covers 62 application tables plus the separate framework ledger; object-level mapping remains NOT_CHECKED.
+- 62/62 application definitions remain NOT_CHECKED; 74 non-empty migrations remain PARTIAL pending individual operation review. Phase 1D.2B is not accepted.
+
 ## Current next action
 
 Complete all 62 application table definitions and every table/index/FK/trigger object contract; finish object-level mapping for the 74 non-empty/partially mapped migrations, including raw SQL and data operations; the 23 empty superseded stubs are resolved as REVIEWED_NOOP; expand object reconciliation beyond the 18 current target migrations; pass exact-head MySQL/MariaDB/Laravel/Test CI and obtain review approval. Do not start Phase 1D.3 until Phase 1D.2B is formally accepted and merged.
