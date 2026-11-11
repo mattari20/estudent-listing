@@ -40,6 +40,12 @@ def valid_evidence():
             {"migration": f"migration_{index}", "state": "PASS", "record_count": 1, "duplicate_count": 0, "batches": [1], "batch_values_valid": True}
             for index in range(18)
         ],
+        "migration_object_reconciliation": [
+            {"migration": f"migration_{index}", "ledger_state": "PASS", "object_state": "PASS",
+             "consistency_state": "PASS", "reason": "LEDGER_AND_EXPECTED_OBJECTS_PRESENT",
+             "objects": [{"object": "table:fixture", "state": "PASS"}]}
+            for index in range(18)
+        ],
         "full_migration_ledger_inventory": {
             "state": "PASS",
             "source_file_count": 18,
@@ -84,6 +90,7 @@ class ReadonlyEvidenceValidatorTests(unittest.TestCase):
             "expected_trigger_reconciliation",
             "migration_ledger_reconciliation",
             "full_migration_ledger_inventory",
+            "migration_object_reconciliation",
         ):
             with self.subTest(section=section):
                 evidence = valid_evidence()
@@ -96,6 +103,7 @@ class ReadonlyEvidenceValidatorTests(unittest.TestCase):
             "expected_foreign_key_reconciliation",
             "expected_trigger_reconciliation",
             "migration_ledger_reconciliation",
+            "migration_object_reconciliation",
         ):
             with self.subTest(section=section):
                 evidence = valid_evidence()
