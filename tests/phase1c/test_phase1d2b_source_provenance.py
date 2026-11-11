@@ -19,7 +19,7 @@ class Phase1D2BSourceProvenanceTest(unittest.TestCase):
         cls.migration_dir = ROOT / "database/migrations"
 
     def test_expanded_manifest_contains_diagnostic_allowlist(self):
-        match = re.search(r"private const TABLES = \\[(.*?)\\];", self.diagnostic, re.S)
+        match = re.search(r"private const TABLES = \[(.*?)\];", self.diagnostic, re.S)
         self.assertIsNotNone(match, "diagnostic TABLES allowlist must remain discoverable")
         allowlist = set(re.findall(r"'([a-zA-Z0-9_]+)'", match.group(1)))
         manifest_tables = set(self.manifest["tables"])
