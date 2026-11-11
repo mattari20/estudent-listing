@@ -21,7 +21,7 @@ PR #1070 final focused MySQL 8.4 / MariaDB 11.8.9 matrix passed (run #4297721454
 
 | Phase | Status | Branch | PR | Commit | MySQL | MariaDB | Blockers / next action |
 |---|---|---|---|---|---|---|---|
-| 1D.2B full schema and migration-ledger reconciliation | IN PROGRESS — DRAFT PR; FULL SCHEMA CONTRACT OPEN | `phase1d2b/full-schema-ledger-reconciliation` | [#1071](https://github.com/mattari20/estudent-listing/pull/1071) (draft) | `1ba091bda53631a4a035800fdb7e49e77fcf9be1` (latest tracker/report update) | NOT RUN | NOT RUN | Full-ledger inventory and target migration/object consistency matrix implemented; full source-derived 39-table schema manifest/comparator remains open; First matrix failure was a fixture inconsistency (batch-gap test omitted one known source migration); corrected in `9391d6b`. Exact-head matrix rerun #42982039978 is in progress; review pending. |
+| 1D.2B full schema and migration-ledger reconciliation | IN PROGRESS — DRAFT PR; FULL SCHEMA CONTRACT OPEN | `phase1d2b/full-schema-ledger-reconciliation` | [#1071](https://github.com/mattari20/estudent-listing/pull/1071) (draft) | `1ba091bda53631a4a035800fdb7e49e77fcf9be1` (latest tracker/report update) | NOT RUN | NOT RUN | Full-ledger inventory and target migration/object matrix implemented; initial source provenance map added for the 38 application tables in the 39-entry allowlist (`database/schema-contract/phase1d2b-table-source-provenance.json`, commit `227c8c1`). Complete column/index/FK/trigger/table-option definitions and comparator remain open. MySQL 8.4 and MariaDB 11.8.9 matrix passed in #42982039978; review pending. |
 | 1D.3 existing production data compatibility | NOT STARTED | — | — | — | — | — | Must wait for 1D.2B formal acceptance; production row-level evidence remains unavailable and must stay NOT_CHECKED. |
 | 1D.4 controlled recovery implementation | NOT STARTED | — | — | — | — | — | Must use accepted 1D.2B/1D.3 results; no production execution. |
 | 1D.5 isolated recovery testing | NOT STARTED | — | — | — | NOT RUN | NOT RUN | Must test disposable MariaDB 11.8.9 and MySQL 8.4 without restarting Test 1A/1B. |
@@ -50,4 +50,4 @@ PR #1070 final focused MySQL 8.4 / MariaDB 11.8.9 matrix passed (run #4297721454
 
 ## Current next action
 
-Complete the source-derived schema manifest and full observed-vs-source comparator for all 39 tables, expand object provenance, then obtain exact-head CI and review for draft PR #1071. Do not start Phase 1D.3 until 1D.2B is formally accepted. Phase 1D.3 must not begin until Phase 1D.2B is formally merged and accepted.
+Complete the source-derived definition manifest for the 38 application tables (plus explicit migrations-ledger contract), implement full observed-vs-source comparison, then obtain exact-head CI and review for draft PR #1071. Do not start Phase 1D.3 until 1D.2B is formally accepted. Phase 1D.3 must not begin until Phase 1D.2B is formally merged and accepted.
