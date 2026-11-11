@@ -74,6 +74,12 @@ class EvidenceTransferTests(unittest.TestCase):
                  "duplicate_count": 0, "batches": [1], "batch_values_valid": True}
                 for i in range(18)
             ],
+            "migration_object_reconciliation": [
+                {"migration": f"migration_{i}", "ledger_state": "PASS", "object_state": "PASS",
+                 "consistency_state": "PASS", "reason": "LEDGER_AND_EXPECTED_OBJECTS_PRESENT",
+                 "objects": [{"object": "table:fixture", "state": "PASS"}]}
+                for i in range(18)
+            ],
             "full_migration_ledger_inventory": {
                 "state": "PASS", "source_file_count": 18, "ledger_row_count": 18,
                 "distinct_ledger_migration_count": 18, "source_files_not_recorded": [],
