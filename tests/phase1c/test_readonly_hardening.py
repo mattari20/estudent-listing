@@ -53,6 +53,10 @@ class MetadataVisibilityTests(unittest.TestCase):
         expression = "json_encode([phase1cMysqlNullDefaultFromDefinition('varchar(10) DEFAULT NULL,'), phase1cMysqlNullDefaultFromDefinition(\"varchar(10) DEFAULT 'NULL',\"), phase1cMysqlNullDefaultFromDefinition('varchar(10)')])"
         self.assertEqual(self.php(expression), "[true,false,null]")
 
+    def test_mariadb_null_sentinel_is_preserved_but_secret_defaults_are_redacted(self):
+        expression = "json_encode([phase1cSafeMetadataDefault('remember_token', 'NULL'), phase1cSafeMetadataDefault('remember_token', 'sensitive-value'), phase1cSafeMetadataDefault('display_name', 'NULL')])"
+        self.assertEqual(self.php(expression), '[\"NULL\",\"[REDACTED]\",\"NULL\"]')
+
     def test_standalone_ledger_reconciler_reports_duplicate_rows(self):
         source = (ROOT / "scripts/diagnostics/phase1c-migration-ledger-reconciliation.php").read_text(encoding="utf-8")
         self.assertIn("$ledger[(string)$row['migration']][] = $row['batch'];", source)
