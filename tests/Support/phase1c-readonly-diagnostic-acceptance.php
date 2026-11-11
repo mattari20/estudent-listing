@@ -5,6 +5,50 @@ require_once dirname(__DIR__,2).'/scripts/phase1c/readonly-schema-diagnostic.php
 function assertDiagnostic(bool $ok,string $message): void { if(!$ok) throw new RuntimeException('acceptance_failed: '.$message); }
 function collectDiagnostic(PDO $pdo, ?string $expectedDatabase = null): array { return (new Phase1CReadOnlyDiagnostic($pdo))->collect($expectedDatabase ?? (string)getenv('DB_DATABASE')); }
 
+// Pure full-ledger contract tests run identically on MySQL and MariaDB.
+$ledgerSources = ['2026_01_01_000001_first', '2026_01_02_000001_second', '2026_01_03_000001_third'];
+$ledgerComplete = phase1cAnalyzeFullMigrationLedger($ledgerSources, [
+    ['id' => 1, 'migration' => $ledgerSources[0], 'batch' => 1],
+    ['id' => 2, 'migration' => $ledgerSources[1], 'batch' => 1],
+    ['id' => 3, 'migration' => $ledgerSources[2], 'batch' => 2],
+]);
+assertDiagnostic($ledgerComplete['state'] === 'PASS', 'complete source and ledger inventory passes');
+assertDiagnostic($ledgerComplete['source_file_count'] === 3 && $ledgerComplete['ledger_row_count'] === 3, 'full ledger counts are exact');
+assertDiagnostic($ledgerComplete['ordering_state'] === 'PASS', 'migration ordering is checked when sequence IDs exist');
+
+$ledgerMissing = phase1cAnalyzeFullMigrationLedger($ledgerSources, [
+    ['id' => 1, 'migration' => $ledgerSources[0], 'batch' => 1],
+]);
+assertDiagnostic($ledgerMissing['state'] === 'MISSING' && $ledgerMissing['source_files_not_recorded'] === [$ledgerSources[1], $ledgerSources[2]], 'unrecorded source migrations remain explicitly missing');
+
+$ledgerUnexpected = phase1cAnalyzeFullMigrationLedger($ledgerSources, [
+    ['id' => 1, 'migration' => $ledgerSources[0], 'batch' => 1],
+    ['id' => 2, 'migration' => '2025_12_31_000001_untracked', 'batch' => 1],
+]);
+assertDiagnostic($ledgerUnexpected['state'] === 'FAIL' && $ledgerUnexpected['ledger_entries_without_source_files'] === ['2025_12_31_000001_untracked'], 'unexpected ledger entries fail');
+
+$ledgerDuplicate = phase1cAnalyzeFullMigrationLedger($ledgerSources, [
+    ['id' => 1, 'migration' => $ledgerSources[0], 'batch' => 1],
+    ['id' => 2, 'migration' => $ledgerSources[0], 'batch' => 2],
+]);
+assertDiagnostic($ledgerDuplicate['state'] === 'FAIL' && $ledgerDuplicate['duplicate_ledger_entries'][0]['occurrences'] === 2, 'duplicate ledger rows fail');
+
+$ledgerInvalidBatch = phase1cAnalyzeFullMigrationLedger($ledgerSources, [
+    ['id' => 1, 'migration' => $ledgerSources[0], 'batch' => 0],
+]);
+assertDiagnostic($ledgerInvalidBatch['state'] === 'FAIL' && $ledgerInvalidBatch['invalid_ledger_rows'][0]['reason'] === 'INVALID_BATCH_VALUE', 'invalid batch values fail');
+
+$ledgerOrder = phase1cAnalyzeFullMigrationLedger($ledgerSources, [
+    ['id' => 1, 'migration' => $ledgerSources[1], 'batch' => 1],
+    ['id' => 2, 'migration' => $ledgerSources[0], 'batch' => 1],
+]);
+assertDiagnostic($ledgerOrder['state'] === 'FAIL' && $ledgerOrder['ordering_state'] === 'FAIL', 'out-of-order migrations within a batch fail');
+
+$ledgerNoSequence = phase1cAnalyzeFullMigrationLedger($ledgerSources, [
+    ['migration' => $ledgerSources[0], 'batch' => 1],
+]);
+assertDiagnostic($ledgerNoSequence['ordering_state'] === 'UNKNOWN', 'ordering is UNKNOWN without a sequence column');
+
 $pdo=new PDO('mysql:host='.getenv('DB_HOST').';port='.(getenv('DB_PORT')?:3306).';dbname='.getenv('DB_DATABASE').';charset=utf8mb4',getenv('DB_USERNAME'),getenv('DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false]);
 $tables=['assertions','change_events','data_reverification_queue','data_reverification_queue_identities','enrichment_import_rows','evidence','governed_execution_leases','governed_execution_run_events','governed_execution_runs','identity_match_candidates','identity_resolution_decisions','import_batches','import_conflict_events','import_conflicts','import_promotion_decisions','import_promotion_events','import_reconciliation_events','import_rows','institute_discovery_run_outcomes','institutions','migrations','monitoring_alert_identities','monitoring_alerts','monitoring_policy_run_sources','monitoring_policy_runs','official_source_refresh_events','password_reset_tokens','provenance_review_events','reverification_events','security_audit_events','source_change_observations','source_monitoring_policies','source_retrieval_runs','source_snapshot_reconciliation_requests','source_snapshots','sources','structured_enrichment_promotion_events','users','verification_decisions'];
 foreach($tables as $t) {
