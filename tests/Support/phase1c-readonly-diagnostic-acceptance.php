@@ -8,6 +8,10 @@ function collectDiagnostic(PDO $pdo, ?string $expectedDatabase = null): array { 
 $pdo=new PDO('mysql:host='.getenv('DB_HOST').';port='.(getenv('DB_PORT')?:3306).';dbname='.getenv('DB_DATABASE').';charset=utf8mb4',getenv('DB_USERNAME'),getenv('DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false]);
 $tables=['assertions','change_events','data_reverification_queue','data_reverification_queue_identities','enrichment_import_rows','evidence','governed_execution_leases','governed_execution_run_events','governed_execution_runs','identity_match_candidates','identity_resolution_decisions','import_batches','import_conflict_events','import_conflicts','import_promotion_decisions','import_promotion_events','import_reconciliation_events','import_rows','institute_discovery_run_outcomes','institutions','migrations','monitoring_alert_identities','monitoring_alerts','monitoring_policy_run_sources','monitoring_policy_runs','official_source_refresh_events','password_reset_tokens','provenance_review_events','reverification_events','security_audit_events','source_change_observations','source_monitoring_policies','source_retrieval_runs','source_snapshot_reconciliation_requests','source_snapshots','sources','structured_enrichment_promotion_events','users','verification_decisions'];
 foreach($tables as $t) {
+    if ($t === 'password_reset_tokens') {
+        $pdo->exec('CREATE TABLE password_reset_tokens (email VARCHAR(255) NOT NULL PRIMARY KEY) ENGINE=InnoDB');
+        continue;
+    }
     $id=$t==='governed_execution_runs'?'id CHAR(36) NOT NULL PRIMARY KEY':'id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY';
     $pdo->exec('CREATE TABLE '.$t.' ('.$id.') ENGINE=InnoDB');
 }
@@ -44,7 +48,7 @@ $columns=[
 'identity_resolution_decisions'=>['import_row_id BIGINT UNSIGNED NULL','decision_identity_key CHAR(64) NULL','institution_id BIGINT UNSIGNED NULL','decision VARCHAR(30) NULL','actor_type VARCHAR(40) NULL','actor_id BIGINT UNSIGNED NULL','reason TEXT NULL','decided_at TIMESTAMP NULL','created_at TIMESTAMP NULL'],
 'users'=>['must_change_password TINYINT(1) NOT NULL DEFAULT 0'],
 'import_batches'=>['duplicate_rows INT UNSIGNED NOT NULL DEFAULT 0','discovery_identity_key VARCHAR(64) NULL'],
-'password_reset_tokens'=>['email VARCHAR(255) NOT NULL','token VARCHAR(255) NOT NULL','created_at TIMESTAMP NULL DEFAULT NULL'],
+'password_reset_tokens'=>['token VARCHAR(255) NOT NULL','created_at TIMESTAMP NULL DEFAULT NULL'],
 'security_audit_events'=>['monitoring_idempotency_key VARCHAR(191) NULL'],
 'verification_decisions'=>['assertion_id BIGINT UNSIGNED NULL'],
 'import_reconciliation_events'=>['import_batch_id BIGINT UNSIGNED NULL'],
@@ -145,6 +149,31 @@ assertDiagnostic($one['registry_counts']['tables']===39 && $one['registry_counts
 assertDiagnostic(count($one['tables'])===39 && count($one['expected_index_reconciliation'])===23,'complete table/index metadata');
 assertDiagnostic(count($one['expected_column_reconciliation'])===50 && count($one['expected_foreign_key_reconciliation'])===23 && count($one['expected_trigger_reconciliation'])===24 && count($one['migration_ledger_reconciliation'])===18,'complete reconciliation sections');
 assertDiagnostic(count($one['orphan_checks'])===18 && count($one['duplicate_checks'])===14,'individual check reporting');
+
+$primaryIndex = static function (array $evidence): array {
+    $matches = array_values(array_filter(
+        $evidence['expected_index_reconciliation'],
+        static fn (array $row): bool => $row['table'] === 'password_reset_tokens' && $row['name'] === 'PRIMARY'
+    ));
+    return $matches[0] ?? [];
+};
+$expectedPrimary = $primaryIndex($one);
+assertDiagnostic(($expectedPrimary['columns'] ?? null) === ['email'], 'password reset registry expects email primary key');
+assertDiagnostic(($expectedPrimary['state'] ?? null) === 'PASS', 'email primary key is accepted');
+$idColumnCount = (int) $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='password_reset_tokens' AND COLUMN_NAME='id'")->fetchColumn();
+assertDiagnostic($idColumnCount === 0, 'password reset fixture does not introduce an id column');
+
+// A different single-column primary key must fail the email-keyed contract.
+$pdo->exec('ALTER TABLE password_reset_tokens DROP PRIMARY KEY, ADD PRIMARY KEY (token)');
+$wrongPrimary = $primaryIndex(collectDiagnostic($pdo));
+assertDiagnostic(($wrongPrimary['state'] ?? null) === 'FAIL' && ($wrongPrimary['observed']['columns'] ?? null) === ['token'], 'wrong primary-key mapping is rejected');
+
+// Composite primary keys are supported as ordered column lists and rejected when they differ.
+$pdo->exec('ALTER TABLE password_reset_tokens MODIFY created_at TIMESTAMP NOT NULL, DROP PRIMARY KEY, ADD PRIMARY KEY (email, created_at)');
+$compositePrimary = $primaryIndex(collectDiagnostic($pdo));
+assertDiagnostic(($compositePrimary['state'] ?? null) === 'FAIL' && ($compositePrimary['observed']['columns'] ?? null) === ['email', 'created_at'], 'composite primary key is explicitly compared and rejected');
+$pdo->exec('ALTER TABLE password_reset_tokens DROP PRIMARY KEY, MODIFY created_at TIMESTAMP NULL DEFAULT NULL, ADD PRIMARY KEY (email)');
+
 assertDiagnostic($one['queue_mapping']['state']==='PASS' && count($one['queue_mapping']['records'])===5,'five sanitized queue mappings');
 assertDiagnostic($one['alert_mapping']['state']==='PASS' && count($one['alert_mapping']['records'])===2,'two sanitized alert mappings');
 
@@ -179,6 +208,45 @@ $missingMigration=array_values(array_filter($one['migration_ledger_reconciliatio
 assertDiagnostic($missingColumn['state']==='MISSING'&&$missingForeignKey['state']==='MISSING'&&$missingTrigger['state']==='MISSING'&&$missingMigration['state']==='MISSING','absent expected objects are MISSING with complete visibility');
 $badIndexes=array_values(array_filter($one['expected_index_reconciliation'],fn($r)=>$r['state']!=='PASS'));
 assertDiagnostic($badIndexes===[],'index definition mismatch: '.implode(',',array_map(fn($r)=>$r['name'].':'.$r['state'], $badIndexes)));
+
+/* NULL-safe nullable-unique and open-only duplicate regression fixtures. */
+$pdo->exec('INSERT INTO source_retrieval_runs (idempotency_key) VALUES (NULL),(NULL)');
+$pdo->exec('INSERT INTO source_snapshots (capture_key) VALUES (NULL),(NULL)');
+$pdo->exec('INSERT INTO source_change_observations (current_snapshot_id) VALUES (NULL),(NULL)');
+$nullDuplicateEvidence = collectDiagnostic($pdo);
+foreach (['duplicate_source_retrieval_idempotency_key','duplicate_source_snapshot_capture_key','duplicate_observation_current_snapshot_id'] as $checkId) {
+    $check = array_values(array_filter($nullDuplicateEvidence['duplicate_checks'], static fn (array $row): bool => $row['id'] === $checkId))[0];
+    assertDiagnostic($check['state'] === 'PASS', $checkId.' treats multiple NULL values as non-duplicates');
+}
+
+$pdo->exec('ALTER TABLE source_retrieval_runs DROP INDEX source_retrieval_runs_idempotency_key_unique');
+$pdo->exec("INSERT INTO source_retrieval_runs (idempotency_key) VALUES ('phase1d2a-duplicate'),('phase1d2a-duplicate')");
+$nonNullDuplicateEvidence = collectDiagnostic($pdo);
+$nonNullDuplicate = array_values(array_filter($nonNullDuplicateEvidence['duplicate_checks'], static fn (array $row): bool => $row['id'] === 'duplicate_source_retrieval_idempotency_key'))[0];
+assertDiagnostic($nonNullDuplicate['state'] === 'FAIL', 'duplicate non-NULL unique values are rejected');
+$pdo->exec("DELETE FROM source_retrieval_runs WHERE idempotency_key='phase1d2a-duplicate'");
+$pdo->exec('CREATE UNIQUE INDEX source_retrieval_runs_idempotency_key_unique ON source_retrieval_runs (idempotency_key)');
+
+$pdo->exec("INSERT INTO data_reverification_queue (subject_type,subject_id,attribute,status) VALUES ('phase1d2a-fixture',987654,'identity','open'),('phase1d2a-fixture',987654,'identity','closed')");
+$openOnlyQueueEvidence = collectDiagnostic($pdo);
+$openQueueCheck = array_values(array_filter($openOnlyQueueEvidence['duplicate_checks'], static fn (array $row): bool => $row['id'] === 'duplicate_open_reverification_identity'))[0];
+assertDiagnostic($openQueueCheck['state'] === 'PASS', 'closed reverification record is excluded from open identity grouping');
+$pdo->exec("INSERT INTO data_reverification_queue (subject_type,subject_id,attribute,status) VALUES ('phase1d2a-fixture',987654,'identity','open')");
+$openDuplicateQueueEvidence = collectDiagnostic($pdo);
+$openQueueDuplicate = array_values(array_filter($openDuplicateQueueEvidence['duplicate_checks'], static fn (array $row): bool => $row['id'] === 'duplicate_open_reverification_identity'))[0];
+assertDiagnostic($openQueueDuplicate['state'] === 'FAIL', 'duplicate open reverification identities are rejected');
+$pdo->exec("DELETE FROM data_reverification_queue WHERE subject_type='phase1d2a-fixture'");
+
+$pdo->exec("INSERT INTO monitoring_alerts (dedupe_key,status) VALUES ('phase1d2a-closed-alert','closed'),('phase1d2a-closed-alert','closed')");
+$closedAlertEvidence = collectDiagnostic($pdo);
+$closedAlertCheck = array_values(array_filter($closedAlertEvidence['duplicate_checks'], static fn (array $row): bool => $row['id'] === 'duplicate_open_monitoring_alert_dedupe_key'))[0];
+assertDiagnostic($closedAlertCheck['state'] === 'PASS', 'closed monitoring alerts are excluded from open dedupe grouping');
+$pdo->exec("INSERT INTO monitoring_alerts (dedupe_key,status) VALUES ('phase1d2a-open-alert','open'),('phase1d2a-open-alert','open')");
+$openAlertEvidence = collectDiagnostic($pdo);
+$openAlertCheck = array_values(array_filter($openAlertEvidence['duplicate_checks'], static fn (array $row): bool => $row['id'] === 'duplicate_open_monitoring_alert_dedupe_key'))[0];
+assertDiagnostic($openAlertCheck['state'] === 'FAIL', 'duplicate open monitoring alert dedupe keys are rejected');
+$pdo->exec("DELETE FROM monitoring_alerts WHERE dedupe_key IN ('phase1d2a-closed-alert','phase1d2a-open-alert')");
+
 if(getenv('EVIDENCE_OUTPUT')) file_put_contents(getenv('EVIDENCE_OUTPUT'),json_encode($one,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR).PHP_EOL);
 assertDiagnostic($one['transaction']['outcome']==='ROLLED_BACK','success rollback');
 assertDiagnostic($before===$rowCounts(),'collector caused no row changes');
@@ -207,6 +275,41 @@ $limitedMigration=array_values(array_filter($limited['migration_ledger_reconcili
 assertDiagnostic($limitedColumn['state']==='UNKNOWN'&&$limitedForeignKey['state']==='UNKNOWN'&&$limitedTrigger['state']==='UNKNOWN'&&$limitedMigration['state']==='UNKNOWN','incomplete metadata remains UNKNOWN');
 $pdo->exec("DROP USER '".$limitedUser."'@'%'");
 
+
+/* Nullable optional foreign-key values are valid; non-NULL missing parents fail. */
+$pdo->exec('INSERT INTO source_monitoring_policies (id) VALUES (NULL)');
+$policyId = (int) $pdo->lastInsertId();
+$pdo->exec('INSERT INTO sources (id) VALUES (NULL)');
+$sourceId = (int) $pdo->lastInsertId();
+$runInsert = $pdo->prepare('INSERT INTO monitoring_policy_runs (source_monitoring_policy_id,execution_run_id,started_at) VALUES (?,NULL,CURRENT_TIMESTAMP)');
+$runInsert->execute([$policyId]);
+$monitoringRunId = (int) $pdo->lastInsertId();
+$sourceRunInsert = $pdo->prepare('INSERT INTO monitoring_policy_run_sources (monitoring_policy_run_id,source_id,retrieval_run_id,observation_id,status) VALUES (?,?,NULL,NULL,?)');
+$sourceRunInsert->execute([$monitoringRunId,$sourceId,'complete']);
+$sourceRunId = (int) $pdo->lastInsertId();
+$pdo->exec("INSERT INTO monitoring_alert_identities (dedupe_key,active_alert_id) VALUES ('phase1d2a-null-active',NULL)");
+$nullOrphanEvidence = collectDiagnostic($pdo);
+$nullableOrphanIds = [
+    'orphan_monitoring_runs_without_governed_run',
+    'orphan_monitoring_sources_without_retrieval_run',
+    'orphan_monitoring_sources_without_observation',
+    'orphan_monitoring_alert_identities_without_active_alert',
+];
+foreach ($nullableOrphanIds as $checkId) {
+    $check = array_values(array_filter($nullOrphanEvidence['orphan_checks'], static fn (array $row): bool => $row['id'] === $checkId))[0];
+    assertDiagnostic($check['state'] === 'PASS', $checkId.' accepts a valid NULL optional reference');
+}
+$missingRunId = str_pad('phase1d2a-orphan-run', 36, 'x');
+$pdo->prepare('UPDATE monitoring_policy_runs SET execution_run_id=? WHERE id=?')->execute([$missingRunId,$monitoringRunId]);
+$pdo->prepare('UPDATE monitoring_policy_run_sources SET retrieval_run_id=999999,observation_id=999999 WHERE id=?')->execute([$sourceRunId]);
+$pdo->exec("UPDATE monitoring_alert_identities SET active_alert_id=999999 WHERE dedupe_key='phase1d2a-null-active'");
+$nonNullOrphanEvidence = collectDiagnostic($pdo);
+foreach ($nullableOrphanIds as $checkId) {
+    $check = array_values(array_filter($nonNullOrphanEvidence['orphan_checks'], static fn (array $row): bool => $row['id'] === $checkId))[0];
+    assertDiagnostic($check['state'] === 'FAIL', $checkId.' rejects a non-NULL reference with no parent');
+}
+
+
 $pdo->exec('ALTER TABLE source_retrieval_runs DROP INDEX source_retrieval_runs_idempotency_key_unique');
 $pdo->exec('ALTER TABLE source_retrieval_runs ADD COLUMN wrong_column INT NULL');
 $pdo->exec('CREATE INDEX source_retrieval_runs_idempotency_key_unique ON source_retrieval_runs(wrong_column)');
@@ -222,6 +325,10 @@ $dup=array_values(array_filter($missing['duplicate_checks'],fn($r)=>$r['id']==='
 $table=array_values(array_filter($missing['tables'],fn($r)=>$r['table']==='source_snapshot_reconciliation_requests'))[0];
 assertDiagnostic($dup['state']==='NOT_CHECKED','missing-column prerequisite');
 assertDiagnostic($table['state']==='MISSING','missing-table classification');
+$pdo->exec('DROP TABLE source_retrieval_runs');
+$missingOrphanPrerequisite = collectDiagnostic($pdo);
+$missingRetrievalOrphan = array_values(array_filter($missingOrphanPrerequisite['orphan_checks'], static fn (array $row): bool => $row['id'] === 'orphan_monitoring_sources_without_retrieval_run'))[0];
+assertDiagnostic($missingRetrievalOrphan['state'] === 'NOT_CHECKED', 'missing orphan parent table remains NOT_CHECKED');
 
 // Inject a metadata permission/query failure after beginTransaction and prove rollback.
 class Phase1CFailingPDO extends PDO {
