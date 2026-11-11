@@ -546,13 +546,17 @@ final class Phase1CReadOnlyDiagnostic
             if (!is_array($manifest) || ($manifest['contract'] ?? null) !== 'phase1d2b-final-schema-manifest/v1') {
                 return ['contract'=>'phase1d2b-schema-comparison/v1','state'=>'UNKNOWN','reason'=>'SOURCE_SCHEMA_MANIFEST_INVALID','table_count'=>0,'complete_table_count'=>0,'results'=>[],'definition_coverage'=>['state'=>'UNKNOWN'],'observed_metadata_collected'=>false,'schema_equivalence_proven'=>false];
             }
+            // This section intentionally supplies no observed object map. Do not
+            // reuse metadata-visibility proof as if it were an observation: an
+            // empty observed map would otherwise turn source-defined ledger
+            // columns/indexes into false MISSING results.
             $comparison = Phase1D2BSchemaContractComparator::reconcileManifest(
                 $manifest,
                 [],
-                ['tables'=>$this->absenceProof,'columns'=>$this->absenceProof,'indexes'=>$this->absenceProof,'foreign_keys'=>$this->absenceProof,'triggers'=>$this->triggerAbsenceProof]
+                ['tables'=>false,'columns'=>false,'indexes'=>false,'foreign_keys'=>false,'triggers'=>false]
             );
             $comparison['definition_coverage'] = $manifest['definition_coverage'] ?? ['state'=>'UNKNOWN'];
-            $comparison['observed_metadata_collected'] = true;
+            $comparison['observed_metadata_collected'] = false;
             $comparison['schema_equivalence_proven'] = false;
             return $comparison;
         } catch (Throwable $e) {
