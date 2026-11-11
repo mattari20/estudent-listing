@@ -167,3 +167,14 @@ A validation pass over the actual 97 provenance entries corrected the prior chec
 - Final application definitions remain 0/62 complete; the framework ledger remains separately complete for Laravel 13.33.0 columns/PK with inherited connection options.
 - New branch is based on the verified merged main. No new PR has been created until this first batch is ready for review.
 - No production connection, SQL, DDL, DML, migration, identity backfill, repair, deployment or production workflow dispatch was performed. No reverification records or monitoring alerts were modified. Test 1A/1B were not restarted. Phase 1D.3 and 1D.7 remain excluded.
+
+
+## Continuation from merged PR #1074 — current source reconstruction checkpoint
+
+- Current main baseline at branch creation: `d363fad00c15d6892677e452d5b1f383cbe892de`; new continuation PR #1075 is based directly on that main SHA.
+- Migration inventory re-read: 97 files. Current classifications: 23 `REVIEWED_NOOP`, 74 `SOURCE_REVIEWED_PARTIAL`, 0 unreviewed. The 74 are not `SOURCE_REVIEWED_COMPLETE`; exact cumulative object reconciliation and some conditional/helper semantics remain open.
+- Manifest now contains source-derived object inventories for all 62 application tables: 793 columns, 231 indexes, 89 foreign keys, and 24 triggers across 12 tables. All 62 are `PARTIAL`; 0 are COMPLETE. The Laravel framework `migrations` ledger remains separately COMPLETE for its three source-defined columns and PK, with inherited connection options.
+- Table options: `config/database.php` fixes charset `utf8mb4` and collation `utf8mb4_unicode_ci`, but sets MySQL `engine => null`; the engine is therefore server-default and not pinned by application source. This prevents falsely marking table options or complete table definitions as COMPLETE.
+- Trigger contracts: deterministic names for the 22 append-only guards are computed from the first 16 hex characters of SHA-256(table name); two identity-decision guards have fixed names. `import_reconciliation_events` update guard permits only nullable row detachment. These remain to be validated against isolated metadata and exact action statements.
+- Structural manifest check: every application table has columns and source provenance; no index refers to an absent column and no FK refers to an absent source column. This is a structural check, not engine acceptance or schema-equivalence PASS.
+- No production DB connection or SQL/DDL/DML/migrations/backfills/repairs/deployment/production workflow dispatch. No reverification records or monitoring alerts changed. Test 1A/1B not restarted; Phase 1D.3 and 1D.7 remain excluded.
