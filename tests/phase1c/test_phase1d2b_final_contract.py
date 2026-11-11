@@ -39,8 +39,20 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
             with self.subTest(migration=entry["migration"]):
                 self.assertTrue((ROOT / entry["source_file"]).is_file())
                 self.assertTrue(entry["git_blob_sha"])
-                self.assertIn(entry["object_mapping_state"], {"PARTIAL", "NOT_CHECKED"})
-                self.assertEqual(entry["unmapped_operation_review"], "REQUIRED")
+                self.assertIn(entry["object_mapping_state"], {"PARTIAL", "NOT_CHECKED", "REVIEWED_NOOP"})
+                if entry["object_mapping_state"] == "REVIEWED_NOOP":
+                    self.assertEqual(entry["operation_review"]["up_effect"], "NONE")
+                    self.assertEqual(entry["operation_review"]["down_effect"], "NONE")
+                    self.assertEqual(entry["unmapped_operation_review"], "COMPLETE_NOOP")
+                else:
+                    self.assertEqual(entry["unmapped_operation_review"], "REQUIRED")
+
+    def test_superseded_empty_migrations_are_explicitly_reviewed_as_noop(self):
+        entries = self.provenance["migrations"]
+        reviewed = [entry for entry in entries if entry["object_mapping_state"] == "REVIEWED_NOOP"]
+        self.assertEqual(len(reviewed), 23)
+        self.assertTrue(all(entry["operation_review"]["state"] == "REVIEWED_NOOP" for entry in reviewed))
+        self.assertTrue(all(entry["data_backfills_or_transformations"] == "NONE" for entry in reviewed))
 
     def test_provenance_mapping_does_not_claim_unverified_object_operations(self):
         for entry in self.provenance["migrations"]:
@@ -49,7 +61,8 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
             self.assertEqual(entry["indexes_created"], [])
             self.assertEqual(entry["foreign_keys_created"], [])
             self.assertEqual(entry["triggers_installed"], [])
-            self.assertEqual(entry["data_backfills_or_transformations"], "NOT_CHECKED")
+            if entry["object_mapping_state"] != "REVIEWED_NOOP":
+                self.assertEqual(entry["data_backfills_or_transformations"], "NOT_CHECKED")
 
     def test_no_application_table_is_falsely_marked_complete(self):
         application = [v for v in self.manifest["tables"].values() if v["ownership"] == "application"]
