@@ -8,7 +8,7 @@
   "application_table_scope_count": 62,
   "framework_managed_ledger": "migrations",
   "framework_managed_ledger_source": "Laravel DatabaseMigrationRepository",
-  "coverage_state": "PARTIAL_OBJECT_MAPPING; 23 EMPTY SUPERSEDED MIGRATIONS SOURCE-REVIEWED AS NO-OP; 16 NON-EMPTY MIGRATION FILES SOURCE-REVIEWED; 58 NON-EMPTY MIGRATION FILES STILL REQUIRE INDIVIDUAL REVIEW",
+  "coverage_state": "PARTIAL_OBJECT_MAPPING; 23 EMPTY SUPERSEDED MIGRATIONS SOURCE-REVIEWED AS NO-OP; 27 NON-EMPTY MIGRATIONS SOURCE-REVIEWED PARTIALLY; 47 NON-EMPTY MIGRATIONS STILL REQUIRE INDIVIDUAL REVIEW",
   "migrations": [
     {
       "migration": "2026_09_23_000001_create_institutions_table",
@@ -3836,8 +3836,8 @@
   "source_review_counts": {
     "migration_file_count": 97,
     "reviewed_noop_count": 23,
-    "reviewed_non_empty_count": 16,
-    "remaining_non_empty_count": 58,
+    "reviewed_non_empty_count": 27,
+    "remaining_non_empty_count": 47,
     "application_tables_with_final_definition_complete": 0
   }
 }
