@@ -23,7 +23,8 @@
     "duplicate_checks",
     "registry_counts",
     "transaction",
-    "full_migration_ledger_inventory"
+    "full_migration_ledger_inventory",
+    "migration_object_reconciliation"
   ],
   "properties": {
     "schema_version": {
@@ -1007,6 +1008,79 @@
         }
       },
       "additionalProperties": false
+    },
+    "migration_object_reconciliation": {
+      "type": "array",
+      "minItems": 18,
+      "maxItems": 18,
+      "items": {
+        "type": "object",
+        "required": [
+          "migration",
+          "ledger_state",
+          "object_state",
+          "consistency_state",
+          "reason",
+          "objects"
+        ],
+        "properties": {
+          "migration": {
+            "type": "string"
+          },
+          "ledger_state": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "MISSING",
+              "UNKNOWN"
+            ]
+          },
+          "object_state": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "MISSING",
+              "UNKNOWN"
+            ]
+          },
+          "consistency_state": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "MISSING",
+              "UNKNOWN"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "object",
+                "state"
+              ],
+              "properties": {
+                "object": {
+                  "type": "string"
+                },
+                "state": {
+                  "enum": [
+                    "PASS",
+                    "FAIL",
+                    "MISSING",
+                    "UNKNOWN"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
     }
   }
 }
