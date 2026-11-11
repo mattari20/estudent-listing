@@ -1131,10 +1131,24 @@ final class Phase1CReadOnlyDiagnostic
         $expectedMessage=$contract==='reconciliation_detach'
             ? 'import reconciliation history is immutable except nullable row detachment'
             : 'identity decision history is immutable except one-time key enrichment';
-        $expectedStatement='begin if not ('.implode(' and ',array_map(fn(string $condition): string=>$this->normalizeSql($condition),$conditions))
-            .") then signal sqlstate '45000' set message_text = '{$expectedMessage}'; end if; end";
+        if (!preg_match("/if\\s+not\\s*\\((.*?)\\)\\s*then\\s*signal\\s+sqlstate\\s+'45000'\\s+set\\s+message_text\\s*=\\s*'([^']*)';\\s*end\\s+if;\\s*end$/s", $statement, $matches)) {
+            return false;
+        }
+        if (strtolower(trim($matches[2])) !== $expectedMessage) {
+            return false;
+        }
+        $actualConditions = array_map(
+            fn(string $condition): string => $this->normalizeSql($condition),
+            explode(' and ', $matches[1])
+        );
+        $expectedConditions = array_map(
+            fn(string $condition): string => $this->normalizeSql($condition),
+            $conditions
+        );
+        sort($actualConditions, SORT_STRING);
+        sort($expectedConditions, SORT_STRING);
 
-        return $statement===$expectedStatement;
+        return $actualConditions === $expectedConditions;
     }
 
     private function migrationObjectReconciliation(array $ledgerReconciliation): array
