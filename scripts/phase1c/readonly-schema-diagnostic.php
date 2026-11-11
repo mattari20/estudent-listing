@@ -632,7 +632,12 @@ final class Phase1CReadOnlyDiagnostic
 
     private function observedSchemaContract(): array
     {
-        $observed = ['tables'=>[], 'columns'=>[], 'indexes'=>[], 'foreign_keys'=>[], 'triggers'=>[]];
+        $observed = ['tables'=>[], 'columns'=>[], 'indexes'=>[], 'foreign_keys'=>[], 'triggers'=>[], 'server_defaults'=>[]];
+        try {
+            $observed['server_defaults']['engine'] = (string)$this->pdo->query('SELECT @@default_storage_engine')->fetchColumn();
+        } catch (Throwable $e) {
+            $observed['server_defaults']['engine'] = null;
+        }
 
         $tableRows = $this->pdo->query(
             "SELECT TABLE_NAME, ENGINE, TABLE_COLLATION, CREATE_OPTIONS FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE'"
@@ -730,19 +735,37 @@ final class Phase1CReadOnlyDiagnostic
         }
         $manifestPath = dirname(__DIR__, 2).'/database/schema-contract/phase1d2b-final-schema-manifest.json';
         $manifest = is_file($manifestPath) ? json_decode((string)file_get_contents($manifestPath), true) : [];
+        $expectedTriggerMap = [];
         foreach (($manifest['tables'] ?? []) as $table => $contract) {
             foreach (($contract['triggers'] ?? []) as $expectedTrigger) {
                 $name = (string)($expectedTrigger['name'] ?? '');
-                if ($name === '' || !isset($triggerStates[$name])) continue;
-                $state = $triggerStates[$name]['state'] ?? 'UNKNOWN';
-                if ($state === 'PASS') {
-                    $observed['triggers'][$table][$name] = $expectedTrigger;
-                } elseif ($state === 'FAIL') {
-                    $actual = $expectedTrigger;
-                    $actual['body_contract'] = 'MISMATCH';
-                    $observed['triggers'][$table][$name] = $actual;
+                if ($name !== '') $expectedTriggerMap[$name] = ['table'=>$table,'contract'=>$expectedTrigger];
+            }
+        }
+        $allTriggersVisible = $this->triggerAbsenceProof;
+        try {
+            $allTriggerRows = $this->pdo->query(
+                'SELECT TRIGGER_NAME,EVENT_OBJECT_TABLE,EVENT_MANIPULATION,ACTION_TIMING,ACTION_ORIENTATION FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE()'
+            )->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($allTriggerRows as $row) {
+                $name = (string)$row['TRIGGER_NAME'];
+                $table = (string)$row['EVENT_OBJECT_TABLE'];
+                $expected = $expectedTriggerMap[$name]['contract'] ?? null;
+                $state = $triggerStates[$name]['state'] ?? 'UNEXPECTED';
+                if (is_array($expected) && $state === 'PASS') {
+                    $observed['triggers'][$table][$name] = $expected;
+                } else {
+                    $observed['triggers'][$table][$name] = [
+                        'name'=>$name,
+                        'timing'=>strtoupper((string)$row['ACTION_TIMING']),
+                        'event'=>strtoupper((string)$row['EVENT_MANIPULATION']),
+                        'orientation'=>strtoupper((string)$row['ACTION_ORIENTATION']),
+                        'body_contract'=>is_array($expected) ? 'MISMATCH' : 'UNEXPECTED',
+                    ];
                 }
             }
+        } catch (Throwable $e) {
+            $allTriggersVisible = false;
         }
 
         return [
@@ -752,7 +775,7 @@ final class Phase1CReadOnlyDiagnostic
                 'columns'=>$this->absenceProof && $this->columnErrors === [],
                 'indexes'=>$this->absenceProof && $this->indexErrors === [],
                 'foreign_keys'=>$foreignKeyVisible,
-                'triggers'=>$this->triggerAbsenceProof,
+                'triggers'=>$allTriggersVisible,
             ],
         ];
     }
