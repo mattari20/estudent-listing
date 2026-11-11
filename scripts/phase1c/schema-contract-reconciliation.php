@@ -79,6 +79,32 @@ final class Phase1D2BSchemaContractComparator
             $tableResult = self::compareObject('table', $tableContract, $actualTable, $tableVisible);
             $objects = ['table' => $tableResult];
 
+            $optionsComplete = ($contract['table_options']['state'] ?? 'NOT_CHECKED') === 'COMPLETE';
+            $resolvedOptions = [
+                'name'=>$table,
+                'definition_state'=>$optionsComplete ? 'COMPLETE' : 'NOT_CHECKED',
+                'engine'=>$contract['table_options']['engine'] ?? null,
+                'charset'=>$contract['table_options']['charset'] ?? null,
+                'collation'=>$contract['table_options']['collation'] ?? null,
+                'options'=>$contract['table_options']['options'] ?? null,
+            ];
+            if (($resolvedOptions['engine'] ?? null) === 'SERVER_DEFAULT') {
+                $serverDefault = $observed['server_defaults']['engine'] ?? null;
+                if (is_string($serverDefault) && $serverDefault !== '') {
+                    $resolvedOptions['engine'] = $serverDefault;
+                } else {
+                    $resolvedOptions['definition_state'] = 'NOT_CHECKED';
+                }
+            }
+            $actualOptions = $actualTable === null ? null : [
+                'name'=>$table,
+                'engine'=>$actualTable['engine'] ?? null,
+                'charset'=>$actualTable['charset'] ?? null,
+                'collation'=>$actualTable['collation'] ?? null,
+                'options'=>$actualTable['options'] ?? null,
+            ];
+            $objects['table_options'] = self::compareObject('table_options', $resolvedOptions, $actualOptions, $tableVisible);
+
             foreach (['columns', 'indexes', 'foreign_keys', 'triggers'] as $kind) {
                 $visible = ($visibility[$kind] ?? false) === true;
                 $actual = $observed[$kind][$table] ?? [];
@@ -266,8 +292,9 @@ final class Phase1D2BSchemaContractComparator
                 $value['default'] = (string)$value['default'];
             }
         }
-        if ($kind === 'table') {
+        if ($kind === 'table' || $kind === 'table_options') {
             foreach (['engine', 'charset', 'collation'] as $key) if (isset($value[$key])) $value[$key] = strtolower((string)$value[$key]);
+            if (isset($value['options']) && $value['options'] === '') $value['options'] = null;
         }
         if ($kind === 'column' && isset($value['type'])) {
             $normalizeType = static function (string $type): string {
