@@ -45,13 +45,18 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
                 self.assertTrue(entry["git_blob_sha"])
                 self.assertIn(
                     entry["object_mapping_state"],
-                    {"PARTIAL", "NOT_CHECKED", "REVIEWED_NOOP", "SOURCE_REVIEWED_PARTIAL"},
+                    {"PARTIAL", "NOT_CHECKED", "REVIEWED_NOOP", "SOURCE_REVIEWED_PARTIAL", "SOURCE_REVIEWED_COMPLETE"},
                 )
                 if entry["object_mapping_state"] == "REVIEWED_NOOP":
                     self.assertEqual(entry["operation_review"]["up_effect"], "NONE")
                     self.assertEqual(entry["operation_review"]["down_effect"], "NONE")
                     self.assertEqual(entry["unmapped_operation_review"], "COMPLETE_NOOP")
-                elif entry["object_mapping_state"] == "SOURCE_REVIEWED_PARTIAL":
+                elif entry["object_mapping_state"] == "SOURCE_REVIEWED_COMPLETE":
+                    self.assertEqual(entry["unmapped_operation_review"], "COMPLETE_SOURCE_OBJECT_MAPPING")
+                    self.assertEqual(entry["operation_review"]["state"], "REVIEWED_SOURCE_COMPLETE")
+                    self.assertNotIn("unresolved", entry["operation_review"])
+                    self.assertTrue(entry["operation_review"]["source_evidence"])
+                elif entry["object_mapping_state"] in {"SOURCE_REVIEWED_PARTIAL", "SOURCE_REVIEWED_COMPLETE"}:
                     self.assertIn(entry["unmapped_operation_review"], {"PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING", "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING"})
                     self.assertIn(entry["operation_review"]["state"], {"REVIEWED_SOURCE_EFFECTS", "SOURCE_REVIEWED_PARTIAL"})
                     self.assertTrue(entry["operation_review"]["source_evidence"])
@@ -61,16 +66,19 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
     def test_migration_review_checkpoint_counts_are_exact(self):
         entries = self.provenance["migrations"]
         reviewed_noop = [entry for entry in entries if entry["object_mapping_state"] == "REVIEWED_NOOP"]
-        reviewed_non_empty = [entry for entry in entries if entry["object_mapping_state"] == "SOURCE_REVIEWED_PARTIAL"]
+        reviewed_complete = [entry for entry in entries if entry["object_mapping_state"] == "SOURCE_REVIEWED_COMPLETE"]
+        reviewed_partial = [entry for entry in entries if entry["object_mapping_state"] == "SOURCE_REVIEWED_PARTIAL"]
         remaining = [entry for entry in entries if entry["object_mapping_state"] in {"PARTIAL", "NOT_CHECKED"}]
 
         self.assertEqual(len(reviewed_noop), 23)
-        self.assertEqual(len(reviewed_non_empty), 74)
+        self.assertEqual(len(reviewed_complete), 24)
+        self.assertEqual(len(reviewed_partial), 50)
         self.assertEqual(len(remaining), 0)
         self.assertEqual(self.provenance["source_review_counts"]["migration_file_count"], 97)
         self.assertEqual(self.provenance["source_review_counts"]["reviewed_noop_count"], 23)
-        self.assertEqual(self.provenance["source_review_counts"]["reviewed_non_empty_count"], 74)
-        self.assertEqual(self.provenance["source_review_counts"]["remaining_non_empty_count"], 0)
+        self.assertEqual(self.provenance["source_review_counts"]["reviewed_complete_count"], 24)
+        self.assertEqual(self.provenance["source_review_counts"]["reviewed_partial_count"], 50)
+        self.assertEqual(self.provenance["source_review_counts"]["not_checked_count"], 0)
 
     def test_superseded_empty_migrations_remain_reviewed_noop(self):
         entries = self.provenance["migrations"]
