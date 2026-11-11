@@ -673,7 +673,7 @@ final class Phase1CReadOnlyDiagnostic
                     $createSqlByTable[$table] = (string)($definition[1] ?? '');
                 }
                 $quotedColumn = '`'.str_replace('`', '``', $name).'`';
-                $literalNullPattern = '~^\\s*'.preg_quote($quotedColumn, '~').'\\s+.*?\\bDEFAULT\\s+\\'NULL\\'(?:\\s|,|$)~im';
+                $literalNullPattern = "~^\\\\s*".preg_quote($quotedColumn, "~")."\\\\s+.*?\\\\bDEFAULT\\\\s+'NULL'(?:\\\\s|,|$)~im";
                 $default = preg_match($literalNullPattern, $createSqlByTable[$table]) === 1 ? 'NULL' : null;
             } else {
                 $default = $rawDefault;
