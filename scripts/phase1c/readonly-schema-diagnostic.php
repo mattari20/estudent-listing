@@ -58,6 +58,119 @@ function phase1cGroupMigrationLedgerRows(array $rows): array
     return $grouped;
 }
 
+/**
+ * Reconcile the complete deployed migration source inventory with every
+ * ledger row. This helper is pure so engine-specific edge cases are tested
+ * without a production connection.
+ *
+ * @param list<string> $sourceNames
+ * @param list<array{migration:mixed,batch:mixed,id?:mixed}> $rows
+ */
+function phase1cAnalyzeFullMigrationLedger(array $sourceNames, array $rows): array
+{
+    $sourceNames = array_values(array_unique(array_filter(array_map(
+        static fn ($name): string => trim((string) $name),
+        $sourceNames
+    ), static fn (string $name): bool => $name !== '')));
+    sort($sourceNames, SORT_STRING);
+
+    $grouped = [];
+    $invalidRows = [];
+    $orderedByBatch = [];
+    $hasSequenceId = true;
+    foreach ($rows as $row) {
+        $name = trim((string) ($row['migration'] ?? ''));
+        $batch = $row['batch'] ?? null;
+        if ($name === '') {
+            $invalidRows[] = ['reason' => 'EMPTY_MIGRATION_NAME'];
+            continue;
+        }
+        $grouped[$name][] = $batch;
+        if (!is_scalar($batch) || !ctype_digit((string) $batch) || (int) $batch < 1) {
+            $invalidRows[] = ['migration' => $name, 'reason' => 'INVALID_BATCH_VALUE'];
+        } else {
+            $orderedByBatch[(int) $batch][] = [
+                'migration' => $name,
+                'id' => $row['id'] ?? null,
+            ];
+        }
+        if (!array_key_exists('id', $row)) {
+            $hasSequenceId = false;
+        }
+    }
+
+    $ledgerNames = array_keys($grouped);
+    sort($ledgerNames, SORT_STRING);
+    $missingLedger = array_values(array_diff($sourceNames, $ledgerNames));
+    $missingSources = array_values(array_diff($ledgerNames, $sourceNames));
+    $duplicates = [];
+    foreach ($grouped as $name => $batches) {
+        if (count($batches) > 1) {
+            $duplicates[] = ['migration' => $name, 'occurrences' => count($batches)];
+        }
+    }
+
+    $batchNumbers = array_values(array_unique(array_filter(
+        array_map(static fn ($batch): int => is_scalar($batch) && ctype_digit((string) $batch) ? (int) $batch : 0, array_column($rows, 'batch')),
+        static fn (int $batch): bool => $batch > 0
+    )));
+    sort($batchNumbers, SORT_NUMERIC);
+    $batchGaps = [];
+    if ($batchNumbers !== []) {
+        for ($batch = $batchNumbers[0]; $batch < $batchNumbers[count($batchNumbers) - 1]; $batch++) {
+            if (!in_array($batch, $batchNumbers, true)) {
+                $batchGaps[] = $batch;
+            }
+        }
+    }
+
+    $orderingAnomalies = [];
+    $orderingChecked = $hasSequenceId && $rows !== [];
+    if ($orderingChecked) {
+        foreach ($orderedByBatch as $batch => $entries) {
+            $previous = null;
+            foreach ($entries as $entry) {
+                if (!is_scalar($entry['id']) || !ctype_digit((string) $entry['id'])) {
+                    $orderingChecked = false;
+                    $orderingAnomalies = [];
+                    break 2;
+                }
+                if ($previous !== null && strcmp($previous, $entry['migration']) > 0) {
+                    $orderingAnomalies[] = [
+                        'batch' => $batch,
+                        'previous_migration' => $previous,
+                        'migration' => $entry['migration'],
+                    ];
+                }
+                $previous = $entry['migration'];
+            }
+        }
+    }
+
+    $state = 'PASS';
+    if ($invalidRows !== [] || $duplicates !== [] || $missingSources !== [] || $orderingAnomalies !== []) {
+        $state = 'FAIL';
+    } elseif ($missingLedger !== []) {
+        $state = 'MISSING';
+    }
+
+    return [
+        'state' => $state,
+        'source_file_count' => count($sourceNames),
+        'ledger_row_count' => count($rows),
+        'distinct_ledger_migration_count' => count($ledgerNames),
+        'source_files_not_recorded' => $missingLedger,
+        'ledger_entries_without_source_files' => $missingSources,
+        'duplicate_ledger_entries' => $duplicates,
+        'invalid_ledger_rows' => $invalidRows,
+        'batch_numbers' => $batchNumbers,
+        'batch_gaps' => $batchGaps,
+        'batch_gap_state' => $batchGaps === [] ? 'PASS' : 'NOT_CHECKED',
+        'ordering_state' => $orderingChecked ? ($orderingAnomalies === [] ? 'PASS' : 'FAIL') : 'UNKNOWN',
+        'ordering_anomalies' => $orderingAnomalies,
+    ];
+}
+
 function phase1cMysqlNullDefaultFromDefinition(?string $columnDefinition): ?bool
 {
     if ($columnDefinition === null || preg_match("/\\bDEFAULT\\s+(NULL|'(?:''|[^'])*')(?=\\s|,|$)/i", $columnDefinition, $matches) !== 1) {
@@ -295,6 +408,7 @@ final class Phase1CReadOnlyDiagnostic
                 'expected_foreign_key_reconciliation'=>$this->foreignKeyReconciliation(),
                 'expected_trigger_reconciliation'=>$this->triggerReconciliation(),
                 'migration_ledger_reconciliation'=>$this->migrationLedgerReconciliation(),
+                'full_migration_ledger_inventory'=>$this->fullMigrationLedgerInventory(),
                 'queue_mapping'=>$this->queueMapping(),
                 'alert_mapping'=>$this->alertMapping(),
                 'orphan_checks'=>$this->orphanChecks(),
@@ -665,6 +779,78 @@ final class Phase1CReadOnlyDiagnostic
             .") then signal sqlstate '45000' set message_text = '{$expectedMessage}'; end if; end";
 
         return $statement===$expectedStatement;
+    }
+
+    private function fullMigrationLedgerInventory(): array
+    {
+        if (!isset($this->tables['migrations'])) {
+            return [
+                'state' => $this->absenceProof ? 'MISSING' : 'UNKNOWN',
+                'reason' => $this->absenceProof ? 'LEDGER_TABLE_ABSENT' : 'METADATA_VISIBILITY_NOT_PROVEN',
+                'source_file_count' => null,
+                'ledger_row_count' => null,
+                'distinct_ledger_migration_count' => null,
+                'source_files_not_recorded' => [],
+                'ledger_entries_without_source_files' => [],
+                'duplicate_ledger_entries' => [],
+                'invalid_ledger_rows' => [],
+                'batch_numbers' => [],
+                'batch_gaps' => [],
+                'batch_gap_state' => 'UNKNOWN',
+                'ordering_state' => 'UNKNOWN',
+                'ordering_anomalies' => [],
+            ];
+        }
+        if (isset($this->columnErrors['migrations']) || !$this->has('migrations', ['migration', 'batch'])) {
+            return [
+                'state' => 'UNKNOWN',
+                'reason' => 'LEDGER_COLUMNS_OR_METADATA_UNAVAILABLE',
+                'source_file_count' => null,
+                'ledger_row_count' => null,
+                'distinct_ledger_migration_count' => null,
+                'source_files_not_recorded' => [],
+                'ledger_entries_without_source_files' => [],
+                'duplicate_ledger_entries' => [],
+                'invalid_ledger_rows' => [],
+                'batch_numbers' => [],
+                'batch_gaps' => [],
+                'batch_gap_state' => 'UNKNOWN',
+                'ordering_state' => 'UNKNOWN',
+                'ordering_anomalies' => [],
+            ];
+        }
+
+        try {
+            $migrationDirectory = dirname(__DIR__, 2).'/database/migrations';
+            $sourcePaths = glob($migrationDirectory.'/*.php') ?: [];
+            $sourceNames = array_map(static fn (string $path): string => basename($path, '.php'), $sourcePaths);
+            $hasId = isset($this->columns['migrations']['id']);
+            $select = $hasId ? 'SELECT id,migration,batch FROM migrations ORDER BY id' : 'SELECT migration,batch FROM migrations ORDER BY batch,migration';
+            $rows = $this->pdo->query($select)->fetchAll(PDO::FETCH_ASSOC);
+            $analysis = phase1cAnalyzeFullMigrationLedger($sourceNames, $rows);
+            if (!$hasId && $rows !== []) {
+                $analysis['ordering_state'] = 'UNKNOWN';
+            }
+            return $analysis;
+        } catch (Throwable $e) {
+            return [
+                'state' => 'UNKNOWN',
+                'reason' => 'FULL_LEDGER_INVENTORY_UNAVAILABLE',
+                'error' => $this->safeError($e),
+                'source_file_count' => null,
+                'ledger_row_count' => null,
+                'distinct_ledger_migration_count' => null,
+                'source_files_not_recorded' => [],
+                'ledger_entries_without_source_files' => [],
+                'duplicate_ledger_entries' => [],
+                'invalid_ledger_rows' => [],
+                'batch_numbers' => [],
+                'batch_gaps' => [],
+                'batch_gap_state' => 'UNKNOWN',
+                'ordering_state' => 'UNKNOWN',
+                'ordering_anomalies' => [],
+            ];
+        }
     }
 
     private function migrationLedgerReconciliation(): array
