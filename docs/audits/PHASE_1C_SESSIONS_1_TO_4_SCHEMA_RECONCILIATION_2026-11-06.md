@@ -523,3 +523,86 @@ The procedure above is a handoff instruction, not evidence that a dispatch or ap
 - No code, production configuration, database object or production record was changed by this evidence-collection attempt.
 
 **Decision remains: `SESSION_1_PARTIALLY_COMPLETE`; production `NOT_READY`.** The exact blocker is the absence of an authorized, main-resident full structural diagnostic plus the lack of a workflow-dispatch capability in the connected GitHub controls. PR #1057 remains open and unmerged.
+
+
+---
+
+## 14. Final engineering closure and latest protected production evidence — 2026-11-11
+
+This section is an additive closure record. Sections 1–13 preserve the historical 2026-11-06 baseline and its then-current counts. The newer protected run below is the latest evidence and supersedes those earlier production counts where the scopes overlap. Historical values have not been rewritten or relabelled.
+
+### 14.1 Engineering delivery status
+
+The following repository work is merged into `main`:
+
+- **PR #1050 and PR #1051:** the two Test B migration-hardening and isolated MySQL recovery implementation packages.
+- **PR #1057:** MariaDB 11.8.9 migration recovery acceptance; the paired MySQL/MariaDB acceptance evidence recorded in the historical report remains engineering/CI evidence, not production migration evidence.
+- **PR #1063:** metadata-visibility classification and fail-closed remote evidence cleanup.
+- **PR #1064:** definition-level reconciliation evidence contract for the 50 expected columns, 23 expected foreign keys, 24 expected triggers and 18 migration-ledger entries. Its PR description records disposable MySQL 8.4.13 and MariaDB 11.8.9 acceptance.
+- **PR #1065:** Hostinger ECDSA host-identity alignment and regression coverage. Merged to `main`; the GitHub PR page showed four checks passed. The merge commit is `0a5e680db4f0ef9a49dd55fd146f68c00c3a0661`.
+
+Engineering implementation and isolated-engine acceptance for the recorded scope are complete. This does not mean the production schema has been migrated or accepted.
+
+### 14.2 Latest protected production diagnostic
+
+- Workflow run: [#42965183303](https://github.com/mattari20/estudent-listing/actions/runs/42965183303)
+- Result: **SUCCESS**; the single `collect` job succeeded.
+- Event/ref: manually dispatched from `main`.
+- Exact target/source SHA: `0a5e680db4f0ef9a49dd55fd146f68c00c3a0661`.
+- Production database identity: verified; engine MariaDB; server `11.8.9-MariaDB-log`.
+- Metadata visibility: complete; trigger metadata visibility: complete.
+- Transaction mode: `READ ONLY`; outcome: `ROLLED_BACK`.
+- Artifact: `phase1c-readonly-diagnostic-42965183303`.
+- Artifact SHA-256 (GitHub artifact archive digest): `a7fc5ab49900148ec925307a765d8427a8215731ac2e92296b4e3249f09d79ab`.
+- Evidence JSON SHA-256 (from the evidence manifest): `c4cfd921a0112bbc6948116c7009fd35f3a7c33a9fc12eb950abd96c5a95dbf4`.
+- Evidence manifest target SHA and run ID match the workflow target and run.
+
+The artifact contains the sanitized evidence JSON, manifest and evidence checksum. The artifact is retained by GitHub Actions for a limited period; preserve the downloaded artifact alongside this repository record if long-term audit retention is required. No production schema/data mutation is represented or authorized by this diagnostic.
+
+### 14.3 Latest exact reconciliation counts
+
+The latest artifact records the following state counts:
+
+| Inventory | Expected / checked | PASS | MISSING | NOT_CHECKED |
+|---|---:|---:|---:|---:|
+| Target tables | 39 | 28 | 11 | 0 |
+| Expected columns | 50 | 2 | 48 | 0 |
+| Expected named indexes | 23 | 0 | 23 | 0 |
+| Expected foreign keys | 23 | 0 | 23 | 0 |
+| Expected audit triggers | 24 | 0 | 24 | 0 |
+| Migration-ledger entries | 18 | 0 | 18 | 0 |
+| Orphan checks | 18 | 7 | 0 | 11 |
+| Duplicate checks | 14 | 3 | 0 | 11 |
+
+Additional evidence:
+
+- Five open reverification queue records and two open monitoring alerts were observed. Their per-record mapping states are `NOT_CHECKED`; do not treat their existence or aggregate count as a completed identity reconciliation.
+- Metadata visibility was complete, so the artifact's absent-object classifications are not downgraded to `UNKNOWN` for lack of metadata visibility.
+- `registry_counts` reports 39 tables, 50 expected columns, 23 indexes, 23 foreign keys, 24 triggers, 18 migrations, 18 orphan checks and 14 duplicate checks.
+- The 48 missing columns include expected columns on absent tables as recorded in the per-object evidence; they must not be conflated with the historical 13 missing columns on tables that existed in the earlier report.
+
+### 14.4 Final status and interpretation
+
+**Engineering / CI:** COMPLETE for the merged implementation and recorded disposable-engine acceptance.
+
+**Protected production diagnostic:** COMPLETE; run #42965183303 succeeded and produced a checksum-verified sanitized evidence artifact.
+
+**Production schema acceptance:** **NOT READY / NOT ACCEPTED.** The latest diagnostic explicitly reports missing production schema objects and migration-ledger entries, plus uncompleted orphan, duplicate and per-record mapping checks. A successful diagnostic run means the collector completed safely; it does not mean the production schema passed acceptance.
+
+### 14.5 Required future recovery gates — no execution authorization
+
+Before any production migration or repair is considered, a separate change-control/recovery plan must:
+
+1. Preserve and review the latest evidence artifact and this report; confirm the exact deployed application revision and migration source hashes again.
+2. Verify a current production backup and complete a successful restore rehearsal in an isolated environment. A backup checksum alone is not a restore test.
+3. Reconcile all 18 migration source files, dependencies, current production objects, existing data and the five queue / two alert records. Resolve every `NOT_CHECKED` item with safe evidence; never infer a pass from a skipped check.
+4. Produce a migration-by-migration execution order, expected DDL/data effects, conflict handling, preconditions, postconditions and explicit stop/rollback criteria. Identity backfills require deterministic mapping and preservation of historical records.
+5. Validate the exact recovery sequence and rerun/idempotency behavior on disposable MariaDB 11.8.9 matching production, with MySQL 8.4 regression coverage retained.
+6. Obtain a separate explicit production change authorization and required protected-environment approval. Re-check the exact `main` SHA and production identity immediately before execution.
+7. Execute only the separately approved plan, then rerun the protected read-only diagnostic and reconcile every expected object and data-integrity check before declaring production acceptance.
+
+Until all gates pass, do not run migrations, DDL, DML, identity backfills, data cleanup, production repairs or deployments under this closure record. This report update itself is documentation-only and does not authorize any production write.
+
+### 14.6 Closure decision
+
+**Phase 1C engineering implementation and protected diagnostic delivery are closed for this milestone. Production schema remediation and final production acceptance remain open, separately gated work.** Test 1A / Test 1B engineering acceptance is not being restarted by this documentation update; the remaining work is production recovery/readiness, not another repetition of completed disposable Test B acceptance.
