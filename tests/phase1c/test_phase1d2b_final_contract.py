@@ -67,7 +67,7 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
         entries = self.provenance["migrations"]
         reviewed_noop = [entry for entry in entries if entry["object_mapping_state"] == "REVIEWED_NOOP"]
         reviewed_complete = [entry for entry in entries if entry["object_mapping_state"] == "SOURCE_REVIEWED_COMPLETE"]
-        reviewed_partial = [entry for entry in entries if entry["object_mapping_state"] == "SOURCE_REVIEWED_COMPLETE"]
+        reviewed_partial = [entry for entry in entries if entry["object_mapping_state"] == "SOURCE_REVIEWED_PARTIAL"]
         remaining = [entry for entry in entries if entry["object_mapping_state"] in {"PARTIAL", "NOT_CHECKED"}]
 
         self.assertEqual(len(reviewed_noop), 23)
