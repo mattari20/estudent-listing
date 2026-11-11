@@ -10,7 +10,7 @@
   "definition_coverage": {
     "complete_application_tables": 0,
     "partial_framework_tables": 1,
-    "not_checked_application_tables": 31,
+    "not_checked_application_tables": 26,
     "complete_table_options": 0,
     "complete_columns": 0,
     "complete_indexes": 0,
@@ -21,8 +21,8 @@
     "framework_ledger_state": "COMPLETE_FRAMEWORK_DEFINITION_WITH_INHERITED_CONNECTION_OPTIONS",
     "source_reviewed_non_empty_migrations": 74,
     "remaining_non_empty_migrations": 0,
-    "note": "Thirty-one application table object contracts now have source-derived columns/indexes/FKs/triggers. They remain PARTIAL pending server-default engine resolution and complete reconciliation; 31 application tables remain NOT_CHECKED.",
-    "partial_application_tables": 31
+    "note": "Thirty-six application table object contracts now have source-derived columns/indexes/FKs/triggers. They remain PARTIAL pending server-default engine resolution and complete reconciliation; 26 application tables remain NOT_CHECKED.",
+    "partial_application_tables": 36
   },
   "tables": {
     "accreditations": {
@@ -538,22 +538,149 @@
       "ownership": "application",
       "creation_migration": "database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php",
       "alteration_migrations": [],
-      "definition_state": "NOT_CHECKED",
+      "definition_state": "PARTIAL",
       "table_options": {
-        "engine": null,
-        "charset": null,
-        "collation": null,
+        "engine": "SERVER_DEFAULT",
+        "charset": "utf8mb4",
+        "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "NOT_CHECKED"
+        "state": "PARTIAL",
+        "source": "config/database.php fixes charset/collation; engine=null means server default."
       },
-      "columns": [],
-      "indexes": [],
+      "columns": [
+        {
+          "name": "identity_key",
+          "type": "varchar(64)",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 64,
+          "ordinal_position": 1
+        },
+        {
+          "name": "subject_type",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 255,
+          "ordinal_position": 2
+        },
+        {
+          "name": "subject_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 3
+        },
+        {
+          "name": "attribute",
+          "type": "varchar(255)",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 255,
+          "ordinal_position": 4
+        },
+        {
+          "name": "active_queue_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 5
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 6
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 7
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            {
+              "name": "identity_key",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": true,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration primary key"
+        },
+        {
+          "name": "data_reverification_queue_identities_active_queue_id_index",
+          "columns": [
+            {
+              "name": "active_queue_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration Blueprint index declaration"
+        }
+      ],
       "foreign_keys": [],
       "triggers": [],
       "source_provenance": [
         "database/migrations/2026_11_03_000007_create_data_reverification_queue_identities_table.php"
       ],
-      "definition_note": "Creation and selected alteration source references exist, but complete final-state object definitions and exhaustive source trace have not been reconstructed. No schema-equivalence PASS is permitted."
+      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. Created conditionally; migration reads open queue rows in chunks and inserts SHA-256 identity mappings after duplicate and conflict checks. No backfill executed in this task."
     },
     "eligibility_rules": {
       "ownership": "application",
@@ -835,24 +962,295 @@
         "database/migrations/2026_09_24_000026_add_snapshot_id_to_evidences_table.php",
         "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php"
       ],
-      "definition_state": "NOT_CHECKED",
+      "definition_state": "PARTIAL",
       "table_options": {
-        "engine": null,
-        "charset": null,
-        "collation": null,
+        "engine": "SERVER_DEFAULT",
+        "charset": "utf8mb4",
+        "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "NOT_CHECKED"
+        "state": "PARTIAL",
+        "source": "config/database.php fixes charset/collation; engine=null means server default."
       },
-      "columns": [],
-      "indexes": [],
-      "foreign_keys": [],
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": true,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 1
+        },
+        {
+          "name": "source_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 2
+        },
+        {
+          "name": "snapshot_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 3
+        },
+        {
+          "name": "reference",
+          "type": "varchar(255)",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 255,
+          "ordinal_position": 4
+        },
+        {
+          "name": "excerpt",
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 5
+        },
+        {
+          "name": "content_hash",
+          "type": "varchar(255)",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 255,
+          "ordinal_position": 6
+        },
+        {
+          "name": "observed_at",
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 7
+        },
+        {
+          "name": "published_at",
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 8
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 9
+        },
+        {
+          "name": "status",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": "active",
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 255,
+          "ordinal_position": 10
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 11
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 12
+        },
+        {
+          "name": "discovery_identity_key",
+          "type": "varchar(64)",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 64,
+          "ordinal_position": 13
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            {
+              "name": "id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": true,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration primary key"
+        },
+        {
+          "name": "evidence_source_id_status_index",
+          "columns": [
+            {
+              "name": "source_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            },
+            {
+              "name": "status",
+              "sequence": 2,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration Blueprint index declaration"
+        },
+        {
+          "name": "evidence_observed_at_index",
+          "columns": [
+            {
+              "name": "observed_at",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration Blueprint index declaration"
+        },
+        {
+          "name": "evidence_discovery_identity_unique",
+          "columns": [
+            {
+              "name": "discovery_identity_key",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": true,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration Blueprint index declaration"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "evidence_source_id_foreign",
+          "source_columns": [
+            "source_id"
+          ],
+          "referenced_table": "sources",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "CASCADE",
+          "on_update": "RESTRICT",
+          "state": "COMPLETE",
+          "source": "Laravel foreign() declaration"
+        },
+        {
+          "name": "evidence_snapshot_id_foreign",
+          "source_columns": [
+            "snapshot_id"
+          ],
+          "referenced_table": "source_snapshots",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT",
+          "state": "COMPLETE",
+          "source": "Laravel foreign() declaration"
+        }
+      ],
       "triggers": [],
       "source_provenance": [
         "database/migrations/2026_09_23_000020_create_evidences_table.php",
         "database/migrations/2026_09_24_000026_add_snapshot_id_to_evidences_table.php",
         "database/migrations/2026_11_04_000011_add_discovery_candidate_persistence_identity_keys.php"
       ],
-      "definition_note": "Creation and selected alteration source references exist, but complete final-state object definitions and exhaustive source trace have not been reconstructed. No schema-equivalence PASS is permitted."
+      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
     },
     "external_rankings": {
       "ownership": "application",
@@ -2474,23 +2872,284 @@
       "alteration_migrations": [
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "NOT_CHECKED",
+      "definition_state": "PARTIAL",
       "table_options": {
-        "engine": null,
-        "charset": null,
-        "collation": null,
+        "engine": "SERVER_DEFAULT",
+        "charset": "utf8mb4",
+        "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "NOT_CHECKED"
+        "state": "PARTIAL",
+        "source": "config/database.php fixes charset/collation; engine=null means server default."
       },
-      "columns": [],
-      "indexes": [],
-      "foreign_keys": [],
-      "triggers": [],
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": true,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 1
+        },
+        {
+          "name": "import_conflict_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 2
+        },
+        {
+          "name": "event_type",
+          "type": "varchar(40)",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 40,
+          "ordinal_position": 3
+        },
+        {
+          "name": "status_before",
+          "type": "varchar(30)",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 30,
+          "ordinal_position": 4
+        },
+        {
+          "name": "status_after",
+          "type": "varchar(30)",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 30,
+          "ordinal_position": 5
+        },
+        {
+          "name": "actor_type",
+          "type": "varchar(40)",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 40,
+          "ordinal_position": 6
+        },
+        {
+          "name": "actor_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 7
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 8
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 9
+        },
+        {
+          "name": "idempotency_key",
+          "type": "char(64)",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 10
+        },
+        {
+          "name": "occurred_at",
+          "type": "timestamp",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 11
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 12
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 13
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            {
+              "name": "id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": true,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration primary key"
+        },
+        {
+          "name": "import_conflict_events_idempotency_key_unique",
+          "columns": [
+            {
+              "name": "idempotency_key",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": true,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration Blueprint index declaration"
+        },
+        {
+          "name": "import_conflict_events_import_conflict_id_occurred_at_index",
+          "columns": [
+            {
+              "name": "import_conflict_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            },
+            {
+              "name": "occurred_at",
+              "sequence": 2,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration Blueprint index declaration"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "import_conflict_event_restrict_fk",
+          "source_columns": [
+            "import_conflict_id"
+          ],
+          "referenced_table": "import_conflicts",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "RESTRICT",
+          "on_update": "RESTRICT",
+          "state": "COMPLETE",
+          "source": "Laravel foreign() declaration"
+        }
+      ],
+      "triggers": [
+        {
+          "name": "audit_immut_{substr(sha256(\"import_conflict_events\"),0,16)}_u",
+          "timing": "BEFORE",
+          "event": "UPDATE",
+          "orientation": "ROW",
+          "definition_state": "PARTIAL",
+          "behavior": "Rejects all UPDATE operations; exact deterministic trigger identifier still needs hash expansion in manifest.",
+          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
+        },
+        {
+          "name": "audit_immut_{substr(sha256(\"import_conflict_events\"),0,16)}_d",
+          "timing": "BEFORE",
+          "event": "DELETE",
+          "orientation": "ROW",
+          "definition_state": "PARTIAL",
+          "behavior": "Rejects all DELETE operations; exact deterministic trigger identifier still needs hash expansion in manifest.",
+          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
+        }
+      ],
       "source_provenance": [
         "database/migrations/2026_11_04_000012_add_identity_conflict_persistence_keys_and_events.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Creation and selected alteration source references exist, but complete final-state object definitions and exhaustive source trace have not been reconstructed. No schema-equivalence PASS is permitted."
+      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation. MigrationSchemaGuard creates event table with required column/type checks; audit-retention changes FK CASCADE to RESTRICT and adds append-only update/delete guards."
     },
     "import_conflicts": {
       "ownership": "application",
@@ -7681,24 +8340,280 @@
         "database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_state": "NOT_CHECKED",
+      "definition_state": "PARTIAL",
       "table_options": {
-        "engine": null,
-        "charset": null,
-        "collation": null,
+        "engine": "SERVER_DEFAULT",
+        "charset": "utf8mb4",
+        "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "NOT_CHECKED"
+        "state": "PARTIAL",
+        "source": "config/database.php fixes charset/collation; engine=null means server default."
       },
-      "columns": [],
-      "indexes": [],
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": true,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 1
+        },
+        {
+          "name": "event_type",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 255,
+          "ordinal_position": 2
+        },
+        {
+          "name": "actor_type",
+          "type": "varchar(255)",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 255,
+          "ordinal_position": 3
+        },
+        {
+          "name": "actor_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 4
+        },
+        {
+          "name": "subject_type",
+          "type": "varchar(255)",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 255,
+          "ordinal_position": 5
+        },
+        {
+          "name": "subject_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 6
+        },
+        {
+          "name": "severity",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": "info",
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 255,
+          "ordinal_position": 7
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 8
+        },
+        {
+          "name": "request_id",
+          "type": "varchar(255)",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 255,
+          "ordinal_position": 9
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 10
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 11
+        },
+        {
+          "name": "monitoring_idempotency_key",
+          "type": "varchar(191)",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 191,
+          "ordinal_position": 12
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            {
+              "name": "id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": true,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration primary key"
+        },
+        {
+          "name": "security_audit_events_event_type_severity_index",
+          "columns": [
+            {
+              "name": "event_type",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            },
+            {
+              "name": "severity",
+              "sequence": 2,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration Blueprint index declaration"
+        },
+        {
+          "name": "security_audit_events_subject_type_subject_id_index",
+          "columns": [
+            {
+              "name": "subject_type",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            },
+            {
+              "name": "subject_id",
+              "sequence": 2,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration Blueprint index declaration"
+        },
+        {
+          "name": "security_audit_events_monitoring_idempotency_key_unique",
+          "columns": [
+            {
+              "name": "monitoring_idempotency_key",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": true,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration Blueprint index declaration"
+        }
+      ],
       "foreign_keys": [],
-      "triggers": [],
+      "triggers": [
+        {
+          "name": "audit_immut_{substr(sha256(\"security_audit_events\"),0,16)}_u",
+          "timing": "BEFORE",
+          "event": "UPDATE",
+          "orientation": "ROW",
+          "definition_state": "PARTIAL",
+          "behavior": "Rejects all UPDATE operations; exact deterministic trigger identifier still needs hash expansion in manifest.",
+          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
+        },
+        {
+          "name": "audit_immut_{substr(sha256(\"security_audit_events\"),0,16)}_d",
+          "timing": "BEFORE",
+          "event": "DELETE",
+          "orientation": "ROW",
+          "definition_state": "PARTIAL",
+          "behavior": "Rejects all DELETE operations; exact deterministic trigger identifier still needs hash expansion in manifest.",
+          "source": "2026_11_04_000014_enforce_append_only_audit_retention.php"
+        }
+      ],
       "source_provenance": [
         "database/migrations/2026_09_23_000010_create_security_audit_events_table.php",
         "database/migrations/2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency.php",
         "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
       ],
-      "definition_note": "Creation and selected alteration source references exist, but complete final-state object definitions and exhaustive source trace have not been reconstructed. No schema-equivalence PASS is permitted."
+      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
     },
     "selection_outcomes": {
       "ownership": "application",
@@ -8961,22 +9876,313 @@
       "ownership": "application",
       "creation_migration": "database/migrations/2026_11_04_000013_create_source_snapshot_reconciliation_requests_table.php",
       "alteration_migrations": [],
-      "definition_state": "NOT_CHECKED",
+      "definition_state": "PARTIAL",
       "table_options": {
-        "engine": null,
-        "charset": null,
-        "collation": null,
+        "engine": "SERVER_DEFAULT",
+        "charset": "utf8mb4",
+        "collation": "utf8mb4_unicode_ci",
         "options": null,
-        "state": "NOT_CHECKED"
+        "state": "PARTIAL",
+        "source": "config/database.php fixes charset/collation; engine=null means server default."
       },
-      "columns": [],
-      "indexes": [],
-      "foreign_keys": [],
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": true,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 1
+        },
+        {
+          "name": "source_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 2
+        },
+        {
+          "name": "triggering_snapshot_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 3
+        },
+        {
+          "name": "current_snapshot_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 4
+        },
+        {
+          "name": "expected_previous_snapshot_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 5
+        },
+        {
+          "name": "recorded_previous_snapshot_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 6
+        },
+        {
+          "name": "identity_key",
+          "type": "varchar(64)",
+          "nullable": false,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 64,
+          "ordinal_position": 7
+        },
+        {
+          "name": "status",
+          "type": "varchar(32)",
+          "nullable": false,
+          "default": "pending_review",
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "length": 32,
+          "ordinal_position": 8
+        },
+        {
+          "name": "details",
+          "type": "json",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 9
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 10
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "default_expression": null,
+          "auto_increment": false,
+          "generated": null,
+          "comment": null,
+          "source": "Laravel migration Blueprint source",
+          "state": "COMPLETE",
+          "ordinal_position": 11
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "columns": [
+            {
+              "name": "id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": true,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration primary key"
+        },
+        {
+          "name": "source_snapshot_reconciliation_requests_identity_key_unique",
+          "columns": [
+            {
+              "name": "identity_key",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": true,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration Blueprint index declaration"
+        },
+        {
+          "name": "snapshot_reconciliation_source_status_idx",
+          "columns": [
+            {
+              "name": "source_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            },
+            {
+              "name": "status",
+              "sequence": 2,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration Blueprint index declaration"
+        },
+        {
+          "name": "snapshot_reconciliation_current_status_idx",
+          "columns": [
+            {
+              "name": "current_snapshot_id",
+              "sequence": 1,
+              "prefix_length": null,
+              "direction": "ASC"
+            },
+            {
+              "name": "status",
+              "sequence": 2,
+              "prefix_length": null,
+              "direction": "ASC"
+            }
+          ],
+          "unique": false,
+          "type": "BTREE",
+          "state": "COMPLETE",
+          "source": "Laravel migration Blueprint index declaration"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "ssr_source_fk",
+          "source_columns": [
+            "source_id"
+          ],
+          "referenced_table": "sources",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "CASCADE",
+          "on_update": "RESTRICT",
+          "state": "COMPLETE",
+          "source": "Laravel foreign() declaration"
+        },
+        {
+          "name": "ssr_triggering_snapshot_fk",
+          "source_columns": [
+            "triggering_snapshot_id"
+          ],
+          "referenced_table": "source_snapshots",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "CASCADE",
+          "on_update": "RESTRICT",
+          "state": "COMPLETE",
+          "source": "Laravel foreign() declaration"
+        },
+        {
+          "name": "ssr_current_snapshot_fk",
+          "source_columns": [
+            "current_snapshot_id"
+          ],
+          "referenced_table": "source_snapshots",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "CASCADE",
+          "on_update": "RESTRICT",
+          "state": "COMPLETE",
+          "source": "Laravel foreign() declaration"
+        },
+        {
+          "name": "ssr_expected_previous_fk",
+          "source_columns": [
+            "expected_previous_snapshot_id"
+          ],
+          "referenced_table": "source_snapshots",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT",
+          "state": "COMPLETE",
+          "source": "Laravel foreign() declaration"
+        },
+        {
+          "name": "ssr_recorded_previous_fk",
+          "source_columns": [
+            "recorded_previous_snapshot_id"
+          ],
+          "referenced_table": "source_snapshots",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_delete": "SET NULL",
+          "on_update": "RESTRICT",
+          "state": "COMPLETE",
+          "source": "Laravel foreign() declaration"
+        }
+      ],
       "triggers": [],
       "source_provenance": [
         "database/migrations/2026_11_04_000013_create_source_snapshot_reconciliation_requests_table.php"
       ],
-      "definition_note": "Creation and selected alteration source references exist, but complete final-state object definitions and exhaustive source trace have not been reconstructed. No schema-equivalence PASS is permitted."
+      "definition_note": "Cumulative source-derived object contracts recorded. Engine remains server-default; definition remains PARTIAL pending complete reconciliation."
     },
     "source_snapshots": {
       "ownership": "application",
