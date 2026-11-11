@@ -60,6 +60,20 @@ def validate_privacy(evidence):
             if entry["state"] == "FAIL" and entry["record_count"] > 1 and not entry["duplicate_count"]:
                 raise ValueError("migration_duplicate_not_reported")
 
+    for entry in evidence["migration_object_reconciliation"]:
+        ledger_state = entry["ledger_state"]
+        object_state = entry["object_state"]
+        consistency_state = entry["consistency_state"]
+        object_states = [obj["state"] for obj in entry["objects"]]
+        if consistency_state == "PASS" and not (ledger_state == "PASS" and object_state == "PASS"):
+            raise ValueError("migration_object_consistency_false_pass")
+        if ledger_state == "MISSING" and object_state == "PASS" and consistency_state != "FAIL":
+            raise ValueError("migration_objects_without_ledger_not_failed")
+        if ledger_state == "PASS" and object_state in {"MISSING", "FAIL"} and consistency_state != "FAIL":
+            raise ValueError("migration_ledger_without_objects_not_failed")
+        if "PASS" in object_states and "MISSING" in object_states and object_state != "FAIL":
+            raise ValueError("migration_partial_objects_not_failed")
+
     inspect(evidence)
 
 

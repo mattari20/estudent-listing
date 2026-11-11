@@ -58,6 +58,146 @@ function phase1cGroupMigrationLedgerRows(array $rows): array
     return $grouped;
 }
 
+/**
+ * Reconcile the complete deployed migration source inventory with every
+ * ledger row. This helper is pure so engine-specific edge cases are tested
+ * without a production connection.
+ *
+ * @param list<string> $sourceNames
+ * @param list<array{migration:mixed,batch:mixed,id?:mixed}> $rows
+ */
+function phase1cAnalyzeFullMigrationLedger(array $sourceNames, array $rows): array
+{
+    $sourceNames = array_values(array_unique(array_filter(array_map(
+        static fn ($name): string => trim((string) $name),
+        $sourceNames
+    ), static fn (string $name): bool => $name !== '')));
+    sort($sourceNames, SORT_STRING);
+
+    $grouped = [];
+    $invalidRows = [];
+    $orderedByBatch = [];
+    $hasSequenceId = true;
+    foreach ($rows as $row) {
+        $name = trim((string) ($row['migration'] ?? ''));
+        $batch = $row['batch'] ?? null;
+        if ($name === '') {
+            $invalidRows[] = ['reason' => 'EMPTY_MIGRATION_NAME'];
+            continue;
+        }
+        $grouped[$name][] = $batch;
+        if (!is_scalar($batch) || !ctype_digit((string) $batch) || (int) $batch < 1) {
+            $invalidRows[] = ['migration' => $name, 'reason' => 'INVALID_BATCH_VALUE'];
+        } else {
+            $orderedByBatch[(int) $batch][] = [
+                'migration' => $name,
+                'id' => $row['id'] ?? null,
+            ];
+        }
+        if (!array_key_exists('id', $row)) {
+            $hasSequenceId = false;
+        }
+    }
+
+    $ledgerNames = array_keys($grouped);
+    sort($ledgerNames, SORT_STRING);
+    $missingLedger = array_values(array_diff($sourceNames, $ledgerNames));
+    $missingSources = array_values(array_diff($ledgerNames, $sourceNames));
+    $duplicates = [];
+    foreach ($grouped as $name => $batches) {
+        if (count($batches) > 1) {
+            $duplicates[] = ['migration' => $name, 'occurrences' => count($batches)];
+        }
+    }
+
+    $batchNumbers = array_values(array_unique(array_filter(
+        array_map(static fn ($batch): int => is_scalar($batch) && ctype_digit((string) $batch) ? (int) $batch : 0, array_column($rows, 'batch')),
+        static fn (int $batch): bool => $batch > 0
+    )));
+    sort($batchNumbers, SORT_NUMERIC);
+    $batchGaps = [];
+    if ($batchNumbers !== []) {
+        for ($batch = $batchNumbers[0]; $batch < $batchNumbers[count($batchNumbers) - 1]; $batch++) {
+            if (!in_array($batch, $batchNumbers, true)) {
+                $batchGaps[] = $batch;
+            }
+        }
+    }
+
+    $orderingAnomalies = [];
+    $orderingChecked = $hasSequenceId && $rows !== [];
+    if ($orderingChecked) {
+        foreach ($orderedByBatch as $batch => $entries) {
+            $previous = null;
+            foreach ($entries as $entry) {
+                if (!is_scalar($entry['id']) || !ctype_digit((string) $entry['id'])) {
+                    $orderingChecked = false;
+                    $orderingAnomalies = [];
+                    break 2;
+                }
+                if ($previous !== null && strcmp($previous, $entry['migration']) > 0) {
+                    $orderingAnomalies[] = [
+                        'batch' => $batch,
+                        'previous_migration' => $previous,
+                        'migration' => $entry['migration'],
+                    ];
+                }
+                $previous = $entry['migration'];
+            }
+        }
+    }
+
+    $state = 'PASS';
+    if ($invalidRows !== [] || $duplicates !== [] || $missingSources !== [] || $orderingAnomalies !== []) {
+        $state = 'FAIL';
+    } elseif ($missingLedger !== []) {
+        $state = 'MISSING';
+    }
+
+    return [
+        'state' => $state,
+        'source_file_count' => count($sourceNames),
+        'ledger_row_count' => count($rows),
+        'distinct_ledger_migration_count' => count($ledgerNames),
+        'source_files_not_recorded' => $missingLedger,
+        'ledger_entries_without_source_files' => $missingSources,
+        'duplicate_ledger_entries' => $duplicates,
+        'invalid_ledger_rows' => $invalidRows,
+        'batch_numbers' => $batchNumbers,
+        'batch_gaps' => $batchGaps,
+        'batch_gap_state' => $batchGaps === [] ? 'PASS' : 'NOT_CHECKED',
+        'ordering_state' => $orderingChecked ? ($orderingAnomalies === [] ? 'PASS' : 'FAIL') : 'UNKNOWN',
+        'ordering_anomalies' => $orderingAnomalies,
+    ];
+}
+
+function phase1cClassifyMigrationObjectLedgerState(string $ledgerState, string $objectState): array
+{
+    if ($ledgerState === 'FAIL') {
+        return ['state' => 'FAIL', 'reason' => 'LEDGER_ENTRY_INVALID_OR_DUPLICATED'];
+    }
+    if ($ledgerState === 'UNKNOWN' || $objectState === 'UNKNOWN') {
+        return ['state' => 'UNKNOWN', 'reason' => 'REQUIRED_EVIDENCE_UNAVAILABLE'];
+    }
+    if ($ledgerState === 'PASS') {
+        if ($objectState === 'PASS') {
+            return ['state' => 'PASS', 'reason' => 'LEDGER_AND_EXPECTED_OBJECTS_PRESENT'];
+        }
+        return ['state' => 'FAIL', 'reason' => 'LEDGER_RECORDED_BUT_EXPECTED_OBJECTS_INCOMPLETE'];
+    }
+    if ($ledgerState === 'MISSING') {
+        if ($objectState === 'PASS') {
+            return ['state' => 'FAIL', 'reason' => 'EXPECTED_OBJECTS_PRESENT_WITHOUT_LEDGER_ENTRY'];
+        }
+        if ($objectState === 'MISSING') {
+            return ['state' => 'MISSING', 'reason' => 'MIGRATION_AND_EXPECTED_OBJECTS_ABSENT'];
+        }
+        return ['state' => 'FAIL', 'reason' => 'PARTIAL_OBJECT_APPLICATION_WITHOUT_LEDGER_ENTRY'];
+    }
+
+    return ['state' => 'UNKNOWN', 'reason' => 'UNRECOGNIZED_LEDGER_STATE'];
+}
+
 function phase1cMysqlNullDefaultFromDefinition(?string $columnDefinition): ?bool
 {
     if ($columnDefinition === null || preg_match("/\\bDEFAULT\\s+(NULL|'(?:''|[^'])*')(?=\\s|,|$)/i", $columnDefinition, $matches) !== 1) {
@@ -282,8 +422,9 @@ final class Phase1CReadOnlyDiagnostic
             $this->databaseName = $selectedDatabase;
             $version=(string)$this->pdo->query('SELECT VERSION()')->fetchColumn();
             $this->inventory();
+            $ledgerReconciliation = $this->migrationLedgerReconciliation();
             $result=[
-                'schema_version'=>'phase1c-readonly-diagnostic/v1',
+                'schema_version'=>'phase1c-readonly-diagnostic/v2',
                 'database'=>['engine'=>stripos($version,'mariadb')!==false?'mariadb':'mysql','server_version'=>$version,'identity_verified'=>true],
                 'metadata_visibility'=>['complete'=>$this->absenceProof,'triggers_complete'=>$this->triggerAbsenceProof],
                 'tables'=>$this->tableMetadata(),
@@ -294,7 +435,9 @@ final class Phase1CReadOnlyDiagnostic
                 'foreign_keys'=>$this->foreignKeys(),
                 'expected_foreign_key_reconciliation'=>$this->foreignKeyReconciliation(),
                 'expected_trigger_reconciliation'=>$this->triggerReconciliation(),
-                'migration_ledger_reconciliation'=>$this->migrationLedgerReconciliation(),
+                'migration_ledger_reconciliation'=>$ledgerReconciliation,
+                'migration_object_reconciliation'=>$this->migrationObjectReconciliation($ledgerReconciliation),
+                'full_migration_ledger_inventory'=>$this->fullMigrationLedgerInventory(),
                 'queue_mapping'=>$this->queueMapping(),
                 'alert_mapping'=>$this->alertMapping(),
                 'orphan_checks'=>$this->orphanChecks(),
@@ -665,6 +808,262 @@ final class Phase1CReadOnlyDiagnostic
             .") then signal sqlstate '45000' set message_text = '{$expectedMessage}'; end if; end";
 
         return $statement===$expectedStatement;
+    }
+
+    private function migrationObjectReconciliation(array $ledgerReconciliation): array
+    {
+        $indexRows = [];
+        foreach ($this->indexReconciliation() as $row) {
+            $indexRows[$row['table'].'.'.$row['name']] = $row['state'];
+        }
+        $foreignKeyRows = [];
+        foreach ($this->foreignKeyReconciliation() as $row) {
+            $foreignKeyRows[$row['name']] = $row['state'];
+        }
+        $triggerRows = [];
+        foreach ($this->triggerReconciliation() as $row) {
+            $triggerRows[$row['name']] = $row['state'];
+        }
+        $columnRows = [];
+        foreach (self::EXPECTED_COLUMNS as $contract) {
+            [$table, $column] = $contract;
+            if (!isset($this->tables[$table])) {
+                $state = $this->absenceProof ? 'MISSING' : 'UNKNOWN';
+            } elseif (isset($this->columnErrors[$table])) {
+                $state = 'UNKNOWN';
+            } else {
+                $state = isset($this->columns[$table][$column]) ? 'PASS' : ($this->absenceProof ? 'MISSING' : 'UNKNOWN');
+            }
+            $columnRows[$table.'.'.$column] = $state;
+        }
+
+        $triggersByMigration = [];
+        foreach ($this->expectedTriggers() as $trigger) {
+            $triggersByMigration[] = $trigger['name'];
+        }
+        $requirements = [
+            self::EXPECTED_MIGRATIONS[0] => [
+                'tables' => ['password_reset_tokens'],
+                'columns' => ['password_reset_tokens.email','password_reset_tokens.token','password_reset_tokens.created_at'],
+                'indexes' => ['password_reset_tokens.PRIMARY'],
+            ],
+            self::EXPECTED_MIGRATIONS[1] => ['columns' => ['users.must_change_password']],
+            self::EXPECTED_MIGRATIONS[2] => ['columns' => ['import_batches.duplicate_rows']],
+            self::EXPECTED_MIGRATIONS[3] => [
+                'tables' => ['structured_enrichment_promotion_events'],
+                'columns' => ['structured_enrichment_promotion_events.enrichment_import_row_id','structured_enrichment_promotion_events.import_batch_id','structured_enrichment_promotion_events.occurred_at'],
+            ],
+            self::EXPECTED_MIGRATIONS[4] => [
+                'tables' => ['governed_execution_leases'],
+                'columns' => ['governed_execution_leases.task_key','governed_execution_leases.owner_token','governed_execution_leases.run_id','governed_execution_leases.expires_at'],
+                'indexes' => ['governed_execution_leases.governed_execution_leases_task_key_unique','governed_execution_leases.governed_execution_leases_expires_at_index'],
+            ],
+            self::EXPECTED_MIGRATIONS[5] => [
+                'tables' => ['governed_execution_runs','governed_execution_run_events'],
+                'columns' => ['governed_execution_runs.id','governed_execution_run_events.run_id','governed_execution_run_events.event_type','governed_execution_run_events.occurred_at'],
+            ],
+            self::EXPECTED_MIGRATIONS[6] => [
+                'columns' => ['source_retrieval_runs.idempotency_key'],
+                'indexes' => ['source_retrieval_runs.source_retrieval_runs_idempotency_key_unique'],
+            ],
+            self::EXPECTED_MIGRATIONS[7] => [
+                'columns' => ['source_snapshots.capture_key','source_change_observations.current_snapshot_id'],
+                'indexes' => ['source_snapshots.source_snapshots_capture_key_unique','source_change_observations.source_observations_current_snapshot_unique'],
+            ],
+            self::EXPECTED_MIGRATIONS[8] => [
+                'columns' => ['institute_discovery_run_outcomes.idempotency_key'],
+                'indexes' => ['institute_discovery_run_outcomes.institute_discovery_run_outcomes_idempotency_key_unique'],
+            ],
+            self::EXPECTED_MIGRATIONS[9] => [
+                'columns' => ['change_events.source_change_assertion_link_id'],
+                'indexes' => ['change_events.change_events_source_link_unique'],
+            ],
+            self::EXPECTED_MIGRATIONS[10] => [
+                'tables' => ['data_reverification_queue_identities'],
+                'columns' => ['data_reverification_queue_identities.identity_key','data_reverification_queue_identities.subject_type','data_reverification_queue_identities.subject_id','data_reverification_queue_identities.active_queue_id'],
+            ],
+            self::EXPECTED_MIGRATIONS[11] => [
+                'tables' => ['monitoring_alert_identities'],
+                'columns' => ['monitoring_alert_identities.dedupe_key','monitoring_alert_identities.active_alert_id','security_audit_events.monitoring_idempotency_key'],
+                'indexes' => ['security_audit_events.security_audit_events_monitoring_idempotency_key_unique'],
+            ],
+            self::EXPECTED_MIGRATIONS[12] => [
+                'tables' => ['monitoring_policy_runs','monitoring_policy_run_sources'],
+                'columns' => ['monitoring_policy_runs.source_monitoring_policy_id','monitoring_policy_runs.execution_run_id','monitoring_policy_runs.started_at','monitoring_policy_run_sources.monitoring_policy_run_id','monitoring_policy_run_sources.source_id','monitoring_policy_run_sources.retrieval_run_id','monitoring_policy_run_sources.observation_id'],
+                'indexes' => ['monitoring_policy_run_sources.monitoring_policy_run_source_unique','monitoring_policy_run_sources.monitoring_policy_source_status_idx'],
+            ],
+            self::EXPECTED_MIGRATIONS[13] => [
+                'columns' => ['import_batches.discovery_identity_key','evidence.discovery_identity_key','import_rows.discovery_identity_key','assertions.discovery_identity_key'],
+                'indexes' => ['import_batches.import_batches_discovery_identity_unique','evidence.evidence_discovery_identity_unique','import_rows.import_rows_discovery_identity_unique','assertions.assertions_discovery_identity_unique'],
+            ],
+            self::EXPECTED_MIGRATIONS[14] => [
+                'tables' => ['import_conflict_events'],
+                'columns' => ['identity_match_candidates.identity_key','identity_resolution_decisions.decision_identity_key','import_conflicts.identity_key','import_conflict_events.idempotency_key'],
+                'indexes' => ['identity_match_candidates.identity_match_candidates_identity_key_unique','identity_resolution_decisions.identity_resolution_decisions_identity_key_unique','import_conflicts.import_conflicts_identity_key_unique','import_conflict_events.import_conflict_events_idempotency_key_unique'],
+            ],
+            self::EXPECTED_MIGRATIONS[15] => [
+                'tables' => ['source_snapshot_reconciliation_requests'],
+                'columns' => ['source_snapshot_reconciliation_requests.identity_key','source_snapshot_reconciliation_requests.source_id','source_snapshot_reconciliation_requests.triggering_snapshot_id','source_snapshot_reconciliation_requests.current_snapshot_id','source_snapshot_reconciliation_requests.expected_previous_snapshot_id','source_snapshot_reconciliation_requests.recorded_previous_snapshot_id'],
+                'indexes' => ['source_snapshot_reconciliation_requests.source_snapshot_reconciliation_requests_identity_key_unique','source_snapshot_reconciliation_requests.snapshot_reconciliation_source_status_idx','source_snapshot_reconciliation_requests.snapshot_reconciliation_current_status_idx'],
+                'foreign_keys' => ['ssr_source_fk','ssr_triggering_snapshot_fk','ssr_current_snapshot_fk','ssr_expected_previous_fk','ssr_recorded_previous_fk'],
+            ],
+            self::EXPECTED_MIGRATIONS[16] => [
+                'foreign_keys' => ['identity_decision_row_restrict_fk','verification_decision_assertion_restrict_fk','import_reconciliation_batch_restrict_fk','import_promotion_decision_row_restrict_fk','import_promotion_event_row_restrict_fk','import_promotion_event_batch_restrict_fk','reverification_event_queue_restrict_fk','structured_enrichment_row_restrict_fk','structured_enrichment_batch_restrict_fk','import_conflict_event_restrict_fk','governed_run_event_restrict_fk'],
+                'triggers' => $triggersByMigration,
+            ],
+            self::EXPECTED_MIGRATIONS[17] => [
+                'columns' => ['monitoring_policy_runs.heartbeat_at'],
+                'foreign_keys' => ['mp_run_policy_fk','mp_run_exec_fk','mp_source_run_fk','mp_source_source_fk','mp_source_retrieval_fk','mp_source_observation_fk','mai_active_alert_fk'],
+            ],
+        ];
+
+        $ledgerByName = [];
+        foreach ($ledgerReconciliation as $entry) {
+            $ledgerByName[$entry['migration']] = $entry['state'];
+        }
+
+        $out = [];
+        foreach (self::EXPECTED_MIGRATIONS as $migration) {
+            $required = $requirements[$migration] ?? [];
+            $objects = [];
+            foreach ($required['tables'] ?? [] as $table) {
+                $state = isset($this->tables[$table]) ? 'PASS' : ($this->absenceProof ? 'MISSING' : 'UNKNOWN');
+                $objects[] = ['object' => 'table:'.$table, 'state' => $state];
+            }
+            foreach ($required['columns'] ?? [] as $column) {
+                $objects[] = ['object' => 'column:'.$column, 'state' => $columnRows[$column] ?? 'UNKNOWN'];
+            }
+            foreach ($required['indexes'] ?? [] as $index) {
+                $objects[] = ['object' => 'index:'.$index, 'state' => $indexRows[$index] ?? 'UNKNOWN'];
+            }
+            foreach ($required['foreign_keys'] ?? [] as $foreignKey) {
+                $objects[] = ['object' => 'foreign_key:'.$foreignKey, 'state' => $foreignKeyRows[$foreignKey] ?? 'UNKNOWN'];
+            }
+            foreach ($required['triggers'] ?? [] as $trigger) {
+                $objects[] = ['object' => 'trigger:'.$trigger, 'state' => $triggerRows[$trigger] ?? 'UNKNOWN'];
+            }
+
+            $states = array_column($objects, 'state');
+            $presentCount = count(array_filter($states, static fn (string $state): bool => $state === 'PASS'));
+            $missingCount = count(array_filter($states, static fn (string $state): bool => $state === 'MISSING'));
+            $unknownCount = count(array_filter($states, static fn (string $state): bool => $state === 'UNKNOWN'));
+            $failCount = count(array_filter($states, static fn (string $state): bool => $state === 'FAIL'));
+            if ($failCount > 0 || ($presentCount > 0 && $missingCount > 0)) {
+                $objectState = 'FAIL';
+            } elseif ($unknownCount > 0) {
+                $objectState = 'UNKNOWN';
+            } elseif ($missingCount > 0) {
+                $objectState = 'MISSING';
+            } else {
+                $objectState = 'PASS';
+            }
+
+            $ledgerState = $ledgerByName[$migration] ?? 'UNKNOWN';
+            $consistency = phase1cClassifyMigrationObjectLedgerState($ledgerState, $objectState);
+            $out[] = [
+                'migration' => $migration,
+                'ledger_state' => $ledgerState,
+                'object_state' => $objectState,
+                'consistency_state' => $consistency['state'],
+                'reason' => $consistency['reason'],
+                'objects' => $objects,
+            ];
+        }
+
+        return $out;
+    }
+
+    private function fullMigrationLedgerInventory(): array
+    {
+        if (!isset($this->tables['migrations'])) {
+            return [
+                'state' => $this->absenceProof ? 'MISSING' : 'UNKNOWN',
+                'reason' => $this->absenceProof ? 'LEDGER_TABLE_ABSENT' : 'METADATA_VISIBILITY_NOT_PROVEN',
+                'source_file_count' => null,
+                'ledger_row_count' => null,
+                'distinct_ledger_migration_count' => null,
+                'source_files_not_recorded' => [],
+                'ledger_entries_without_source_files' => [],
+                'duplicate_ledger_entries' => [],
+                'invalid_ledger_rows' => [],
+                'batch_numbers' => [],
+                'batch_gaps' => [],
+                'batch_gap_state' => 'UNKNOWN',
+                'ordering_state' => 'UNKNOWN',
+                'ordering_anomalies' => [],
+            ];
+        }
+        if (isset($this->columnErrors['migrations']) || !$this->has('migrations', ['migration', 'batch'])) {
+            return [
+                'state' => 'UNKNOWN',
+                'reason' => 'LEDGER_COLUMNS_OR_METADATA_UNAVAILABLE',
+                'source_file_count' => null,
+                'ledger_row_count' => null,
+                'distinct_ledger_migration_count' => null,
+                'source_files_not_recorded' => [],
+                'ledger_entries_without_source_files' => [],
+                'duplicate_ledger_entries' => [],
+                'invalid_ledger_rows' => [],
+                'batch_numbers' => [],
+                'batch_gaps' => [],
+                'batch_gap_state' => 'UNKNOWN',
+                'ordering_state' => 'UNKNOWN',
+                'ordering_anomalies' => [],
+            ];
+        }
+
+        try {
+            $migrationDirectory = dirname(__DIR__, 2).'/database/migrations';
+            if (!is_dir($migrationDirectory) || !is_readable($migrationDirectory)) {
+                return [
+                    'state' => 'UNKNOWN',
+                    'reason' => 'MIGRATION_SOURCE_DIRECTORY_UNAVAILABLE',
+                    'source_file_count' => null,
+                    'ledger_row_count' => null,
+                    'distinct_ledger_migration_count' => null,
+                    'source_files_not_recorded' => [],
+                    'ledger_entries_without_source_files' => [],
+                    'duplicate_ledger_entries' => [],
+                    'invalid_ledger_rows' => [],
+                    'batch_numbers' => [],
+                    'batch_gaps' => [],
+                    'batch_gap_state' => 'UNKNOWN',
+                    'ordering_state' => 'UNKNOWN',
+                    'ordering_anomalies' => [],
+                ];
+            }
+            $sourcePaths = glob($migrationDirectory.'/*.php');
+            if ($sourcePaths === false) {
+                throw new RuntimeException('Migration source filename inventory is unavailable.');
+            }
+            $sourceNames = array_map(static fn (string $path): string => basename($path, '.php'), $sourcePaths);
+            $hasId = isset($this->columns['migrations']['id']);
+            $select = $hasId ? 'SELECT id,migration,batch FROM migrations ORDER BY id' : 'SELECT migration,batch FROM migrations ORDER BY batch,migration';
+            $rows = $this->pdo->query($select)->fetchAll(PDO::FETCH_ASSOC);
+            $analysis = phase1cAnalyzeFullMigrationLedger($sourceNames, $rows);
+            if (!$hasId && $rows !== []) {
+                $analysis['ordering_state'] = 'UNKNOWN';
+            }
+            return $analysis;
+        } catch (Throwable $e) {
+            return [
+                'state' => 'UNKNOWN',
+                'reason' => 'FULL_LEDGER_INVENTORY_UNAVAILABLE',
+                'error' => $this->safeError($e),
+                'source_file_count' => null,
+                'ledger_row_count' => null,
+                'distinct_ledger_migration_count' => null,
+                'source_files_not_recorded' => [],
+                'ledger_entries_without_source_files' => [],
+                'duplicate_ledger_entries' => [],
+                'invalid_ledger_rows' => [],
+                'batch_numbers' => [],
+                'batch_gaps' => [],
+                'batch_gap_state' => 'UNKNOWN',
+                'ordering_state' => 'UNKNOWN',
+                'ordering_anomalies' => [],
+            ];
+        }
     }
 
     private function migrationLedgerReconciliation(): array
