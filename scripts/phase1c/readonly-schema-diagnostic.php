@@ -549,9 +549,6 @@ final class Phase1CReadOnlyDiagnostic
                             if (count($parts) === 2) $objectRefs[] = ['table'=>$parts[0],'kind'=>$kind,'name'=>$parts[1]];
                         }
                     }
-                    foreach (array_merge($entry['tables_created'] ?? [], $entry['tables_altered'] ?? []) as $tableName) {
-                        $objectRefs[] = ['table'=>(string)$tableName,'kind'=>'table','name'=>'__table__'];
-                    }
                     $objectStates = [];
                     $objectDetails = [];
                     foreach ($objectRefs as $ref) {
@@ -562,10 +559,11 @@ final class Phase1CReadOnlyDiagnostic
                     }
                     $objectDetailsByMigration[$name] = $objectDetails;
                     $targetState = $targetStates[$name] ?? null;
-                    if ($targetState !== null) $objectStates[] = $targetState;
+                    if (in_array($targetState, ['FAIL','UNKNOWN','MISSING'], true)) $objectStates[] = $targetState;
                     $objectState = in_array('FAIL', $objectStates, true) || in_array('MISSING', $objectStates, true) ? 'FAIL'
                         : (in_array('UNKNOWN', $objectStates, true) ? 'UNKNOWN'
-                        : 'NOT_CHECKED');
+                        : (in_array('NOT_CHECKED', $objectStates, true) ? 'NOT_CHECKED'
+                        : ($reviewState === 'SOURCE_REVIEWED_COMPLETE' && $objectStates !== [] && empty($entry['operation_review']['unresolved']) ? 'PASS' : 'NOT_CHECKED')));
                 }
                 $migrationObjects[$name] = [$objectState];
             }
