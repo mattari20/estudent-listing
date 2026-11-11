@@ -571,6 +571,12 @@ final class Phase1CReadOnlyDiagnostic
                             }
                         }
                     }
+                    foreach (($entry['tables_created'] ?? []) as $tableName) {
+                        $objectRefs[] = ['table'=>(string)$tableName,'kind'=>'table','name'=>'__table__','relation'=>'TABLE_CREATED'];
+                    }
+                    foreach (($entry['tables_altered'] ?? []) as $tableName) {
+                        $objectRefs[] = ['table'=>(string)$tableName,'kind'=>'table','name'=>'__table__','relation'=>'TABLE_ALTERED'];
+                    }
                     $objectStates = [];
                     $objectDetails = [];
                     foreach ($objectRefs as $ref) {
