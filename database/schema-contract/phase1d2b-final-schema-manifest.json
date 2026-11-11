@@ -2811,7 +2811,10 @@
         },
         {
           "name": "payload",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": false,
           "default": null,
           "default_expression": null,
@@ -2824,7 +2827,10 @@
         },
         {
           "name": "normalized_payload",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -2837,7 +2843,10 @@
         },
         {
           "name": "validation_errors",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -4629,7 +4638,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         },
         {
           "name": "audit_immut_0c11b0a7b877443d_d",
@@ -4638,7 +4648,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         }
       ],
       "source_provenance": [
@@ -5463,7 +5474,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Allows only one-time decision_identity_key NULL to NOT NULL enrichment while id, import_row_id, institution_id, decision, actor_type, actor_id, reason, decided_at and created_at remain unchanged; otherwise signals SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "identity_key_enrichment"
         },
         {
           "name": "identity_decision_delete_guard",
@@ -5472,7 +5484,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "identity_decision_delete"
         }
       ],
       "source_provenance": [
@@ -5966,7 +5979,10 @@
         },
         {
           "name": "metadata",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -6107,7 +6123,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         },
         {
           "name": "audit_immut_e6d938d7ffee7729_d",
@@ -6116,7 +6133,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         }
       ],
       "source_provenance": [
@@ -6238,7 +6256,10 @@
         },
         {
           "name": "details",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -6734,7 +6755,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         },
         {
           "name": "audit_immut_f9de606bfd4c935d_d",
@@ -6743,7 +6765,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         }
       ],
       "source_provenance": [
@@ -6987,7 +7010,10 @@
         },
         {
           "name": "metadata",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -7177,7 +7203,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         },
         {
           "name": "audit_immut_f8fe18d3e78fdef2_d",
@@ -7186,7 +7213,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         }
       ],
       "source_provenance": [
@@ -7334,7 +7362,10 @@
         },
         {
           "name": "metadata",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -7536,7 +7567,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Allows only one-time import_row_id detachment from non-NULL to NULL while every other listed row field remains unchanged; all other updates signal SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "reconciliation_detach"
         },
         {
           "name": "audit_immut_17f41e0249a768b1_d",
@@ -7545,7 +7577,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         }
       ],
       "source_provenance": [
@@ -7695,7 +7728,10 @@
         },
         {
           "name": "payload",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": false,
           "default": null,
           "default_expression": null,
@@ -7708,7 +7744,10 @@
         },
         {
           "name": "normalized_payload",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -7721,7 +7760,10 @@
         },
         {
           "name": "validation_errors",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -8011,7 +8053,10 @@
         },
         {
           "name": "columns",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": false,
           "default": null,
           "default_expression": null,
@@ -8024,7 +8069,10 @@
         },
         {
           "name": "required_columns",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": false,
           "default": null,
           "default_expression": null,
@@ -8037,7 +8085,10 @@
         },
         {
           "name": "normalization_rules",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -8293,7 +8344,10 @@
         },
         {
           "name": "details",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -10284,7 +10338,10 @@
         },
         {
           "name": "details",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -10893,7 +10950,10 @@
         },
         {
           "name": "summary",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -11140,7 +11200,10 @@
         },
         {
           "name": "before_value",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -11153,7 +11216,10 @@
         },
         {
           "name": "after_value",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -11340,7 +11406,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         },
         {
           "name": "audit_immut_67d791570898e61c_d",
@@ -11349,7 +11416,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         }
       ],
       "source_provenance": [
@@ -12114,7 +12182,10 @@
         },
         {
           "name": "metadata",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -12239,7 +12310,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         },
         {
           "name": "audit_immut_b04f820f0d4b68b3_d",
@@ -12248,7 +12320,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         }
       ],
       "source_provenance": [
@@ -13316,7 +13389,10 @@
         },
         {
           "name": "metadata",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -13471,7 +13547,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         },
         {
           "name": "audit_immut_72992154e9e26525_d",
@@ -13480,7 +13557,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         }
       ],
       "source_provenance": [
@@ -14929,7 +15007,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         },
         {
           "name": "audit_immut_5e1df25372fff553_d",
@@ -14938,7 +15017,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         }
       ],
       "source_provenance": [
@@ -15594,7 +15674,10 @@
         },
         {
           "name": "details",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -16576,7 +16659,10 @@
         },
         {
           "name": "details",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -16906,7 +16992,10 @@
         },
         {
           "name": "metadata",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -17395,7 +17484,10 @@
         },
         {
           "name": "before_snapshot",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -17408,7 +17500,10 @@
         },
         {
           "name": "after_snapshot",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -17421,7 +17516,10 @@
         },
         {
           "name": "metadata",
-          "type": "json",
+          "type": [
+            "json",
+            "longtext"
+          ],
           "nullable": true,
           "default": null,
           "default_expression": null,
@@ -17590,7 +17688,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         },
         {
           "name": "audit_immut_3ba3ddd28550296d_d",
@@ -17599,7 +17698,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         }
       ],
       "source_provenance": [
@@ -18018,7 +18118,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all UPDATE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         },
         {
           "name": "audit_immut_493307493f91dfc1_d",
@@ -18027,7 +18128,8 @@
           "orientation": "ROW",
           "definition_state": "COMPLETE",
           "behavior": "Rejects all DELETE operations with SQLSTATE 45000.",
-          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php"
+          "source": "database/migrations/2026_11_04_000014_enforce_append_only_audit_retention.php",
+          "body_contract": "append_only"
         }
       ],
       "source_provenance": [
