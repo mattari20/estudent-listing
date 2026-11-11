@@ -49,11 +49,52 @@ if ($db === '' || $user === '' || (!$socket && ($host === '' || !ctype_digit($po
 }
 
 $migrations = [
+    '2026_10_17_000001_create_password_reset_tokens_table' => [
+        'tables' => ['password_reset_tokens'],
+        'columns' => ['password_reset_tokens.email', 'password_reset_tokens.token', 'password_reset_tokens.created_at'],
+    ],
+    '2026_10_17_000002_add_must_change_password_to_users_table' => [
+        'columns' => ['users.must_change_password'],
+    ],
+    '2026_10_23_000001_add_duplicate_rows_to_import_batches_table' => [
+        'columns' => ['import_batches.duplicate_rows'],
+    ],
     '2026_10_25_000001_create_structured_enrichment_promotion_events_table' => [
         'tables' => ['structured_enrichment_promotion_events'],
+        'columns' => [
+            'structured_enrichment_promotion_events.enrichment_import_row_id',
+            'structured_enrichment_promotion_events.import_batch_id',
+            'structured_enrichment_promotion_events.occurred_at',
+        ],
+    ],
+    '2026_11_03_000001_create_governed_execution_leases_table' => [
+        'tables' => ['governed_execution_leases'],
+        'columns' => ['governed_execution_leases.task_key', 'governed_execution_leases.owner_token', 'governed_execution_leases.run_id', 'governed_execution_leases.expires_at'],
     ],
     '2026_11_03_000002_create_governed_execution_runs_table' => [
         'tables' => ['governed_execution_runs', 'governed_execution_run_events'],
+        'columns' => ['governed_execution_runs.id', 'governed_execution_run_events.run_id', 'governed_execution_run_events.event_type', 'governed_execution_run_events.occurred_at'],
+    ],
+    '2026_11_03_000003_add_source_retrieval_idempotency_key' => [
+        'columns' => ['source_retrieval_runs.idempotency_key'],
+    ],
+    '2026_11_03_000004_add_snapshot_and_observation_idempotency' => [
+        'columns' => ['source_snapshots.capture_key', 'source_change_observations.current_snapshot_id'],
+    ],
+    '2026_11_03_000005_add_discovery_outcome_idempotency_key' => [
+        'columns' => ['institute_discovery_run_outcomes.idempotency_key'],
+    ],
+    '2026_11_03_000006_add_change_event_source_link_identity' => [
+        'columns' => ['change_events.source_change_assertion_link_id'],
+    ],
+    '2026_11_03_000007_create_data_reverification_queue_identities_table' => [
+        'tables' => ['data_reverification_queue_identities'],
+        'columns' => [
+            'data_reverification_queue_identities.identity_key',
+            'data_reverification_queue_identities.subject_type',
+            'data_reverification_queue_identities.subject_id',
+            'data_reverification_queue_identities.active_queue_id',
+        ],
     ],
     '2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency' => [
         'tables' => ['monitoring_alert_identities'],
@@ -61,6 +102,23 @@ $migrations = [
     ],
     '2026_11_04_000010_create_monitoring_policy_run_checkpoints' => [
         'tables' => ['monitoring_policy_runs', 'monitoring_policy_run_sources'],
+        'columns' => [
+            'monitoring_policy_runs.source_monitoring_policy_id',
+            'monitoring_policy_runs.execution_run_id',
+            'monitoring_policy_runs.started_at',
+            'monitoring_policy_run_sources.monitoring_policy_run_id',
+            'monitoring_policy_run_sources.source_id',
+            'monitoring_policy_run_sources.retrieval_run_id',
+            'monitoring_policy_run_sources.observation_id',
+        ],
+    ],
+    '2026_11_04_000011_add_discovery_candidate_persistence_identity_keys' => [
+        'columns' => [
+            'import_batches.discovery_identity_key',
+            'evidence.discovery_identity_key',
+            'import_rows.discovery_identity_key',
+            'assertions.discovery_identity_key',
+        ],
     ],
     '2026_11_04_000012_add_identity_conflict_persistence_keys_and_events' => [
         'tables' => ['import_conflict_events'],
@@ -68,6 +126,17 @@ $migrations = [
             'identity_match_candidates.identity_key',
             'identity_resolution_decisions.decision_identity_key',
             'import_conflicts.identity_key',
+        ],
+    ],
+    '2026_11_04_000013_create_source_snapshot_reconciliation_requests_table' => [
+        'tables' => ['source_snapshot_reconciliation_requests'],
+        'columns' => [
+            'source_snapshot_reconciliation_requests.identity_key',
+            'source_snapshot_reconciliation_requests.source_id',
+            'source_snapshot_reconciliation_requests.triggering_snapshot_id',
+            'source_snapshot_reconciliation_requests.current_snapshot_id',
+            'source_snapshot_reconciliation_requests.expected_previous_snapshot_id',
+            'source_snapshot_reconciliation_requests.recorded_previous_snapshot_id',
         ],
     ],
     '2026_11_04_000014_enforce_append_only_audit_retention' => [
@@ -136,7 +205,7 @@ try {
     $ledgerRows = $ledgerStmt->fetchAll();
     $ledger = [];
     foreach ($ledgerRows as $row) {
-        $ledger[(string)$row['migration']] = (string)$row['batch'];
+        $ledger[(string)$row['migration']][] = $row['batch'];
     }
 
     echo "phase_1c_migration_ledger_reconciliation=STARTED\n";
@@ -147,8 +216,12 @@ try {
     echo "application_rows_read_scope=selected_migrations_ledger_rows_only\n";
 
     $migrationFailures = 0;
+    $ledgerDuplicates = 0;
     foreach ($migrations as $migration => $requirements) {
-        $recorded = array_key_exists($migration, $ledger);
+        $batches = $ledger[$migration] ?? [];
+        $recorded = $batches !== [];
+        $duplicateCount = max(0, count($batches) - 1);
+        $ledgerDuplicates += $duplicateCount;
         $objects = [];
         foreach (($requirements['tables'] ?? []) as $table) {
             $tableExists->execute([$table]);
@@ -187,7 +260,17 @@ try {
         foreach ($objects as $object) {
             if (str_ends_with($object, ':MISSING')) $allPresent = false;
         }
-        if ($recorded && $allPresent) {
+        $batchValuesValid = true;
+        foreach ($batches as $batchValue) {
+            if (! is_scalar($batchValue) || ! ctype_digit((string) $batchValue)) $batchValuesValid = false;
+        }
+        if ($duplicateCount > 0) {
+            $status = 'DUPLICATE_LEDGER_ROWS';
+            $migrationFailures++;
+        } elseif ($recorded && ! $batchValuesValid) {
+            $status = 'INVALID_LEDGER_BATCH_VALUE';
+            $migrationFailures++;
+        } elseif ($recorded && $allPresent) {
             $status = 'CONSISTENT';
         } elseif ($recorded) {
             $status = 'RECORDED_BUT_SCHEMA_INCOMPLETE';
@@ -199,14 +282,21 @@ try {
             $status = 'NOT_RECORDED_AND_SCHEMA_INCOMPLETE';
             $migrationFailures++;
         }
-        $batch = $recorded ? $ledger[$migration] : 'NONE';
+        $safeBatches = [];
+        foreach ($batches as $batchValue) {
+            $safeBatches[] = is_scalar($batchValue) && ctype_digit((string)$batchValue)
+                ? (string)(int)$batchValue
+                : '[INVALID]';
+        }
+        $batch = $recorded ? implode(',', $safeBatches) : 'NONE';
         echo "migration={$migration}|ledger=".($recorded ? 'RECORDED' : 'NOT_RECORDED')
-            ."|batch={$batch}|status={$status}\n";
+            ."|ledger_rows=".count($batches)."|duplicate_rows={$duplicateCount}|batches={$batch}|status={$status}\n";
         foreach ($objects as $object) echo "object={$migration}|{$object}\n";
     }
 
     echo "reconciliation_summary=migrations_checked:".count($migrations)
         .";ledger_recorded:".count($ledgerRows)
+        .";duplicate_ledger_rows:{$ledgerDuplicates}"
         .";migration_failures:{$migrationFailures}\n";
     $pdo->rollBack();
     $open = false;

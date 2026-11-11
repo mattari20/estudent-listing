@@ -44,7 +44,7 @@ class EvidenceTransferTests(unittest.TestCase):
         return {
             "schema_version": "phase1c-readonly-diagnostic/v1",
             "database": {"engine": "mysql", "server_version": "8.4-fixture", "identity_verified": True},
-            "metadata_visibility": {"complete": True},
+            "metadata_visibility": {"complete": True, "triggers_complete": True},
             "tables": [{"table": f"fixture_{i}", "state": "PASS"} for i in range(39)],
             "columns": [],
             "indexes": [],
@@ -54,13 +54,34 @@ class EvidenceTransferTests(unittest.TestCase):
                 for i in range(23)
             ],
             "foreign_keys": [],
+            "expected_column_reconciliation": [
+                {"table": "fixture", "column": f"column_{i}", "type": "varchar(64)", "nullable": True, "state": "PASS"}
+                for i in range(50)
+            ],
+            "expected_foreign_key_reconciliation": [
+                {"name": f"fk_{i}", "table": "child", "column": "parent_id", "referenced_table": "parent",
+                 "referenced_column": "id", "match_option": "NONE", "update_rule": "RESTRICT",
+                 "delete_rule": "RESTRICT", "state": "PASS"}
+                for i in range(23)
+            ],
+            "expected_trigger_reconciliation": [
+                {"name": f"trigger_{i}", "table": "fixture", "event": "DELETE", "timing": "BEFORE",
+                 "orientation": "ROW", "body_contract": "append_only", "state": "PASS"}
+                for i in range(24)
+            ],
+            "migration_ledger_reconciliation": [
+                {"migration": f"migration_{i}", "state": "PASS", "record_count": 1,
+                 "duplicate_count": 0, "batches": [1], "batch_values_valid": True}
+                for i in range(18)
+            ],
             "queue_mapping": {"state": "PASS", "records": []},
             "alert_mapping": {"state": "PASS", "records": []},
             "orphan_checks": [{"id": f"orphan_{i}", "state": "PASS"} for i in range(18)],
             "duplicate_checks": [{"id": f"duplicate_{i}", "state": "PASS"} for i in range(14)],
             "registry_counts": {
-                "tables": 39, "expected_indexes": 23, "orphan_checks": 18,
-                "duplicate_checks": 14,
+                "tables": 39, "expected_indexes": 23, "expected_columns": 50,
+                "expected_foreign_keys": 23, "expected_triggers": 24,
+                "expected_migrations": 18, "orphan_checks": 18, "duplicate_checks": 14,
             },
             "transaction": {"mode": "READ ONLY", "outcome": "ROLLED_BACK"},
         }

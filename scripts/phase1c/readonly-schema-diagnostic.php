@@ -33,6 +33,45 @@ function phase1cMetadataAbsenceState(bool $metadataVisibilityComplete): string
     return $metadataVisibilityComplete ? 'MISSING' : 'UNKNOWN';
 }
 
+function phase1cTriggerMetadataVisibilityComplete(array $globalPrivileges, array $schemaPrivileges): bool
+{
+    foreach ([$globalPrivileges, $schemaPrivileges] as $privileges) {
+        foreach ($privileges as $privilege) {
+            $value = strtoupper(trim((string) $privilege));
+            if ($value === 'TRIGGER' || $value === 'ALL PRIVILEGES') {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+function phase1cGroupMigrationLedgerRows(array $rows): array
+{
+    $grouped = [];
+    foreach ($rows as $row) {
+        $migration = (string) $row['migration'];
+        $grouped[$migration][] = $row['batch'];
+    }
+
+    return $grouped;
+}
+
+function phase1cMysqlNullDefaultFromDefinition(?string $columnDefinition): ?bool
+{
+    if ($columnDefinition === null || preg_match("/\\bDEFAULT\\s+(NULL|'(?:''|[^'])*')(?=\\s|,|$)/i", $columnDefinition, $matches) !== 1) {
+        return null;
+    }
+
+    $default = trim($matches[1]);
+    if (strtoupper($default) === 'NULL') {
+        return true;
+    }
+
+    return str_starts_with($default, "'") ? false : null;
+}
+
 final class Phase1CReadOnlyDiagnostic
 {
     private const TABLES = [
@@ -46,6 +85,113 @@ final class Phase1CReadOnlyDiagnostic
         'reverification_events','security_audit_events','source_change_observations','source_monitoring_policies',
         'source_retrieval_runs','source_snapshot_reconciliation_requests','source_snapshots','sources',
         'structured_enrichment_promotion_events','users','verification_decisions'
+    ];
+
+    private const EXPECTED_COLUMNS = [
+        ['password_reset_tokens', 'email', 'varchar(255)', false],
+        ['password_reset_tokens', 'token', 'varchar(255)', false],
+        ['password_reset_tokens', 'created_at', 'timestamp', true, null],
+        ['users', 'must_change_password', 'tinyint(1)', false, '0'],
+        ['import_batches', 'duplicate_rows', 'int unsigned', false, '0'],
+        ['structured_enrichment_promotion_events', 'enrichment_import_row_id', 'bigint unsigned', false],
+        ['structured_enrichment_promotion_events', 'import_batch_id', 'bigint unsigned', false],
+        ['structured_enrichment_promotion_events', 'occurred_at', 'timestamp', false],
+        ['governed_execution_leases', 'task_key', 'varchar(120)', false],
+        ['governed_execution_leases', 'owner_token', 'char(36)', false],
+        ['governed_execution_leases', 'run_id', 'char(36)', false],
+        ['governed_execution_leases', 'expires_at', 'timestamp', false],
+        ['governed_execution_runs', 'id', 'char(36)', false],
+        ['governed_execution_run_events', 'run_id', 'char(36)', false],
+        ['governed_execution_run_events', 'event_type', 'varchar(30)', false],
+        ['governed_execution_run_events', 'occurred_at', 'timestamp', false],
+        ['source_retrieval_runs', 'idempotency_key', 'varchar(64)', true, null],
+        ['source_snapshots', 'capture_key', 'varchar(64)', true, null],
+        ['source_change_observations', 'current_snapshot_id', 'bigint unsigned', false],
+        ['institute_discovery_run_outcomes', 'idempotency_key', 'varchar(64)', true, null],
+        ['change_events', 'source_change_assertion_link_id', 'bigint unsigned', true, null],
+        ['data_reverification_queue_identities', 'identity_key', 'varchar(64)', false],
+        ['data_reverification_queue_identities', 'subject_type', 'varchar(255)', false],
+        ['data_reverification_queue_identities', 'subject_id', 'bigint unsigned', false],
+        ['data_reverification_queue_identities', 'active_queue_id', 'bigint unsigned', true, null],
+        ['monitoring_alert_identities', 'dedupe_key', 'varchar(40)', false],
+        ['monitoring_alert_identities', 'active_alert_id', 'bigint unsigned', true, null],
+        ['security_audit_events', 'monitoring_idempotency_key', 'varchar(191)', true, null],
+        ['monitoring_policy_runs', 'heartbeat_at', 'timestamp', true, null],
+        ['monitoring_policy_runs', 'source_monitoring_policy_id', 'bigint unsigned', false],
+        ['monitoring_policy_runs', 'execution_run_id', 'char(36)', true, null],
+        ['monitoring_policy_runs', 'started_at', 'timestamp', false],
+        ['monitoring_policy_run_sources', 'monitoring_policy_run_id', 'bigint unsigned', false],
+        ['monitoring_policy_run_sources', 'source_id', 'bigint unsigned', false],
+        ['monitoring_policy_run_sources', 'retrieval_run_id', 'bigint unsigned', true, null],
+        ['monitoring_policy_run_sources', 'observation_id', 'bigint unsigned', true, null],
+        ['import_batches', 'discovery_identity_key', 'varchar(64)', true, null],
+        ['evidence', 'discovery_identity_key', 'varchar(64)', true, null],
+        ['import_rows', 'discovery_identity_key', 'varchar(64)', true, null],
+        ['assertions', 'discovery_identity_key', 'varchar(64)', true, null],
+        ['identity_match_candidates', 'identity_key', 'char(64)', true, null],
+        ['identity_resolution_decisions', 'decision_identity_key', 'char(64)', true, null],
+        ['import_conflicts', 'identity_key', 'char(64)', true, null],
+        ['import_conflict_events', 'idempotency_key', 'char(64)', false],
+        ['source_snapshot_reconciliation_requests', 'identity_key', 'varchar(64)', false],
+        ['source_snapshot_reconciliation_requests', 'source_id', 'bigint unsigned', false],
+        ['source_snapshot_reconciliation_requests', 'triggering_snapshot_id', 'bigint unsigned', false],
+        ['source_snapshot_reconciliation_requests', 'current_snapshot_id', 'bigint unsigned', false],
+        ['source_snapshot_reconciliation_requests', 'expected_previous_snapshot_id', 'bigint unsigned', true, null],
+        ['source_snapshot_reconciliation_requests', 'recorded_previous_snapshot_id', 'bigint unsigned', true, null],
+    ];
+
+    private const EXPECTED_FOREIGN_KEYS = [
+        ['identity_decision_row_restrict_fk', 'identity_resolution_decisions', 'import_row_id', 'import_rows', 'id', 'RESTRICT'],
+        ['verification_decision_assertion_restrict_fk', 'verification_decisions', 'assertion_id', 'assertions', 'id', 'RESTRICT'],
+        ['import_reconciliation_batch_restrict_fk', 'import_reconciliation_events', 'import_batch_id', 'import_batches', 'id', 'RESTRICT'],
+        ['import_promotion_decision_row_restrict_fk', 'import_promotion_decisions', 'import_row_id', 'import_rows', 'id', 'RESTRICT'],
+        ['import_promotion_event_row_restrict_fk', 'import_promotion_events', 'import_row_id', 'import_rows', 'id', 'RESTRICT'],
+        ['import_promotion_event_batch_restrict_fk', 'import_promotion_events', 'import_batch_id', 'import_batches', 'id', 'RESTRICT'],
+        ['reverification_event_queue_restrict_fk', 'reverification_events', 'queue_id', 'data_reverification_queue', 'id', 'RESTRICT'],
+        ['structured_enrichment_row_restrict_fk', 'structured_enrichment_promotion_events', 'enrichment_import_row_id', 'enrichment_import_rows', 'id', 'RESTRICT'],
+        ['structured_enrichment_batch_restrict_fk', 'structured_enrichment_promotion_events', 'import_batch_id', 'import_batches', 'id', 'RESTRICT'],
+        ['import_conflict_event_restrict_fk', 'import_conflict_events', 'import_conflict_id', 'import_conflicts', 'id', 'RESTRICT'],
+        ['governed_run_event_restrict_fk', 'governed_execution_run_events', 'run_id', 'governed_execution_runs', 'id', 'RESTRICT'],
+        ['ssr_source_fk', 'source_snapshot_reconciliation_requests', 'source_id', 'sources', 'id', 'CASCADE'],
+        ['ssr_triggering_snapshot_fk', 'source_snapshot_reconciliation_requests', 'triggering_snapshot_id', 'source_snapshots', 'id', 'CASCADE'],
+        ['ssr_current_snapshot_fk', 'source_snapshot_reconciliation_requests', 'current_snapshot_id', 'source_snapshots', 'id', 'CASCADE'],
+        ['ssr_expected_previous_fk', 'source_snapshot_reconciliation_requests', 'expected_previous_snapshot_id', 'source_snapshots', 'id', 'SET NULL'],
+        ['ssr_recorded_previous_fk', 'source_snapshot_reconciliation_requests', 'recorded_previous_snapshot_id', 'source_snapshots', 'id', 'SET NULL'],
+        ['mp_run_policy_fk', 'monitoring_policy_runs', 'source_monitoring_policy_id', 'source_monitoring_policies', 'id', 'RESTRICT'],
+        ['mp_run_exec_fk', 'monitoring_policy_runs', 'execution_run_id', 'governed_execution_runs', 'id', 'SET NULL'],
+        ['mp_source_run_fk', 'monitoring_policy_run_sources', 'monitoring_policy_run_id', 'monitoring_policy_runs', 'id', 'RESTRICT'],
+        ['mp_source_source_fk', 'monitoring_policy_run_sources', 'source_id', 'sources', 'id', 'RESTRICT'],
+        ['mp_source_retrieval_fk', 'monitoring_policy_run_sources', 'retrieval_run_id', 'source_retrieval_runs', 'id', 'SET NULL'],
+        ['mp_source_observation_fk', 'monitoring_policy_run_sources', 'observation_id', 'source_change_observations', 'id', 'SET NULL'],
+        ['mai_active_alert_fk', 'monitoring_alert_identities', 'active_alert_id', 'monitoring_alerts', 'id', 'SET NULL'],
+    ];
+
+    private const AUDIT_TRIGGER_TABLES = [
+        'security_audit_events', 'verification_decisions', 'provenance_review_events',
+        'import_promotion_decisions', 'import_promotion_events', 'reverification_events',
+        'structured_enrichment_promotion_events', 'official_source_refresh_events',
+        'import_conflict_events', 'import_reconciliation_events', 'governed_execution_run_events',
+    ];
+
+    private const EXPECTED_MIGRATIONS = [
+        '2026_10_17_000001_create_password_reset_tokens_table',
+        '2026_10_17_000002_add_must_change_password_to_users_table',
+        '2026_10_23_000001_add_duplicate_rows_to_import_batches_table',
+        '2026_10_25_000001_create_structured_enrichment_promotion_events_table',
+        '2026_11_03_000001_create_governed_execution_leases_table',
+        '2026_11_03_000002_create_governed_execution_runs_table',
+        '2026_11_03_000003_add_source_retrieval_idempotency_key',
+        '2026_11_03_000004_add_snapshot_and_observation_idempotency',
+        '2026_11_03_000005_add_discovery_outcome_idempotency_key',
+        '2026_11_03_000006_add_change_event_source_link_identity',
+        '2026_11_03_000007_create_data_reverification_queue_identities_table',
+        '2026_11_04_000009_create_monitoring_alert_identities_and_audit_idempotency',
+        '2026_11_04_000010_create_monitoring_policy_run_checkpoints',
+        '2026_11_04_000011_add_discovery_candidate_persistence_identity_keys',
+        '2026_11_04_000012_add_identity_conflict_persistence_keys_and_events',
+        '2026_11_04_000013_create_source_snapshot_reconciliation_requests_table',
+        '2026_11_04_000014_enforce_append_only_audit_retention',
+        '2026_11_04_000015_add_monitoring_checkpoint_foreign_keys_and_heartbeat',
     ];
 
     private const INDEXES = [
@@ -120,6 +266,8 @@ final class Phase1CReadOnlyDiagnostic
     private array $columnErrors=[];
     private array $indexErrors=[];
     private bool $absenceProof=false;
+    private bool $triggerAbsenceProof=false;
+    private string $databaseName='';
 
     public function __construct(PDO $pdo) { $this->pdo=$pdo; }
 
@@ -131,22 +279,36 @@ final class Phase1CReadOnlyDiagnostic
             // Verify the actual selected schema before any schema-inventory query.
             $selectedDatabase = $this->pdo->query('SELECT DATABASE()')->fetchColumn();
             phase1cValidateDatabaseIdentity(is_string($selectedDatabase) ? $selectedDatabase : null, $expectedDatabase);
+            $this->databaseName = $selectedDatabase;
             $version=(string)$this->pdo->query('SELECT VERSION()')->fetchColumn();
             $this->inventory();
             $result=[
                 'schema_version'=>'phase1c-readonly-diagnostic/v1',
                 'database'=>['engine'=>stripos($version,'mariadb')!==false?'mariadb':'mysql','server_version'=>$version,'identity_verified'=>true],
-                'metadata_visibility'=>['complete'=>$this->absenceProof],
+                'metadata_visibility'=>['complete'=>$this->absenceProof,'triggers_complete'=>$this->triggerAbsenceProof],
                 'tables'=>$this->tableMetadata(),
                 'columns'=>$this->columnMetadata(),
                 'indexes'=>$this->indexMetadata(),
                 'expected_index_reconciliation'=>$this->indexReconciliation(),
+                'expected_column_reconciliation'=>$this->columnReconciliation(),
                 'foreign_keys'=>$this->foreignKeys(),
+                'expected_foreign_key_reconciliation'=>$this->foreignKeyReconciliation(),
+                'expected_trigger_reconciliation'=>$this->triggerReconciliation(),
+                'migration_ledger_reconciliation'=>$this->migrationLedgerReconciliation(),
                 'queue_mapping'=>$this->queueMapping(),
                 'alert_mapping'=>$this->alertMapping(),
                 'orphan_checks'=>$this->orphanChecks(),
                 'duplicate_checks'=>$this->duplicateChecks(),
-                'registry_counts'=>['tables'=>count(self::TABLES),'expected_indexes'=>count(self::INDEXES),'orphan_checks'=>count(self::ORPHANS),'duplicate_checks'=>count(self::DUPLICATES)],
+                'registry_counts'=>[
+                    'tables'=>count(self::TABLES),
+                    'expected_indexes'=>count(self::INDEXES),
+                    'expected_columns'=>count(self::EXPECTED_COLUMNS),
+                    'expected_foreign_keys'=>count(self::EXPECTED_FOREIGN_KEYS),
+                    'expected_triggers'=>count($this->expectedTriggers()),
+                    'expected_migrations'=>count(self::EXPECTED_MIGRATIONS),
+                    'orphan_checks'=>count(self::ORPHANS),
+                    'duplicate_checks'=>count(self::DUPLICATES),
+                ],
                 'transaction'=>['mode'=>'READ ONLY','outcome'=>'ROLLED_BACK'],
             ];
             $this->pdo->rollBack();
@@ -166,6 +328,7 @@ final class Phase1CReadOnlyDiagnostic
         $inventory->execute(self::TABLES);
         foreach($inventory->fetchAll(PDO::FETCH_COLUMN) as $t) $this->tables[(string)$t]=true;
         $this->absenceProof=$this->hasCompleteSchemaMetadataVisibility();
+        $this->triggerAbsenceProof=$this->hasCompleteTriggerMetadataVisibility();
         foreach(self::TABLES as $t) {
             $this->columns[$t]=[];
             if(!isset($this->tables[$t])) continue;
@@ -227,11 +390,11 @@ final class Phase1CReadOnlyDiagnostic
         $out=[];
         foreach(self::INDEXES as [$table,$name,$columns,$unique]) {
             $expected=['table'=>$table,'name'=>$name,'columns'=>$columns,'unique'=>$unique,'index_type'=>'BTREE'];
-            if(!isset($this->tables[$table])) {$out[]=$expected+['state'=>$this->absenceProof?'NOT_CHECKED':'UNKNOWN','reason'=>$this->absenceProof?'TABLE_MISSING':'METADATA_VISIBILITY_NOT_PROVEN'];continue;}
+            if(!isset($this->tables[$table])) {$out[]=$expected+['state'=>$this->absenceProof?'MISSING':'UNKNOWN','reason'=>$this->absenceProof?'TABLE_MISSING':'METADATA_VISIBILITY_NOT_PROVEN'];continue;}
             if(isset($this->indexErrors[$table])) {$out[]=$expected+['state'=>'UNKNOWN','reason'=>'INDEX_METADATA_UNAVAILABLE','error'=>$this->indexErrors[$table]];continue;}
             if(isset($this->columnErrors[$table])) {$out[]=$expected+['state'=>'UNKNOWN','reason'=>'COLUMN_METADATA_UNAVAILABLE','error'=>$this->columnErrors[$table]];continue;}
             $rows=$actual[$table][$name]??[];
-            if(!$rows) {$out[]=$expected+['state'=>'MISSING'];continue;}
+            if(!$rows) {$out[]=$expected+['state'=>$this->absenceProof?'MISSING':'UNKNOWN','reason'=>$this->absenceProof?'INDEX_ABSENT':'METADATA_VISIBILITY_NOT_PROVEN'];continue;}
             usort($rows,fn($a,$b)=>(int)$a['SEQ_IN_INDEX']<=>(int)$b['SEQ_IN_INDEX']);
             $cols=array_map(fn($r)=>(string)$r['COLUMN_NAME'],$rows);
             $isUnique=(int)$rows[0]['NON_UNIQUE']===0;
@@ -240,6 +403,355 @@ final class Phase1CReadOnlyDiagnostic
             $out[]=$expected+['state'=>$ok?'PASS':'FAIL','observed'=>['columns'=>$cols,'unique'=>$isUnique,'type'=>$type,'prefix_lengths'=>array_column($rows,'SUB_PART')]];
         }
         return $out;
+    }
+
+    private function columnReconciliation(): array
+    {
+        $out=[];
+        $query='SELECT COLUMN_TYPE,IS_NULLABLE,COLUMN_DEFAULT,COLUMN_DEFAULT IS NULL AS COLUMN_DEFAULT_IS_NULL FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?';
+
+        foreach(self::EXPECTED_COLUMNS as $contract) {
+            [$table,$column,$expectedType,$expectedNullable]=$contract;
+            $expected=['table'=>$table,'column'=>$column,'type'=>$expectedType,'nullable'=>$expectedNullable];
+            $hasExpectedDefault=array_key_exists(4,$contract);
+            if($hasExpectedDefault) $expected['default']=$contract[4];
+
+            if(!isset($this->tables[$table])) {
+                $out[]=$expected+['state'=>$this->absenceProof?'MISSING':'UNKNOWN','reason'=>$this->absenceProof?'TABLE_ABSENT':'METADATA_VISIBILITY_NOT_PROVEN'];
+                continue;
+            }
+            if(isset($this->columnErrors[$table])) {
+                $out[]=$expected+['state'=>'UNKNOWN','reason'=>'COLUMN_METADATA_UNAVAILABLE','error'=>$this->columnErrors[$table]];
+                continue;
+            }
+
+            try {
+                $statement=$this->pdo->prepare($query);
+                $statement->execute([$table,$column]);
+                $actual=$statement->fetch(PDO::FETCH_ASSOC);
+            } catch(Throwable $e) {
+                $out[]=$expected+['state'=>'UNKNOWN','reason'=>'COLUMN_METADATA_UNAVAILABLE','error'=>$this->safeError($e)];
+                continue;
+            }
+
+            if(!is_array($actual)) {
+                $out[]=$expected+['state'=>$this->absenceProof?'MISSING':'UNKNOWN','reason'=>$this->absenceProof?'COLUMN_ABSENT':'METADATA_VISIBILITY_NOT_PROVEN'];
+                continue;
+            }
+            if(!array_key_exists('COLUMN_TYPE',$actual)||!array_key_exists('IS_NULLABLE',$actual)||!array_key_exists('COLUMN_DEFAULT_IS_NULL',$actual)) {
+                $out[]=$expected+['state'=>'UNKNOWN','reason'=>'COLUMN_DEFINITION_METADATA_INCOMPLETE'];
+                continue;
+            }
+
+            $actualType=(string)$actual['COLUMN_TYPE'];
+            $actualNullable=$actual['IS_NULLABLE']==='YES';
+            $matches=$this->normalizeMysqlColumnType($actualType)===$this->normalizeMysqlColumnType($expectedType)
+                && $actualNullable===$expectedNullable;
+            $observed=['type'=>$actualType,'nullable'=>$actualNullable];
+
+            if($hasExpectedDefault) {
+                $actualDefaultIsNull=$this->mysqlColumnDefaultIsSqlNull($table,$column,$actual,$actualNullable);
+                if($actualDefaultIsNull===null) {
+                    $definition=['state'=>$matches?'UNKNOWN':'FAIL','observed'=>$observed];
+                    if($matches) $definition['reason']='COLUMN_DEFAULT_METADATA_AMBIGUOUS';
+                    $out[]=$expected+$definition;
+                    continue;
+                }
+
+                if($contract[4]===null) {
+                    $matches=$matches&&$actualDefaultIsNull;
+                    $observed['default_is_null']=$actualDefaultIsNull;
+                } else {
+                    $actualDefault=$actualDefaultIsNull?null:$this->normalizeMysqlDefault($actual['COLUMN_DEFAULT']??null);
+                    $matches=$matches&&$actualDefault===$this->normalizeMysqlDefault($contract[4]);
+                    $observed['default']=$actualDefault;
+                }
+            }
+
+            $out[]=$expected+['state'=>$matches?'PASS':'FAIL','observed'=>$observed];
+        }
+
+        return $out;
+    }
+
+    private function mysqlColumnDefaultIsSqlNull(string $table,string $column,array $actual,bool $nullable): ?bool
+    {
+        $rawDefault=$actual['COLUMN_DEFAULT']??null;
+        if($rawDefault===null) return true;
+
+        if($nullable&&is_string($rawDefault)&&strtoupper(trim($rawDefault))==='NULL') {
+            try {
+                $create=$this->pdo->query('SHOW CREATE TABLE '.$this->identifier($table))->fetch(PDO::FETCH_NUM);
+                $createSql=(string)($create[1]??'');
+                $wrappedColumn=preg_quote($this->identifier($column),'/');
+                if(preg_match('/^\\s*'.$wrappedColumn.'\\s+([^\\n]*)$/m',$createSql,$definition)!==1) return null;
+
+                return phase1cMysqlNullDefaultFromDefinition($definition[1]);
+            } catch(Throwable $e) {
+                return null;
+            }
+        }
+
+        if(!array_key_exists('COLUMN_DEFAULT_IS_NULL',$actual)) return null;
+        if((bool)$actual['COLUMN_DEFAULT_IS_NULL']) return null;
+
+        return false;
+    }
+
+    private function foreignKeyReconciliation(): array
+    {
+        $out=[];
+        $sql='SELECT k.CONSTRAINT_NAME,k.TABLE_NAME,k.COLUMN_NAME,k.ORDINAL_POSITION,k.POSITION_IN_UNIQUE_CONSTRAINT,k.REFERENCED_TABLE_SCHEMA,k.REFERENCED_TABLE_NAME,k.REFERENCED_COLUMN_NAME,r.MATCH_OPTION,r.UPDATE_RULE,r.DELETE_RULE FROM information_schema.KEY_COLUMN_USAGE k JOIN information_schema.REFERENTIAL_CONSTRAINTS r ON r.CONSTRAINT_SCHEMA=k.CONSTRAINT_SCHEMA AND r.CONSTRAINT_NAME=k.CONSTRAINT_NAME AND r.TABLE_NAME=k.TABLE_NAME WHERE k.CONSTRAINT_SCHEMA=DATABASE() AND k.TABLE_NAME=? AND k.CONSTRAINT_NAME=? AND k.REFERENCED_TABLE_NAME IS NOT NULL ORDER BY k.ORDINAL_POSITION';
+
+        foreach(self::EXPECTED_FOREIGN_KEYS as [$name,$table,$column,$parent,$parentColumn,$deleteRule]) {
+            $expected=['name'=>$name,'table'=>$table,'column'=>$column,'referenced_table'=>$parent,'referenced_column'=>$parentColumn,'match_option'=>'NONE','update_rule'=>'RESTRICT','delete_rule'=>$deleteRule];
+            if(!isset($this->tables[$table])||!isset($this->tables[$parent])) {
+                $out[]=$expected+['state'=>$this->absenceProof?'MISSING':'UNKNOWN','reason'=>$this->absenceProof?'PREREQUISITE_TABLE_ABSENT':'METADATA_VISIBILITY_NOT_PROVEN'];
+                continue;
+            }
+            if(isset($this->columnErrors[$table])||isset($this->columnErrors[$parent])) {
+                $out[]=$expected+['state'=>'UNKNOWN','reason'=>'COLUMN_METADATA_UNAVAILABLE'];
+                continue;
+            }
+
+            try {
+                $statement=$this->pdo->prepare($sql);
+                $statement->execute([$table,$name]);
+                $rows=$statement->fetchAll(PDO::FETCH_ASSOC);
+            } catch(Throwable $e) {
+                $out[]=$expected+['state'=>'UNKNOWN','reason'=>'FOREIGN_KEY_METADATA_UNAVAILABLE','error'=>$this->safeError($e)];
+                continue;
+            }
+
+            if($rows===[]) {
+                $out[]=$expected+['state'=>$this->absenceProof?'MISSING':'UNKNOWN','reason'=>$this->absenceProof?'FOREIGN_KEY_ABSENT':'METADATA_VISIBILITY_NOT_PROVEN'];
+                continue;
+            }
+
+            $row=$rows[0];
+            $required=['CONSTRAINT_NAME','TABLE_NAME','COLUMN_NAME','ORDINAL_POSITION','POSITION_IN_UNIQUE_CONSTRAINT','REFERENCED_TABLE_SCHEMA','REFERENCED_TABLE_NAME','REFERENCED_COLUMN_NAME','MATCH_OPTION','UPDATE_RULE','DELETE_RULE'];
+            if(count($rows)!==1||array_diff($required,array_keys($row))!==[]) {
+                $out[]=$expected+['state'=>'UNKNOWN','reason'=>'FOREIGN_KEY_DEFINITION_METADATA_INCOMPLETE'];
+                continue;
+            }
+
+            $observed=[
+                'name'=>(string)$row['CONSTRAINT_NAME'],
+                'table'=>(string)$row['TABLE_NAME'],
+                'column'=>(string)$row['COLUMN_NAME'],
+                'ordinal_position'=>(int)$row['ORDINAL_POSITION'],
+                'position_in_unique_constraint'=>(int)$row['POSITION_IN_UNIQUE_CONSTRAINT'],
+                'referenced_table_schema'=>(string)$row['REFERENCED_TABLE_SCHEMA'],
+                'referenced_table'=>(string)$row['REFERENCED_TABLE_NAME'],
+                'referenced_column'=>(string)$row['REFERENCED_COLUMN_NAME'],
+                'match_option'=>strtoupper((string)$row['MATCH_OPTION']),
+                'update_rule'=>strtoupper((string)$row['UPDATE_RULE']),
+                'delete_rule'=>strtoupper((string)$row['DELETE_RULE']),
+            ];
+            $matches=$observed['name']===$name
+                && $observed['table']===$table
+                && $observed['column']===$column
+                && $observed['ordinal_position']===1
+                && $observed['position_in_unique_constraint']===1
+                && $observed['referenced_table_schema']===$this->databaseName
+                && $observed['referenced_table']===$parent
+                && $observed['referenced_column']===$parentColumn
+                && $observed['match_option']==='NONE'
+                && $this->referentialActionMatches($observed['update_rule'],'RESTRICT')
+                && $this->referentialActionMatches($observed['delete_rule'],$deleteRule);
+            $out[]=$expected+['state'=>$matches?'PASS':'FAIL','observed'=>$observed];
+        }
+
+        return $out;
+    }
+
+    private function triggerReconciliation(): array
+    {
+        $out=[];
+        $sql='SELECT TRIGGER_NAME,EVENT_OBJECT_TABLE,EVENT_MANIPULATION,ACTION_TIMING,ACTION_ORIENTATION,ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE() AND TRIGGER_NAME=?';
+
+        foreach($this->expectedTriggers() as $contract) {
+            $expected=['name'=>$contract['name'],'table'=>$contract['table'],'event'=>$contract['event'],'timing'=>'BEFORE','orientation'=>'ROW','body_contract'=>$contract['body_contract']];
+            if(!isset($this->tables[$contract['table']])) {
+                $out[]=$expected+['state'=>$this->absenceProof?'MISSING':'UNKNOWN','reason'=>$this->absenceProof?'TABLE_ABSENT':'METADATA_VISIBILITY_NOT_PROVEN'];
+                continue;
+            }
+
+            try {
+                $statement=$this->pdo->prepare($sql);
+                $statement->execute([$contract['name']]);
+                $rows=$statement->fetchAll(PDO::FETCH_ASSOC);
+            } catch(Throwable $e) {
+                $out[]=$expected+['state'=>'UNKNOWN','reason'=>'TRIGGER_METADATA_UNAVAILABLE','error'=>$this->safeError($e)];
+                continue;
+            }
+
+            if($rows===[]) {
+                $out[]=$expected+['state'=>$this->triggerAbsenceProof?'MISSING':'UNKNOWN','reason'=>$this->triggerAbsenceProof?'TRIGGER_ABSENT':'TRIGGER_METADATA_VISIBILITY_NOT_PROVEN'];
+                continue;
+            }
+            if(count($rows)!==1||!isset($rows[0]['EVENT_OBJECT_TABLE'],$rows[0]['EVENT_MANIPULATION'],$rows[0]['ACTION_TIMING'],$rows[0]['ACTION_ORIENTATION'],$rows[0]['ACTION_STATEMENT'])) {
+                $out[]=$expected+['state'=>'UNKNOWN','reason'=>'TRIGGER_DEFINITION_METADATA_INCOMPLETE'];
+                continue;
+            }
+
+            $actual=$rows[0];
+            $statement=$this->normalizeSql((string)$actual['ACTION_STATEMENT']);
+            $observed=[
+                'table'=>(string)$actual['EVENT_OBJECT_TABLE'],
+                'event'=>strtoupper((string)$actual['EVENT_MANIPULATION']),
+                'timing'=>strtoupper((string)$actual['ACTION_TIMING']),
+                'orientation'=>strtoupper((string)$actual['ACTION_ORIENTATION']),
+                'body_sha256'=>hash('sha256',$statement),
+            ];
+            $matches=$observed['table']===$contract['table']
+                && $observed['event']===$contract['event']
+                && $observed['timing']==='BEFORE'
+                && $observed['orientation']==='ROW'
+                && $this->triggerBodyMatches($statement,$contract['body_contract']);
+            $out[]=$expected+['state'=>$matches?'PASS':'FAIL','observed'=>$observed];
+        }
+
+        return $out;
+    }
+
+    private function expectedTriggers(): array
+    {
+        $triggers=[];
+        foreach(self::AUDIT_TRIGGER_TABLES as $table) {
+            $suffix=substr(hash('sha256',$table),0,16);
+            $bodyContract=$table==='import_reconciliation_events'?'reconciliation_detach':'append_only';
+            $triggers[]=['name'=>'audit_immut_'.$suffix.'_u','table'=>$table,'event'=>'UPDATE','body_contract'=>$bodyContract];
+            $triggers[]=['name'=>'audit_immut_'.$suffix.'_d','table'=>$table,'event'=>'DELETE','body_contract'=>'append_only'];
+        }
+        $triggers[]=['name'=>'identity_decision_update_guard','table'=>'identity_resolution_decisions','event'=>'UPDATE','body_contract'=>'identity_key_enrichment'];
+        $triggers[]=['name'=>'identity_decision_delete_guard','table'=>'identity_resolution_decisions','event'=>'DELETE','body_contract'=>'identity_decision_delete'];
+
+        return $triggers;
+    }
+
+    private function triggerBodyMatches(string $statement, string $contract): bool
+    {
+        if($contract==='append_only') {
+            return $statement==="signal sqlstate '45000' set message_text = 'append-only audit history cannot be changed or deleted'";
+        }
+        if($contract==='identity_decision_delete') {
+            return $statement==="signal sqlstate '45000' set message_text = 'identity decision history cannot be deleted'";
+        }
+
+        $conditions=match($contract) {
+            'reconciliation_detach'=>[
+                'OLD.import_row_id IS NOT NULL','NEW.import_row_id IS NULL','OLD.id <=> NEW.id',
+                'OLD.import_batch_id <=> NEW.import_batch_id','OLD.event_type <=> NEW.event_type',
+                'OLD.state <=> NEW.state','OLD.severity <=> NEW.severity','OLD.subject_type <=> NEW.subject_type',
+                'OLD.subject_id <=> NEW.subject_id','OLD.description <=> NEW.description','OLD.metadata <=> NEW.metadata',
+                'OLD.actor_type <=> NEW.actor_type','OLD.actor_id <=> NEW.actor_id','OLD.occurred_at <=> NEW.occurred_at',
+                'OLD.created_at <=> NEW.created_at','OLD.updated_at <=> NEW.updated_at',
+            ],
+            'identity_key_enrichment'=>[
+                'OLD.decision_identity_key IS NULL','NEW.decision_identity_key IS NOT NULL','OLD.id <=> NEW.id',
+                'OLD.import_row_id <=> NEW.import_row_id','OLD.institution_id <=> NEW.institution_id',
+                'OLD.decision <=> NEW.decision','OLD.actor_type <=> NEW.actor_type','OLD.actor_id <=> NEW.actor_id',
+                'OLD.reason <=> NEW.reason','OLD.decided_at <=> NEW.decided_at','OLD.created_at <=> NEW.created_at',
+            ],
+            default=>[],
+        };
+        if($conditions===[]) return false;
+
+        $expectedMessage=$contract==='reconciliation_detach'
+            ? 'import reconciliation history is immutable except nullable row detachment'
+            : 'identity decision history is immutable except one-time key enrichment';
+        $expectedStatement='begin if not ('.implode(' and ',array_map(fn(string $condition): string=>$this->normalizeSql($condition),$conditions))
+            .") then signal sqlstate '45000' set message_text = '{$expectedMessage}'; end if; end";
+
+        return $statement===$expectedStatement;
+    }
+
+    private function migrationLedgerReconciliation(): array
+    {
+        $out=[];
+        if(!isset($this->tables['migrations'])) {
+            $state=$this->absenceProof?'MISSING':'UNKNOWN';
+            foreach(self::EXPECTED_MIGRATIONS as $migration) $out[]=['migration'=>$migration,'state'=>$state,'reason'=>$this->absenceProof?'LEDGER_TABLE_ABSENT':'METADATA_VISIBILITY_NOT_PROVEN','record_count'=>0,'duplicate_count'=>0,'batches'=>[]];
+            return $out;
+        }
+        if(isset($this->columnErrors['migrations'])) {
+            foreach(self::EXPECTED_MIGRATIONS as $migration) $out[]=['migration'=>$migration,'state'=>'UNKNOWN','reason'=>'LEDGER_COLUMN_METADATA_UNAVAILABLE','record_count'=>null,'duplicate_count'=>null,'batches'=>[]];
+            return $out;
+        }
+        if(!$this->has('migrations',['migration','batch'])) {
+            $state=$this->absenceProof?'MISSING':'UNKNOWN';
+            foreach(self::EXPECTED_MIGRATIONS as $migration) $out[]=['migration'=>$migration,'state'=>$state,'reason'=>$this->absenceProof?'LEDGER_COLUMNS_MISSING':'METADATA_VISIBILITY_NOT_PROVEN','record_count'=>0,'duplicate_count'=>0,'batches'=>[]];
+            return $out;
+        }
+
+        $placeholders=implode(',',array_fill(0,count(self::EXPECTED_MIGRATIONS),'?'));
+        try {
+            $statement=$this->pdo->prepare('SELECT migration,batch FROM migrations WHERE migration IN ('.$placeholders.') ORDER BY migration,batch');
+            $statement->execute(self::EXPECTED_MIGRATIONS);
+            $ledger=phase1cGroupMigrationLedgerRows($statement->fetchAll(PDO::FETCH_ASSOC));
+        } catch(Throwable $e) {
+            foreach(self::EXPECTED_MIGRATIONS as $migration) $out[]=['migration'=>$migration,'state'=>'UNKNOWN','reason'=>'LEDGER_QUERY_UNAVAILABLE','record_count'=>null,'duplicate_count'=>null,'batches'=>[],'error'=>$this->safeError($e)];
+            return $out;
+        }
+
+        foreach(self::EXPECTED_MIGRATIONS as $migration) {
+            $rows=$ledger[$migration]??[];
+            $batches=[];
+            $validBatches=true;
+            foreach($rows as $batch) {
+                if(!is_scalar($batch)||!ctype_digit((string)$batch)) {
+                    $validBatches=false;
+                    continue;
+                }
+                $batches[]=(int)$batch;
+            }
+            $count=count($rows);
+            if($count>1) $state='FAIL';
+            elseif($count===1) $state=$validBatches?'PASS':'FAIL';
+            else $state=$this->absenceProof?'MISSING':'UNKNOWN';
+            $out[]=[
+                'migration'=>$migration,
+                'state'=>$state,
+                'record_count'=>$count,
+                'duplicate_count'=>max(0,$count-1),
+                'batches'=>$batches,
+                'batch_values_valid'=>$validBatches,
+            ];
+        }
+
+        return $out;
+    }
+
+    private function normalizeMysqlColumnType(string $type): string
+    {
+        $type=strtolower(trim($type));
+
+        return preg_replace('/^(tinyint|smallint|mediumint|int|integer|bigint)\\(\\d+\\)/','$1',$type)??$type;
+    }
+
+    private function normalizeMysqlDefault(mixed $value): ?string
+    {
+        if($value===null) return null;
+        $value=(string)$value;
+        if(strlen($value)>=2&&$value[0]==="'"&&$value[strlen($value)-1]==="'") $value=str_replace("''","'",substr($value,1,-1));
+
+        return $value;
+    }
+
+    private function normalizeSql(string $statement): string
+    {
+        $statement=strtolower(str_replace('`','',$statement));
+        $statement=preg_replace('/\\s+/',' ',$statement)??$statement;
+
+        return rtrim(trim($statement),'; ');
+    }
+
+    private function referentialActionMatches(string $actual,string $expected): bool
+    {
+        $normalize=static fn(string $action): string=>strtoupper(trim($action))==='NO ACTION'?'RESTRICT':strtoupper(trim($action));
+
+        return $normalize($actual)===$normalize($expected);
     }
 
     private function foreignKeys(): array
@@ -334,6 +846,23 @@ final class Phase1CReadOnlyDiagnostic
             );
             $schema = $schemaQuery->fetchAll(PDO::FETCH_COLUMN);
             return phase1cMetadataVisibilityComplete($global, $schema);
+        } catch(Throwable $e) {
+            return false;
+        }
+    }
+
+    private function hasCompleteTriggerMetadataVisibility(): bool
+    {
+        try {
+            $principal = "CONCAT(QUOTE(SUBSTRING(CURRENT_USER(), 1, LENGTH(CURRENT_USER()) - LENGTH(SUBSTRING_INDEX(CURRENT_USER(), '@', -1)) - 1)), '@', QUOTE(SUBSTRING_INDEX(CURRENT_USER(), '@', -1)))";
+            $global = $this->pdo->query(
+                "SELECT PRIVILEGE_TYPE FROM information_schema.USER_PRIVILEGES WHERE GRANTEE = {$principal}"
+            )->fetchAll(PDO::FETCH_COLUMN);
+            $schema = $this->pdo->query(
+                "SELECT PRIVILEGE_TYPE FROM information_schema.SCHEMA_PRIVILEGES WHERE TABLE_SCHEMA = DATABASE() AND GRANTEE = {$principal}"
+            )->fetchAll(PDO::FETCH_COLUMN);
+
+            return phase1cTriggerMetadataVisibilityComplete($global,$schema);
         } catch(Throwable $e) {
             return false;
         }
