@@ -181,6 +181,9 @@ function phase1cClassifyMigrationObjectLedgerState(string $ledgerState, string $
     if ($ledgerState === 'UNKNOWN' || $objectState === 'UNKNOWN') {
         return ['state' => 'UNKNOWN', 'reason' => 'REQUIRED_EVIDENCE_UNAVAILABLE'];
     }
+    if ($objectState === 'NOT_CHECKED') {
+        return ['state' => 'NOT_CHECKED', 'reason' => 'SOURCE_OBJECT_MAPPING_OR_RECONCILIATION_INCOMPLETE'];
+    }
     if ($ledgerState === 'PASS') {
         if ($objectState === 'PASS') {
             return ['state' => 'PASS', 'reason' => 'LEDGER_AND_EXPECTED_OBJECTS_PRESENT'];
