@@ -2625,6 +2625,7 @@
       "indexes_created": [
         "assertions.PRIMARY",
         "assertions.assertions_attribute_verification_state_index",
+        "assertions.assertions_evidence_id_foreign",
         "assertions.assertions_subject_type_subject_id_index",
         "assertions.assertions_valid_from_valid_until_index"
       ],
@@ -2675,6 +2676,7 @@
           "indexes_created": [
             "assertions.PRIMARY",
             "assertions.assertions_attribute_verification_state_index",
+            "assertions.assertions_evidence_id_foreign",
             "assertions.assertions_subject_type_subject_id_index",
             "assertions.assertions_valid_from_valid_until_index"
           ],
@@ -2862,8 +2864,10 @@
       "indexes_created": [
         "scholarships.PRIMARY",
         "scholarships.scholarships_admission_intake_id_status_index",
+        "scholarships.scholarships_campus_id_foreign",
         "scholarships.scholarships_data_state_effective_from_index",
         "scholarships.scholarships_institution_id_status_index",
+        "scholarships.scholarships_program_id_foreign",
         "scholarships.scholarships_program_offering_id_status_index"
       ],
       "indexes_removed": [],
@@ -2930,8 +2934,10 @@
           "indexes_created": [
             "scholarships.PRIMARY",
             "scholarships.scholarships_admission_intake_id_status_index",
+            "scholarships.scholarships_campus_id_foreign",
             "scholarships.scholarships_data_state_effective_from_index",
             "scholarships.scholarships_institution_id_status_index",
+            "scholarships.scholarships_program_id_foreign",
             "scholarships.scholarships_program_offering_id_status_index"
           ],
           "foreign_keys_created": [
@@ -4949,6 +4955,7 @@
         "source_change_observations.PRIMARY",
         "source_change_observations.source_change_observations_current_snapshot_id_index",
         "source_change_observations.source_change_observations_materiality_status_index",
+        "source_change_observations.source_change_observations_previous_snapshot_id_foreign",
         "source_change_observations.source_change_observations_source_id_change_state_status_index"
       ],
       "indexes_removed": [],
@@ -5002,6 +5009,7 @@
             "source_change_observations.PRIMARY",
             "source_change_observations.source_change_observations_current_snapshot_id_index",
             "source_change_observations.source_change_observations_materiality_status_index",
+            "source_change_observations.source_change_observations_previous_snapshot_id_foreign",
             "source_change_observations.source_change_observations_source_id_change_state_status_index"
           ],
           "foreign_keys_created": [
@@ -5042,6 +5050,7 @@
       "columns_removed": [],
       "indexes_created": [
         "source_retrieval_runs.PRIMARY",
+        "source_retrieval_runs.source_retrieval_runs_snapshot_id_foreign",
         "source_retrieval_runs.source_retrieval_runs_source_id_status_index",
         "source_retrieval_runs.source_retrieval_runs_status_started_at_index"
       ],
@@ -5094,6 +5103,7 @@
           "columns_changed": [],
           "indexes_created": [
             "source_retrieval_runs.PRIMARY",
+            "source_retrieval_runs.source_retrieval_runs_snapshot_id_foreign",
             "source_retrieval_runs.source_retrieval_runs_source_id_status_index",
             "source_retrieval_runs.source_retrieval_runs_status_started_at_index"
           ],
@@ -5290,6 +5300,7 @@
         "monitoring_alerts.PRIMARY",
         "monitoring_alerts.monitoring_alerts_dedupe_key_status_index",
         "monitoring_alerts.monitoring_alerts_source_id_alert_type_status_index",
+        "monitoring_alerts.monitoring_alerts_source_monitoring_policy_id_foreign",
         "monitoring_alerts.monitoring_alerts_status_severity_index"
       ],
       "indexes_removed": [],
@@ -5345,6 +5356,7 @@
             "monitoring_alerts.PRIMARY",
             "monitoring_alerts.monitoring_alerts_dedupe_key_status_index",
             "monitoring_alerts.monitoring_alerts_source_id_alert_type_status_index",
+            "monitoring_alerts.monitoring_alerts_source_monitoring_policy_id_foreign",
             "monitoring_alerts.monitoring_alerts_status_severity_index"
           ],
           "foreign_keys_created": [
@@ -5370,7 +5382,9 @@
       ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "evidence.evidence_snapshot_id_foreign"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -5403,7 +5417,9 @@
             "evidence.snapshot_id"
           ],
           "columns_changed": [],
-          "indexes_created": [],
+          "indexes_created": [
+            "evidence.evidence_snapshot_id_foreign"
+          ],
           "foreign_keys_created": [],
           "foreign_keys_changed": [],
           "triggers_installed": []
@@ -5754,7 +5770,9 @@
       "columns_removed": [],
       "indexes_created": [
         "institute_discovery_run_outcomes.PRIMARY",
+        "institute_discovery_run_outcomes.idrun_outcomes_observation_fk",
         "institute_discovery_run_outcomes.idrun_outcomes_outcome_time_idx",
+        "institute_discovery_run_outcomes.idrun_outcomes_snapshot_fk",
         "institute_discovery_run_outcomes.idrun_outcomes_source_time_idx"
       ],
       "indexes_removed": [],
@@ -5807,7 +5825,9 @@
           "columns_changed": [],
           "indexes_created": [
             "institute_discovery_run_outcomes.PRIMARY",
+            "institute_discovery_run_outcomes.idrun_outcomes_observation_fk",
             "institute_discovery_run_outcomes.idrun_outcomes_outcome_time_idx",
+            "institute_discovery_run_outcomes.idrun_outcomes_snapshot_fk",
             "institute_discovery_run_outcomes.idrun_outcomes_source_time_idx"
           ],
           "foreign_keys_created": [
@@ -6049,7 +6069,13 @@
         "institution_field_approvals.inst_field_approval_decision_idx",
         "institution_field_approvals.inst_field_approval_source_idx",
         "institution_field_approvals.inst_field_approval_state_idx",
-        "institution_field_approvals.institution_field_approvals_proposal_hash_unique"
+        "institution_field_approvals.institution_field_approvals_applied_refresh_event_id_foreign",
+        "institution_field_approvals.institution_field_approvals_created_by_foreign",
+        "institution_field_approvals.institution_field_approvals_evidence_id_foreign",
+        "institution_field_approvals.institution_field_approvals_proposal_hash_unique",
+        "institution_field_approvals.institution_field_approvals_reviewer_id_foreign",
+        "institution_field_approvals.institution_field_approvals_source_change_observation_id_foreign",
+        "institution_field_approvals.institution_field_approvals_source_snapshot_id_foreign"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
@@ -6121,7 +6147,13 @@
             "institution_field_approvals.inst_field_approval_decision_idx",
             "institution_field_approvals.inst_field_approval_source_idx",
             "institution_field_approvals.inst_field_approval_state_idx",
-            "institution_field_approvals.institution_field_approvals_proposal_hash_unique"
+            "institution_field_approvals.institution_field_approvals_applied_refresh_event_id_foreign",
+            "institution_field_approvals.institution_field_approvals_created_by_foreign",
+            "institution_field_approvals.institution_field_approvals_evidence_id_foreign",
+            "institution_field_approvals.institution_field_approvals_proposal_hash_unique",
+            "institution_field_approvals.institution_field_approvals_reviewer_id_foreign",
+            "institution_field_approvals.institution_field_approvals_source_change_observation_id_foreign",
+            "institution_field_approvals.institution_field_approvals_source_snapshot_id_foreign"
           ],
           "foreign_keys_created": [
             "institution_field_approvals.institution_field_approvals_applied_refresh_event_id_foreign",
@@ -7027,7 +7059,10 @@
         "source_snapshot_reconciliation_requests.PRIMARY",
         "source_snapshot_reconciliation_requests.snapshot_reconciliation_current_status_idx",
         "source_snapshot_reconciliation_requests.snapshot_reconciliation_source_status_idx",
-        "source_snapshot_reconciliation_requests.source_snapshot_reconciliation_requests_identity_key_unique"
+        "source_snapshot_reconciliation_requests.source_snapshot_reconciliation_requests_identity_key_unique",
+        "source_snapshot_reconciliation_requests.ssr_expected_previous_fk",
+        "source_snapshot_reconciliation_requests.ssr_recorded_previous_fk",
+        "source_snapshot_reconciliation_requests.ssr_triggering_snapshot_fk"
       ],
       "indexes_removed": [],
       "foreign_keys_created": [
@@ -7081,7 +7116,10 @@
             "source_snapshot_reconciliation_requests.PRIMARY",
             "source_snapshot_reconciliation_requests.snapshot_reconciliation_current_status_idx",
             "source_snapshot_reconciliation_requests.snapshot_reconciliation_source_status_idx",
-            "source_snapshot_reconciliation_requests.source_snapshot_reconciliation_requests_identity_key_unique"
+            "source_snapshot_reconciliation_requests.source_snapshot_reconciliation_requests_identity_key_unique",
+            "source_snapshot_reconciliation_requests.ssr_expected_previous_fk",
+            "source_snapshot_reconciliation_requests.ssr_recorded_previous_fk",
+            "source_snapshot_reconciliation_requests.ssr_triggering_snapshot_fk"
           ],
           "foreign_keys_created": [
             "source_snapshot_reconciliation_requests.ssr_current_snapshot_fk",
@@ -7277,7 +7315,10 @@
       ],
       "columns_changed": [],
       "columns_removed": [],
-      "indexes_created": [],
+      "indexes_created": [
+        "monitoring_policy_run_sources.mp_source_observation_fk",
+        "monitoring_policy_run_sources.mp_source_retrieval_fk"
+      ],
       "indexes_removed": [],
       "foreign_keys_created": [],
       "foreign_keys_removed": [],
@@ -7318,7 +7359,10 @@
             "monitoring_policy_runs.heartbeat_at"
           ],
           "columns_changed": [],
-          "indexes_created": [],
+          "indexes_created": [
+            "monitoring_policy_run_sources.mp_source_observation_fk",
+            "monitoring_policy_run_sources.mp_source_retrieval_fk"
+          ],
           "foreign_keys_created": [],
           "foreign_keys_changed": [
             "monitoring_alert_identities.mai_active_alert_fk",
