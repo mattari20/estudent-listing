@@ -8,7 +8,7 @@
   "application_table_scope_count": 62,
   "framework_managed_ledger": "migrations",
   "framework_managed_ledger_source": "Laravel DatabaseMigrationRepository",
-  "coverage_state": "PARTIAL_OBJECT_MAPPING; PER-MIGRATION COLUMN/INDEX/FK/TRIGGER/DATA OPERATIONS NOT_CHECKED",
+  "coverage_state": "PARTIAL_OBJECT_MAPPING; 23 EMPTY SUPERSEDED MIGRATIONS SOURCE-REVIEWED AS NO-OP; 74 MIGRATIONS STILL REQUIRE OBJECT-LEVEL REVIEW",
   "migrations": [
     {
       "migration": "2026_09_23_000001_create_institutions_table",
@@ -117,11 +117,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000004_create_ranking_methodologies_table",
@@ -138,11 +150,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000005_create_campuses_table",
@@ -159,11 +183,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000005_create_institution_names_table",
@@ -203,11 +239,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000006_create_programs_table",
@@ -224,11 +272,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000006_create_ranking_methodologies_table",
@@ -268,11 +328,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000007_create_moderation_actions_table",
@@ -289,11 +361,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000007_create_program_offerings_table",
@@ -310,11 +394,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000007_create_recommendation_policies_table",
@@ -377,11 +473,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000008_create_scholarships_table",
@@ -398,11 +506,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000008_create_sources_table",
@@ -419,11 +539,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000009_create_accreditations_table",
@@ -440,11 +572,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000009_create_evidences_table",
@@ -461,11 +605,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000009_create_programs_table",
@@ -505,11 +661,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000010_create_reviews_tables",
@@ -526,11 +694,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000010_create_security_audit_events_table",
@@ -570,11 +750,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000011_create_moderation_actions_table",
@@ -614,11 +806,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000012_create_release_records_table",
@@ -658,11 +862,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000013_create_sources_table",
@@ -702,11 +918,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000014_create_program_offerings_table",
@@ -769,11 +997,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000016_create_eligibility_rules_table",
@@ -813,11 +1053,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000017_create_merit_records_table",
@@ -857,11 +1109,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_23_000018_create_selection_outcomes_table",
@@ -1661,11 +1925,23 @@
       "foreign_keys_removed": [],
       "triggers_installed": [],
       "triggers_removed": [],
-      "data_backfills_or_transformations": "NOT_CHECKED",
-      "required_prerequisites": "NOT_CHECKED",
-      "expected_postconditions": "NOT_CHECKED",
-      "object_mapping_state": "NOT_CHECKED",
-      "unmapped_operation_review": "REQUIRED"
+      "data_backfills_or_transformations": "NONE",
+      "required_prerequisites": "NONE",
+      "expected_postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+      "object_mapping_state": "REVIEWED_NOOP",
+      "unmapped_operation_review": "COMPLETE_NOOP",
+      "operation_review": {
+        "state": "REVIEWED_NOOP",
+        "up_effect": "NONE",
+        "down_effect": "NONE",
+        "operation_order": 1,
+        "source_evidence": "The complete source blob is the intentionally empty superseded-migration stub; up() and down() contain comments only and execute no schema or data operation.",
+        "related_objects": [],
+        "data_transformations": "NONE",
+        "prerequisites": "NONE",
+        "postconditions": "NO_SCHEMA_OR_DATA_EFFECT",
+        "rollback_considerations": "NONE; down() is intentionally empty."
+      }
     },
     {
       "migration": "2026_09_26_000001_add_content_to_source_snapshots_table",
