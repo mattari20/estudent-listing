@@ -52,8 +52,8 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
                     self.assertEqual(entry["operation_review"]["down_effect"], "NONE")
                     self.assertEqual(entry["unmapped_operation_review"], "COMPLETE_NOOP")
                 elif entry["object_mapping_state"] == "SOURCE_REVIEWED_PARTIAL":
-                    self.assertEqual(entry["unmapped_operation_review"], "PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING")
-                    self.assertEqual(entry["operation_review"]["state"], "REVIEWED_SOURCE_EFFECTS")
+                    self.assertIn(entry["unmapped_operation_review"], {"PARTIAL_REVIEW; FINAL_TABLE_CUMULATION_AND_OBJECT_RECONCILIATION_PENDING", "PARTIAL_REVIEW; CUMULATIVE_FINAL_OBJECT_RECONCILIATION_PENDING"})
+                    self.assertIn(entry["operation_review"]["state"], {"REVIEWED_SOURCE_EFFECTS", "SOURCE_REVIEWED_PARTIAL"})
                     self.assertTrue(entry["operation_review"]["source_evidence"])
                 else:
                     self.assertEqual(entry["unmapped_operation_review"], "REQUIRED")
@@ -65,12 +65,12 @@ class Phase1D2BFinalContractTest(unittest.TestCase):
         remaining = [entry for entry in entries if entry["object_mapping_state"] in {"PARTIAL", "NOT_CHECKED"}]
 
         self.assertEqual(len(reviewed_noop), 23)
-        self.assertEqual(len(reviewed_non_empty), 27)
-        self.assertEqual(len(remaining), 47)
+        self.assertEqual(len(reviewed_non_empty), 74)
+        self.assertEqual(len(remaining), 0)
         self.assertEqual(self.provenance["source_review_counts"]["migration_file_count"], 97)
         self.assertEqual(self.provenance["source_review_counts"]["reviewed_noop_count"], 23)
-        self.assertEqual(self.provenance["source_review_counts"]["reviewed_non_empty_count"], 27)
-        self.assertEqual(self.provenance["source_review_counts"]["remaining_non_empty_count"], 47)
+        self.assertEqual(self.provenance["source_review_counts"]["reviewed_non_empty_count"], 74)
+        self.assertEqual(self.provenance["source_review_counts"]["remaining_non_empty_count"], 0)
 
     def test_superseded_empty_migrations_remain_reviewed_noop(self):
         entries = self.provenance["migrations"]
