@@ -89,6 +89,14 @@ final class Phase1D2BSchemaContractComparator
             $tableComplete = ($contract['definition_state'] ?? 'NOT_CHECKED') === 'COMPLETE'
                 && ($contract['table_options']['state'] ?? 'NOT_CHECKED') === 'COMPLETE';
             $tableContract['definition_state'] = $tableComplete ? 'COMPLETE' : 'NOT_CHECKED';
+            if (($tableContract['engine'] ?? null) === 'SERVER_DEFAULT') {
+                $serverDefault = $observed['server_defaults']['engine'] ?? null;
+                if (is_string($serverDefault) && $serverDefault !== '') {
+                    $tableContract['engine'] = $serverDefault;
+                } else {
+                    $tableContract['definition_state'] = 'NOT_CHECKED';
+                }
+            }
             $tableResult = self::compareObject('table', $tableContract, $actualTable, $tableVisible);
             $objects = ['table' => $tableResult];
 
