@@ -99,3 +99,12 @@ Verified directly from all 97 provenance rows: 23 REVIEWED_NOOP + 27 SOURCE_REVI
 - MySQL config source fixes charset/collation to utf8mb4/utf8mb4_unicode_ci but engine=null; engine is server-default. Do not infer InnoDB from source config alone.
 - Structural validation found no missing indexed source columns, FK source columns or table source references. Isolated engine tests, exact trigger-action comparison, cumulative object mapping and comparator/collector acceptance remain open.
 - Next: validate all manifest object contracts against disposable MySQL 8.4/MariaDB 11.8.9 metadata; repair genuine source or comparator mismatches; update per-migration object mapping from table-level source records; ensure all exact-head workflows pass.
+
+
+## Clean migration acceptance progress — 2026-11-11
+
+- Added a dedicated CI acceptance script that applies the complete repository migration set to a fresh disposable database and reconciles all 63 manifest tables against observed metadata. It performs no production access.
+- MariaDB 11.8.9 successfully applied all repository migrations in the disposable schema. The first source-comparison attempt stopped at a test count assertion: the expected application-only totals (793 columns / 231 indexes) omitted the framework ledger's 3 columns and 1 primary index. The acceptance count is corrected to 796 columns / 232 indexes for all 63 scope entries.
+- A second partial-fixture assertion expected every partial non-target migration to remain NOT_CHECKED. That was too broad: when metadata visibility proves an expected object is absent, the migration object state must be FAIL; only incomplete evidence stays NOT_CHECKED/UNKNOWN. The acceptance assertion now requires 23 no-op object PASS rows and all 74 partial migration rows to remain non-PASS, preserving the distinction between MISSING/FAIL and NOT_CHECKED.
+- The full clean-schema acceptance will require 62 application table-options PASS results, one framework-ledger options NOT_CHECKED result, 796 column comparisons, 232 index comparisons, 89 FK comparisons and 24 trigger comparisons. Table definitions remain PARTIAL until conditional migration behavior and exact source-to-object reconciliation are accepted.
+- Exact-head CI for the newest commit is pending; previous historical runs are not counted as final acceptance.
