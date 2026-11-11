@@ -587,6 +587,8 @@
     "triggers": 24,
     "trigger_tables": 12,
     "complete_application_tables": 0,
-    "note": "Object inventories are source-derived and structurally populated. No table is COMPLETE because engine is server-default and conditional/helper/raw SQL behavior still requires exact acceptance."
+    "note": "Object inventories are source-derived and structurally populated. No table is COMPLETE because engine is server-default and conditional/helper/raw SQL behavior still requires exact acceptance.",
+    "trigger_table_count": 12,
+    "source_derived_trigger_contracts": 12
   }
 }
